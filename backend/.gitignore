@@ -1,0 +1,46 @@
+# Environment files — NEVER commit credentials
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+
+# Prisma generated client (regenerated on postinstall)
+node_modules/.prisma/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Editor & OS artifacts
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# Docker override files that may contain secrets
+docker-compose.override.yml

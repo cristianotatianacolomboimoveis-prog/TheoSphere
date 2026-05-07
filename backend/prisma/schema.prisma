@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Users, Plans, Gamification
+// ─────────────────────────────────────────────────────────────────────────────
+model User {
+  id            String  @id @default(uuid())
+  email         String  @unique
+  passwordHash  String
+  plan          String  @default("FREE")
+  // RBAC role. Allowed values: 'USER' | 'MODERATOR' | 'ADMIN'.
+  // Kept as String (not enum) for runtime flexibility; AuthN/Z code is the
+  // single source of truth for the value space.
+  role          String  @default("USER")
+  xp            Int     @default(0)
+  institutionId String?
+  modeConfig    Json?
+
+  // Relations
+  institution Institution?    @relation(fields: [institutionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  embeddings  UserEmbedding[]
+  chatHistory ChatHistory[]
+  auditLogs   AuditLog[]
+
+  @@index([institutionId])
+  @@index([role])
+}
+
+// Academic Institutions
+model Institution {
+  id     String @id @default(uuid())
+  name   String
+  domain String
+
+  users User[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Geographic Locations (PostGIS)
+// Field names standardized to English (was: nome, categoria, descricao).
+// ─────────────────────────────────────────────────────────────────────────────
+model Location {
+  id          Int                                   @id @default(autoincrement())
+  name        String
+  era         Int
+  category    String
+  description String
+  geom        Unsupported("geography(Point, 4326)")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RAG Knowledge Base (pgvector)
+// ─────────────────────────────────────────────────────────────────────────────
+model TheologyEmbedding {
+  id        Int                        @id @default(autoincrement())
+  content   String
+  tradition String
+  embedding Unsupported("vector(768)")
+}
+
+// User-content Embeddings (personalized RAG)
+model UserEmbedding {
+  id        String                     @id
+  userId    String
+  type      String // 'note' | 'sermon' | 'highlight' | 'study' | 'bookmark'
+  content   String
+  metadata  Json?
+  embedding Unsupported("vector(768)")
+  createdAt DateTime                   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([type])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Semantic Cache for AI responses (pgvector-backed)
+// Replaces in-memory/Redis cosine scan with native ANN search.
+// ─────────────────────────────────────────────────────────────────────────────
+model SemanticCacheEntry {
+  id        String                     @id @default(uuid())
+  scope     String // 'global' | 'user'
+  userId    String? // populated when scope = 'user'
+  tradition String?
+  queryText String
+  response  String
+  embedding Unsupported("vector(768)")
+  hitCount  Int                        @default(0)
+  expiresAt DateTime
+  createdAt DateTime                   @default(now())
+
+  @@index([scope])
+  @@index([userId])
+  @@index([tradition])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Chat History (audit + cost accounting)
+// ─────────────────────────────────────────────────────────────────────────────
+model ChatHistory {
+  id        String   @id @default(uuid())
+  userId    String?
+  query     String
+  response  String
+  cached    Boolean  @default(false)
+  tradition String?
+  tokens    Int      @default(0)
+  cost      Float    @default(0)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit Log — append-only trail of privileged actions
+// Designed to be queried by admin tooling, not by end-users. Never mutated
+// after creation; deletion only via retention jobs.
+// ─────────────────────────────────────────────────────────────────────────────
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String? // nullable: system-initiated events have no actor
+  // Stable action identifier, e.g. 'user.role.update', 'cache.clear',
+  // 'debate.delete'. Use dot notation; never localized.
+  action     String
+  // Resource targeted by the action (model name, e.g. 'User', 'Debate').
+  resource   String
+  // PK or other stable identifier of the targeted resource.
+  resourceId String?
+  // Optional JSON diff / context (NEW: redact secrets before storing).
+  payload    Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Institutional Debate System
+// ─────────────────────────────────────────────────────────────────────────────
+model Debate {
+  id        String     @id @default(uuid())
+  topic     String
+  createdAt DateTime   @default(now())
+  arguments Argument[]
+}
+
+model Argument {
+  id        String @id @default(uuid())
+  debateId  String
+  tradition String
+  content   String
+  debate    Debate @relation(fields: [debateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([debateId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bible text + lexicons
+// ─────────────────────────────────────────────────────────────────────────────
+model BibleVerse {
+  id            String                      @id @default(uuid())
+  book          String
+  bookId        Int
+  chapter       Int
+  verse         Int
+  text          String
+  translation   String
+  testament     String // 'OT' | 'NT'
+  copyright     String?
+  textDirection String                      @default("ltr") // 'ltr' or 'rtl'
+  embedding     Unsupported("vector(768)")?
+
+  @@unique([translation, bookId, chapter, verse])
+  @@index([translation])
+  @@index([bookId, chapter])
+}
+
+model LexicalEntry {
+  id          String   @id @default(uuid())
+  strongId    String   @unique
+  word        String
+  language    String // 'GK' | 'HB'
+  definition  String
+  academicRef String?
+  morphology  Json?
+  createdAt   DateTime @default(now())
+
+  @@index([word])
+}
+
+model TechnicalCommentary {
+  id        String   @id @default(uuid())
+  bookId    Int
+  chapter   Int
+  verse     Int
+  author    String
+  content   String
+  source    String
+  tags      String[]
+  createdAt DateTime @default(now())
+
+  @@index([bookId, chapter, verse])
+}

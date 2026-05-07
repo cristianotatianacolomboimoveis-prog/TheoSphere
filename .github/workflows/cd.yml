@@ -1,0 +1,119 @@
+name: CD
+
+on:
+  push:
+    tags: ['v*.*.*']            # production deploy only on semver tags
+    branches: [main]            # staging deploy on every main push
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        type: choice
+        options: [staging, production]
+
+# Prevent overlapping deploys to the same environment.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Backend → Fly.io. Tag pushes go to production; main pushes go to staging.
+  # `flyctl deploy --remote-only` runs the build on Fly's builder (no need to
+  # configure a Docker buildx host in CI).
+  # ─────────────────────────────────────────────────────────────────────────
+  backend:
+    name: Deploy backend (Fly.io)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          APP_NAME="theosphere-backend"
+          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+            APP_NAME="theosphere-backend-staging"
+          fi
+          flyctl deploy --app "$APP_NAME" --remote-only \
+            --build-arg SENTRY_RELEASE="${GITHUB_SHA}"
+
+      # Tag the Sentry release so frontend/backend errors get attributed to
+      # the actual deploy. Skips silently if SENTRY_AUTH_TOKEN is unset.
+      - name: Sentry release
+        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: theosphere-backend
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli releases new "${GITHUB_SHA}"
+          sentry-cli releases set-commits "${GITHUB_SHA}" --auto
+          sentry-cli releases finalize "${GITHUB_SHA}"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Frontend → Vercel. Vercel's GitHub integration usually does this on its
+  # own — this job is a fallback / explicit invocation. Comment out if you
+  # use the integration.
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend:
+    name: Deploy frontend (Vercel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+
+    defaults:
+      run:
+        working-directory: frontend-v2
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+      - run: npx vercel --token=${{ secrets.VERCEL_TOKEN }} --prod=${{ startsWith(github.ref, 'refs/tags/v') }} --yes
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Cloudflare Worker — edge cache layer.
+  # ─────────────────────────────────────────────────────────────────────────
+  edge:
+    name: Deploy edge worker (Cloudflare)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: cloudflare
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+      - name: Deploy worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            npx wrangler deploy
+          else
+            npx wrangler deploy --env staging
+          fi

@@ -1,0 +1,14 @@
+name: Auditoria Semanal
+on:
+  schedule: [{cron: '0 8 * * 1'}]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "# Auditoria $(date)" > audit_reports/relatorio_${{ github.run_id }}.md
+          git log --since="7 days ago" --oneline >> audit_reports/relatorio_${{ github.run_id }}.md
+      - uses: actions/upload-artifact@v4
+        with: {name: auditoria, path: audit_reports/}

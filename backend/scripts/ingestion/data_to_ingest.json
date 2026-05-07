@@ -1,0 +1,28 @@
+[
+  {
+    "id": "ara_mat_13_1",
+    "text": "Naquele dia, saindo Jesus de casa, sentou-se junto ao mar.",
+    "metadata": {
+      "book": "Matthew",
+      "chapter": 13,
+      "verse_start": 1,
+      "verse_end": 1,
+      "type": "biblical_text",
+      "source": "ARA",
+      "testament": "NT"
+    }
+  },
+  {
+    "id": "ara_mat_13_2",
+    "text": "E ajuntou-se a ele muita gente, de sorte que, entrando num barco, se assentou; e toda a multidão estava em pé na praia.",
+    "metadata": {
+      "book": "Matthew",
+      "chapter": 13,
+      "verse_start": 2,
+      "verse_end": 2,
+      "type": "biblical_text",
+      "source": "ARA",
+      "testament": "NT"
+    }
+  }
+]

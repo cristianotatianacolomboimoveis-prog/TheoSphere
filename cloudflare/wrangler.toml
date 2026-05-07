@@ -1,0 +1,39 @@
+# Cloudflare Worker — TheoSphere edge cache
+#
+# Goal: cache read-heavy, immutable Bible endpoints at Cloudflare's edge so
+# the origin (NestJS) only sees cache misses. Gives sub-100ms p99 globally
+# for `/api/v1/bible/chapter/*` and friends.
+#
+# Deploy:
+#   cd cloudflare
+#   npx wrangler deploy
+#
+# Local test:
+#   npx wrangler dev
+
+name = "theosphere-edge"
+main = "worker.ts"
+compatibility_date = "2025-05-01"
+
+# Worker is invoked for every request to api.theosphere.app and proxies to
+# the origin defined in vars.ORIGIN_URL. Set up a Custom Domain or Worker
+# Route in the Cloudflare dashboard pointing at this worker.
+#
+# routes = [
+#   { pattern = "api.theosphere.app/*", custom_domain = true }
+# ]
+
+[vars]
+# Override per environment. CI / staging gets its own values.
+ORIGIN_URL = "https://theosphere-backend.fly.dev"
+
+# Cache TTLs (seconds). Edge cache only — does NOT replace the
+# semantic cache layer in the origin (different semantic).
+BIBLE_CHAPTER_TTL = "604800"   # 7 days — Bible text is immutable
+BIBLE_VERSIONS_TTL = "86400"   # 1 day  — version list rarely changes
+BIBLE_FALLBACK_TTL = "3600"    # 1 hour — third-party API; shorter
+LINGUISTICS_TTL = "604800"     # 7 days — lexical entries are immutable
+GEO_TTL = "86400"              # 1 day  — locations updated rarely
+
+[env.staging.vars]
+ORIGIN_URL = "https://theosphere-backend-staging.fly.dev"

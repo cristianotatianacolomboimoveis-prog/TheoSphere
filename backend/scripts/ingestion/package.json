@@ -1,0 +1,21 @@
+{
+  "name": "theosphere-ingestion-pipeline",
+  "version": "1.0.0",
+  "description": "Pipeline de ingestão vetorial para o TheoSphere",
+  "main": "pipeline.ts",
+  "dependencies": {
+    "@google/generative-ai": "^0.11.1",
+    "pg": "^8.11.5",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/pg": "^8.11.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "ingest": "ts-node pipeline.ts"
+  }
+}

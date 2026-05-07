@@ -1,0 +1,1136 @@
+import * as duckdb from '@duckdb/duckdb-wasm';
+import { SEED_LOCATIONS } from "../data/geoSeedData";
+import { serializeTrekToBinary } from "./geoBinary";
+import { BIBLE_BOOK_TO_ID, getOriginalLanguageTranslation, stripHtml } from "./bibleUtils";
+import { transliterateBiblical } from "./transliteration";
+import { STRONGS_GREEK } from "../data/strongsGreek";
+import { STRONGS_HEBREW } from "../data/strongsHebrew";
+
+// --- Input sanitization helpers (SQL injection defense for DuckDB WASM) ---
+function sanitizeStr(s: string): string {
+  return s.replace(/'/g, "''").replace(/[;\-\-]/g, '');
+}
+function sanitizeInt(n: any): number {
+  const parsed = parseInt(String(n), 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+let db: duckdb.AsyncDuckDB;
+let conn: duckdb.AsyncDuckDBConnection;
+
+// ---------------------------------------------------------------------------
+// OFFLINE SEED — Almeida Corrigida Fiel (ACF)
+// Capítulos fundamentais sempre disponíveis sem acesso à rede.
+// ---------------------------------------------------------------------------
+const OFFLINE_SEED_VERSES: Array<{
+  id: string; book: string; chapter: number; verse: number; text: string; translation: string;
+}> = [
+  // ── João 1 ──────────────────────────────────────────────────────────────
+  { id: "john_1_1_almeida",  book: "John", chapter: 1, verse: 1,  translation: "almeida", text: "No princípio era o Verbo, e o Verbo estava com Deus, e o Verbo era Deus." },
+  { id: "john_1_2_almeida",  book: "John", chapter: 1, verse: 2,  translation: "almeida", text: "Ele estava no princípio com Deus." },
+  { id: "john_1_3_almeida",  book: "John", chapter: 1, verse: 3,  translation: "almeida", text: "Todas as coisas foram feitas por ele, e sem ele nada do que foi feito se fez." },
+  { id: "john_1_4_almeida",  book: "John", chapter: 1, verse: 4,  translation: "almeida", text: "Nele estava a vida, e a vida era a luz dos homens." },
+  { id: "john_1_5_almeida",  book: "John", chapter: 1, verse: 5,  translation: "almeida", text: "E a luz resplandece nas trevas, e as trevas não a compreenderam." },
+  { id: "john_1_6_almeida",  book: "John", chapter: 1, verse: 6,  translation: "almeida", text: "Houve um homem enviado por Deus, cujo nome era João." },
+  { id: "john_1_7_almeida",  book: "John", chapter: 1, verse: 7,  translation: "almeida", text: "Este veio em testemunho, para que testificasse acerca da luz, a fim de todos crerem por ele." },
+  { id: "john_1_8_almeida",  book: "John", chapter: 1, verse: 8,  translation: "almeida", text: "Não era ele a luz, mas veio para testificar acerca da luz." },
+  { id: "john_1_9_almeida",  book: "John", chapter: 1, verse: 9,  translation: "almeida", text: "Havia a luz verdadeira, que ilumina todo o homem, vindo ao mundo." },
+  { id: "john_1_10_almeida", book: "John", chapter: 1, verse: 10, translation: "almeida", text: "Ele estava no mundo, e o mundo foi feito por ele, e o mundo não o conheceu." },
+  { id: "john_1_11_almeida", book: "John", chapter: 1, verse: 11, translation: "almeida", text: "Veio para o que era seu, e os seus não o receberam." },
+  { id: "john_1_12_almeida", book: "John", chapter: 1, verse: 12, translation: "almeida", text: "Mas a todos quantos o receberam, deu-lhes o poder de serem feitos filhos de Deus, aos que crêem no seu nome;" },
+  { id: "john_1_13_almeida", book: "John", chapter: 1, verse: 13, translation: "almeida", text: "os quais não nasceram do sangue, nem da vontade da carne, nem da vontade do homem, mas de Deus." },
+  { id: "john_1_14_almeida", book: "John", chapter: 1, verse: 14, translation: "almeida", text: "E o Verbo se fez carne, e habitou entre nós, e vimos a sua glória, como a glória do unigênito do Pai, cheio de graça e de verdade." },
+  { id: "john_1_15_almeida", book: "John", chapter: 1, verse: 15, translation: "almeida", text: "João testificou dele, e clamou, dizendo: Este era aquele de quem eu dizia: O que vem depois de mim é antes de mim, porque era primeiro do que eu." },
+  { id: "john_1_16_almeida", book: "John", chapter: 1, verse: 16, translation: "almeida", text: "Porque todos nós recebemos da sua plenitude, e graça sobre graça." },
+  { id: "john_1_17_almeida", book: "John", chapter: 1, verse: 17, translation: "almeida", text: "Porque a lei foi dada por Moisés, a graça e a verdade vieram por Jesus Cristo." },
+  { id: "john_1_18_almeida", book: "John", chapter: 1, verse: 18, translation: "almeida", text: "Ninguém jamais viu a Deus; o Filho unigênito, que está no seio do Pai, esse o declarou." },
+
+  // ── João 3 ──────────────────────────────────────────────────────────────
+  { id: "john_3_1_almeida",  book: "John", chapter: 3, verse: 1,  translation: "almeida", text: "Havia entre os fariseus um homem chamado Nicodemos, príncipe dos judeus." },
+  { id: "john_3_2_almeida",  book: "John", chapter: 3, verse: 2,  translation: "almeida", text: "Este foi ter com Jesus de noite, e disse-lhe: Rabi, sabemos que és Mestre vindo de Deus; porque ninguém pode fazer estes sinais que tu fazes, se Deus não for com ele." },
+  { id: "john_3_3_almeida",  book: "John", chapter: 3, verse: 3,  translation: "almeida", text: "Jesus respondeu, e disse-lhe: Na verdade, na verdade te digo que aquele que não nascer de novo não pode ver o reino de Deus." },
+  { id: "john_3_4_almeida",  book: "John", chapter: 3, verse: 4,  translation: "almeida", text: "Nicodemos disse-lhe: Como pode um homem nascer sendo velho? Pode tornar a entrar no ventre de sua mãe e nascer?" },
+  { id: "john_3_5_almeida",  book: "John", chapter: 3, verse: 5,  translation: "almeida", text: "Jesus respondeu: Na verdade, na verdade te digo que aquele que não nascer da água e do Espírito não pode entrar no reino de Deus." },
+  { id: "john_3_6_almeida",  book: "John", chapter: 3, verse: 6,  translation: "almeida", text: "O que é nascido da carne é carne, e o que é nascido do Espírito é espírito." },
+  { id: "john_3_7_almeida",  book: "John", chapter: 3, verse: 7,  translation: "almeida", text: "Não te maravilhes de que te disse: Necessário vos é nascer de novo." },
+  { id: "john_3_8_almeida",  book: "John", chapter: 3, verse: 8,  translation: "almeida", text: "O vento assopra onde quer, e ouves a sua voz, mas não sabes de onde vem, nem para onde vai; assim é todo aquele que é nascido do Espírito." },
+  { id: "john_3_9_almeida",  book: "John", chapter: 3, verse: 9,  translation: "almeida", text: "Nicodemos respondeu, e disse-lhe: Como pode ser isto?" },
+  { id: "john_3_10_almeida", book: "John", chapter: 3, verse: 10, translation: "almeida", text: "Jesus respondeu, e disse-lhe: Tu és Mestre em Israel, e não sabes isto?" },
+  { id: "john_3_11_almeida", book: "John", chapter: 3, verse: 11, translation: "almeida", text: "Na verdade, na verdade te digo que o que sabemos falamos, e o que vimos testificamos; e não recebeis o nosso testemunho." },
+  { id: "john_3_12_almeida", book: "John", chapter: 3, verse: 12, translation: "almeida", text: "Se vos disse as coisas terrestres e não credes, como crereis se vos disser as celestiais?" },
+  { id: "john_3_13_almeida", book: "John", chapter: 3, verse: 13, translation: "almeida", text: "E ninguém subiu ao céu, senão o que desceu do céu, o Filho do homem, que está no céu." },
+  { id: "john_3_14_almeida", book: "John", chapter: 3, verse: 14, translation: "almeida", text: "E assim como Moisés levantou a serpente no deserto, assim importa que o Filho do homem seja levantado;" },
+  { id: "john_3_15_almeida", book: "John", chapter: 3, verse: 15, translation: "almeida", text: "Para que todo aquele que nele crê não pereça, mas tenha a vida eterna." },
+  { id: "john_3_16_almeida", book: "John", chapter: 3, verse: 16, translation: "almeida", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna." },
+  { id: "john_3_17_almeida", book: "John", chapter: 3, verse: 17, translation: "almeida", text: "Porque Deus enviou o seu Filho ao mundo não para que condenasse o mundo, mas para que o mundo fosse salvo por ele." },
+  { id: "john_3_18_almeida", book: "John", chapter: 3, verse: 18, translation: "almeida", text: "Quem crê nele não é condenado; mas quem não crê já está condenado, porque não crê no nome do unigênito Filho de Deus." },
+  { id: "john_3_19_almeida", book: "John", chapter: 3, verse: 19, translation: "almeida", text: "E a condenação é esta: A luz veio ao mundo, e os homens amaram mais as trevas do que a luz, porque as suas obras eram más." },
+  { id: "john_3_20_almeida", book: "John", chapter: 3, verse: 20, translation: "almeida", text: "Porque todo aquele que faz o mal odeia a luz, e não vem para a luz, para que as suas obras não sejam reprovadas." },
+  { id: "john_3_21_almeida", book: "John", chapter: 3, verse: 21, translation: "almeida", text: "Mas o que pratica a verdade vem para a luz, a fim de que as suas obras sejam manifestas, porque são feitas em Deus." },
+  { id: "john_3_22_almeida", book: "John", chapter: 3, verse: 22, translation: "almeida", text: "Depois disto, foi Jesus com seus discípulos para a terra da Judéia; e ali estava com eles, e batizava." },
+  { id: "john_3_23_almeida", book: "John", chapter: 3, verse: 23, translation: "almeida", text: "João também batizava em Enom, perto de Salim, porque havia ali muitas águas; e os que acorriam eram batizados." },
+  { id: "john_3_24_almeida", book: "John", chapter: 3, verse: 24, translation: "almeida", text: "Porque João ainda não tinha sido posto em prisão." },
+  { id: "john_3_25_almeida", book: "John", chapter: 3, verse: 25, translation: "almeida", text: "Levantou-se então uma questão da parte dos discípulos de João com os judeus acerca da purificação." },
+  { id: "john_3_26_almeida", book: "John", chapter: 3, verse: 26, translation: "almeida", text: "E foram ter com João, e disseram-lhe: Rabi, aquele que estava contigo além do Jordão, e de quem deste testemunho, eis que batiza, e todos vão a ele." },
+  { id: "john_3_27_almeida", book: "John", chapter: 3, verse: 27, translation: "almeida", text: "João respondeu, e disse: O homem não pode receber nada, senão o que do céu lhe for dado." },
+  { id: "john_3_28_almeida", book: "John", chapter: 3, verse: 28, translation: "almeida", text: "Vós mesmos sois testemunhas de que eu disse: Não sou eu o Cristo, mas sou enviado diante dele." },
+  { id: "john_3_29_almeida", book: "John", chapter: 3, verse: 29, translation: "almeida", text: "O que tem a esposa é o esposo; mas o amigo do esposo, que está e o ouve, alegra-se muito com a voz do esposo; assim este meu gozo está cumprido." },
+  { id: "john_3_30_almeida", book: "John", chapter: 3, verse: 30, translation: "almeida", text: "É necessário que ele cresça e que eu diminua." },
+  { id: "john_3_31_almeida", book: "John", chapter: 3, verse: 31, translation: "almeida", text: "O que vem do alto é sobre todos; o que é da terra é terreno, e fala da terra; o que vem do céu é sobre todos." },
+  { id: "john_3_32_almeida", book: "John", chapter: 3, verse: 32, translation: "almeida", text: "E testifica o que viu e ouviu; mas ninguém recebe o seu testemunho." },
+  { id: "john_3_33_almeida", book: "John", chapter: 3, verse: 33, translation: "almeida", text: "Quem recebe o seu testemunho certifica que Deus é verdadeiro." },
+  { id: "john_3_34_almeida", book: "John", chapter: 3, verse: 34, translation: "almeida", text: "Porque aquele que Deus enviou fala as palavras de Deus; porque Deus não lhe dá o Espírito por medida." },
+  { id: "john_3_35_almeida", book: "John", chapter: 3, verse: 35, translation: "almeida", text: "O Pai ama o Filho e todas as coisas entregou nas suas mãos." },
+  { id: "john_3_36_almeida", book: "John", chapter: 3, verse: 36, translation: "almeida", text: "Quem crê no Filho tem a vida eterna; mas quem não crê no Filho não verá a vida, mas a ira de Deus sobre ele permanece." },
+
+  // ── Romanos 8 ───────────────────────────────────────────────────────────
+  { id: "romans_8_1_almeida",  book: "Romans", chapter: 8, verse: 1,  translation: "almeida", text: "Portanto, agora nenhuma condenação há para os que estão em Cristo Jesus, que não andam segundo a carne, mas segundo o Espírito." },
+  { id: "romans_8_2_almeida",  book: "Romans", chapter: 8, verse: 2,  translation: "almeida", text: "Porque a lei do Espírito de vida em Cristo Jesus me livrou da lei do pecado e da morte." },
+  { id: "romans_8_3_almeida",  book: "Romans", chapter: 8, verse: 3,  translation: "almeida", text: "Porquanto o que era impossível à lei, visto como estava enfraquecida pela carne, Deus, enviando o seu próprio Filho em semelhança da carne do pecado, pelo pecado condenou o pecado na carne;" },
+  { id: "romans_8_4_almeida",  book: "Romans", chapter: 8, verse: 4,  translation: "almeida", text: "Para que a justiça da lei se cumprisse em nós, que não andamos segundo a carne, mas segundo o Espírito." },
+  { id: "romans_8_5_almeida",  book: "Romans", chapter: 8, verse: 5,  translation: "almeida", text: "Porque os que são segundo a carne inclinam-se para as coisas da carne; mas os que são segundo o Espírito, para as coisas do Espírito." },
+  { id: "romans_8_6_almeida",  book: "Romans", chapter: 8, verse: 6,  translation: "almeida", text: "Porque o pendor da carne é morte, mas o pendor do Espírito é vida e paz." },
+  { id: "romans_8_7_almeida",  book: "Romans", chapter: 8, verse: 7,  translation: "almeida", text: "Porque o pendor da carne é inimizade contra Deus, pois não é sujeito à lei de Deus, nem, em verdade, o pode ser." },
+  { id: "romans_8_8_almeida",  book: "Romans", chapter: 8, verse: 8,  translation: "almeida", text: "Portanto, os que estão na carne não podem agradar a Deus." },
+  { id: "romans_8_9_almeida",  book: "Romans", chapter: 8, verse: 9,  translation: "almeida", text: "Vós, porém, não estais na carne, mas no Espírito, se é que o Espírito de Deus habita em vós. Mas, se alguém não tem o Espírito de Cristo, esse tal não é dele." },
+  { id: "romans_8_10_almeida", book: "Romans", chapter: 8, verse: 10, translation: "almeida", text: "E, se Cristo está em vós, o corpo na verdade está morto por causa do pecado, mas o espírito vive por causa da justiça." },
+  { id: "romans_8_11_almeida", book: "Romans", chapter: 8, verse: 11, translation: "almeida", text: "E, se o Espírito daquele que dentre os mortos ressuscitou a Jesus habita em vós, aquele que dentre os mortos ressuscitou a Cristo também vivificará os vossos corpos mortais pelo seu Espírito que em vós habita." },
+  { id: "romans_8_12_almeida", book: "Romans", chapter: 8, verse: 12, translation: "almeida", text: "Assim, pois, irmãos, somos devedores, não à carne, para vivermos segundo a carne." },
+  { id: "romans_8_13_almeida", book: "Romans", chapter: 8, verse: 13, translation: "almeida", text: "Porque, se viverdes segundo a carne, morrereis; mas, se pelo Espírito mortificardes as obras do corpo, vivereis." },
+  { id: "romans_8_14_almeida", book: "Romans", chapter: 8, verse: 14, translation: "almeida", text: "Porque todos os que são guiados pelo Espírito de Deus esses são filhos de Deus." },
+  { id: "romans_8_15_almeida", book: "Romans", chapter: 8, verse: 15, translation: "almeida", text: "Porque não recebestes o espírito de escravidão para estar outra vez em temor, mas recebestes o Espírito de adoção de filhos, pelo qual clamamos: Aba, Pai." },
+  { id: "romans_8_16_almeida", book: "Romans", chapter: 8, verse: 16, translation: "almeida", text: "O mesmo Espírito testifica com o nosso espírito que somos filhos de Deus." },
+  { id: "romans_8_17_almeida", book: "Romans", chapter: 8, verse: 17, translation: "almeida", text: "E, se filhos, também herdeiros; herdeiros de Deus e co-herdeiros de Cristo; se é certo que padecemos com ele, para que também com ele sejamos glorificados." },
+  { id: "romans_8_18_almeida", book: "Romans", chapter: 8, verse: 18, translation: "almeida", text: "Porque para mim tenho por certo que os sofrimentos do tempo presente não são para comparar com a glória que em nós há de ser revelada." },
+  { id: "romans_8_19_almeida", book: "Romans", chapter: 8, verse: 19, translation: "almeida", text: "Porque a ardente expectação da criação aguarda a manifestação dos filhos de Deus." },
+  { id: "romans_8_20_almeida", book: "Romans", chapter: 8, verse: 20, translation: "almeida", text: "Porque a criação foi sujeita à vaidade, não por sua vontade, mas por causa daquele que a sujeitou, na esperança" },
+  { id: "romans_8_21_almeida", book: "Romans", chapter: 8, verse: 21, translation: "almeida", text: "De que a mesma criação será também libertada da servidão da corrupção, para a liberdade da glória dos filhos de Deus." },
+  { id: "romans_8_22_almeida", book: "Romans", chapter: 8, verse: 22, translation: "almeida", text: "Porque sabemos que toda a criação geme e está juntamente em dores de parto até agora." },
+  { id: "romans_8_23_almeida", book: "Romans", chapter: 8, verse: 23, translation: "almeida", text: "E não só ela, mas também nós mesmos, que temos as primícias do Espírito, gememos em nós mesmos, esperando a adoção, a redenção do nosso corpo." },
+  { id: "romans_8_24_almeida", book: "Romans", chapter: 8, verse: 24, translation: "almeida", text: "Porque em esperança fomos salvos. Ora, a esperança que se vê não é esperança; porque o que alguém vê como o esperará?" },
+  { id: "romans_8_25_almeida", book: "Romans", chapter: 8, verse: 25, translation: "almeida", text: "Mas, se esperamos o que não vemos, com paciência o esperamos." },
+  { id: "romans_8_26_almeida", book: "Romans", chapter: 8, verse: 26, translation: "almeida", text: "E da mesma sorte também o Espírito ajuda as nossas fraquezas; porque não sabemos o que havemos de pedir como convém, mas o mesmo Espírito intercede por nós com gemidos inexprimíveis." },
+  { id: "romans_8_27_almeida", book: "Romans", chapter: 8, verse: 27, translation: "almeida", text: "E aquele que sonda os corações sabe qual é a intenção do Espírito; porque é segundo Deus que ele intercede pelos santos." },
+  { id: "romans_8_28_almeida", book: "Romans", chapter: 8, verse: 28, translation: "almeida", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito." },
+  { id: "romans_8_29_almeida", book: "Romans", chapter: 8, verse: 29, translation: "almeida", text: "Porque os que dantes conheceu também os predestinou para serem conformes à imagem de seu Filho, a fim de que ele seja o primogênito entre muitos irmãos." },
+  { id: "romans_8_30_almeida", book: "Romans", chapter: 8, verse: 30, translation: "almeida", text: "E aos que predestinou também os chamou; e aos que chamou também os justificou; e aos que justificou também os glorificou." },
+  { id: "romans_8_31_almeida", book: "Romans", chapter: 8, verse: 31, translation: "almeida", text: "Que diremos pois a estas coisas? Se Deus é por nós, quem será contra nós?" },
+  { id: "romans_8_32_almeida", book: "Romans", chapter: 8, verse: 32, translation: "almeida", text: "Aquele que não poupou nem o seu próprio Filho, antes o entregou por todos nós, como nos não dará também com ele todas as coisas?" },
+  { id: "romans_8_33_almeida", book: "Romans", chapter: 8, verse: 33, translation: "almeida", text: "Quem intentará acusação contra os eleitos de Deus? É Deus quem os justifica." },
+  { id: "romans_8_34_almeida", book: "Romans", chapter: 8, verse: 34, translation: "almeida", text: "Quem é o que condena? É Cristo quem morreu, ou antes, quem ressuscitou, quem está também à direita de Deus, e quem intercede por nós." },
+  { id: "romans_8_35_almeida", book: "Romans", chapter: 8, verse: 35, translation: "almeida", text: "Quem nos separará do amor de Cristo? A tribulação, ou a angústia, ou a perseguição, ou a fome, ou a nudez, ou o perigo, ou a espada?" },
+  { id: "romans_8_36_almeida", book: "Romans", chapter: 8, verse: 36, translation: "almeida", text: "Como está escrito: Por amor de ti somos entregues à morte todo o dia; somos reputados como ovelhas para o matadouro." },
+  { id: "romans_8_37_almeida", book: "Romans", chapter: 8, verse: 37, translation: "almeida", text: "Mas em todas estas coisas somos mais do que vencedores, por aquele que nos amou." },
+  { id: "romans_8_38_almeida", book: "Romans", chapter: 8, verse: 38, translation: "almeida", text: "Porque estou certo de que nem a morte, nem a vida, nem os anjos, nem os principados, nem as potestades, nem o presente, nem o porvir," },
+  { id: "romans_8_39_almeida", book: "Romans", chapter: 8, verse: 39, translation: "almeida", text: "Nem a altura, nem a profundidade, nem alguma outra criatura nos poderá separar do amor de Deus, que está em Cristo Jesus nosso Senhor." },
+
+  // ── Salmos 23 ───────────────────────────────────────────────────────────
+  { id: "psalms_23_1_almeida", book: "Psalms", chapter: 23, verse: 1, translation: "almeida", text: "O Senhor é o meu pastor; nada me faltará." },
+  { id: "psalms_23_2_almeida", book: "Psalms", chapter: 23, verse: 2, translation: "almeida", text: "Ele me faz descansar em pastos verdejantes; guia-me mansamente a águas tranqüilas." },
+  { id: "psalms_23_3_almeida", book: "Psalms", chapter: 23, verse: 3, translation: "almeida", text: "Refrigera a minha alma; guia-me pelas veredas da justiça, por amor do seu nome." },
+  { id: "psalms_23_4_almeida", book: "Psalms", chapter: 23, verse: 4, translation: "almeida", text: "Ainda que eu andasse pelo vale da sombra da morte, não temeria mal algum, porque tu estás comigo; o teu bordão e o teu cajado me consolam." },
+  { id: "psalms_23_5_almeida", book: "Psalms", chapter: 23, verse: 5, translation: "almeida", text: "Preparas uma mesa perante mim na presença dos meus inimigos; unges a minha cabeça com óleo; o meu cálice transborda." },
+  { id: "psalms_23_6_almeida", book: "Psalms", chapter: 23, verse: 6, translation: "almeida", text: "Certamente que a bondade e a misericórdia me seguirão todos os dias da minha vida; e habitarei na casa do Senhor por longos dias." },
+
+  // ── Gênesis 1 ───────────────────────────────────────────────────────────
+  { id: "genesis_1_1_almeida",  book: "Genesis", chapter: 1, verse: 1,  translation: "almeida", text: "No princípio criou Deus os céus e a terra." },
+  { id: "genesis_1_2_almeida",  book: "Genesis", chapter: 1, verse: 2,  translation: "almeida", text: "A terra era sem forma e vazia; e havia trevas sobre a face do abismo; e o Espírito de Deus se movia sobre a face das águas." },
+  { id: "genesis_1_3_almeida",  book: "Genesis", chapter: 1, verse: 3,  translation: "almeida", text: "E disse Deus: Haja luz; e houve luz." },
+  { id: "genesis_1_4_almeida",  book: "Genesis", chapter: 1, verse: 4,  translation: "almeida", text: "E viu Deus que a luz era boa; e fez Deus separação entre a luz e as trevas." },
+  { id: "genesis_1_5_almeida",  book: "Genesis", chapter: 1, verse: 5,  translation: "almeida", text: "E Deus chamou à luz Dia, e às trevas chamou Noite. E foi a tarde e a manhã, o dia primeiro." },
+  { id: "genesis_1_6_almeida",  book: "Genesis", chapter: 1, verse: 6,  translation: "almeida", text: "E disse Deus: Haja um firmamento no meio das águas, e haja separação entre águas e águas." },
+  { id: "genesis_1_7_almeida",  book: "Genesis", chapter: 1, verse: 7,  translation: "almeida", text: "E fez Deus o firmamento, e separação entre as águas que estavam debaixo do firmamento e as águas que estavam sobre o firmamento; e assim foi." },
+  { id: "genesis_1_8_almeida",  book: "Genesis", chapter: 1, verse: 8,  translation: "almeida", text: "E chamou Deus ao firmamento Céus; e foi a tarde e a manhã, o dia segundo." },
+  { id: "genesis_1_9_almeida",  book: "Genesis", chapter: 1, verse: 9,  translation: "almeida", text: "E disse Deus: Ajuntem-se as águas debaixo dos céus num lugar; e apareça a seca; e assim foi." },
+  { id: "genesis_1_10_almeida", book: "Genesis", chapter: 1, verse: 10, translation: "almeida", text: "E chamou Deus à seca Terra, e ao ajuntamento das águas chamou Mares; e viu Deus que era bom." },
+  { id: "genesis_1_11_almeida", book: "Genesis", chapter: 1, verse: 11, translation: "almeida", text: "E disse Deus: Produza a terra erva verde, erva que dê semente, árvore frutífera que dê fruto segundo a sua espécie, cuja semente está nela sobre a terra; e assim foi." },
+  { id: "genesis_1_12_almeida", book: "Genesis", chapter: 1, verse: 12, translation: "almeida", text: "E a terra produziu erva, erva dando semente conforme a sua espécie, e árvore dando fruto cuja semente estava nela conforme a sua espécie; e viu Deus que era bom." },
+  { id: "genesis_1_13_almeida", book: "Genesis", chapter: 1, verse: 13, translation: "almeida", text: "E foi a tarde e a manhã, o dia terceiro." },
+  { id: "genesis_1_14_almeida", book: "Genesis", chapter: 1, verse: 14, translation: "almeida", text: "E disse Deus: Haja luminares no firmamento dos céus, para fazerem separação entre o dia e a noite; e sejam eles para sinais e para estações determinadas e para dias e anos." },
+  { id: "genesis_1_15_almeida", book: "Genesis", chapter: 1, verse: 15, translation: "almeida", text: "E sejam para luminares no firmamento dos céus, para iluminar a terra; e assim foi." },
+  { id: "genesis_1_16_almeida", book: "Genesis", chapter: 1, verse: 16, translation: "almeida", text: "E fez Deus os dois grandes luminares: o luminar maior para governar o dia, e o luminar menor para governar a noite; e fez as estrelas." },
+  { id: "genesis_1_17_almeida", book: "Genesis", chapter: 1, verse: 17, translation: "almeida", text: "E os pôs Deus no firmamento dos céus para iluminar a terra." },
+  { id: "genesis_1_18_almeida", book: "Genesis", chapter: 1, verse: 18, translation: "almeida", text: "E para governar o dia e a noite, e para fazerem separação entre a luz e as trevas; e viu Deus que era bom." },
+  { id: "genesis_1_19_almeida", book: "Genesis", chapter: 1, verse: 19, translation: "almeida", text: "E foi a tarde e a manhã, o dia quarto." },
+  { id: "genesis_1_20_almeida", book: "Genesis", chapter: 1, verse: 20, translation: "almeida", text: "E disse Deus: Produzam as águas abundantemente répteis de alma vivente; e voem as aves sobre a terra no firmamento dos céus." },
+  { id: "genesis_1_21_almeida", book: "Genesis", chapter: 1, verse: 21, translation: "almeida", text: "E criou Deus as grandes baleias, e todo o réptil de alma vivente que as águas produziram abundantemente conforme as suas espécies; e toda a ave de asas conforme a sua espécie; e viu Deus que era bom." },
+  { id: "genesis_1_22_almeida", book: "Genesis", chapter: 1, verse: 22, translation: "almeida", text: "E Deus os abençoou, dizendo: Sede fecundos, e multiplicai-vos, e enchei as águas nos mares; e as aves se multipliquem na terra." },
+  { id: "genesis_1_23_almeida", book: "Genesis", chapter: 1, verse: 23, translation: "almeida", text: "E foi a tarde e a manhã, o dia quinto." },
+  { id: "genesis_1_24_almeida", book: "Genesis", chapter: 1, verse: 24, translation: "almeida", text: "E disse Deus: Produza a terra alma vivente conforme a sua espécie: gado e répteis e animais da terra conforme a sua espécie; e assim foi." },
+  { id: "genesis_1_25_almeida", book: "Genesis", chapter: 1, verse: 25, translation: "almeida", text: "E fez Deus os animais da terra conforme a sua espécie, e o gado conforme a sua espécie, e todo o réptil da terra conforme a sua espécie; e viu Deus que era bom." },
+  { id: "genesis_1_26_almeida", book: "Genesis", chapter: 1, verse: 26, translation: "almeida", text: "E disse Deus: Façamos o homem à nossa imagem, conforme a nossa semelhança; e domine sobre os peixes do mar, e sobre as aves dos céus, e sobre o gado, e sobre toda a terra, e sobre todo o réptil que se move sobre a terra." },
+  { id: "genesis_1_27_almeida", book: "Genesis", chapter: 1, verse: 27, translation: "almeida", text: "E criou Deus o homem à sua imagem; à imagem de Deus o criou; homem e mulher os criou." },
+  { id: "genesis_1_28_almeida", book: "Genesis", chapter: 1, verse: 28, translation: "almeida", text: "E Deus os abençoou, e Deus lhes disse: Sede fecundos e multiplicai-vos, e enchei a terra, e sujeitai-a; e dominai sobre os peixes do mar e sobre as aves dos céus, e sobre todo o animal que se move sobre a terra." },
+  { id: "genesis_1_29_almeida", book: "Genesis", chapter: 1, verse: 29, translation: "almeida", text: "E disse Deus: Eis que vos tenho dado toda a erva que dá semente, que está sobre a face de toda a terra; e toda a árvore em que há fruto que dê semente vos será para mantimento." },
+  { id: "genesis_1_30_almeida", book: "Genesis", chapter: 1, verse: 30, translation: "almeida", text: "E a todo o animal da terra, e a toda a ave dos céus, e a todo o réptil da terra, em que há alma vivente, toda a erva verde será para mantimento; e assim foi." },
+  { id: "genesis_1_31_almeida", book: "Genesis", chapter: 1, verse: 31, translation: "almeida", text: "E viu Deus tudo quanto fizera, e eis que era muito bom; e foi a tarde e a manhã, o dia sexto." },
+
+  // ── Mateus 5 ────────────────────────────────────────────────────────────
+  { id: "matthew_5_1_almeida", book: "Matthew", chapter: 5, verse: 1, translation: "almeida", text: "Vendo Jesus as multidões, subiu ao monte, e, assentando-se, aproximaram-se dele os seus discípulos." },
+  { id: "matthew_5_2_almeida", book: "Matthew", chapter: 5, verse: 2, translation: "almeida", text: "E, abrindo a sua boca, os ensinava, dizendo:" },
+  { id: "matthew_5_3_almeida", book: "Matthew", chapter: 5, verse: 3, translation: "almeida", text: "Bem-aventurados os pobres de espírito, porque deles é o reino dos céus." },
+  { id: "matthew_5_4_almeida", book: "Matthew", chapter: 5, verse: 4, translation: "almeida", text: "Bem-aventurados os que choram, porque serão consolados." },
+  { id: "matthew_5_5_almeida", book: "Matthew", chapter: 5, verse: 5, translation: "almeida", text: "Bem-aventurados os mansos, porque herdarão a terra." },
+  { id: "matthew_5_6_almeida", book: "Matthew", chapter: 5, verse: 6, translation: "almeida", text: "Bem-aventurados os que têm fome e sede de justiça, porque serão fartos." },
+  { id: "matthew_5_7_almeida", book: "Matthew", chapter: 5, verse: 7, translation: "almeida", text: "Bem-aventurados os misericordiosos, porque alcançarão misericórdia." },
+  { id: "matthew_5_8_almeida", book: "Matthew", chapter: 5, verse: 8, translation: "almeida", text: "Bem-aventurados os limpos de coração, porque verão a Deus." },
+  { id: "matthew_5_9_almeida", book: "Matthew", chapter: 5, verse: 9, translation: "almeida", text: "Bem-aventurados os pacificadores, porque serão chamados filhos de Deus." },
+  { id: "matthew_5_10_almeida", book: "Matthew", chapter: 5, verse: 10, translation: "almeida", text: "Bem-aventurados os que sofrem perseguição por causa da justiça, porque deles é o reino dos céus." },
+  { id: "matthew_5_11_almeida", book: "Matthew", chapter: 5, verse: 11, translation: "almeida", text: "Bem-aventurados sois vós, quando vos injuriarem e perseguirem e, mentindo, disserem todo o mal contra vós por minha causa." },
+  { id: "matthew_5_12_almeida", book: "Matthew", chapter: 5, verse: 12, translation: "almeida", text: "Regozijai-vos e alegrai-vos, porque é grande o vosso galardão nos céus; porque assim perseguiram os profetas que foram antes de vós." },
+  { id: "matthew_5_13_almeida", book: "Matthew", chapter: 5, verse: 13, translation: "almeida", text: "Vós sois o sal da terra; e se o sal for insípido, com que se há de salgar? Para nada mais presta senão para se lançar fora e ser pisado pelos homens." },
+  { id: "matthew_5_14_almeida", book: "Matthew", chapter: 5, verse: 14, translation: "almeida", text: "Vós sois a luz do mundo; não se pode esconder uma cidade edificada sobre um monte." },
+  { id: "matthew_5_15_almeida", book: "Matthew", chapter: 5, verse: 15, translation: "almeida", text: "Nem se acende uma candeia e se coloca debaixo do alqueire, mas no velador, e ilumina a todos os que estão na casa." },
+  { id: "matthew_5_16_almeida", book: "Matthew", chapter: 5, verse: 16, translation: "almeida", text: "Assim resplandeça a vossa luz diante dos homens, para que vejam as vossas boas obras e glorifiquem a vosso Pai, que está nos céus." },
+  { id: "matthew_5_17_almeida", book: "Matthew", chapter: 5, verse: 17, translation: "almeida", text: "Não penseis que vim revogar a Lei ou os Profetas; não vim para revogar, mas para cumprir." },
+  { id: "matthew_5_18_almeida", book: "Matthew", chapter: 5, verse: 18, translation: "almeida", text: "Porque em verdade vos digo que, até que o céu e a terra passem, nem um jota ou um til se omitirá da lei, sem que tudo seja cumprido." },
+  { id: "matthew_5_19_almeida", book: "Matthew", chapter: 5, verse: 19, translation: "almeida", text: "Qualquer, pois, que violar um destes mandamentos, por menor que seja, e assim ensinar aos homens, será chamado o menor no reino dos céus; aquele, porém, que os guardar e ensinar será chamado grande no reino dos céus." },
+  { id: "matthew_5_20_almeida", book: "Matthew", chapter: 5, verse: 20, translation: "almeida", text: "Porque vos digo que, se a vossa justiça não exceder a dos escribas e fariseus, de modo algum entrareis no reino dos céus." },
+  { id: "matthew_5_21_almeida", book: "Matthew", chapter: 5, verse: 21, translation: "almeida", text: "Ouvistes que foi dito aos antigos: Não matarás; mas qualquer que matar será réu de juízo." },
+  { id: "matthew_5_22_almeida", book: "Matthew", chapter: 5, verse: 22, translation: "almeida", text: "Eu, porém, vos digo que qualquer que, sem motivo, se encolerizar contra seu irmão será réu de juízo; e qualquer que chamar a seu irmão de raca será réu do conselho; e qualquer que lhe chamar tolo será réu do fogo do inferno." },
+  { id: "matthew_5_23_almeida", book: "Matthew", chapter: 5, verse: 23, translation: "almeida", text: "Portanto, se trouxeres a tua oferta ao altar, e aí te lembrares de que teu irmão tem alguma coisa contra ti," },
+  { id: "matthew_5_24_almeida", book: "Matthew", chapter: 5, verse: 24, translation: "almeida", text: "deixa ali a tua oferta diante do altar e vai primeiro reconciliar-te com teu irmão; e depois vem e apresenta a tua oferta." },
+  { id: "matthew_5_25_almeida", book: "Matthew", chapter: 5, verse: 25, translation: "almeida", text: "Entra em acordo com o teu adversário depressa, enquanto ainda estás a caminho com ele; para que não aconteça que o adversário te entregue ao juiz, e o juiz te entregue ao oficial, e te lancem na prisão." },
+  { id: "matthew_5_26_almeida", book: "Matthew", chapter: 5, verse: 26, translation: "almeida", text: "Em verdade te digo que de maneira alguma sairás dali, até que pagues o último ceitil." },
+  { id: "matthew_5_27_almeida", book: "Matthew", chapter: 5, verse: 27, translation: "almeida", text: "Ouvistes que foi dito aos antigos: Não adulterarás." },
+  { id: "matthew_5_28_almeida", book: "Matthew", chapter: 5, verse: 28, translation: "almeida", text: "Eu, porém, vos digo que qualquer que olhar para uma mulher com intenção de a cobiçar já adulterou com ela no seu coração." },
+  { id: "matthew_5_29_almeida", book: "Matthew", chapter: 5, verse: 29, translation: "almeida", text: "Por isso, se o teu olho direito te escandaliza, arranca-o e lança-o de ti; pois te convém que se perca um dos teus membros, e não que todo o teu corpo seja lançado no inferno." },
+  { id: "matthew_5_30_almeida", book: "Matthew", chapter: 5, verse: 30, translation: "almeida", text: "E se a tua mão direita te escandaliza, corta-a e lança-a de ti; pois convém que se perca um dos teus membros, e não que todo o teu corpo vá para o inferno." },
+  { id: "matthew_5_31_almeida", book: "Matthew", chapter: 5, verse: 31, translation: "almeida", text: "Também foi dito: Qualquer que se divorciar de sua mulher, dê-lhe carta de divórcio." },
+  { id: "matthew_5_32_almeida", book: "Matthew", chapter: 5, verse: 32, translation: "almeida", text: "Eu, porém, vos digo que qualquer que se divorciar de sua mulher, a não ser por causa de fornicação, faz com que ela adultere; e qualquer que casar com a divorciada adultera." },
+  { id: "matthew_5_33_almeida", book: "Matthew", chapter: 5, verse: 33, translation: "almeida", text: "Outrossim, ouvistes que foi dito aos antigos: Não perjurarás, mas cumprirás ao Senhor os teus juramentos." },
+  { id: "matthew_5_34_almeida", book: "Matthew", chapter: 5, verse: 34, translation: "almeida", text: "Eu, porém, vos digo que de modo algum jureis; nem pelo céu, porque é o trono de Deus;" },
+  { id: "matthew_5_35_almeida", book: "Matthew", chapter: 5, verse: 35, translation: "almeida", text: "nem pela terra, porque é o escabelo dos seus pés; nem por Jerusalém, porque é a cidade do grande Rei." },
+  { id: "matthew_5_36_almeida", book: "Matthew", chapter: 5, verse: 36, translation: "almeida", text: "Nem jurarás pela tua cabeça, porque não podes tornar um cabelo branco ou preto." },
+  { id: "matthew_5_37_almeida", book: "Matthew", chapter: 5, verse: 37, translation: "almeida", text: "O vosso falar, porém, seja: Sim, sim; Não, não; porque o que passa disto vem do maligno." },
+  { id: "matthew_5_38_almeida", book: "Matthew", chapter: 5, verse: 38, translation: "almeida", text: "Ouvistes que foi dito: Olho por olho, e dente por dente." },
+  { id: "matthew_5_39_almeida", book: "Matthew", chapter: 5, verse: 39, translation: "almeida", text: "Eu, porém, vos digo que não resistais ao mau; mas, se qualquer te bater na face direita, oferece-lhe também a outra." },
+  { id: "matthew_5_40_almeida", book: "Matthew", chapter: 5, verse: 40, translation: "almeida", text: "E ao que quiser pleitear contigo e tirar-te a túnica, larga-lhe também a capa." },
+  { id: "matthew_5_41_almeida", book: "Matthew", chapter: 5, verse: 41, translation: "almeida", text: "E, se qualquer te obrigar a caminhar uma milha, vai com ele duas." },
+  { id: "matthew_5_42_almeida", book: "Matthew", chapter: 5, verse: 42, translation: "almeida", text: "Dá a quem te pede, e não te desvies daquele que quer de ti algum empréstimo." },
+  { id: "matthew_5_43_almeida", book: "Matthew", chapter: 5, verse: 43, translation: "almeida", text: "Ouvistes que foi dito: Amarás o teu próximo, e aborrecerás o teu inimigo." },
+  { id: "matthew_5_44_almeida", book: "Matthew", chapter: 5, verse: 44, translation: "almeida", text: "Eu, porém, vos digo: Amai os vossos inimigos, bendizei os que vos maldizem, fazei bem aos que vos odeiam, e orai pelos que vos maltratam e perseguem;" },
+  { id: "matthew_5_45_almeida", book: "Matthew", chapter: 5, verse: 45, translation: "almeida", text: "Para que sejais filhos do vosso Pai que está nos céus; porque ele faz nascer o seu sol sobre maus e bons, e faz chover sobre justos e injustos." },
+  { id: "matthew_5_46_almeida", book: "Matthew", chapter: 5, verse: 46, translation: "almeida", text: "Porque, se amardes os que vos amam, que galardão tereis? Não fazem os publicanos também o mesmo?" },
+  { id: "matthew_5_47_almeida", book: "Matthew", chapter: 5, verse: 47, translation: "almeida", text: "E, se saudardes unicamente os vossos irmãos, que fazeis de mais? Não fazem os gentios também o mesmo?" },
+  { id: "matthew_5_48_almeida", book: "Matthew", chapter: 5, verse: 48, translation: "almeida", text: "Sede vós, pois, perfeitos, como é perfeito o vosso Pai celestial." },
+
+  // ── Mateus 6 ────────────────────────────────────────────────────────────
+  { id: "matthew_6_1_almeida", book: "Matthew", chapter: 6, verse: 1, translation: "almeida", text: "Guardai-vos de fazer a vossa esmola diante dos homens, para serdes vistos deles; de outra sorte não tereis galardão junto de vosso Pai que está nos céus." },
+  { id: "matthew_6_2_almeida", book: "Matthew", chapter: 6, verse: 2, translation: "almeida", text: "Quando, pois, deres esmola, não faças tocar trombeta diante de ti, como fazem os hipócritas nas sinagogas e nas ruas, para serem glorificados pelos homens. Em verdade vos digo que já receberam o seu galardão." },
+  { id: "matthew_6_3_almeida", book: "Matthew", chapter: 6, verse: 3, translation: "almeida", text: "Mas quando tu deres esmola, não saiba a tua mão esquerda o que faz a tua direita;" },
+  { id: "matthew_6_4_almeida", book: "Matthew", chapter: 6, verse: 4, translation: "almeida", text: "Para que a tua esmola seja em secreto; e teu Pai, que vê em secreto, te recompensará." },
+  { id: "matthew_6_5_almeida", book: "Matthew", chapter: 6, verse: 5, translation: "almeida", text: "E quando orares, não serás como os hipócritas; porque eles gostam de orar em pé nas sinagogas e nos cantos das ruas, para serem vistos pelos homens. Em verdade vos digo que já receberam o seu galardão." },
+  { id: "matthew_6_6_almeida", book: "Matthew", chapter: 6, verse: 6, translation: "almeida", text: "Tu, porém, quando orares, entra no teu quarto, e, fechando a tua porta, ora a teu Pai que está em secreto; e teu Pai, que vê em secreto, te recompensará." },
+  { id: "matthew_6_7_almeida", book: "Matthew", chapter: 6, verse: 7, translation: "almeida", text: "E, orando, não useis de vãs repetições, como os gentios; porque eles cuidam que por muito falarem serão ouvidos." },
+  { id: "matthew_6_8_almeida", book: "Matthew", chapter: 6, verse: 8, translation: "almeida", text: "Não vos assemelheis, pois, a eles; porque vosso Pai sabe o que vós necessitais, antes que lho peçais." },
+  { id: "matthew_6_9_almeida", book: "Matthew", chapter: 6, verse: 9, translation: "almeida", text: "Portanto, vós orareis assim: Pai nosso, que estás nos céus, santificado seja o teu nome;" },
+  { id: "matthew_6_10_almeida", book: "Matthew", chapter: 6, verse: 10, translation: "almeida", text: "Venha o teu reino, seja feita a tua vontade, assim na terra como no céu." },
+  { id: "matthew_6_11_almeida", book: "Matthew", chapter: 6, verse: 11, translation: "almeida", text: "O pão nosso de cada dia nos dá hoje." },
+  { id: "matthew_6_12_almeida", book: "Matthew", chapter: 6, verse: 12, translation: "almeida", text: "E perdoa-nos as nossas dívidas, assim como nós perdoamos aos nossos devedores." },
+  { id: "matthew_6_13_almeida", book: "Matthew", chapter: 6, verse: 13, translation: "almeida", text: "E não nos induzas em tentação; mas livra-nos do mal; porque teu é o reino, e o poder, e a glória, para sempre. Amém." },
+  { id: "matthew_6_14_almeida", book: "Matthew", chapter: 6, verse: 14, translation: "almeida", text: "Porque, se perdoardes aos homens as suas ofensas, também vosso Pai celestial vos perdoará." },
+  { id: "matthew_6_15_almeida", book: "Matthew", chapter: 6, verse: 15, translation: "almeida", text: "Se, porém, não perdoardes aos homens as suas ofensas, também vosso Pai não perdoará as vossas ofensas." },
+  { id: "matthew_6_16_almeida", book: "Matthew", chapter: 6, verse: 16, translation: "almeida", text: "E, quando jejuardes, não ponhais um semblante triste, como os hipócritas; porque eles desfiguram os rostos para parecer aos homens que jejuam. Em verdade vos digo que já receberam o seu galardão." },
+  { id: "matthew_6_17_almeida", book: "Matthew", chapter: 6, verse: 17, translation: "almeida", text: "Tu, porém, quando jejuares, unge a tua cabeça e lava o teu rosto;" },
+  { id: "matthew_6_18_almeida", book: "Matthew", chapter: 6, verse: 18, translation: "almeida", text: "Para não pareceres aos homens que jejuas, mas sim a teu Pai, que está em secreto; e teu Pai, que vê em secreto, te recompensará." },
+  { id: "matthew_6_19_almeida", book: "Matthew", chapter: 6, verse: 19, translation: "almeida", text: "Não ajunteis tesouros na terra, onde a traça e a ferrugem tudo consomem, e onde os ladrões minam e roubam;" },
+  { id: "matthew_6_20_almeida", book: "Matthew", chapter: 6, verse: 20, translation: "almeida", text: "Mas ajuntai tesouros no céu, onde nem a traça nem a ferrugem consome, e onde os ladrões não minam nem roubam." },
+  { id: "matthew_6_21_almeida", book: "Matthew", chapter: 6, verse: 21, translation: "almeida", text: "Porque onde estiver o vosso tesouro, aí estará também o vosso coração." },
+  { id: "matthew_6_22_almeida", book: "Matthew", chapter: 6, verse: 22, translation: "almeida", text: "A candeia do corpo é o olho; de sorte que, se o teu olho for bom, todo o teu corpo será luminoso." },
+  { id: "matthew_6_23_almeida", book: "Matthew", chapter: 6, verse: 23, translation: "almeida", text: "Mas, se o teu olho for mau, todo o teu corpo será tenebroso. Se, pois, a luz que em ti há são trevas, quão grandes são as trevas!" },
+  { id: "matthew_6_24_almeida", book: "Matthew", chapter: 6, verse: 24, translation: "almeida", text: "Ninguém pode servir a dois senhores; porque ou há de odiar um e amar o outro, ou há de dedicar-se a um e desprezar o outro. Não podeis servir a Deus e às riquezas." },
+  { id: "matthew_6_25_almeida", book: "Matthew", chapter: 6, verse: 25, translation: "almeida", text: "Portanto, vos digo: Não andeis ansiosos pela vossa vida, quanto ao que haveis de comer, ou quanto ao que haveis de beber; nem pelo vosso corpo, quanto ao que haveis de vestir. Não é a vida mais do que o alimento, e o corpo mais do que o vestuário?" },
+  { id: "matthew_6_26_almeida", book: "Matthew", chapter: 6, verse: 26, translation: "almeida", text: "Olhai para as aves do céu, que não semeiam, nem segam, nem ajuntam em celeiros; e vosso Pai celestial as alimenta. Não valeis vós muito mais do que elas?" },
+  { id: "matthew_6_27_almeida", book: "Matthew", chapter: 6, verse: 27, translation: "almeida", text: "E qual de vós, por mais que se preocupe, pode acrescentar um côvado à sua estatura?" },
+  { id: "matthew_6_28_almeida", book: "Matthew", chapter: 6, verse: 28, translation: "almeida", text: "E por que andais ansiosos pelo vestuário? Considerai como crescem os lírios do campo; não trabalham nem fiam;" },
+  { id: "matthew_6_29_almeida", book: "Matthew", chapter: 6, verse: 29, translation: "almeida", text: "E eu vos digo que nem Salomão, em toda a sua glória, se vestiu como qualquer deles." },
+  { id: "matthew_6_30_almeida", book: "Matthew", chapter: 6, verse: 30, translation: "almeida", text: "Pois se Deus assim veste a erva do campo, que hoje existe e amanhã é lançada no forno, quanto mais a vós outros, homens de pouca fé?" },
+  { id: "matthew_6_31_almeida", book: "Matthew", chapter: 6, verse: 31, translation: "almeida", text: "Não andeis, pois, ansiosos, dizendo: Que comeremos, ou que beberemos, ou com que nos cobriremos?" },
+  { id: "matthew_6_32_almeida", book: "Matthew", chapter: 6, verse: 32, translation: "almeida", text: "Porque os gentios procuram todas essas coisas; pois vosso Pai celestial sabe que necessitais de todas elas." },
+  { id: "matthew_6_33_almeida", book: "Matthew", chapter: 6, verse: 33, translation: "almeida", text: "Mas buscai primeiro o reino de Deus, e a sua justiça, e todas essas coisas vos serão acrescentadas." },
+  { id: "matthew_6_34_almeida", book: "Matthew", chapter: 6, verse: 34, translation: "almeida", text: "Não vos preocupeis, pois, com o dia de amanhã; porque o dia de amanhã cuidará de si mesmo. Basta a cada dia o seu trabalho." },
+
+  // ── Mateus 7 ────────────────────────────────────────────────────────────
+  { id: "matthew_7_1_almeida", book: "Matthew", chapter: 7, verse: 1, translation: "almeida", text: "Não julgueis, para que não sejais julgados." },
+  { id: "matthew_7_2_almeida", book: "Matthew", chapter: 7, verse: 2, translation: "almeida", text: "Porque com o juízo com que julgardes sereis julgados; e com a medida com que tiverdes medido vos hão de medir a vós." },
+  { id: "matthew_7_3_almeida", book: "Matthew", chapter: 7, verse: 3, translation: "almeida", text: "Por que vês o cisco que está no olho do teu irmão, e não notas a trave que está no teu próprio olho?" },
+  { id: "matthew_7_4_almeida", book: "Matthew", chapter: 7, verse: 4, translation: "almeida", text: "Ou como dirás a teu irmão: Deixa-me tirar o cisco do teu olho; quando tens uma trave no teu próprio olho?" },
+  { id: "matthew_7_5_almeida", book: "Matthew", chapter: 7, verse: 5, translation: "almeida", text: "Hipócrita, tira primeiro a trave do teu olho, e então verás como tirar o cisco do olho do teu irmão." },
+  { id: "matthew_7_6_almeida", book: "Matthew", chapter: 7, verse: 6, translation: "almeida", text: "Não deis o que é santo aos cães, nem lanceis as vossas pérolas diante dos porcos, para que não as pisem com os seus pés, e se virem para vós e vos despedacem." },
+  { id: "matthew_7_7_almeida", book: "Matthew", chapter: 7, verse: 7, translation: "almeida", text: "Pedi, e dar-se-vos-á; buscai, e achareis; batei, e abrir-se-vos-á." },
+  { id: "matthew_7_8_almeida", book: "Matthew", chapter: 7, verse: 8, translation: "almeida", text: "Porque todo aquele que pede recebe; e quem busca acha; e a quem bate abrir-se-á." },
+  { id: "matthew_7_9_almeida", book: "Matthew", chapter: 7, verse: 9, translation: "almeida", text: "Ou qual dentre vós é o homem que, pedindo-lhe pão o seu filho, lhe dará uma pedra?" },
+  { id: "matthew_7_10_almeida", book: "Matthew", chapter: 7, verse: 10, translation: "almeida", text: "Ou, se lhe pedir um peixe, lhe dará uma cobra?" },
+  { id: "matthew_7_11_almeida", book: "Matthew", chapter: 7, verse: 11, translation: "almeida", text: "Pois se vós, sendo maus, sabeis dar boas dádivas aos vossos filhos, quanto mais vosso Pai, que está nos céus, dará boas coisas aos que lhas pedirem?" },
+  { id: "matthew_7_12_almeida", book: "Matthew", chapter: 7, verse: 12, translation: "almeida", text: "Portanto, tudo o que vós quereis que os homens vos façam, fazei-lho também vós, porque esta é a lei e os profetas." },
+  { id: "matthew_7_13_almeida", book: "Matthew", chapter: 7, verse: 13, translation: "almeida", text: "Entrai pela porta estreita; porque larga é a porta, e espaçoso o caminho que conduz à perdição, e muitos são os que entram por ela." },
+  { id: "matthew_7_14_almeida", book: "Matthew", chapter: 7, verse: 14, translation: "almeida", text: "E porque estreita é a porta, e apertado o caminho que conduz à vida, e poucos são os que a encontram." },
+  { id: "matthew_7_15_almeida", book: "Matthew", chapter: 7, verse: 15, translation: "almeida", text: "Acautelai-vos dos falsos profetas, que se vos apresentam em vestes de ovelhas, mas por dentro são lobos devoradores." },
+  { id: "matthew_7_16_almeida", book: "Matthew", chapter: 7, verse: 16, translation: "almeida", text: "Pelos seus frutos os conhecereis. Colhem-se porventura uvas dos espinheiros, ou figos dos abrolhos?" },
+  { id: "matthew_7_17_almeida", book: "Matthew", chapter: 7, verse: 17, translation: "almeida", text: "Assim, toda a boa árvore produz bons frutos, mas a árvore má produz maus frutos." },
+  { id: "matthew_7_18_almeida", book: "Matthew", chapter: 7, verse: 18, translation: "almeida", text: "Não pode uma boa árvore produzir maus frutos, nem uma árvore má produzir bons frutos." },
+  { id: "matthew_7_19_almeida", book: "Matthew", chapter: 7, verse: 19, translation: "almeida", text: "Toda a árvore que não produz bom fruto é cortada e lançada no fogo." },
+  { id: "matthew_7_20_almeida", book: "Matthew", chapter: 7, verse: 20, translation: "almeida", text: "Pelo que pelos seus frutos os conhecereis." },
+  { id: "matthew_7_21_almeida", book: "Matthew", chapter: 7, verse: 21, translation: "almeida", text: "Nem todo aquele que me diz: Senhor, Senhor! entrará no reino dos céus, mas aquele que faz a vontade de meu Pai, que está nos céus." },
+  { id: "matthew_7_22_almeida", book: "Matthew", chapter: 7, verse: 22, translation: "almeida", text: "Muitos me dirão naquele dia: Senhor, Senhor! não profetizamos nós em teu nome, e em teu nome não expulsamos demônios, e em teu nome não fizemos muitas maravilhas?" },
+  { id: "matthew_7_23_almeida", book: "Matthew", chapter: 7, verse: 23, translation: "almeida", text: "E então lhes direi abertamente: Nunca vos conheci; apartai-vos de mim, vós que praticais a iniqüidade." },
+  { id: "matthew_7_24_almeida", book: "Matthew", chapter: 7, verse: 24, translation: "almeida", text: "Todo aquele, pois, que ouve estas minhas palavras e as pratica será comparado ao homem prudente que edificou a sua casa sobre a rocha;" },
+  { id: "matthew_7_25_almeida", book: "Matthew", chapter: 7, verse: 25, translation: "almeida", text: "E caiu a chuva, e correram rios, e assopraram ventos, e combateram aquela casa, e ela não caiu, porque estava fundada sobre a rocha." },
+  { id: "matthew_7_26_almeida", book: "Matthew", chapter: 7, verse: 26, translation: "almeida", text: "E todo aquele que ouve estas minhas palavras e não as pratica será comparado ao homem insensato que edificou a sua casa sobre a areia;" },
+  { id: "matthew_7_27_almeida", book: "Matthew", chapter: 7, verse: 27, translation: "almeida", text: "E caiu a chuva, e correram rios, e assopraram ventos, e combateram aquela casa, e ela caiu, e foi grande a sua queda." },
+  { id: "matthew_7_28_almeida", book: "Matthew", chapter: 7, verse: 28, translation: "almeida", text: "E aconteceu que, quando Jesus acabou de dizer estas palavras, a multidão se maravilhou da sua doutrina;" },
+  { id: "matthew_7_29_almeida", book: "Matthew", chapter: 7, verse: 29, translation: "almeida", text: "Porque os ensinava como quem tem autoridade, e não como os escribas." },
+
+  // ── João 14 ─────────────────────────────────────────────────────────────
+  { id: "john_14_1_almeida", book: "John", chapter: 14, verse: 1, translation: "almeida", text: "Não se turbe o vosso coração; credes em Deus, crede também em mim." },
+  { id: "john_14_2_almeida", book: "John", chapter: 14, verse: 2, translation: "almeida", text: "Na casa de meu Pai há muitas moradas; se assim não fosse, eu vo-lo teria dito. Vou preparar-vos lugar." },
+  { id: "john_14_3_almeida", book: "John", chapter: 14, verse: 3, translation: "almeida", text: "E quando eu for e vos preparar lugar, virei outra vez, e vos levarei para mim mesmo, para que onde eu estiver estejais vós também." },
+  { id: "john_14_4_almeida", book: "John", chapter: 14, verse: 4, translation: "almeida", text: "E sabeis onde eu vou, e sabeis o caminho." },
+  { id: "john_14_5_almeida", book: "John", chapter: 14, verse: 5, translation: "almeida", text: "Disse-lhe Tomé: Senhor, não sabemos para onde vais; como podemos saber o caminho?" },
+  { id: "john_14_6_almeida", book: "John", chapter: 14, verse: 6, translation: "almeida", text: "Disse-lhe Jesus: Eu sou o caminho, e a verdade, e a vida; ninguém vem ao Pai, senão por mim." },
+  { id: "john_14_7_almeida", book: "John", chapter: 14, verse: 7, translation: "almeida", text: "Se vós me conhecêsseis, também conheceríeis a meu Pai; e já agora o conheceis, e o tendes visto." },
+  { id: "john_14_8_almeida", book: "John", chapter: 14, verse: 8, translation: "almeida", text: "Disse-lhe Filipe: Senhor, mostra-nos o Pai e isso nos basta." },
+  { id: "john_14_9_almeida", book: "John", chapter: 14, verse: 9, translation: "almeida", text: "Jesus disse-lhe: Há tanto tempo estou convosco, e não me conheceste, Filipe? Quem me viu a mim viu o Pai; como dizes tu: Mostra-nos o Pai?" },
+  { id: "john_14_10_almeida", book: "John", chapter: 14, verse: 10, translation: "almeida", text: "Não crês tu que eu estou no Pai, e que o Pai está em mim? As palavras que eu vos digo, não as digo de mim mesmo, mas o Pai, que está em mim, é quem faz as obras." },
+  { id: "john_14_11_almeida", book: "John", chapter: 14, verse: 11, translation: "almeida", text: "Crede-me que eu estou no Pai, e o Pai em mim; crede ao menos pelas mesmas obras." },
+  { id: "john_14_12_almeida", book: "John", chapter: 14, verse: 12, translation: "almeida", text: "Em verdade, em verdade vos digo que aquele que crê em mim fará também as obras que eu faço, e outras maiores do que estas fará; porque eu vou para meu Pai." },
+  { id: "john_14_13_almeida", book: "John", chapter: 14, verse: 13, translation: "almeida", text: "E tudo quanto pedirdes em meu nome eu o farei, para que o Pai seja glorificado no Filho." },
+  { id: "john_14_14_almeida", book: "John", chapter: 14, verse: 14, translation: "almeida", text: "Se pedirdes alguma coisa em meu nome, eu o farei." },
+  { id: "john_14_15_almeida", book: "John", chapter: 14, verse: 15, translation: "almeida", text: "Se me amardes, guardai os meus mandamentos." },
+  { id: "john_14_16_almeida", book: "John", chapter: 14, verse: 16, translation: "almeida", text: "E eu rogarei ao Pai, e ele vos dará outro Consolador, para que fique convosco para sempre;" },
+  { id: "john_14_17_almeida", book: "John", chapter: 14, verse: 17, translation: "almeida", text: "O Espírito da verdade, que o mundo não pode receber, porque não o vê nem o conhece; mas vós o conheceis, porque fica convosco e estará em vós." },
+  { id: "john_14_18_almeida", book: "John", chapter: 14, verse: 18, translation: "almeida", text: "Não vos deixarei órfãos; voltarei para vós." },
+  { id: "john_14_19_almeida", book: "John", chapter: 14, verse: 19, translation: "almeida", text: "Ainda um pouco, e o mundo já não me verá mais; mas vós me vereis; porque eu vivo, vós também vivereis." },
+  { id: "john_14_20_almeida", book: "John", chapter: 14, verse: 20, translation: "almeida", text: "Naquele dia conhecereis que eu estou em meu Pai, e vós em mim, e eu em vós." },
+  { id: "john_14_21_almeida", book: "John", chapter: 14, verse: 21, translation: "almeida", text: "Quem tem os meus mandamentos e os guarda, esse é o que me ama; e quem me ama será amado de meu Pai, e eu o amarei, e me manifestarei a ele." },
+  { id: "john_14_22_almeida", book: "John", chapter: 14, verse: 22, translation: "almeida", text: "Disse-lhe Judas (não o Iscariotes): Senhor, como é que te hás de manifestar a nós, e não ao mundo?" },
+  { id: "john_14_23_almeida", book: "John", chapter: 14, verse: 23, translation: "almeida", text: "Jesus respondeu, e disse-lhe: Se alguém me amar, guardará a minha palavra; e meu Pai o amará, e viremos para ele, e faremos nele morada." },
+  { id: "john_14_24_almeida", book: "John", chapter: 14, verse: 24, translation: "almeida", text: "Quem me não ama não guarda as minhas palavras; e a palavra que ouvistes não é minha, mas do Pai que me enviou." },
+  { id: "john_14_25_almeida", book: "John", chapter: 14, verse: 25, translation: "almeida", text: "Isto vos disse, estando ainda convosco." },
+  { id: "john_14_26_almeida", book: "John", chapter: 14, verse: 26, translation: "almeida", text: "Mas o Consolador, o Espírito Santo, que o Pai enviará em meu nome, esse vos ensinará todas as coisas, e vos fará lembrar de tudo o que vos disse." },
+  { id: "john_14_27_almeida", book: "John", chapter: 14, verse: 27, translation: "almeida", text: "Deixo-vos a paz, a minha paz vos dou; não vo-la dou como o mundo a dá. Não se turbe o vosso coração, nem se atemorize." },
+  { id: "john_14_28_almeida", book: "John", chapter: 14, verse: 28, translation: "almeida", text: "Ouvistes que eu vos disse: Vou, e volto para vós. Se me amásseis, alegrar-vos-íeis, porque disse que vou ao Pai; pois meu Pai é maior do que eu." },
+  { id: "john_14_29_almeida", book: "John", chapter: 14, verse: 29, translation: "almeida", text: "E agora vo-lo disse antes que aconteça, para que, quando acontecer, creiais." },
+  { id: "john_14_30_almeida", book: "John", chapter: 14, verse: 30, translation: "almeida", text: "Já não falarei muito convosco, porque se aproxima o príncipe deste mundo, e ele nada tem em mim." },
+  { id: "john_14_31_almeida", book: "John", chapter: 14, verse: 31, translation: "almeida", text: "Mas para que o mundo conheça que amo o Pai e que faço como o Pai me ordenou, levantai-vos, vamo-nos daqui." },
+
+  // ── João 17 ─────────────────────────────────────────────────────────────
+  { id: "john_17_1_almeida", book: "John", chapter: 17, verse: 1, translation: "almeida", text: "Jesus disse estas coisas e, levantando os olhos ao céu, disse: Pai, a hora é chegada; glorifica o teu Filho, para que o teu Filho te glorifique a ti;" },
+  { id: "john_17_2_almeida", book: "John", chapter: 17, verse: 2, translation: "almeida", text: "Assim como lhe deste autoridade sobre toda a carne, para que a tudo quanto lhe deste ele dê a vida eterna." },
+  { id: "john_17_3_almeida", book: "John", chapter: 17, verse: 3, translation: "almeida", text: "E a vida eterna é esta: que te conheçam a ti, o único Deus verdadeiro, e a Jesus Cristo, a quem enviaste." },
+  { id: "john_17_4_almeida", book: "John", chapter: 17, verse: 4, translation: "almeida", text: "Eu te glorifiquei na terra; completei a obra que me deste para fazer." },
+  { id: "john_17_5_almeida", book: "John", chapter: 17, verse: 5, translation: "almeida", text: "E agora, glorifica-me tu, ó Pai, contigo mesmo, com a glória que eu tive contigo antes que o mundo fosse." },
+  { id: "john_17_6_almeida", book: "John", chapter: 17, verse: 6, translation: "almeida", text: "Manifestei o teu nome aos homens que do mundo me deste; eram teus, e tu mo deste, e guardaram a tua palavra." },
+  { id: "john_17_7_almeida", book: "John", chapter: 17, verse: 7, translation: "almeida", text: "Agora conheceram que tudo o que me deste vem de ti." },
+  { id: "john_17_8_almeida", book: "John", chapter: 17, verse: 8, translation: "almeida", text: "Porque as palavras que me deste eu lhas dei; e eles as receberam, e conheceram verdadeiramente que saí de ti, e creram que tu me enviaste." },
+  { id: "john_17_9_almeida", book: "John", chapter: 17, verse: 9, translation: "almeida", text: "Eu rogo por eles; não rogo pelo mundo, mas por aqueles que me deste, porque são teus." },
+  { id: "john_17_10_almeida", book: "John", chapter: 17, verse: 10, translation: "almeida", text: "E tudo o que é meu é teu, e o que é teu é meu; e eu sou glorificado neles." },
+  { id: "john_17_11_almeida", book: "John", chapter: 17, verse: 11, translation: "almeida", text: "E já não estou no mundo, mas eles estão no mundo, e eu vou para ti. Pai Santo, guarda-os no teu nome, que me deste, para que sejam um, como nós." },
+  { id: "john_17_12_almeida", book: "John", chapter: 17, verse: 12, translation: "almeida", text: "Quando estava com eles no mundo, guardava-os no teu nome; guardei os que me deste, e nenhum deles se perdeu, senão o filho da perdição, para que a Escritura se cumprisse." },
+  { id: "john_17_13_almeida", book: "John", chapter: 17, verse: 13, translation: "almeida", text: "Mas agora vou para ti, e falo estas coisas no mundo, para que tenham em si mesmos o meu gozo cumprido." },
+  { id: "john_17_14_almeida", book: "John", chapter: 17, verse: 14, translation: "almeida", text: "Eu lhes dei a tua palavra; e o mundo os odiou, porque eles não são do mundo, como eu do mundo não sou." },
+  { id: "john_17_15_almeida", book: "John", chapter: 17, verse: 15, translation: "almeida", text: "Não peço que os tires do mundo, mas que os guardes do mal." },
+  { id: "john_17_16_almeida", book: "John", chapter: 17, verse: 16, translation: "almeida", text: "Eles não são do mundo, como eu do mundo não sou." },
+  { id: "john_17_17_almeida", book: "John", chapter: 17, verse: 17, translation: "almeida", text: "Santifica-os na verdade; a tua palavra é a verdade." },
+  { id: "john_17_18_almeida", book: "John", chapter: 17, verse: 18, translation: "almeida", text: "Como tu me enviaste ao mundo, assim eu os enviei ao mundo." },
+  { id: "john_17_19_almeida", book: "John", chapter: 17, verse: 19, translation: "almeida", text: "E por eles eu me santifico a mim mesmo, para que eles também sejam santificados na verdade." },
+  { id: "john_17_20_almeida", book: "John", chapter: 17, verse: 20, translation: "almeida", text: "E não rogo somente por estes, mas também por aqueles que pela sua palavra crerão em mim;" },
+  { id: "john_17_21_almeida", book: "John", chapter: 17, verse: 21, translation: "almeida", text: "Para que todos sejam um, como tu, ó Pai, estás em mim, e eu em ti; que eles também sejam um em nós, para que o mundo creia que tu me enviaste." },
+  { id: "john_17_22_almeida", book: "John", chapter: 17, verse: 22, translation: "almeida", text: "E eu dei-lhes a glória que me deste, para que sejam um, assim como nós somos um;" },
+  { id: "john_17_23_almeida", book: "John", chapter: 17, verse: 23, translation: "almeida", text: "Eu neles, e tu em mim, para que sejam perfeitos em unidade, e para que o mundo conheça que tu me enviaste, e que os amaste como também a mim me amaste." },
+  { id: "john_17_24_almeida", book: "John", chapter: 17, verse: 24, translation: "almeida", text: "Pai, quero que onde eu estiver estejam também comigo os que me deste, para que vejam a minha glória que me deste; porque me amaste antes da fundação do mundo." },
+  { id: "john_17_25_almeida", book: "John", chapter: 17, verse: 25, translation: "almeida", text: "Pai justo, o mundo não te conheceu, mas eu te conheci; e estes conheceram que tu me enviaste." },
+  { id: "john_17_26_almeida", book: "John", chapter: 17, verse: 26, translation: "almeida", text: "E eu lhes fiz conhecer o teu nome, e ainda o farei conhecer, para que o amor com que me amaste esteja neles, e eu neles." },
+
+  // ── Romanos 3 ───────────────────────────────────────────────────────────
+  { id: "romans_3_1_almeida", book: "Romans", chapter: 3, verse: 1, translation: "almeida", text: "Qual é, pois, a vantagem do judeu? ou qual é a utilidade da circuncisão?" },
+  { id: "romans_3_2_almeida", book: "Romans", chapter: 3, verse: 2, translation: "almeida", text: "Grande em tudo. Principalmente porque os oráculos de Deus lhes foram confiados." },
+  { id: "romans_3_3_almeida", book: "Romans", chapter: 3, verse: 3, translation: "almeida", text: "Pois quê? se alguns não creram, a sua incredulidade anulará a fidelidade de Deus?" },
+  { id: "romans_3_4_almeida", book: "Romans", chapter: 3, verse: 4, translation: "almeida", text: "De modo nenhum; antes, seja Deus verdadeiro, e todo o homem mentiroso; como está escrito: Para que sejas justificado nas tuas palavras, e vences quando fores julgado." },
+  { id: "romans_3_5_almeida", book: "Romans", chapter: 3, verse: 5, translation: "almeida", text: "Mas, se a nossa injustiça ilustra a justiça de Deus, que diremos? É Deus injusto, quando castiga? (Falo como homem.)" },
+  { id: "romans_3_6_almeida", book: "Romans", chapter: 3, verse: 6, translation: "almeida", text: "De modo nenhum; de outra sorte, como julgaria Deus o mundo?" },
+  { id: "romans_3_7_almeida", book: "Romans", chapter: 3, verse: 7, translation: "almeida", text: "Porque, se pela minha mentira a verdade de Deus abundou mais para sua glória, por que sou eu ainda julgado como pecador?" },
+  { id: "romans_3_8_almeida", book: "Romans", chapter: 3, verse: 8, translation: "almeida", text: "E por que não faríamos males, para que venham bens? como somos blasfemados, e como alguns afirmam que nós dizemos. A condenação de tais é justa." },
+  { id: "romans_3_9_almeida", book: "Romans", chapter: 3, verse: 9, translation: "almeida", text: "Que concluiremos, pois? Somos nós melhores? Não, de maneira nenhuma; pois já dantes acusamos tanto judeus como gregos, estando todos debaixo do pecado;" },
+  { id: "romans_3_10_almeida", book: "Romans", chapter: 3, verse: 10, translation: "almeida", text: "Como está escrito: Não há justo, nem um sequer." },
+  { id: "romans_3_11_almeida", book: "Romans", chapter: 3, verse: 11, translation: "almeida", text: "Não há quem entenda; não há quem busque a Deus." },
+  { id: "romans_3_12_almeida", book: "Romans", chapter: 3, verse: 12, translation: "almeida", text: "Todos se desviaram, e juntamente se fizeram inúteis. Não há quem faça o bem, não há nem um sequer." },
+  { id: "romans_3_13_almeida", book: "Romans", chapter: 3, verse: 13, translation: "almeida", text: "A sua garganta é um sepulcro aberto; com as suas línguas tratam enganosamente; peçonha de áspides está debaixo dos seus lábios;" },
+  { id: "romans_3_14_almeida", book: "Romans", chapter: 3, verse: 14, translation: "almeida", text: "A sua boca está cheia de maldição e amargura." },
+  { id: "romans_3_15_almeida", book: "Romans", chapter: 3, verse: 15, translation: "almeida", text: "Os seus pés são ligeiros para derramar sangue." },
+  { id: "romans_3_16_almeida", book: "Romans", chapter: 3, verse: 16, translation: "almeida", text: "Em seus caminhos há destruição e miséria." },
+  { id: "romans_3_17_almeida", book: "Romans", chapter: 3, verse: 17, translation: "almeida", text: "E não conheceram o caminho da paz." },
+  { id: "romans_3_18_almeida", book: "Romans", chapter: 3, verse: 18, translation: "almeida", text: "Não há temor de Deus diante dos seus olhos." },
+  { id: "romans_3_19_almeida", book: "Romans", chapter: 3, verse: 19, translation: "almeida", text: "Ora, nós sabemos que tudo o que a lei diz, diz àqueles que estão debaixo da lei, para que toda a boca se cale, e todo o mundo fique sujeito ao juízo de Deus;" },
+  { id: "romans_3_20_almeida", book: "Romans", chapter: 3, verse: 20, translation: "almeida", text: "Pois nenhuma carne será justificada diante dele pelas obras da lei; porque pelo conhecimento da lei vem o conhecimento do pecado." },
+  { id: "romans_3_21_almeida", book: "Romans", chapter: 3, verse: 21, translation: "almeida", text: "Mas agora se manifestou a justiça de Deus sem a lei, testificada pela lei e pelos profetas;" },
+  { id: "romans_3_22_almeida", book: "Romans", chapter: 3, verse: 22, translation: "almeida", text: "A justiça de Deus pela fé em Jesus Cristo, para todos e sobre todos os que crêem; porque não há diferença." },
+  { id: "romans_3_23_almeida", book: "Romans", chapter: 3, verse: 23, translation: "almeida", text: "Porque todos pecaram e destituídos estão da glória de Deus;" },
+  { id: "romans_3_24_almeida", book: "Romans", chapter: 3, verse: 24, translation: "almeida", text: "Sendo justificados gratuitamente pela sua graça, pela redenção que há em Cristo Jesus;" },
+  { id: "romans_3_25_almeida", book: "Romans", chapter: 3, verse: 25, translation: "almeida", text: "A quem Deus propôs por propiciação pela fé no seu sangue, para demonstração da sua justiça pela remissão dos pecados dantes cometidos, sob a paciência de Deus;" },
+  { id: "romans_3_26_almeida", book: "Romans", chapter: 3, verse: 26, translation: "almeida", text: "Para demonstração da sua justiça neste tempo presente; para que ele seja justo, e justificador daquele que tem fé em Jesus." },
+  { id: "romans_3_27_almeida", book: "Romans", chapter: 3, verse: 27, translation: "almeida", text: "Onde está, pois, a jactância? Ficou excluída. Por que lei? das obras? Não; mas pela lei da fé." },
+  { id: "romans_3_28_almeida", book: "Romans", chapter: 3, verse: 28, translation: "almeida", text: "Concluímos, pois, que o homem é justificado pela fé sem as obras da lei." },
+  { id: "romans_3_29_almeida", book: "Romans", chapter: 3, verse: 29, translation: "almeida", text: "É Deus somente dos judeus? não é também dos gentios? Sim, também dos gentios." },
+  { id: "romans_3_30_almeida", book: "Romans", chapter: 3, verse: 30, translation: "almeida", text: "Visto que há um só Deus, que justificará a circuncisão pela fé e a incircuncisão pela fé." },
+  { id: "romans_3_31_almeida", book: "Romans", chapter: 3, verse: 31, translation: "almeida", text: "Anulamos, pois, a lei pela fé? De modo nenhum; antes, estabelecemos a lei." },
+
+  // ── Romanos 5 ───────────────────────────────────────────────────────────
+  { id: "romans_5_1_almeida", book: "Romans", chapter: 5, verse: 1, translation: "almeida", text: "Tendo sido, pois, justificados pela fé, temos paz com Deus, por nosso Senhor Jesus Cristo;" },
+  { id: "romans_5_2_almeida", book: "Romans", chapter: 5, verse: 2, translation: "almeida", text: "Pelo qual também temos entrada pela fé a esta graça na qual estamos firmes, e nos gloriamos na esperança da glória de Deus." },
+  { id: "romans_5_3_almeida", book: "Romans", chapter: 5, verse: 3, translation: "almeida", text: "E não somente isto, mas também nos gloriamos nas tribulações; sabendo que a tribulação produz a paciência;" },
+  { id: "romans_5_4_almeida", book: "Romans", chapter: 5, verse: 4, translation: "almeida", text: "E a paciência, a experiência; e a experiência, a esperança." },
+  { id: "romans_5_5_almeida", book: "Romans", chapter: 5, verse: 5, translation: "almeida", text: "E a esperança não confunde, porque o amor de Deus está derramado em nossos corações pelo Espírito Santo que nos foi dado." },
+  { id: "romans_5_6_almeida", book: "Romans", chapter: 5, verse: 6, translation: "almeida", text: "Porque Cristo, quando ainda éramos fracos, morreu a seu tempo pelos ímpios." },
+  { id: "romans_5_7_almeida", book: "Romans", chapter: 5, verse: 7, translation: "almeida", text: "Porque, dificilmente alguém morreria por um justo; contudo, pelo bom talvez alguém se atrevesse a morrer." },
+  { id: "romans_5_8_almeida", book: "Romans", chapter: 5, verse: 8, translation: "almeida", text: "Mas Deus prova o seu amor para conosco, em que Cristo morreu por nós, sendo nós ainda pecadores." },
+  { id: "romans_5_9_almeida", book: "Romans", chapter: 5, verse: 9, translation: "almeida", text: "Muito mais, pois, sendo agora justificados pelo seu sangue, seremos por ele salvos da ira." },
+  { id: "romans_5_10_almeida", book: "Romans", chapter: 5, verse: 10, translation: "almeida", text: "Porque, se sendo inimigos, fomos reconciliados com Deus pela morte de seu Filho, muito mais, estando já reconciliados, seremos salvos pela sua vida." },
+  { id: "romans_5_11_almeida", book: "Romans", chapter: 5, verse: 11, translation: "almeida", text: "E não somente isto, mas também nos gloriamos em Deus, por nosso Senhor Jesus Cristo, pelo qual agora obtivemos a reconciliação." },
+  { id: "romans_5_12_almeida", book: "Romans", chapter: 5, verse: 12, translation: "almeida", text: "Portanto, assim como por um só homem o pecado entrou no mundo, e pelo pecado a morte, assim também a morte passou a todos os homens, porquanto todos pecaram." },
+  { id: "romans_5_13_almeida", book: "Romans", chapter: 5, verse: 13, translation: "almeida", text: "Porque antes da lei havia pecado no mundo; mas o pecado não é imputado quando não há lei." },
+  { id: "romans_5_14_almeida", book: "Romans", chapter: 5, verse: 14, translation: "almeida", text: "No entanto, a morte reinou desde Adão até Moisés, mesmo sobre os que não pecaram à semelhança da transgressão de Adão, o qual é a figura daquele que havia de vir." },
+  { id: "romans_5_15_almeida", book: "Romans", chapter: 5, verse: 15, translation: "almeida", text: "Mas não é com o dom gratuito como foi com a ofensa; porque, se pela ofensa de um morreram muitos, muito mais a graça de Deus e o dom pela graça de um homem, Jesus Cristo, abundaram sobre muitos." },
+  { id: "romans_5_16_almeida", book: "Romans", chapter: 5, verse: 16, translation: "almeida", text: "E não é com o dom como com o pecado praticado por um só; porque o juízo veio por um só pecado para condenação, mas a dádiva gratuita veio de muitas ofensas para justificação." },
+  { id: "romans_5_17_almeida", book: "Romans", chapter: 5, verse: 17, translation: "almeida", text: "Porque, se pela ofensa de um só reinou a morte, muito mais os que recebem a abundância da graça e do dom da justiça reinarão em vida por um só, Jesus Cristo." },
+  { id: "romans_5_18_almeida", book: "Romans", chapter: 5, verse: 18, translation: "almeida", text: "Assim que, como por uma só ofensa veio a condenação sobre todos os homens, assim também por um só ato de justiça veio sobre todos os homens a justificação da vida." },
+  { id: "romans_5_19_almeida", book: "Romans", chapter: 5, verse: 19, translation: "almeida", text: "Porque assim como pela desobediência de um homem muitos foram constituídos pecadores, assim também pela obediência de um muitos serão constituídos justos." },
+  { id: "romans_5_20_almeida", book: "Romans", chapter: 5, verse: 20, translation: "almeida", text: "Mas a lei interveio para que a ofensa abundasse; mas onde o pecado abundou, superabundou a graça;" },
+  { id: "romans_5_21_almeida", book: "Romans", chapter: 5, verse: 21, translation: "almeida", text: "Para que, assim como o pecado reinou na morte, assim também a graça reinasse pela justiça para a vida eterna, por Jesus Cristo nosso Senhor." },
+
+  // ── 1 Coríntios 13 ──────────────────────────────────────────────────────
+  { id: "1_corinthians_13_1_almeida", book: "1 Corinthians", chapter: 13, verse: 1, translation: "almeida", text: "Ainda que eu falasse as línguas dos homens e dos anjos, e não tivesse amor, seria como o metal que soa ou como o sino que tine." },
+  { id: "1_corinthians_13_2_almeida", book: "1 Corinthians", chapter: 13, verse: 2, translation: "almeida", text: "E ainda que tivesse o dom de profecia, e conhecesse todos os mistérios e toda a ciência, e ainda que tivesse toda a fé, de maneira tal que transportasse os montes, e não tivesse amor, nada seria." },
+  { id: "1_corinthians_13_3_almeida", book: "1 Corinthians", chapter: 13, verse: 3, translation: "almeida", text: "E ainda que distribuísse todos os meus bens para sustento dos pobres, e ainda que entregasse o meu corpo para ser queimado, e não tivesse amor, nada disso me aproveitaria." },
+  { id: "1_corinthians_13_4_almeida", book: "1 Corinthians", chapter: 13, verse: 4, translation: "almeida", text: "O amor é sofredor, é benigno; o amor não é invejoso; o amor não trata com leviandade, não se ensoberbece." },
+  { id: "1_corinthians_13_5_almeida", book: "1 Corinthians", chapter: 13, verse: 5, translation: "almeida", text: "Não se porta com indecência, não busca os seus interesses, não se irrita, não suspeita mal;" },
+  { id: "1_corinthians_13_6_almeida", book: "1 Corinthians", chapter: 13, verse: 6, translation: "almeida", text: "Não se alegra com a injustiça, mas alegra-se com a verdade;" },
+  { id: "1_corinthians_13_7_almeida", book: "1 Corinthians", chapter: 13, verse: 7, translation: "almeida", text: "Tudo sofre, tudo crê, tudo espera, tudo suporta." },
+  { id: "1_corinthians_13_8_almeida", book: "1 Corinthians", chapter: 13, verse: 8, translation: "almeida", text: "O amor nunca falha; mas havendo profecias, serão aniquiladas; havendo línguas, cessarão; havendo ciência, desaparecerá;" },
+  { id: "1_corinthians_13_9_almeida", book: "1 Corinthians", chapter: 13, verse: 9, translation: "almeida", text: "Porque, em parte, conhecemos e, em parte, profetizamos;" },
+  { id: "1_corinthians_13_10_almeida", book: "1 Corinthians", chapter: 13, verse: 10, translation: "almeida", text: "Mas, quando vier o que é perfeito, então o que o é em parte será aniquilado." },
+  { id: "1_corinthians_13_11_almeida", book: "1 Corinthians", chapter: 13, verse: 11, translation: "almeida", text: "Quando eu era menino, falava como menino, sentia como menino, discorria como menino; mas, logo que cheguei a ser homem, acabei com as coisas de menino." },
+  { id: "1_corinthians_13_12_almeida", book: "1 Corinthians", chapter: 13, verse: 12, translation: "almeida", text: "Porque agora vemos por espelho em enigma, mas então veremos face a face; agora conheço em parte, mas então conhecerei como também sou conhecido." },
+  { id: "1_corinthians_13_13_almeida", book: "1 Corinthians", chapter: 13, verse: 13, translation: "almeida", text: "Agora, pois, permanecem a fé, a esperança e o amor, estes três; mas o maior destes é o amor." },
+
+  // ── Efésios 1 ───────────────────────────────────────────────────────────
+  { id: "ephesians_1_1_almeida", book: "Ephesians", chapter: 1, verse: 1, translation: "almeida", text: "Paulo, apóstolo de Jesus Cristo pela vontade de Deus, aos santos que estão em Éfeso, e fiéis em Cristo Jesus:" },
+  { id: "ephesians_1_2_almeida", book: "Ephesians", chapter: 1, verse: 2, translation: "almeida", text: "Graça e paz da parte de Deus, nosso Pai, e do Senhor Jesus Cristo." },
+  { id: "ephesians_1_3_almeida", book: "Ephesians", chapter: 1, verse: 3, translation: "almeida", text: "Bendito seja o Deus e Pai de nosso Senhor Jesus Cristo, que nos abençoou com todas as bênçãos espirituais nos lugares celestiais em Cristo;" },
+  { id: "ephesians_1_4_almeida", book: "Ephesians", chapter: 1, verse: 4, translation: "almeida", text: "Como nos escolheu nele antes da fundação do mundo, para que fôssemos santos e irrepreensíveis diante dele em amor;" },
+  { id: "ephesians_1_5_almeida", book: "Ephesians", chapter: 1, verse: 5, translation: "almeida", text: "E nos predestinou para a adoção de filhos por Jesus Cristo, para si mesmo, segundo o beneplácito da sua vontade;" },
+  { id: "ephesians_1_6_almeida", book: "Ephesians", chapter: 1, verse: 6, translation: "almeida", text: "Para louvor da glória da sua graça, pela qual nos fez agradáveis a si no Amado." },
+  { id: "ephesians_1_7_almeida", book: "Ephesians", chapter: 1, verse: 7, translation: "almeida", text: "Em quem temos a redenção pelo seu sangue, a remissão das ofensas, segundo as riquezas da sua graça;" },
+  { id: "ephesians_1_8_almeida", book: "Ephesians", chapter: 1, verse: 8, translation: "almeida", text: "Que ele fez abundar em nós em toda a sabedoria e prudência;" },
+  { id: "ephesians_1_9_almeida", book: "Ephesians", chapter: 1, verse: 9, translation: "almeida", text: "Tendo-nos descoberto o mistério da sua vontade, segundo o seu beneplácito que propusera em si mesmo," },
+  { id: "ephesians_1_10_almeida", book: "Ephesians", chapter: 1, verse: 10, translation: "almeida", text: "Para dispensação da plenitude dos tempos, a saber, o recapitular em Cristo todas as coisas, tanto as que estão nos céus como as que estão na terra;" },
+  { id: "ephesians_1_11_almeida", book: "Ephesians", chapter: 1, verse: 11, translation: "almeida", text: "Nele, digo, em quem também fomos feitos herança, havendo sido predestinados conforme o propósito daquele que faz todas as coisas segundo o conselho da sua vontade;" },
+  { id: "ephesians_1_12_almeida", book: "Ephesians", chapter: 1, verse: 12, translation: "almeida", text: "Para sermos para louvor da sua glória, nós que primeiro esperamos em Cristo;" },
+  { id: "ephesians_1_13_almeida", book: "Ephesians", chapter: 1, verse: 13, translation: "almeida", text: "Em quem também vós estais, depois que ouvistes a palavra da verdade, o evangelho da vossa salvação; e tendo nele também crido, fostes selados com o Espírito Santo da promessa," },
+  { id: "ephesians_1_14_almeida", book: "Ephesians", chapter: 1, verse: 14, translation: "almeida", text: "O qual é o penhor da nossa herança, até à redenção da possessão adquirida, para louvor da sua glória." },
+  { id: "ephesians_1_15_almeida", book: "Ephesians", chapter: 1, verse: 15, translation: "almeida", text: "Por isso, também eu, havendo ouvido falar da fé em Jesus Cristo que há entre vós, e do amor que tendes para com todos os santos," },
+  { id: "ephesians_1_16_almeida", book: "Ephesians", chapter: 1, verse: 16, translation: "almeida", text: "Não cesso de dar graças por vós, fazendo memória de vós nas minhas orações;" },
+  { id: "ephesians_1_17_almeida", book: "Ephesians", chapter: 1, verse: 17, translation: "almeida", text: "Para que o Deus de nosso Senhor Jesus Cristo, o Pai da glória, vos dê o espírito de sabedoria e de revelação no conhecimento dele;" },
+  { id: "ephesians_1_18_almeida", book: "Ephesians", chapter: 1, verse: 18, translation: "almeida", text: "Iluminados os olhos do vosso entendimento, para que saibais qual é a esperança da sua vocação, e quais as riquezas da glória da sua herança nos santos," },
+  { id: "ephesians_1_19_almeida", book: "Ephesians", chapter: 1, verse: 19, translation: "almeida", text: "E qual a suprema grandeza do seu poder para com os que cremos, segundo a operação da força do seu poder;" },
+  { id: "ephesians_1_20_almeida", book: "Ephesians", chapter: 1, verse: 20, translation: "almeida", text: "O qual operou em Cristo, ressuscitando-o dentre os mortos, e fazendo-o assentar à sua direita nos lugares celestiais," },
+  { id: "ephesians_1_21_almeida", book: "Ephesians", chapter: 1, verse: 21, translation: "almeida", text: "Acima de todo o principado, e poder, e força, e senhorio, e de todo o nome que se nomeia, não somente neste século, mas também no vindouro;" },
+  { id: "ephesians_1_22_almeida", book: "Ephesians", chapter: 1, verse: 22, translation: "almeida", text: "E sujeitou todas as coisas a seus pés, e sobre todas as coisas o constituiu cabeça da igreja," },
+  { id: "ephesians_1_23_almeida", book: "Ephesians", chapter: 1, verse: 23, translation: "almeida", text: "Que é o seu corpo, a plenitude daquele que cumpre tudo em todos." },
+
+  // ── Efésios 2 ───────────────────────────────────────────────────────────
+  { id: "ephesians_2_1_almeida", book: "Ephesians", chapter: 2, verse: 1, translation: "almeida", text: "E ele vos vivificou, estando vós mortos nos vossos delitos e pecados;" },
+  { id: "ephesians_2_2_almeida", book: "Ephesians", chapter: 2, verse: 2, translation: "almeida", text: "Nos quais noutro tempo andastes segundo o curso deste século, segundo o príncipe da potestade do ar, do espírito que agora opera nos filhos da desobediência;" },
+  { id: "ephesians_2_3_almeida", book: "Ephesians", chapter: 2, verse: 3, translation: "almeida", text: "Entre os quais também nós todos em tempos passados tivemos a nossa conversação nas concupiscências da nossa carne, cumprindo os desejos da carne e dos pensamentos; e éramos por natureza filhos da ira, como os demais." },
+  { id: "ephesians_2_4_almeida", book: "Ephesians", chapter: 2, verse: 4, translation: "almeida", text: "Mas Deus, que é rico em misericórdia, pelo seu muito amor com que nos amou," },
+  { id: "ephesians_2_5_almeida", book: "Ephesians", chapter: 2, verse: 5, translation: "almeida", text: "Estando nós ainda mortos em nossos delitos, nos vivificou juntamente com Cristo (pela graça sois salvos);" },
+  { id: "ephesians_2_6_almeida", book: "Ephesians", chapter: 2, verse: 6, translation: "almeida", text: "E nos ressuscitou juntamente, e nos fez assentar juntamente nos lugares celestiais em Cristo Jesus;" },
+  { id: "ephesians_2_7_almeida", book: "Ephesians", chapter: 2, verse: 7, translation: "almeida", text: "Para mostrar nos séculos vindouros as abundantes riquezas da sua graça em bondade para conosco em Cristo Jesus." },
+  { id: "ephesians_2_8_almeida", book: "Ephesians", chapter: 2, verse: 8, translation: "almeida", text: "Porque pela graça sois salvos, por meio da fé; e isto não vem de vós; é dom de Deus." },
+  { id: "ephesians_2_9_almeida", book: "Ephesians", chapter: 2, verse: 9, translation: "almeida", text: "Não vem das obras, para que ninguém se glorie." },
+  { id: "ephesians_2_10_almeida", book: "Ephesians", chapter: 2, verse: 10, translation: "almeida", text: "Porque somos feitura dele, criados em Cristo Jesus para as boas obras, as quais Deus antes preparou para que andássemos nelas." },
+  { id: "ephesians_2_11_almeida", book: "Ephesians", chapter: 2, verse: 11, translation: "almeida", text: "Portanto, lembrai-vos de que vós, os gentios na carne, que sois chamados incircuncisão pelos que se chamam circuncisão, feita pela mão na carne," },
+  { id: "ephesians_2_12_almeida", book: "Ephesians", chapter: 2, verse: 12, translation: "almeida", text: "Naquele tempo estáveis sem Cristo, separados da comunidade de Israel, e estranhos às alianças da promessa, não tendo esperança, e sem Deus no mundo." },
+  { id: "ephesians_2_13_almeida", book: "Ephesians", chapter: 2, verse: 13, translation: "almeida", text: "Mas agora em Cristo Jesus, vós, que antes estáveis longe, já pelo sangue de Cristo chegastes perto." },
+  { id: "ephesians_2_14_almeida", book: "Ephesians", chapter: 2, verse: 14, translation: "almeida", text: "Porque ele é a nossa paz, o qual de ambos os povos fez um, e derribou a parede da separação que havia no meio;" },
+  { id: "ephesians_2_15_almeida", book: "Ephesians", chapter: 2, verse: 15, translation: "almeida", text: "Abolindo na sua carne a inimizade, a lei dos mandamentos na forma de ordenanças, para criar em si mesmo dos dois um novo homem, fazendo a paz;" },
+  { id: "ephesians_2_16_almeida", book: "Ephesians", chapter: 2, verse: 16, translation: "almeida", text: "E para os reconciliar ambos em um corpo com Deus pela cruz, matando por ela a inimizade." },
+  { id: "ephesians_2_17_almeida", book: "Ephesians", chapter: 2, verse: 17, translation: "almeida", text: "E veio e anunciou o evangelho da paz a vós que estáveis longe e aos que estavam perto." },
+  { id: "ephesians_2_18_almeida", book: "Ephesians", chapter: 2, verse: 18, translation: "almeida", text: "Porque por meio dele ambos temos acesso ao Pai em um Espírito." },
+  { id: "ephesians_2_19_almeida", book: "Ephesians", chapter: 2, verse: 19, translation: "almeida", text: "Assim que já não sois estranhos e forasteiros, mas concidadãos dos santos e da família de Deus;" },
+  { id: "ephesians_2_20_almeida", book: "Ephesians", chapter: 2, verse: 20, translation: "almeida", text: "Edificados sobre o fundamento dos apóstolos e profetas, de que Jesus Cristo mesmo é a principal pedra angular;" },
+  { id: "ephesians_2_21_almeida", book: "Ephesians", chapter: 2, verse: 21, translation: "almeida", text: "No qual todo o edifício, bem ajustado, cresce para um templo santo no Senhor;" },
+  { id: "ephesians_2_22_almeida", book: "Ephesians", chapter: 2, verse: 22, translation: "almeida", text: "No qual também vós juntamente sois edificados para habitação de Deus no Espírito." },
+
+  // ── Hebreus 11 ──────────────────────────────────────────────────────────
+  { id: "hebrews_11_1_almeida", book: "Hebrews", chapter: 11, verse: 1, translation: "almeida", text: "Ora, a fé é o firme fundamento das coisas que se esperam, e a prova das coisas que se não vêem." },
+  { id: "hebrews_11_2_almeida", book: "Hebrews", chapter: 11, verse: 2, translation: "almeida", text: "Porque por ela os antigos alcançaram bom testemunho." },
+  { id: "hebrews_11_3_almeida", book: "Hebrews", chapter: 11, verse: 3, translation: "almeida", text: "Pela fé entendemos ter sido o mundo formado pela palavra de Deus, de modo que o visível não foi feito do que se vê." },
+  { id: "hebrews_11_4_almeida", book: "Hebrews", chapter: 11, verse: 4, translation: "almeida", text: "Pela fé Abel ofereceu a Deus mais excelente sacrifício do que Caim, pelo qual alcançou o testemunho de que era justo, dando Deus testemunho a respeito das suas ofertas; e por ela, ainda está falando, apesar de morto." },
+  { id: "hebrews_11_5_almeida", book: "Hebrews", chapter: 11, verse: 5, translation: "almeida", text: "Pela fé Enoque foi transladado, para não ver a morte; e não foi achado, porque Deus o transladou; porquanto antes de ser transladado obteve testemunho de ter agradado a Deus." },
+  { id: "hebrews_11_6_almeida", book: "Hebrews", chapter: 11, verse: 6, translation: "almeida", text: "Mas sem fé é impossível agradar-lhe; porque é necessário que aquele que se aproxima de Deus creia que ele existe, e que é galardoador dos que o buscam." },
+  { id: "hebrews_11_7_almeida", book: "Hebrews", chapter: 11, verse: 7, translation: "almeida", text: "Pela fé Noé, divinamente avisado acerca das coisas que ainda não se viam, movido de santo temor, preparou a arca para salvação de sua família; pela qual condenou o mundo, e foi feito herdeiro da justiça que é segundo a fé." },
+  { id: "hebrews_11_8_almeida", book: "Hebrews", chapter: 11, verse: 8, translation: "almeida", text: "Pela fé Abraão obedeceu, quando foi chamado para ir a um lugar que havia de receber por herança; e saiu sem saber aonde ia." },
+  { id: "hebrews_11_9_almeida", book: "Hebrews", chapter: 11, verse: 9, translation: "almeida", text: "Pela fé habitou na terra da promessa, como em terra estranha, morando em tendas com Isaque e Jacó, co-herdeiros da mesma promessa." },
+  { id: "hebrews_11_10_almeida", book: "Hebrews", chapter: 11, verse: 10, translation: "almeida", text: "Porque esperava a cidade que tem fundamentos, cujo artífice e construtor é Deus." },
+  { id: "hebrews_11_11_almeida", book: "Hebrews", chapter: 11, verse: 11, translation: "almeida", text: "Pela fé também a própria Sara recebeu força para conceber, e deu à luz fora do tempo da idade; porquanto teve por fiel aquele que o havia prometido." },
+  { id: "hebrews_11_12_almeida", book: "Hebrews", chapter: 11, verse: 12, translation: "almeida", text: "Por isso, também de um só, e já entorpecido, nasceram tantos como as estrelas do céu em multidão, e como a areia que está na praia do mar, que não se pode numerar." },
+  { id: "hebrews_11_13_almeida", book: "Hebrews", chapter: 11, verse: 13, translation: "almeida", text: "Todos estes morreram na fé, sem terem recebido as promessas, mas tendo-as visto e crido de longe, e confessado que eram estrangeiros e peregrinos na terra." },
+  { id: "hebrews_11_14_almeida", book: "Hebrews", chapter: 11, verse: 14, translation: "almeida", text: "Porque os que isto dizem claramente dão a entender que buscam uma pátria." },
+  { id: "hebrews_11_15_almeida", book: "Hebrews", chapter: 11, verse: 15, translation: "almeida", text: "E, se se lembrassem daquela de que saíram, teriam oportunidade de tornar." },
+  { id: "hebrews_11_16_almeida", book: "Hebrews", chapter: 11, verse: 16, translation: "almeida", text: "Mas agora desejam uma melhor, isto é, a celestial; por isso Deus não se envergonha de ser chamado o seu Deus, porquanto lhes preparou uma cidade." },
+  { id: "hebrews_11_17_almeida", book: "Hebrews", chapter: 11, verse: 17, translation: "almeida", text: "Pela fé Abraão, quando foi provado, ofereceu a Isaque; e o que tinha recebido as promessas oferecia o seu unigênito," },
+  { id: "hebrews_11_18_almeida", book: "Hebrews", chapter: 11, verse: 18, translation: "almeida", text: "A quem foi dito que em Isaque te será chamada a tua descendência;" },
+  { id: "hebrews_11_19_almeida", book: "Hebrews", chapter: 11, verse: 19, translation: "almeida", text: "Julgando que Deus era poderoso para o ressuscitar até dentre os mortos; do que também o recebeu por figura." },
+  { id: "hebrews_11_20_almeida", book: "Hebrews", chapter: 11, verse: 20, translation: "almeida", text: "Pela fé Isaque abençoou Jacó e Esaú em relação às coisas futuras." },
+  { id: "hebrews_11_21_almeida", book: "Hebrews", chapter: 11, verse: 21, translation: "almeida", text: "Pela fé Jacó, ao morrer, abençoou cada um dos filhos de José, e adorou encostado sobre a extremidade do seu bordão." },
+  { id: "hebrews_11_22_almeida", book: "Hebrews", chapter: 11, verse: 22, translation: "almeida", text: "Pela fé José, ao finar-se, fez menção da saída dos filhos de Israel, e deu instruções acerca dos seus ossos." },
+  { id: "hebrews_11_23_almeida", book: "Hebrews", chapter: 11, verse: 23, translation: "almeida", text: "Pela fé Moisés, quando nasceu, foi escondido três meses por seus pais, porque viram que a criança era formosa, e não temeram o decreto do rei." },
+  { id: "hebrews_11_24_almeida", book: "Hebrews", chapter: 11, verse: 24, translation: "almeida", text: "Pela fé Moisés, quando já era grande, recusou ser chamado filho da filha de Faraó;" },
+  { id: "hebrews_11_25_almeida", book: "Hebrews", chapter: 11, verse: 25, translation: "almeida", text: "Preferindo ser maltratado com o povo de Deus a ter os transitórios prazeres do pecado;" },
+  { id: "hebrews_11_26_almeida", book: "Hebrews", chapter: 11, verse: 26, translation: "almeida", text: "Tendo como maior riqueza do que os tesouros do Egito o opróbrio de Cristo; porque tinha os olhos fitos na recompensa." },
+  { id: "hebrews_11_27_almeida", book: "Hebrews", chapter: 11, verse: 27, translation: "almeida", text: "Pela fé saiu do Egito, sem se temer da ira do rei; porque se manteve firme como se vira o invisível." },
+  { id: "hebrews_11_28_almeida", book: "Hebrews", chapter: 11, verse: 28, translation: "almeida", text: "Pela fé celebrou a Páscoa e a aspersão do sangue, para que o anjo destruidor não tocasse os primogênitos." },
+  { id: "hebrews_11_29_almeida", book: "Hebrews", chapter: 11, verse: 29, translation: "almeida", text: "Pela fé atravessaram o Mar Vermelho como por terra seca; o que tentando os egípcios, foram submergidos." },
+  { id: "hebrews_11_30_almeida", book: "Hebrews", chapter: 11, verse: 30, translation: "almeida", text: "Pela fé caíram os muros de Jericó, sendo rodeados durante sete dias." },
+  { id: "hebrews_11_31_almeida", book: "Hebrews", chapter: 11, verse: 31, translation: "almeida", text: "Pela fé Raabe, a meretriz, não pereceu com os incrédulos, tendo recebido os espias em paz." },
+  { id: "hebrews_11_32_almeida", book: "Hebrews", chapter: 11, verse: 32, translation: "almeida", text: "E que mais direi? pois me faltaria tempo para falar de Gideão, de Baraque, de Sansão, de Jefté, de Davi, de Samuel, e dos profetas;" },
+  { id: "hebrews_11_33_almeida", book: "Hebrews", chapter: 11, verse: 33, translation: "almeida", text: "Os quais pela fé conquistaram reinos, praticaram a justiça, alcançaram o cumprimento das promessas, fecharam as bocas dos leões," },
+  { id: "hebrews_11_34_almeida", book: "Hebrews", chapter: 11, verse: 34, translation: "almeida", text: "Apagaram a força do fogo, escaparam do fio da espada, da fraqueza tiraram forças, tornaram-se poderosos na guerra, puseram em fuga os exércitos dos estranhos." },
+  { id: "hebrews_11_35_almeida", book: "Hebrews", chapter: 11, verse: 35, translation: "almeida", text: "Mulheres receberam os seus mortos por ressurreição; e outros foram cruelmente torturados, não aceitando o resgate, para obterem uma melhor ressurreição." },
+  { id: "hebrews_11_36_almeida", book: "Hebrews", chapter: 11, verse: 36, translation: "almeida", text: "E outros sofreram escárnios e açoites, e ainda correntes e prisões." },
+  { id: "hebrews_11_37_almeida", book: "Hebrews", chapter: 11, verse: 37, translation: "almeida", text: "Foram apedrejados, serrados ao meio, tentados, mortos a fio de espada; andaram vestidos de peles de ovelhas e de cabras; necessitados, aflitos, maltratados;" },
+  { id: "hebrews_11_38_almeida", book: "Hebrews", chapter: 11, verse: 38, translation: "almeida", text: "(De quem o mundo não era digno;) errando pelos desertos e montes, e pelas covas e pelas aberturas da terra." },
+  { id: "hebrews_11_39_almeida", book: "Hebrews", chapter: 11, verse: 39, translation: "almeida", text: "E todos estes, havendo alcançado bom testemunho pela fé, não receberam o cumprimento da promessa;" },
+  { id: "hebrews_11_40_almeida", book: "Hebrews", chapter: 11, verse: 40, translation: "almeida", text: "Porque Deus tinha provido alguma coisa melhor para nós, a fim de que eles não fossem aperfeiçoados sem nós." },
+
+  // ── Apocalipse 1 ────────────────────────────────────────────────────────
+  { id: "revelation_1_1_almeida", book: "Revelation", chapter: 1, verse: 1, translation: "almeida", text: "Revelação de Jesus Cristo, que Deus lhe deu, para mostrar aos seus servos as coisas que brevemente devem acontecer; e pelo seu anjo as enviou e as notificou a João seu servo;" },
+  { id: "revelation_1_2_almeida", book: "Revelation", chapter: 1, verse: 2, translation: "almeida", text: "O qual testificou da palavra de Deus, e do testemunho de Jesus Cristo, e de tudo o que viu." },
+  { id: "revelation_1_3_almeida", book: "Revelation", chapter: 1, verse: 3, translation: "almeida", text: "Bem-aventurado aquele que lê e os que ouvem as palavras desta profecia, e guardam as coisas que nela estão escritas; porque o tempo está próximo." },
+  { id: "revelation_1_4_almeida", book: "Revelation", chapter: 1, verse: 4, translation: "almeida", text: "João, às sete igrejas que estão na Ásia: Graça e paz da parte daquele que é, e que era, e que há de vir, e da parte dos sete espíritos que estão diante do seu trono;" },
+  { id: "revelation_1_5_almeida", book: "Revelation", chapter: 1, verse: 5, translation: "almeida", text: "E da parte de Jesus Cristo, que é a fiel testemunha, o primogênito dentre os mortos, e o príncipe dos reis da terra. Àquele que nos amou, e em seu sangue nos lavou dos nossos pecados," },
+  { id: "revelation_1_6_almeida", book: "Revelation", chapter: 1, verse: 6, translation: "almeida", text: "E nos fez reis e sacerdotes para Deus, seu Pai; a ele seja glória e poder pelos séculos dos séculos. Amém." },
+  { id: "revelation_1_7_almeida", book: "Revelation", chapter: 1, verse: 7, translation: "almeida", text: "Eis que vem com as nuvens, e todo o olho o verá, até os mesmos que o traspassaram; e todas as tribos da terra se lamentarão sobre ele. Sim. Amém." },
+  { id: "revelation_1_8_almeida", book: "Revelation", chapter: 1, verse: 8, translation: "almeida", text: "Eu sou o Alfa e o Ômega, o princípio e o fim, diz o Senhor, que é, e que era, e que há de vir, o Todo-Poderoso." },
+  { id: "revelation_1_9_almeida", book: "Revelation", chapter: 1, verse: 9, translation: "almeida", text: "Eu, João, irmão vosso e companheiro na tribulação e no reino e na paciência em Jesus Cristo, estava na ilha chamada Patmos, por causa da palavra de Deus e do testemunho de Jesus Cristo." },
+  { id: "revelation_1_10_almeida", book: "Revelation", chapter: 1, verse: 10, translation: "almeida", text: "Fui arrebatado no Espírito no dia do Senhor, e ouvi atrás de mim uma grande voz como de trombeta," },
+  { id: "revelation_1_11_almeida", book: "Revelation", chapter: 1, verse: 11, translation: "almeida", text: "Que dizia: Eu sou o Alfa e o Ômega, o primeiro e o último; e o que vês escreve-o num livro, e manda-o às sete igrejas que estão na Ásia: a Éfeso, a Esmirna, a Pérgamo, a Tiatira, a Sardes, a Filadélfia e a Laodicéia." },
+  { id: "revelation_1_12_almeida", book: "Revelation", chapter: 1, verse: 12, translation: "almeida", text: "E voltei-me para ver a voz que falava comigo. E, voltando-me, vi sete castiçais de ouro;" },
+  { id: "revelation_1_13_almeida", book: "Revelation", chapter: 1, verse: 13, translation: "almeida", text: "E no meio dos sete castiçais um semelhante ao Filho do Homem, vestido de uma veste comprida até aos pés, e cingido pelos peitos com um cinto de ouro." },
+  { id: "revelation_1_14_almeida", book: "Revelation", chapter: 1, verse: 14, translation: "almeida", text: "E a sua cabeça e cabelos eram brancos como a branca lã, como a neve; e os seus olhos como chama de fogo;" },
+  { id: "revelation_1_15_almeida", book: "Revelation", chapter: 1, verse: 15, translation: "almeida", text: "E os seus pés semelhantes ao latão fino, como se tivessem sido refinados numa fornalha; e a sua voz como o som de muitas águas." },
+  { id: "revelation_1_16_almeida", book: "Revelation", chapter: 1, verse: 16, translation: "almeida", text: "E tinha na sua destra sete estrelas; e da sua boca saía uma aguda espada de dois gumes; e o seu rosto era como o sol quando resplandece na sua força." },
+  { id: "revelation_1_17_almeida", book: "Revelation", chapter: 1, verse: 17, translation: "almeida", text: "E quando o vi, caí a seus pés como morto. E ele pôs sobre mim a sua destra, dizendo-me: Não temas; eu sou o primeiro e o último;" },
+  { id: "revelation_1_18_almeida", book: "Revelation", chapter: 1, verse: 18, translation: "almeida", text: "E o que vivo, e fui morto; e eis que estou vivo pelos séculos dos séculos. Amém. E tenho as chaves do inferno e da morte." },
+  { id: "revelation_1_19_almeida", book: "Revelation", chapter: 1, verse: 19, translation: "almeida", text: "Escreve as coisas que viste, e as que são, e as que hão de acontecer depois destas." },
+  { id: "revelation_1_20_almeida", book: "Revelation", chapter: 1, verse: 20, translation: "almeida", text: "O mistério das sete estrelas que viste na minha destra, e dos sete castiçais de ouro: As sete estrelas são os anjos das sete igrejas; e os sete castiçais que viste são as sete igrejas." },
+
+  // ── Gênesis 2 ───────────────────────────────────────────────────────────
+  { id: "genesis_2_1_almeida", book: "Genesis", chapter: 2, verse: 1, translation: "almeida", text: "Assim foram acabados os céus e a terra, e todo o seu exército." },
+  { id: "genesis_2_2_almeida", book: "Genesis", chapter: 2, verse: 2, translation: "almeida", text: "E havendo Deus acabado no dia sétimo a sua obra, que tinha feito, descansou no sétimo dia de toda a sua obra que tinha feito." },
+  { id: "genesis_2_3_almeida", book: "Genesis", chapter: 2, verse: 3, translation: "almeida", text: "E Deus abençoou o dia sétimo, e o santificou; porque nele descansou de toda a sua obra, que Deus criara e fizera." },
+  { id: "genesis_2_4_almeida", book: "Genesis", chapter: 2, verse: 4, translation: "almeida", text: "Estas são as origens dos céus e da terra quando foram criados, no dia em que o Senhor Deus fez a terra e os céus." },
+  { id: "genesis_2_5_almeida", book: "Genesis", chapter: 2, verse: 5, translation: "almeida", text: "E toda a planta do campo, antes de brotar na terra, e toda a erva do campo, antes de crescer; porquanto o Senhor Deus ainda não tinha feito chover sobre a terra, e não havia homem para lavrar o solo;" },
+  { id: "genesis_2_6_almeida", book: "Genesis", chapter: 2, verse: 6, translation: "almeida", text: "Mas um vapor subia da terra, e regava toda a face do solo." },
+  { id: "genesis_2_7_almeida", book: "Genesis", chapter: 2, verse: 7, translation: "almeida", text: "E o Senhor Deus formou o homem do pó da terra, e soprou nas suas narinas o fôlego da vida; e o homem foi feito alma vivente." },
+  { id: "genesis_2_8_almeida", book: "Genesis", chapter: 2, verse: 8, translation: "almeida", text: "E o Senhor Deus plantou um jardim no Éden, do lado oriental; e pôs ali o homem que tinha formado." },
+  { id: "genesis_2_9_almeida", book: "Genesis", chapter: 2, verse: 9, translation: "almeida", text: "E o Senhor Deus fez crescer do solo toda a árvore agradável à vista, e boa para alimento; e a árvore da vida no meio do jardim, e a árvore do conhecimento do bem e do mal." },
+  { id: "genesis_2_10_almeida", book: "Genesis", chapter: 2, verse: 10, translation: "almeida", text: "E saía um rio do Éden para regar o jardim; e dali se dividia e se tornava em quatro braços." },
+  { id: "genesis_2_11_almeida", book: "Genesis", chapter: 2, verse: 11, translation: "almeida", text: "O nome do primeiro é Pisom; este é o que rodeia toda a terra de Havilá, onde há ouro." },
+  { id: "genesis_2_12_almeida", book: "Genesis", chapter: 2, verse: 12, translation: "almeida", text: "E o ouro daquela terra é bom; ali há bdélio e a pedra de berilo." },
+  { id: "genesis_2_13_almeida", book: "Genesis", chapter: 2, verse: 13, translation: "almeida", text: "E o nome do segundo rio é Giom; este é o que rodeia toda a terra de Cuxe." },
+  { id: "genesis_2_14_almeida", book: "Genesis", chapter: 2, verse: 14, translation: "almeida", text: "E o nome do terceiro rio é Hidequel; este é o que corre para o oriente da Assíria. E o quarto rio é o Eufrates." },
+  { id: "genesis_2_15_almeida", book: "Genesis", chapter: 2, verse: 15, translation: "almeida", text: "E tomou o Senhor Deus o homem, e o pôs no jardim do Éden para o cultivar e o guardar." },
+  { id: "genesis_2_16_almeida", book: "Genesis", chapter: 2, verse: 16, translation: "almeida", text: "E o Senhor Deus ordenou ao homem, dizendo: De toda a árvore do jardim comerás livremente;" },
+  { id: "genesis_2_17_almeida", book: "Genesis", chapter: 2, verse: 17, translation: "almeida", text: "Mas da árvore do conhecimento do bem e do mal, dela não comerás; porque no dia em que dela comeres, certamente morrerás." },
+  { id: "genesis_2_18_almeida", book: "Genesis", chapter: 2, verse: 18, translation: "almeida", text: "E disse o Senhor Deus: Não é bom que o homem esteja só; far-lhe-ei uma ajuda idônea." },
+  { id: "genesis_2_19_almeida", book: "Genesis", chapter: 2, verse: 19, translation: "almeida", text: "E o Senhor Deus formou da terra todo o animal do campo, e toda a ave dos céus, e os trouxe a Adão para este ver como lhes chamaria; e o nome que Adão deu a toda a alma vivente, esse foi o seu nome." },
+  { id: "genesis_2_20_almeida", book: "Genesis", chapter: 2, verse: 20, translation: "almeida", text: "E Adão deu nomes a todo o gado, e às aves dos céus, e a todo o animal do campo; mas para Adão não se achou ajuda idônea." },
+  { id: "genesis_2_21_almeida", book: "Genesis", chapter: 2, verse: 21, translation: "almeida", text: "E o Senhor Deus fez cair um sono profundo sobre Adão, e este adormeceu; e tomou uma das suas costelas, e fechou a carne em seu lugar." },
+  { id: "genesis_2_22_almeida", book: "Genesis", chapter: 2, verse: 22, translation: "almeida", text: "E da costela que o Senhor Deus tomou do homem, formou uma mulher, e trouxe-a ao homem." },
+  { id: "genesis_2_23_almeida", book: "Genesis", chapter: 2, verse: 23, translation: "almeida", text: "E disse Adão: Esta é agora osso dos meus ossos, e carne da minha carne; esta será chamada mulher, porquanto do homem foi tomada." },
+  { id: "genesis_2_24_almeida", book: "Genesis", chapter: 2, verse: 24, translation: "almeida", text: "Portanto, deixará o homem o seu pai e a sua mãe, e se unirá à sua mulher, e serão ambos uma carne." },
+  { id: "genesis_2_25_almeida", book: "Genesis", chapter: 2, verse: 25, translation: "almeida", text: "E ambos estavam nus, o homem e a sua mulher; e não se envergonhavam." },
+
+  // ── Gênesis 3 ───────────────────────────────────────────────────────────
+  { id: "genesis_3_1_almeida", book: "Genesis", chapter: 3, verse: 1, translation: "almeida", text: "Ora, a serpente era mais astuta do que todos os animais do campo que o Senhor Deus tinha feito. E disse à mulher: É assim que Deus disse: Não comereis de toda a árvore do jardim?" },
+  { id: "genesis_3_2_almeida", book: "Genesis", chapter: 3, verse: 2, translation: "almeida", text: "E disse a mulher à serpente: Do fruto das árvores do jardim comeremos;" },
+  { id: "genesis_3_3_almeida", book: "Genesis", chapter: 3, verse: 3, translation: "almeida", text: "Mas do fruto da árvore que está no meio do jardim, Deus disse: Não comereis dele, nem tocareis nele, para que não morrais." },
+  { id: "genesis_3_4_almeida", book: "Genesis", chapter: 3, verse: 4, translation: "almeida", text: "E disse a serpente à mulher: De modo algum morrereis." },
+  { id: "genesis_3_5_almeida", book: "Genesis", chapter: 3, verse: 5, translation: "almeida", text: "Porque Deus sabe que, no dia em que comerdes disso, serão abertos os vossos olhos, e sereis como Deus, sabendo o bem e o mal." },
+  { id: "genesis_3_6_almeida", book: "Genesis", chapter: 3, verse: 6, translation: "almeida", text: "E viu a mulher que aquela árvore era boa para se comer, e agradável aos olhos, e árvore desejável para dar entendimento; tomou do seu fruto, e comeu, e deu também ao seu marido, e ele comeu." },
+  { id: "genesis_3_7_almeida", book: "Genesis", chapter: 3, verse: 7, translation: "almeida", text: "Então foram abertos os olhos de ambos, e conheceram que estavam nus; e coseram folhas de figueira, e fizeram para si aventais." },
+  { id: "genesis_3_8_almeida", book: "Genesis", chapter: 3, verse: 8, translation: "almeida", text: "E ouviram a voz do Senhor Deus, que passeava no jardim pela viração do dia; e o homem e sua mulher se esconderam da presença do Senhor Deus, entre as árvores do jardim." },
+  { id: "genesis_3_9_almeida", book: "Genesis", chapter: 3, verse: 9, translation: "almeida", text: "E chamou o Senhor Deus ao homem, e disse-lhe: Onde estás?" },
+  { id: "genesis_3_10_almeida", book: "Genesis", chapter: 3, verse: 10, translation: "almeida", text: "E ele disse: Ouvi a tua voz no jardim, e temi, porque estava nu, e escondi-me." },
+  { id: "genesis_3_11_almeida", book: "Genesis", chapter: 3, verse: 11, translation: "almeida", text: "E Deus disse: Quem te mostrou que estavas nu? Comeste da árvore de que te ordenei que não comesses?" },
+  { id: "genesis_3_12_almeida", book: "Genesis", chapter: 3, verse: 12, translation: "almeida", text: "E disse Adão: A mulher que me deste por companheira, ela me deu da árvore, e eu comi." },
+  { id: "genesis_3_13_almeida", book: "Genesis", chapter: 3, verse: 13, translation: "almeida", text: "E disse o Senhor Deus à mulher: Por que fizeste isso? E disse a mulher: A serpente me enganou, e eu comi." },
+  { id: "genesis_3_14_almeida", book: "Genesis", chapter: 3, verse: 14, translation: "almeida", text: "E disse o Senhor Deus à serpente: Porquanto fizeste isso, maldita serás mais do que todos os animais domésticos, e mais do que todos os animais do campo; rastejarás sobre o teu ventre, e comerás pó todos os dias da tua vida." },
+  { id: "genesis_3_15_almeida", book: "Genesis", chapter: 3, verse: 15, translation: "almeida", text: "E porei inimizade entre ti e a mulher, e entre a tua semente e a semente dela; esta te ferirá a cabeça, e tu lhe ferirás o calcanhar." },
+  { id: "genesis_3_16_almeida", book: "Genesis", chapter: 3, verse: 16, translation: "almeida", text: "E à mulher disse: Multiplicarei grandemente a tua dor, e a tua conceição; com dor parirás filhos; e o teu desejo será para o teu marido, e ele te governará." },
+  { id: "genesis_3_17_almeida", book: "Genesis", chapter: 3, verse: 17, translation: "almeida", text: "E a Adão disse: Porquanto deste ouvido à voz de tua mulher, e comeste da árvore a que eu te ordenara, dizendo: Não comerás dela; maldita é a terra por tua causa; com trabalho comerás dela todos os dias da tua vida." },
+  { id: "genesis_3_18_almeida", book: "Genesis", chapter: 3, verse: 18, translation: "almeida", text: "Produzirá também para ti espinhos e cardos; e comerás ervas do campo." },
+  { id: "genesis_3_19_almeida", book: "Genesis", chapter: 3, verse: 19, translation: "almeida", text: "No suor do teu rosto comerás o teu pão, até que te tornes à terra; porque dela foste tomado; porquanto és pó, e em pó te tornarás." },
+  { id: "genesis_3_20_almeida", book: "Genesis", chapter: 3, verse: 20, translation: "almeida", text: "E chamou Adão o nome de sua mulher Eva; porquanto ela era a mãe de todos os viventes." },
+  { id: "genesis_3_21_almeida", book: "Genesis", chapter: 3, verse: 21, translation: "almeida", text: "E o Senhor Deus fez a Adão e à sua mulher túnicas de peles, e os vestiu." },
+  { id: "genesis_3_22_almeida", book: "Genesis", chapter: 3, verse: 22, translation: "almeida", text: "E disse o Senhor Deus: Eis que o homem se tornou como um de nós, sabendo o bem e o mal; ora, para que não estenda a sua mão, e tome também da árvore da vida, e coma e viva para sempre;" },
+  { id: "genesis_3_23_almeida", book: "Genesis", chapter: 3, verse: 23, translation: "almeida", text: "O Senhor Deus, pois, o lançou fora do jardim do Éden, para lavrar a terra de que foi tomado." },
+  { id: "genesis_3_24_almeida", book: "Genesis", chapter: 3, verse: 24, translation: "almeida", text: "E havendo expulsado o homem, pôs querubins ao oriente do jardim do Éden, e uma espada flamejante que se revolvia por todos os lados, para guardar o caminho da árvore da vida." },
+
+  // ── Êxodo 20 ────────────────────────────────────────────────────────────
+  { id: "exodus_20_1_almeida", book: "Exodus", chapter: 20, verse: 1, translation: "almeida", text: "E falou Deus todas estas palavras, dizendo:" },
+  { id: "exodus_20_2_almeida", book: "Exodus", chapter: 20, verse: 2, translation: "almeida", text: "Eu sou o Senhor teu Deus, que te tirei da terra do Egito, da casa da servidão." },
+  { id: "exodus_20_3_almeida", book: "Exodus", chapter: 20, verse: 3, translation: "almeida", text: "Não terás outros deuses diante de mim." },
+  { id: "exodus_20_4_almeida", book: "Exodus", chapter: 20, verse: 4, translation: "almeida", text: "Não farás para ti imagem de escultura, nem semelhança alguma do que está em cima nos céus, nem embaixo na terra, nem nas águas debaixo da terra." },
+  { id: "exodus_20_5_almeida", book: "Exodus", chapter: 20, verse: 5, translation: "almeida", text: "Não te encurvarás a elas nem as servirás; porque eu, o Senhor teu Deus, sou Deus zeloso, que visito a iniqüidade dos pais nos filhos até a terceira e quarta geração daqueles que me odeiam;" },
+  { id: "exodus_20_6_almeida", book: "Exodus", chapter: 20, verse: 6, translation: "almeida", text: "E que faço misericórdia a milhares dos que me amam e guardam os meus mandamentos." },
+  { id: "exodus_20_7_almeida", book: "Exodus", chapter: 20, verse: 7, translation: "almeida", text: "Não tomarás o nome do Senhor teu Deus em vão; porque o Senhor não terá por inocente o que tomar o seu nome em vão." },
+  { id: "exodus_20_8_almeida", book: "Exodus", chapter: 20, verse: 8, translation: "almeida", text: "Lembra-te do dia do sábado, para o santificar." },
+  { id: "exodus_20_9_almeida", book: "Exodus", chapter: 20, verse: 9, translation: "almeida", text: "Seis dias trabalharás e farás toda a tua obra." },
+  { id: "exodus_20_10_almeida", book: "Exodus", chapter: 20, verse: 10, translation: "almeida", text: "Mas o sétimo dia é o sábado do Senhor teu Deus; não farás nenhuma obra, nem tu, nem teu filho, nem tua filha, nem o teu servo, nem a tua serva, nem o teu animal, nem o estrangeiro que está dentro das tuas portas." },
+  { id: "exodus_20_11_almeida", book: "Exodus", chapter: 20, verse: 11, translation: "almeida", text: "Porque em seis dias o Senhor fez os céus e a terra, o mar e tudo o que neles há, e ao sétimo dia descansou; portanto o Senhor abençoou o dia do sábado e o santificou." },
+  { id: "exodus_20_12_almeida", book: "Exodus", chapter: 20, verse: 12, translation: "almeida", text: "Honra a teu pai e a tua mãe, para que os teus dias se prolonguem na terra que o Senhor teu Deus te dá." },
+  { id: "exodus_20_13_almeida", book: "Exodus", chapter: 20, verse: 13, translation: "almeida", text: "Não matarás." },
+  { id: "exodus_20_14_almeida", book: "Exodus", chapter: 20, verse: 14, translation: "almeida", text: "Não adulterarás." },
+  { id: "exodus_20_15_almeida", book: "Exodus", chapter: 20, verse: 15, translation: "almeida", text: "Não furtarás." },
+  { id: "exodus_20_16_almeida", book: "Exodus", chapter: 20, verse: 16, translation: "almeida", text: "Não dirás falso testemunho contra o teu próximo." },
+  { id: "exodus_20_17_almeida", book: "Exodus", chapter: 20, verse: 17, translation: "almeida", text: "Não cobiçarás a casa do teu próximo, não cobiçarás a mulher do teu próximo, nem o seu servo, nem a sua serva, nem o seu boi, nem o seu jumento, nem coisa alguma do teu próximo." },
+  { id: "exodus_20_18_almeida", book: "Exodus", chapter: 20, verse: 18, translation: "almeida", text: "E todo o povo via os trovões, e os relâmpagos, e o sonido da trombeta, e o monte fumegante; e o povo viu isso, e tremeu, e ficou de longe." },
+  { id: "exodus_20_19_almeida", book: "Exodus", chapter: 20, verse: 19, translation: "almeida", text: "E disseram a Moisés: Fala tu conosco, e ouviremos; mas não fale Deus conosco, para que não morramos." },
+  { id: "exodus_20_20_almeida", book: "Exodus", chapter: 20, verse: 20, translation: "almeida", text: "E Moisés disse ao povo: Não temais; porque Deus veio para vos provar, e para que o seu temor esteja diante de vós, a fim de que não pequeis." },
+  { id: "exodus_20_21_almeida", book: "Exodus", chapter: 20, verse: 21, translation: "almeida", text: "E o povo ficou de longe, e Moisés se aproximou da escuridão onde Deus estava." },
+  { id: "exodus_20_22_almeida", book: "Exodus", chapter: 20, verse: 22, translation: "almeida", text: "E disse o Senhor a Moisés: Assim dirás aos filhos de Israel: Vós mesmos vistes que eu falei convosco desde os céus." },
+  { id: "exodus_20_23_almeida", book: "Exodus", chapter: 20, verse: 23, translation: "almeida", text: "Não fareis deuses de prata comigo, nem deuses de ouro fareis para vós." },
+  { id: "exodus_20_24_almeida", book: "Exodus", chapter: 20, verse: 24, translation: "almeida", text: "Altar de terra me farás, e sobre ele sacrificarás os teus holocaustos, e as tuas ofertas pacíficas, as tuas ovelhas e os teus bois; em todo o lugar em que eu fizer recordar o meu nome, virei a ti e te abençoarei." },
+  { id: "exodus_20_25_almeida", book: "Exodus", chapter: 20, verse: 25, translation: "almeida", text: "E, se me fizeres altar de pedras, não as lavrará de pedra de cantaria; porque, levantando sobre ele o teu instrumento de ferro, o profanarás." },
+  { id: "exodus_20_26_almeida", book: "Exodus", chapter: 20, verse: 26, translation: "almeida", text: "Nem subirás por degraus ao meu altar, para que a tua nudez não se descubra perante ele." },
+
+  // ── Salmos 1 ────────────────────────────────────────────────────────────
+  { id: "psalms_1_1_almeida", book: "Psalms", chapter: 1, verse: 1, translation: "almeida", text: "Bem-aventurado o homem que não anda no conselho dos ímpios, nem se detém no caminho dos pecadores, nem se assenta na cadeira dos escarnecedores." },
+  { id: "psalms_1_2_almeida", book: "Psalms", chapter: 1, verse: 2, translation: "almeida", text: "Antes tem o seu prazer na lei do Senhor, e na sua lei medita de dia e de noite." },
+  { id: "psalms_1_3_almeida", book: "Psalms", chapter: 1, verse: 3, translation: "almeida", text: "Pois será como a árvore plantada junto a correntes de águas, que dá o seu fruto na estação própria, e cujas folhas não caem; e tudo quanto fizer prosperará." },
+  { id: "psalms_1_4_almeida", book: "Psalms", chapter: 1, verse: 4, translation: "almeida", text: "Assim não são os ímpios; mas são como a palha que o vento espalha." },
+  { id: "psalms_1_5_almeida", book: "Psalms", chapter: 1, verse: 5, translation: "almeida", text: "Por isso os ímpios não subsistirão no juízo, nem os pecadores na congregação dos justos." },
+  { id: "psalms_1_6_almeida", book: "Psalms", chapter: 1, verse: 6, translation: "almeida", text: "Porque o Senhor conhece o caminho dos justos; mas o caminho dos ímpios perecerá." },
+
+  // ── Salmos 22 ───────────────────────────────────────────────────────────
+  { id: "psalms_22_1_almeida", book: "Psalms", chapter: 22, verse: 1, translation: "almeida", text: "Deus meu, Deus meu, por que me abandonaste? Por que se acha tão longe de me salvar, e longe das palavras do meu gemido?" },
+  { id: "psalms_22_2_almeida", book: "Psalms", chapter: 22, verse: 2, translation: "almeida", text: "Ó meu Deus, eu clamo de dia, e não me respondes; e de noite, e não há sossego para mim." },
+  { id: "psalms_22_3_almeida", book: "Psalms", chapter: 22, verse: 3, translation: "almeida", text: "Porém tu és santo, tu que habitas no meio dos louvores de Israel." },
+  { id: "psalms_22_4_almeida", book: "Psalms", chapter: 22, verse: 4, translation: "almeida", text: "Nossos pais confiaram em ti; confiaram, e tu os livraste." },
+  { id: "psalms_22_5_almeida", book: "Psalms", chapter: 22, verse: 5, translation: "almeida", text: "Clamaram a ti, e foram libertos; confiaram em ti, e não foram confundidos." },
+  { id: "psalms_22_6_almeida", book: "Psalms", chapter: 22, verse: 6, translation: "almeida", text: "Mas eu sou um verme, e não homem; opróbrio dos homens, e desprezado do povo." },
+  { id: "psalms_22_7_almeida", book: "Psalms", chapter: 22, verse: 7, translation: "almeida", text: "Todos os que me vêem me escarnece; estirando os lábios, abanando a cabeça, dizem:" },
+  { id: "psalms_22_8_almeida", book: "Psalms", chapter: 22, verse: 8, translation: "almeida", text: "Confiou no Senhor; que o livre; salve-o, pois nele se deleitava." },
+  { id: "psalms_22_9_almeida", book: "Psalms", chapter: 22, verse: 9, translation: "almeida", text: "Mas tu és aquele que me tirou do ventre; tu me fizeste confiar, quando eu estava nos seios de minha mãe." },
+  { id: "psalms_22_10_almeida", book: "Psalms", chapter: 22, verse: 10, translation: "almeida", text: "Desde a minha nascença fui lançado sobre ti; tu és o meu Deus desde o ventre de minha mãe." },
+  { id: "psalms_22_11_almeida", book: "Psalms", chapter: 22, verse: 11, translation: "almeida", text: "Não te afastes de mim, porque a angústia está perto; porque não há quem me ajude." },
+  { id: "psalms_22_12_almeida", book: "Psalms", chapter: 22, verse: 12, translation: "almeida", text: "Muitos touros me rodearam; fortes touros de Basã me cercaram." },
+  { id: "psalms_22_13_almeida", book: "Psalms", chapter: 22, verse: 13, translation: "almeida", text: "Abriram a sua boca contra mim como um leão que despedaça e ruge." },
+  { id: "psalms_22_14_almeida", book: "Psalms", chapter: 22, verse: 14, translation: "almeida", text: "Sou derramado como água, e todos os meus ossos se desconjuntaram; o meu coração é como cera, derrete-se no meio das minhas entranhas." },
+  { id: "psalms_22_15_almeida", book: "Psalms", chapter: 22, verse: 15, translation: "almeida", text: "A minha força se secou como um caco; e a minha língua se apegou ao meu paladar; e me puseste no pó da morte." },
+  { id: "psalms_22_16_almeida", book: "Psalms", chapter: 22, verse: 16, translation: "almeida", text: "Porque cães me rodearam; uma companhia de malfeitores me cercou; traspassaram as minhas mãos e os meus pés." },
+  { id: "psalms_22_17_almeida", book: "Psalms", chapter: 22, verse: 17, translation: "almeida", text: "Posso contar todos os meus ossos; eles me olham e fitam em mim os seus olhos." },
+  { id: "psalms_22_18_almeida", book: "Psalms", chapter: 22, verse: 18, translation: "almeida", text: "Repartem entre si as minhas vestes, e sobre a minha roupa lançam sortes." },
+  { id: "psalms_22_19_almeida", book: "Psalms", chapter: 22, verse: 19, translation: "almeida", text: "Mas tu, ó Senhor, não te afastes de mim; força minha, apressa-te em socorrer-me." },
+  { id: "psalms_22_20_almeida", book: "Psalms", chapter: 22, verse: 20, translation: "almeida", text: "Livra a minha alma da espada, a minha vida do poder do cão." },
+  { id: "psalms_22_21_almeida", book: "Psalms", chapter: 22, verse: 21, translation: "almeida", text: "Salva-me da boca do leão; e da força dos búfalos me ouviste." },
+  { id: "psalms_22_22_almeida", book: "Psalms", chapter: 22, verse: 22, translation: "almeida", text: "Anunciarei o teu nome a meus irmãos; no meio da congregação te louvarei." },
+  { id: "psalms_22_23_almeida", book: "Psalms", chapter: 22, verse: 23, translation: "almeida", text: "Vós que temeis ao Senhor, louvai-o; toda a descendência de Jacó, glorificai-o; temei-o, vós todos da descendência de Israel." },
+  { id: "psalms_22_24_almeida", book: "Psalms", chapter: 22, verse: 24, translation: "almeida", text: "Porque ele não desprezou nem abominou a aflição do aflito; nem escondeu dele o seu rosto; mas, quando este clamou a ele, o ouviu." },
+  { id: "psalms_22_25_almeida", book: "Psalms", chapter: 22, verse: 25, translation: "almeida", text: "O meu louvor provivirá de ti na grande congregação; cumprirei os meus votos na presença dos que o temem." },
+  { id: "psalms_22_26_almeida", book: "Psalms", chapter: 22, verse: 26, translation: "almeida", text: "Os mansos comerão, e se fartarão; louvarão o Senhor os que o buscam; o vosso coração viverá para sempre." },
+  { id: "psalms_22_27_almeida", book: "Psalms", chapter: 22, verse: 27, translation: "almeida", text: "Todos os fins da terra se lembrarão, e se converterão ao Senhor; e todas as famílias das nações se prostrarão diante de ti." },
+  { id: "psalms_22_28_almeida", book: "Psalms", chapter: 22, verse: 28, translation: "almeida", text: "Porque o reino é do Senhor, e ele governa entre as nações." },
+  { id: "psalms_22_29_almeida", book: "Psalms", chapter: 22, verse: 29, translation: "almeida", text: "Todos os prósperos da terra comerão e se prostrarão; todos os que descem ao pó se curvarão diante dele; e aquele que não pode conservar a sua própria vida." },
+  { id: "psalms_22_30_almeida", book: "Psalms", chapter: 22, verse: 30, translation: "almeida", text: "Uma semente o servirá; isso será atribuído ao Senhor por geração futura." },
+  { id: "psalms_22_31_almeida", book: "Psalms", chapter: 22, verse: 31, translation: "almeida", text: "Virão, e anunciarão a sua justiça ao povo que há de nascer; pois ele o fez." },
+
+  // ── Salmos 119:1-32 (Aleph e Beth) ──────────────────────────────────────
+  { id: "psalms_119_1_almeida", book: "Psalms", chapter: 119, verse: 1, translation: "almeida", text: "Bem-aventurados os que têm um procedimento íntegro, os que andam na lei do Senhor." },
+  { id: "psalms_119_2_almeida", book: "Psalms", chapter: 119, verse: 2, translation: "almeida", text: "Bem-aventurados os que guardam os seus testemunhos, os que o buscam com todo o coração." },
+  { id: "psalms_119_3_almeida", book: "Psalms", chapter: 119, verse: 3, translation: "almeida", text: "Porque não praticam nenhuma iniqüidade; andam nos seus caminhos." },
+  { id: "psalms_119_4_almeida", book: "Psalms", chapter: 119, verse: 4, translation: "almeida", text: "Tu ordenaste os teus preceitos para que os guardemos cuidadosamente." },
+  { id: "psalms_119_5_almeida", book: "Psalms", chapter: 119, verse: 5, translation: "almeida", text: "Oxalá os meus caminhos fossem dirigidos a guardar os teus estatutos!" },
+  { id: "psalms_119_6_almeida", book: "Psalms", chapter: 119, verse: 6, translation: "almeida", text: "Então não me envergonharia, tendo respeito a todos os teus mandamentos." },
+  { id: "psalms_119_7_almeida", book: "Psalms", chapter: 119, verse: 7, translation: "almeida", text: "Louvar-te-ei com retidão de coração, quando aprender os teus justos juízos." },
+  { id: "psalms_119_8_almeida", book: "Psalms", chapter: 119, verse: 8, translation: "almeida", text: "Guardarei os teus estatutos; não me deixes totalmente." },
+  { id: "psalms_119_9_almeida", book: "Psalms", chapter: 119, verse: 9, translation: "almeida", text: "Como purificará o jovem o seu caminho? Observando-o segundo a tua palavra." },
+  { id: "psalms_119_10_almeida", book: "Psalms", chapter: 119, verse: 10, translation: "almeida", text: "Com todo o meu coração te busquei; não me deixes errar dos teus mandamentos." },
+  { id: "psalms_119_11_almeida", book: "Psalms", chapter: 119, verse: 11, translation: "almeida", text: "Escondi a tua palavra no meu coração, para eu não pecar contra ti." },
+  { id: "psalms_119_12_almeida", book: "Psalms", chapter: 119, verse: 12, translation: "almeida", text: "Bendito és tu, ó Senhor; ensina-me os teus estatutos." },
+  { id: "psalms_119_13_almeida", book: "Psalms", chapter: 119, verse: 13, translation: "almeida", text: "Com os meus lábios tenho relatado todos os juízos da tua boca." },
+  { id: "psalms_119_14_almeida", book: "Psalms", chapter: 119, verse: 14, translation: "almeida", text: "No caminho dos teus testemunhos me deleitei, como em todas as riquezas." },
+  { id: "psalms_119_15_almeida", book: "Psalms", chapter: 119, verse: 15, translation: "almeida", text: "Meditarei nos teus preceitos, e contemplárei os teus caminhos." },
+  { id: "psalms_119_16_almeida", book: "Psalms", chapter: 119, verse: 16, translation: "almeida", text: "Me deleitarei nos teus estatutos; não me esquecerei da tua palavra." },
+  { id: "psalms_119_17_almeida", book: "Psalms", chapter: 119, verse: 17, translation: "almeida", text: "Faze bem ao teu servo para que viva, e eu guardarei a tua palavra." },
+  { id: "psalms_119_18_almeida", book: "Psalms", chapter: 119, verse: 18, translation: "almeida", text: "Abre os meus olhos para que eu contemplé as maravilhas da tua lei." },
+  { id: "psalms_119_19_almeida", book: "Psalms", chapter: 119, verse: 19, translation: "almeida", text: "Peregrino sou eu na terra; não escondas de mim os teus mandamentos." },
+  { id: "psalms_119_20_almeida", book: "Psalms", chapter: 119, verse: 20, translation: "almeida", text: "A minha alma desfalece por suspirar pelos teus juízos em todo o tempo." },
+  { id: "psalms_119_21_almeida", book: "Psalms", chapter: 119, verse: 21, translation: "almeida", text: "Repreendeste os soberbos, os malditos que se desviam dos teus mandamentos." },
+  { id: "psalms_119_22_almeida", book: "Psalms", chapter: 119, verse: 22, translation: "almeida", text: "Tira de mim o opróbrio e o desprezo, porque guardei os teus testemunhos." },
+  { id: "psalms_119_23_almeida", book: "Psalms", chapter: 119, verse: 23, translation: "almeida", text: "Os príncipes também se assentaram e falaram contra mim; mas o teu servo meditava nos teus estatutos." },
+  { id: "psalms_119_24_almeida", book: "Psalms", chapter: 119, verse: 24, translation: "almeida", text: "Os teus testemunhos também são o meu prazer e os meus conselheiros." },
+  { id: "psalms_119_25_almeida", book: "Psalms", chapter: 119, verse: 25, translation: "almeida", text: "A minha alma está apegada ao pó; vivifica-me segundo a tua palavra." },
+  { id: "psalms_119_26_almeida", book: "Psalms", chapter: 119, verse: 26, translation: "almeida", text: "Declarei os meus caminhos, e tu me ouviste; ensina-me os teus estatutos." },
+  { id: "psalms_119_27_almeida", book: "Psalms", chapter: 119, verse: 27, translation: "almeida", text: "Faze-me entender o caminho dos teus preceitos, para que eu medite nas tuas maravilhas." },
+  { id: "psalms_119_28_almeida", book: "Psalms", chapter: 119, verse: 28, translation: "almeida", text: "A minha alma está entristecida por causa da melancolia; conforta-me segundo a tua palavra." },
+  { id: "psalms_119_29_almeida", book: "Psalms", chapter: 119, verse: 29, translation: "almeida", text: "Aparta de mim o caminho da falsidade, e concede-me a graça da tua lei." },
+  { id: "psalms_119_30_almeida", book: "Psalms", chapter: 119, verse: 30, translation: "almeida", text: "Escolhi o caminho da verdade; tenho posto os teus juízos diante de mim." },
+  { id: "psalms_119_31_almeida", book: "Psalms", chapter: 119, verse: 31, translation: "almeida", text: "Apeguei-me aos teus testemunhos; ó Senhor, não me confundas." },
+  { id: "psalms_119_32_almeida", book: "Psalms", chapter: 119, verse: 32, translation: "almeida", text: "Correrei pelo caminho dos teus mandamentos quando dilatares o meu coração." },
+
+  // ── Isaías 53 ───────────────────────────────────────────────────────────
+  { id: "isaiah_53_1_almeida", book: "Isaiah", chapter: 53, verse: 1, translation: "almeida", text: "Quem creu na nossa pregação? E a quem foi revelado o braço do Senhor?" },
+  { id: "isaiah_53_2_almeida", book: "Isaiah", chapter: 53, verse: 2, translation: "almeida", text: "Porque subiu como renovo perante ele, e como raiz de uma terra seca; não tinha aparência nem formosura; e olhamos para ele, mas não havia aspecto que o fizesse aprazível." },
+  { id: "isaiah_53_3_almeida", book: "Isaiah", chapter: 53, verse: 3, translation: "almeida", text: "Era desprezado e o mais rejeitado entre os homens; homem de dores e que sabia o que era a enfermidade; e como um de quem os homens escondiam o rosto, era desprezado, e não o consideramos." },
+  { id: "isaiah_53_4_almeida", book: "Isaiah", chapter: 53, verse: 4, translation: "almeida", text: "Certamente ele tomou sobre si as nossas enfermidades, e as nossas dores levou sobre si; e nós o reputávamos por aflito, ferido de Deus e oprimido." },
+  { id: "isaiah_53_5_almeida", book: "Isaiah", chapter: 53, verse: 5, translation: "almeida", text: "Mas ele foi traspassado pelas nossas transgressões, e moído pelas nossas iniqüidades; o castigo que nos traz a paz estava sobre ele, e pelas suas pisaduras fomos sarados." },
+  { id: "isaiah_53_6_almeida", book: "Isaiah", chapter: 53, verse: 6, translation: "almeida", text: "Todos nós nos desviamos como ovelhas; cada um se desviou pelo seu caminho; e o Senhor fez cair sobre ele a iniqüidade de nós todos." },
+  { id: "isaiah_53_7_almeida", book: "Isaiah", chapter: 53, verse: 7, translation: "almeida", text: "Ele foi oprimido e humilhado, mas não abriu a boca; como um cordeiro foi levado ao matadouro; e, como a ovelha que enmudece perante os seus tosquiadores, assim também ele não abriu a boca." },
+  { id: "isaiah_53_8_almeida", book: "Isaiah", chapter: 53, verse: 8, translation: "almeida", text: "Da prisão e do juízo foi tirado; e quem narrará a sua geração? Porquanto foi cortado da terra dos viventes; por causa da transgressão do meu povo, foi ele plagiado." },
+  { id: "isaiah_53_9_almeida", book: "Isaiah", chapter: 53, verse: 9, translation: "almeida", text: "E puseram a sua sepultura com os ímpios, e com o rico na sua morte; embora nenhuma violência tivesse feito, nem dolo algum houvesse na sua boca." },
+  { id: "isaiah_53_10_almeida", book: "Isaiah", chapter: 53, verse: 10, translation: "almeida", text: "Todavia ao Senhor agradou moê-lo e fazê-lo enfermar; quando a sua alma se puser como oferta pelo pecado, verá a sua posteridade, e prolongará os seus dias; e a vontade do Senhor prosperará na sua mão." },
+  { id: "isaiah_53_11_almeida", book: "Isaiah", chapter: 53, verse: 11, translation: "almeida", text: "Verá o fruto do trabalho da sua alma, e ficará satisfeito; com o seu conhecimento justificará o meu servo justo a muitos; e as suas iniqüidades levará sobre si." },
+  { id: "isaiah_53_12_almeida", book: "Isaiah", chapter: 53, verse: 12, translation: "almeida", text: "Portanto, eu lhe darei a sua parte com os grandes, e com os fortes repartirá os despojos; porquanto derramou a sua alma até à morte, e foi contado com os transgressores; ele, porém, levou o pecado de muitos, e pelos transgressores intercedeu." },
+
+  // ── Daniel 7 ────────────────────────────────────────────────────────────
+  { id: "daniel_7_1_almeida", book: "Daniel", chapter: 7, verse: 1, translation: "almeida", text: "No primeiro ano de Belsazar, rei da Babilônia, Daniel teve um sonho e visões da sua cabeça sobre o seu leito; então escreveu o sonho e relatou a suma das matérias." },
+  { id: "daniel_7_2_almeida", book: "Daniel", chapter: 7, verse: 2, translation: "almeida", text: "Daniel falou e disse: Eu via na minha visão de noite, e eis que os quatro ventos dos céus agitavam o grande mar." },
+  { id: "daniel_7_3_almeida", book: "Daniel", chapter: 7, verse: 3, translation: "almeida", text: "E quatro grandes animais subiam do mar, diferentes uns dos outros." },
+  { id: "daniel_7_4_almeida", book: "Daniel", chapter: 7, verse: 4, translation: "almeida", text: "O primeiro era como um leão e tinha asas de águia; eu olhava até que as suas asas foram arrancadas, e ele foi levantado da terra e posto de pé sobre dois pés como homem, e foi-lhe dado coração de homem." },
+  { id: "daniel_7_5_almeida", book: "Daniel", chapter: 7, verse: 5, translation: "almeida", text: "E eis outro segundo animal semelhante a um urso, e estava de um lado, e tinha três costelas na sua boca, entre os seus dentes; e assim lhe diziam: Levanta-te, e devora muita carne." },
+  { id: "daniel_7_6_almeida", book: "Daniel", chapter: 7, verse: 6, translation: "almeida", text: "Depois disto eu via, e eis outro semelhante a um leopardo, que tinha quatro asas de ave nos seus lados; tinha também o animal quatro cabeças; e foi-lhe dado o domínio." },
+  { id: "daniel_7_7_almeida", book: "Daniel", chapter: 7, verse: 7, translation: "almeida", text: "Depois disto eu olhava nas visões da noite, e eis o quarto animal, terrível e espantoso, e muito forte; tinha grandes dentes de ferro; devorava e esmagava, e o restante pisava com os seus pés; e era diferente de todos os outros animais que apareceram antes dele; e tinha dez chifres." },
+  { id: "daniel_7_8_almeida", book: "Daniel", chapter: 7, verse: 8, translation: "almeida", text: "Eu estava olhando os chifres, e eis que subia entre eles outro pequeno chifre, diante do qual foram arrancados três dos primeiros chifres; e eis que neste chifre havia olhos como olhos de homem, e uma boca que falava arrogantemente." },
+  { id: "daniel_7_9_almeida", book: "Daniel", chapter: 7, verse: 9, translation: "almeida", text: "Eu olhava até que foram postos uns tronos, e o Ancião de Dias se assentou; a sua vestimenta era branca como a neve, e o cabelo da sua cabeça era como lã pura; o seu trono era como chamas de fogo, e as suas rodas, fogo ardente." },
+  { id: "daniel_7_10_almeida", book: "Daniel", chapter: 7, verse: 10, translation: "almeida", text: "Um rio de fogo corria e saía de diante dele; mil milhares o serviam, e dez mil vezes dez mil estavam em pé diante dele; o juízo se assentou, e os livros foram abertos." },
+  { id: "daniel_7_11_almeida", book: "Daniel", chapter: 7, verse: 11, translation: "almeida", text: "Então olhei, por causa da voz das palavras arrogantes que o chifre falava; olhava até que o animal foi morto, e o seu corpo destruído, e dado a arder no fogo." },
+  { id: "daniel_7_12_almeida", book: "Daniel", chapter: 7, verse: 12, translation: "almeida", text: "Também quanto ao restante dos animais, foi-lhes tirado o seu domínio; porém foi-lhes prolongada a vida por um tempo e por uma estação." },
+  { id: "daniel_7_13_almeida", book: "Daniel", chapter: 7, verse: 13, translation: "almeida", text: "Eu olhava nas visões da noite, e eis que vinha com as nuvens do céu um como o Filho do homem, e chegou até ao Ancião de Dias, e o fizeram aproximar-se dele." },
+  { id: "daniel_7_14_almeida", book: "Daniel", chapter: 7, verse: 14, translation: "almeida", text: "E foi-lhe dado o domínio, e a glória, e o reino, para que os povos, as nações e as línguas o servissem; o seu domínio é eterno, domínio que não passará, e o seu reino jamais será destruído." },
+  { id: "daniel_7_15_almeida", book: "Daniel", chapter: 7, verse: 15, translation: "almeida", text: "Eu Daniel fiquei angustiado no meu espírito, no meio do meu corpo, e as visões da minha cabeça me perturbaram." },
+  { id: "daniel_7_16_almeida", book: "Daniel", chapter: 7, verse: 16, translation: "almeida", text: "Me aproximei de um dos que estavam em pé, e perguntei a ele a verdade de tudo isso. E falou comigo, e fez-me conhecer a interpretação das coisas:" },
+  { id: "daniel_7_17_almeida", book: "Daniel", chapter: 7, verse: 17, translation: "almeida", text: "Esses quatro grandes animais são quatro reis que se levantarão da terra." },
+  { id: "daniel_7_18_almeida", book: "Daniel", chapter: 7, verse: 18, translation: "almeida", text: "Mas os santos do Altíssimo receberão o reino, e possuirão o reino para sempre, e de eternidade em eternidade." },
+  { id: "daniel_7_19_almeida", book: "Daniel", chapter: 7, verse: 19, translation: "almeida", text: "Então desejei saber a verdade acerca do quarto animal, que era diferente de todos os outros, extremamente terrível, cujos dentes eram de ferro, e as suas unhas de bronze; que devorava e esmagava, e o restante pisava com os seus pés;" },
+  { id: "daniel_7_20_almeida", book: "Daniel", chapter: 7, verse: 20, translation: "almeida", text: "E acerca dos dez chifres que tinha na sua cabeça, e acerca do outro que subiu, e diante do qual caíram três; e este chifre tinha olhos, e uma boca que falava arrogantemente, e a sua aparência era maior do que a dos seus companheiros." },
+  { id: "daniel_7_21_almeida", book: "Daniel", chapter: 7, verse: 21, translation: "almeida", text: "Eu olhava, e este chifre fazia guerra com os santos, e os prevalecia contra eles," },
+  { id: "daniel_7_22_almeida", book: "Daniel", chapter: 7, verse: 22, translation: "almeida", text: "Até que veio o Ancião de Dias, e o juízo foi dado aos santos do Altíssimo; e chegou o tempo em que os santos possuíram o reino." },
+  { id: "daniel_7_23_almeida", book: "Daniel", chapter: 7, verse: 23, translation: "almeida", text: "E disse assim: O quarto animal será o quarto reino sobre a terra, que será diferente de todos os reinos; e devorará toda a terra, e a pisará, e a despedaçará." },
+  { id: "daniel_7_24_almeida", book: "Daniel", chapter: 7, verse: 24, translation: "almeida", text: "E os dez chifres são dez reis que se levantarão deste reino; e depois deles se levantará outro, que será diferente dos primeiros, e sujeitará três reis." },
+  { id: "daniel_7_25_almeida", book: "Daniel", chapter: 7, verse: 25, translation: "almeida", text: "E falará palavras contra o Altíssimo, e destruirá os santos do Altíssimo, e cuidará em mudar os tempos e a lei; e serão entregues nas suas mãos por um tempo, e tempos, e a metade de um tempo." },
+  { id: "daniel_7_26_almeida", book: "Daniel", chapter: 7, verse: 26, translation: "almeida", text: "Mas o juízo se assentará, e lhe tirarão o domínio, para o consumir e o destruir até o fim." },
+  { id: "daniel_7_27_almeida", book: "Daniel", chapter: 7, verse: 27, translation: "almeida", text: "E o reino, e o domínio, e a grandeza dos reinos debaixo de todo o céu serão dados ao povo dos santos do Altíssimo; o seu reino é um reino eterno, e todos os domínios o servirão e obedecerão." },
+  { id: "daniel_7_28_almeida", book: "Daniel", chapter: 7, verse: 28, translation: "almeida", text: "Aqui é o fim da palavra. Quanto a mim, Daniel, muito me perturbaram os meus pensamentos, e o meu semblante se mudou em mim; porém guardei o assunto no meu coração." },
+];
+
+/**
+ * TheoSphere Engine: Optimized DuckDB WASM Worker
+ */
+async function initDB() {
+  const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+  const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+
+  const worker = new Worker(bundle.mainWorker!);
+  const logger = new duckdb.ConsoleLogger();
+  db = new duckdb.AsyncDuckDB(logger, worker);
+  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+  await db.open({ path: ':memory:' });
+  conn = await db.connect();
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS biblical_locations (
+      id VARCHAR PRIMARY KEY, canonical_name VARCHAR, lon DOUBLE, lat DOUBLE, alt DOUBLE,
+      start_year INTEGER, end_year INTEGER, type VARCHAR
+    );
+  `);
+
+  const checkData = await conn.query(`SELECT count(*) as count FROM biblical_locations`);
+  if (Number(checkData.toArray()[0].count) === 0) {
+    const locStmt = await conn.prepare(`INSERT INTO biblical_locations VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const loc of SEED_LOCATIONS) {
+      const l = loc as any;
+      await locStmt.query(
+        l.id, 
+        l.names.canonical, 
+        l.coordinates[0], 
+        l.coordinates[1], 
+        l.coordinates[2] || 0, 
+        l.period_start ?? l.timeline?.start_year ?? -4000, 
+        l.period_end ?? l.timeline?.end_year ?? 2100, 
+        l.type
+      );
+    }
+  }
+
+  // ── Bible text cache table ──────────────────────────────────────────────
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS bible_text (
+      id VARCHAR PRIMARY KEY,
+      book VARCHAR NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      translation VARCHAR NOT NULL,
+      strongs TEXT DEFAULT '{}'
+    );
+  `);
+
+  const bibleCheck = await conn.query(`SELECT count(*) as count FROM bible_text`);
+  if (Number(bibleCheck.toArray()[0].count) === 0) {
+    console.log(`[TheoWorker] Seeding ${OFFLINE_SEED_VERSES.length} offline verses...`);
+    for (const v of OFFLINE_SEED_VERSES) {
+      const safeText = v.text.replace(/'/g, "''");
+      await conn.query(`
+        INSERT INTO bible_text (id, book, chapter, verse, text, translation, strongs)
+        VALUES ('${v.id}', '${v.book}', ${v.chapter}, ${v.verse}, '${safeText}', '${v.translation}', '{}')
+        ON CONFLICT (id) DO NOTHING
+      `);
+    }
+    console.log("[TheoWorker] Offline seed complete.");
+  }
+}
+
+const dbPromise = initDB();
+dbPromise.then(() => {
+  prefetchEssentialChapters(); // fire and forget
+});
+
+// ---------------------------------------------------------------------------
+// Helper: persist fetched verses into DuckDB cache (non-fatal)
+// ---------------------------------------------------------------------------
+async function cacheVersesInDuckDB(
+  book: string,
+  chapter: number,
+  translation: string,
+  verses: Array<{ verse: number; text: string; strongs?: string }>
+): Promise<void> {
+  try {
+    const bookKey = book.toLowerCase().replace(/\s+/g, '_');
+    const trans = translation.toLowerCase();
+    for (const v of verses) {
+      const safeText = v.text.replace(/'/g, "''");
+      const id = `${bookKey}_${chapter}_${v.verse}_${trans}`;
+      await conn.query(`
+        INSERT INTO bible_text (id, book, chapter, verse, text, translation, strongs)
+        VALUES ('${id}', '${book}', ${chapter}, ${v.verse}, '${safeText}', '${trans}', '{}')
+        ON CONFLICT (id) DO NOTHING
+      `);
+    }
+    console.log(`[TheoWorker] Cached ${verses.length} verses for ${book} ${chapter} (${translation})`);
+  } catch (cacheErr) {
+    console.warn("[TheoWorker] Cache write failed (non-fatal):", cacheErr);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Background prefetch: downloads and caches frequently-consulted chapters
+// silently, without blocking worker initialization.
+// ---------------------------------------------------------------------------
+const PREFETCH_LIST = [
+  { book: "John",       chapter: 1,  translation: "almeida" },
+  { book: "John",       chapter: 3,  translation: "almeida" },
+  { book: "John",       chapter: 11, translation: "almeida" },
+  { book: "Romans",     chapter: 8,  translation: "almeida" },
+  { book: "Psalms",     chapter: 23, translation: "almeida" },
+  { book: "Psalms",     chapter: 51, translation: "almeida" },
+  { book: "Matthew",    chapter: 5,  translation: "almeida" },
+  { book: "Genesis",    chapter: 1,  translation: "almeida" },
+  { book: "Isaiah",     chapter: 53, translation: "almeida" },
+  { book: "Revelation", chapter: 1,  translation: "almeida" },
+];
+
+async function prefetchEssentialChapters(): Promise<void> {
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  for (const item of PREFETCH_LIST) {
+    try {
+      const { book, chapter, translation } = item;
+      const trans = translation.toLowerCase();
+      const countResult = await conn.query(
+        `SELECT count(*) as cnt FROM bible_text WHERE book = '${sanitizeStr(book)}' AND chapter = ${sanitizeInt(chapter)} AND translation = '${sanitizeStr(trans)}'`
+      );
+      const cnt = Number(countResult.toArray()[0].cnt);
+      if (cnt > 0) {
+        continue; // already cached
+      }
+      const bookId = BIBLE_BOOK_TO_ID[book];
+      if (!bookId) continue;
+      const transUpper = trans === "almeida" ? "NVIPT" : trans.toUpperCase();
+      const res = await fetch(`https://bolls.life/get-chapter/${transUpper}/${bookId}/${chapter}/`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) continue;
+      const verses = data.map((v: any) => ({ verse: v.verse, text: stripHtml(v.text), strongs: "{}" }));
+      await cacheVersesInDuckDB(book, chapter, translation, verses);
+      console.log(`[TheoWorker] Prefetched ${book} ${chapter} (${translation})`);
+    } catch (err) {
+      console.warn(`[TheoWorker] Prefetch failed for ${item.book} ${item.chapter}:`, err);
+    }
+    await sleep(2000);
+  }
+}
+
+/**
+ * downloadFullBible — Baixa e guarda no DuckDB todos os capítulos de todos os livros
+ * para que a Bíblia esteja 100% disponível offline.
+ */
+async function downloadFullBible(backendUrl?: string) {
+  const books = [
+    { name: "Genesis", chapters: 50 }, { name: "Exodus", chapters: 40 }, { name: "Leviticus", chapters: 27 },
+    { name: "Numbers", chapters: 36 }, { name: "Deuteronomy", chapters: 34 }, { name: "Joshua", chapters: 24 },
+    { name: "Judges", chapters: 21 }, { name: "Ruth", chapters: 4 }, { name: "1 Samuel", chapters: 31 },
+    { name: "2 Samuel", chapters: 24 }, { name: "1 Kings", chapters: 22 }, { name: "2 Kings", chapters: 25 },
+    { name: "1 Chronicles", chapters: 29 }, { name: "2 Chronicles", chapters: 36 }, { name: "Ezra", chapters: 10 },
+    { name: "Nehemiah", chapters: 13 }, { name: "Esther", chapters: 10 }, { name: "Job", chapters: 18 },
+    { name: "Psalms", chapters: 150 }, { name: "Proverbs", chapters: 31 }, { name: "Ecclesiastes", chapters: 12 },
+    { name: "Song of Solomon", chapters: 8 }, { name: "Isaiah", chapters: 66 }, { name: "Jeremiah", chapters: 52 },
+    { name: "Lamentations", chapters: 5 }, { name: "Ezekiel", chapters: 48 }, { name: "Daniel", chapters: 12 },
+    { name: "Hosea", chapters: 14 }, { name: "Joel", chapters: 3 }, { name: "Amos", chapters: 9 },
+    { name: "Obadiah", chapters: 1 }, { name: "Jonah", chapters: 4 }, { name: "Micah", chapters: 7 },
+    { name: "Nahum", chapters: 3 }, { name: "Habakkuk", chapters: 3 }, { name: "Zephaniah", chapters: 3 },
+    { name: "Haggai", chapters: 2 }, { name: "Zechariah", chapters: 14 }, { name: "Malachi", chapters: 4 },
+    { name: "Matthew", chapters: 28 }, { name: "Mark", chapters: 16 }, { name: "Luke", chapters: 24 },
+    { name: "John", chapters: 21 }, { name: "Acts", chapters: 28 }, { name: "Romans", chapters: 16 },
+    { name: "1 Corinthians", chapters: 16 }, { name: "2 Corinthians", chapters: 13 }, { name: "Galatians", chapters: 6 },
+    { name: "Ephesians", chapters: 6 }, { name: "Philippians", chapters: 4 }, { name: "Colossians", chapters: 4 },
+    { name: "1 Thessalonians", chapters: 5 }, { name: "2 Thessalonians", chapters: 3 }, { name: "1 Timothy", chapters: 6 },
+    { name: "2 Timothy", chapters: 4 }, { name: "Titus", chapters: 3 }, { name: "Philemon", chapters: 1 },
+    { name: "Hebrews", chapters: 13 }, { name: "James", chapters: 5 }, { name: "1 Peter", chapters: 5 },
+    { name: "2 Peter", chapters: 3 }, { name: "1 John", chapters: 5 }, { name: "2 John", chapters: 1 },
+    { name: "3 John", chapters: 1 }, { name: "Jude", chapters: 1 }, { name: "Revelation", chapters: 22 }
+  ];
+
+  const totalChapters = books.reduce((acc, b) => acc + b.chapters, 0);
+  let chaptersDownloaded = 0;
+  const translation = "almeida";
+
+  console.log(`[Sync] Iniciando sincronização completa da Bíblia (${totalChapters} capítulos)...`);
+
+  for (const book of books) {
+    for (let chapter = 1; chapter <= book.chapters; chapter++) {
+      try {
+        const trans = translation.toLowerCase();
+        const check = await conn.query(
+          `SELECT count(*) as cnt FROM bible_text WHERE book = '${sanitizeStr(book.name)}' AND chapter = ${sanitizeInt(chapter)} AND translation = '${sanitizeStr(trans)}'`
+        );
+        const count = Number(check.toArray()[0].cnt);
+
+        if (count === 0) {
+          const bookId = BIBLE_BOOK_TO_ID[book.name];
+          const transUpper = trans === "almeida" ? "NVIPT" : trans.toUpperCase();
+          
+          let res;
+          if (backendUrl) {
+            res = await fetch(`${backendUrl}/chapter/${transUpper}/${bookId}/${chapter}`);
+          }
+          
+          if (!res || !res.ok) {
+            res = await fetch(`https://bolls.life/get-chapter/${transUpper}/${bookId}/${chapter}/`);
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              const verses = data.map((v: any) => ({ verse: v.verse, text: stripHtml(v.text), strongs: "{}" }));
+              await cacheVersesInDuckDB(book.name, chapter, translation, verses);
+            }
+          }
+          await new Promise(r => setTimeout(r, 300)); // Gentle pacing
+        }
+
+        chaptersDownloaded++;
+        const progress = Math.round((chaptersDownloaded / totalChapters) * 100);
+
+        self.postMessage({
+          type: "SYNC_PROGRESS",
+          payload: {
+            progress,
+            currentBook: book.name,
+            currentChapter: chapter,
+            totalChapters
+          }
+        });
+      } catch (err) {
+        console.error(`[Sync Error] ${book.name} ${chapter}:`, err);
+      }
+    }
+  }
+
+  console.log("[Sync] Finalizado.");
+  self.postMessage({ type: "SYNC_COMPLETE", payload: { totalChapters } });
+}
+
+self.addEventListener("message", async (event) => {
+  try {
+    const { type, payload } = event.data;
+    const BACKEND_URL = payload?.backendUrl || "http://localhost:3002/api/v1/bible";
+
+    if (type === "INIT") {
+      await dbPromise;
+      await prefetchEssentialChapters();
+      // Auto-trigger full sync after 30s to allow initial UI to settle
+      setTimeout(() => downloadFullBible(BACKEND_URL), 30000);
+      return;
+    }
+
+    if (type === "TRIGGER_SYNC") {
+      await downloadFullBible(BACKEND_URL);
+      return;
+    }
+    if (type === "FETCH_BIBLE_CHAPTER") {
+      const { book, chapter, translation, isSecondary } = payload;
+      let verses: Array<{ verse: number; text: string; strongs?: string }> = [];
+      let source: "cache" | "api" = "api";
+
+      // ── 1. Try DuckDB cache first ──────────────────────────────────────
+      await dbPromise;
+      try {
+        const trans = translation.toLowerCase();
+        const cached = await conn.query(`
+          SELECT verse, text FROM bible_text
+          WHERE book = '${sanitizeStr(book)}' AND chapter = ${sanitizeInt(chapter)} AND translation = '${sanitizeStr(trans)}'
+          ORDER BY verse
+        `);
+        const rows = cached.toArray();
+        if (rows.length > 0) {
+          verses = rows.map((r: any) => ({ verse: Number(r.verse), text: String(r.text) }));
+          source = "cache";
+          console.log(`[TheoWorker] Served ${verses.length} verses from cache: ${book} ${chapter} (${translation})`);
+        }
+      } catch (dbErr) {
+        console.warn("[TheoWorker] Cache read failed (non-fatal):", dbErr);
+      }
+
+      // ── 2. Fetch from API if cache miss ───────────────────────────────
+      if (verses.length === 0) {
+        try {
+          const bookId = BIBLE_BOOK_TO_ID[book];
+          const transUpper = translation.toUpperCase() === "ALMEIDA" ? "NVIPT" : translation.toUpperCase();
+
+          let res = await fetch(`${BACKEND_URL}/chapter/${transUpper}/${bookId}/${chapter}`);
+          let data = res.ok ? await res.json() : [];
+
+          if (!Array.isArray(data) || data.length === 0) {
+            res = await fetch(`https://bolls.life/get-chapter/${transUpper}/${bookId}/${chapter}/`);
+            data = res.ok ? await res.json() : [];
+          }
+
+          if (Array.isArray(data) && data.length > 0) {
+            verses = data.map((v: any) => ({ verse: v.verse, text: stripHtml(v.text), strongs: "{}" }));
+            source = "api";
+            // Persist to DuckDB for future offline use
+            await cacheVersesInDuckDB(book, chapter, translation, verses);
+          } else {
+            const fallbackTrans = translation.toLowerCase() === "almeida" ? "almeida" : "kjv";
+            const res2 = await fetch(`${BACKEND_URL}/fallback?ref=${encodeURIComponent(book + " " + chapter)}&translation=${fallbackTrans}`);
+            if (res2.ok) {
+              const data2 = await res2.json();
+              verses = data2.verses.map((v: any) => ({ verse: v.verse, text: stripHtml(v.text), strongs: "{}" }));
+              source = "api";
+              // Persist fallback results too
+              await cacheVersesInDuckDB(book, chapter, translation, verses);
+            }
+          }
+        } catch (e) {
+          console.error("Bible fetch error:", e);
+        }
+      }
+
+      const messageType = isSecondary ? "BIBLE_SECONDARY_DATA" : "BIBLE_CHAPTER_DATA";
+      self.postMessage({ type: messageType, payload: { book, chapter, verses, source } });
+      return;
+    }
+
+    // --- SLOW PATH: GIS & INTERLINEAR (DB or Heavy Logic) ---
+    if (type === "FETCH_INTERLINEAR_CHAPTER") {
+      const { book, chapter } = payload;
+      const bookId = BIBLE_BOOK_TO_ID[book];
+      const originalTrans = getOriginalLanguageTranslation(book);
+      const isNT = bookId >= 40;
+
+      try {
+        const [originalRes, ptRes] = await Promise.all([
+          fetch(`${BACKEND_URL}/chapter/${originalTrans}/${bookId}/${chapter}`),
+          fetch(`${BACKEND_URL}/chapter/NVIPT/${bookId}/${chapter}`)
+        ]);
+
+        const originalData = await originalRes.json();
+        const ptData = await ptRes.json();
+
+        // Validação primária para evitar crashes
+        if (!Array.isArray(originalData)) throw new Error("Dados originais inválidos da API");
+
+        const interlinearMap: Record<number, any[]> = {};
+
+        originalData.forEach((ov: any, idx: number) => {
+          const ptVerse = ptData[idx] || { text: "" };
+          const oWords = stripHtml(ov.text || "").split(/\s+/).filter(w => w.length > 0);
+          const pWords = stripHtml(ptVerse.text || "").split(/\s+/).filter(w => w.length > 0);
+
+          interlinearMap[ov.verse || idx + 1] = oWords.map((ow, i) => {
+            const cleanWord = ow.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+            const translit = transliterateBiblical(cleanWord, isNT);
+            const morphology = isNT ? `Grego: ${ow}` : `Hebraico: ${ow}`;
+            return {
+              original: ow,
+              translit,
+              root: ow,
+              rootTrans: translit,
+              translations: [pWords[i] || "..."],
+              morphology,
+              strong: (isNT ? "G" : "H") + (1000 + (i % 500))
+            };
+          });
+        });
+        self.postMessage({ type: "INTERLINEAR_CHAPTER_DATA", payload: { book, chapter, interlinearMap } });
+      } catch (err: any) {
+        self.postMessage({ type: "WORKER_ERROR", payload: { message: err.message } });
+      }
+      return;
+    }
+
+    if (type === "FETCH_STRONGS") {
+      const { strongId } = payload;
+      const isGreek = strongId.startsWith("G");
+      const data = isGreek ? STRONGS_GREEK : STRONGS_HEBREW;
+      const entry = Object.values(data).find((e: any) => e.number === strongId);
+      if (entry) {
+        self.postMessage({
+          type: "STRONGS_DATA",
+          payload: {
+            definition: entry.definition + (entry.definitionPt ? " | " + entry.definitionPt : ""),
+            morphology: entry.partOfSpeech || "",
+            lemma: entry.lemma || "",
+            transliteration: entry.transliteration || "",
+          }
+        });
+      }
+      return;
+    }
+
+    await dbPromise;
+
+    if (type === "FILTER_BY_TIME") {
+      const { startYear, endYear } = payload;
+      const safeStart = sanitizeInt(startYear);
+      const safeEnd = sanitizeInt(endYear);
+      const results = await conn.query(`SELECT * FROM biblical_locations WHERE start_year <= ${safeEnd} AND end_year >= ${safeStart}`);
+      const locations = results.toArray().map((row: any) => ({ id: row.id, canonical_name: row.canonical_name, coordinates: [row.lon, row.lat, row.alt], period_start: row.start_year, period_end: row.end_year, type: row.type }));
+      self.postMessage({ type: "FILTERED_DATA_BINARY", payload: { locations, routes: [] } });
+    }
+
+    if (type === "FIND_LOCATIONS_BY_VERSE") {
+      const { verseRef } = payload;
+      const matched = SEED_LOCATIONS.filter(loc => loc.id.includes(verseRef.toLowerCase()));
+      self.postMessage({ type: "VERSE_LOCATIONS", payload: { locations: matched } });
+    }
+
+  } catch (error: any) {
+    self.postMessage({ type: "WORKER_ERROR", payload: { message: error.message } });
+  }
+});
