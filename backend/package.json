@@ -21,6 +21,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "ts-node seed.ts",
     "db:seed:phd": "ts-node prisma/seed-phd.ts",
+    "db:seed:enterprise": "ts-node prisma/seed-enterprise.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cron": "^4.4.0",
+    "helmet": "^8.1.0",
     "ioredis": "^5.10.1",
     "joi": "^18.2.1",
     "openai": "^6.34.0",

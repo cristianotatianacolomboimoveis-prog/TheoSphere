@@ -8,12 +8,18 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "TheoSphere — SO Teológico",
-  description: "Sistema Operacional Teológico de Nova Geração",
-  manifest: "/manifest.json",
+export const viewport = {
   themeColor: "#f59e0b",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+export const metadata: Metadata = {
+  title: "TheoSphere OS | Plataforma de Exegese & Pesquisa Teológica",
+  description: "O sistema operacional definitivo para pesquisadores, pastores e estudantes de teologia. Análise exegética avançada, Atlas 4D e IA agêntica integrada.",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

@@ -21,7 +21,8 @@ import {
   WifiOff,
   Info,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import * as Framer from "framer-motion";
+const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 
 /* ─── Types ──────────────────────────────────────────────── */

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const TOKEN_KEY = 'theosphere-access-token';
 const USER_ID_KEY = 'theosphere-user-id';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
 
 export function useAuth() {
   const [token, setToken] = useState<string | null>(null);

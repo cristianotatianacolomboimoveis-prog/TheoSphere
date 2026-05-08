@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Volume2, Sparkles, X, Loader2, Info, BookOpen, ChevronRight, Copy } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import * as Framer from "framer-motion";
+const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { generateCitation } from "@/lib/citationGenerator";
 

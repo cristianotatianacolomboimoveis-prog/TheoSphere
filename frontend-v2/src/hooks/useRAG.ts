@@ -176,7 +176,20 @@ export function useRAG() {
 
     // Fallback: IA Local
     const content = jsonMode 
-      ? JSON.stringify([{ original: query, translit: "...", root: "...", rootTrans: "...", translation: "...", morphology: "..." }])
+      ? JSON.stringify({
+          verse: query,
+          original_language: "GK",
+          interlinear: [
+            { word: "...", transliteration: "...", strong: "...", morphology: "...", translation: "..." }
+          ],
+          lexical_analysis: [
+            { word: "...", bdag_halot_sense: "Offline mode active. Check connection.", academic_discussion: "..." }
+          ],
+          syntactic_notes: "Offline mode",
+          syntactic_graph: { nodes: [], edges: [] },
+          technical_commentary: [],
+          systematic_connection: { locus: "N/A", explanation: "..." }
+        })
       : await generateLocalAIResponse(query);
 
     return {

@@ -5,7 +5,8 @@ import {
   X, Search, Users, MapPin, Calendar, Lightbulb, ChevronRight, ArrowLeft,
   BookOpen, Clock, Link2, Globe2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import * as Framer from "framer-motion";
+const { motion, AnimatePresence } = Framer;
 import { BIBLICAL_PEOPLE, searchPeople, type BiblicalPerson } from "@/data/biblicalPeople";
 import { BIBLICAL_EVENTS, searchEvents, type BiblicalEvent } from "@/data/biblicalEvents";
 import { SEED_LOCATIONS, type GeoLocation3D } from "@/data/geoSeedData";

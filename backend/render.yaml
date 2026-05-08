@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: theosphere-backend
+    env: docker
+    plan: free
+    region: ohio # Ou a região mais próxima de você disponível no plano free
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: DATABASE_URL
+        sync: false # Você preencherá no painel do Render
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*" # Em produção, mude para a URL do seu frontend

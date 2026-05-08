@@ -4,7 +4,8 @@ import React, { useState, useMemo } from "react";
 import {
   X, Search, BookOpen, Languages, Hash, BarChart3, ChevronRight, BookMarked, Sparkles, Loader2
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import * as Framer from "framer-motion";
+const { motion, AnimatePresence } = Framer;
 import { STRONGS_GREEK, searchStrongs, type StrongsEntry } from "@/data/strongsGreek";
 import { STRONGS_HEBREW, searchStrongsHebrew } from "@/data/strongsHebrew";
 import { TranslationRing } from "./word-study/TranslationRing";

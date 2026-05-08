@@ -3,6 +3,8 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { initSentry } from './observability/sentry';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import helmet from 'helmet';
 
 // Initialize Sentry BEFORE Nest spins up — captures bootstrap-time errors too.
 initSentry();
@@ -41,20 +43,11 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   // ─── Security headers ───────────────────────────────────────────────────
-  // Lightweight Helmet-equivalent without the dependency. These are the
-  // headers that actually matter for an API (no HTML to protect with CSP);
-  // the frontend gets stricter CSP from Next/Cloudflare.
-  app.use((_req: any, res: any, next: any) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-    res.setHeader('X-DNS-Prefetch-Control', 'off');
-    res.removeHeader('X-Powered-By'); // don't advertise Express
-    next();
-  });
+  // Helmet provides robust security headers (CSP, XSS Protection, etc.)
+  app.use(helmet());
 
   const port = config.get<number>('PORT') ?? 3002;
   await app.listen(port);

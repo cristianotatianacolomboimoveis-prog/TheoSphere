@@ -259,6 +259,26 @@ export default function Atlas4D() {
             <NavigationControl position="top-right" />
           </Map>
         )}
+
+        {isInvalidToken && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#05080f]/90 z-[5]">
+             <div className="max-w-md text-center p-12 glass-heavy rounded-[32px] border border-amber-500/20 shadow-2xl">
+                <MapPin className="w-12 h-12 text-amber-500 mx-auto mb-6 animate-bounce" />
+                <h3 className="text-xl font-bold text-white mb-4">Mapa de Alta Resolução Indisponível</h3>
+                <p className="text-sm text-white/40 leading-relaxed mb-8">
+                  Para habilitar o Atlas 4D com topografia 3D e satélite, insira um token válido do Mapbox em <code className="bg-white/5 px-2 py-1 rounded">frontend-v2/.env.local</code>.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <a href="https://account.mapbox.com/" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-widest rounded-xl transition-all">
+                    Obter Token Gratuito
+                  </a>
+                  <button onClick={() => setOfflineMode(true)} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white/60 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">
+                    Tentar Modo Offline (Experimental)
+                  </button>
+                </div>
+             </div>
+          </div>
+        )}
       </DeckGL>
 
       {/* OVERLAYS UI */}

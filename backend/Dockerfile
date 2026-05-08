@@ -26,8 +26,8 @@ RUN npm prune --omit=dev
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
-# tini for proper PID 1 / signal handling; wget for the HEALTHCHECK probe.
-RUN apk add --no-cache tini wget
+# tini for proper PID 1 / signal handling; wget for the HEALTHCHECK probe; openssl for Prisma.
+RUN apk add --no-cache tini wget openssl libcrypto3
 
 WORKDIR /app
 

@@ -68,7 +68,10 @@ export class EmbeddingService implements OnModuleDestroy {
         enableOfflineQueue: false,
       });
       this.redis.on('error', (err) => {
-        this.logger.warn(`Redis L2 cache error: ${err.message}`);
+        if (this.redis && !this.redis['hasLoggedError']) {
+          this.logger.warn(`Redis L2 cache unavailable: ${err.message}`);
+          this.redis['hasLoggedError'] = true;
+        }
       });
       this.redis.connect().catch((err) => {
         this.logger.warn(`Redis L2 cache init failed: ${err.message}`);

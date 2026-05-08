@@ -38,7 +38,7 @@ interface IndexedDocument extends UserDocument {
 @Injectable()
 export class UserContextService implements OnModuleInit {
   private readonly logger = new Logger(UserContextService.name);
-  private redis: Redis;
+  private redis: Redis | null = null;
 
   // Índice em memória por usuário (carregado do Redis/DB)
   private userIndex = new Map<string, IndexedDocument[]>();
@@ -54,15 +54,24 @@ export class UserContextService implements OnModuleInit {
     private embeddingService: EmbeddingService,
     private configService: ConfigService,
   ) {
-    this.redis = new Redis(
-      this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379',
-    );
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+    if (redisUrl) {
+      this.redis = new Redis(redisUrl, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+      });
 
-    this.redis.on('error', (err) => {
-      this.logger.warn(
-        `Redis connection error in UserContext: ${err.message}. Persistent user context might be unavailable.`,
-      );
-    });
+      this.redis.on('error', (err) => {
+        // Solo logeamos una vez para evitar inundar los logs
+        if (this.redis && !this.redis['hasLoggedError']) {
+          this.logger.warn(
+            `Redis connection failed (local cache persistence disabled): ${err.message}`,
+          );
+          this.redis['hasLoggedError'] = true;
+        }
+      });
+    }
   }
 
   async onModuleInit() {
