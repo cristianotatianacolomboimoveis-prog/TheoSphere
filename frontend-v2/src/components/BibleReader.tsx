@@ -526,7 +526,7 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
             className="fixed z-[100] w-56 bg-[#0a0f1a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2"
           >
             <div className="px-3 py-2 border-b border-white/5 mb-1">
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Amplify Reference</p>
+              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Ampliar Referência</p>
               <p className="text-[11px] text-white/60 font-mono mt-0.5">{selectedBook.nameEn} {selectedChapter}:{amplifyAnchor.verse}</p>
             </div>
             <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-all text-xs text-white/80 group">

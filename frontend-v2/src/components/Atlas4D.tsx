@@ -288,7 +288,7 @@ export default function Atlas4D() {
             <Layers className="w-4 h-4 text-amber-500 animate-pulse-glow" /> 
             <span className="text-gradient">THEOSPHERE ATLAS 4D</span>
           </h2>
-          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">Local-First WebGL Engine</p>
+          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">Motor WebGL Local-First</p>
         </div>
         
         {/* Offline Badge */}

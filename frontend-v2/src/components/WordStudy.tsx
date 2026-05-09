@@ -80,8 +80,8 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
               <Languages className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-tight">Word Study</h2>
-              <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Estudo de Palavras</p>
+              <h2 className="text-base font-bold tracking-tight">Estudo de Palavras</h2>
+              <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Léxico Grego/Hebraico</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg transition-all text-white/30 hover:text-white">
@@ -112,7 +112,7 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
             type="text"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedEntry(null); }}
-            placeholder={language === "greek" ? "Buscar: agape, G26, love..." : "Buscar: chesed, H2617, mercy..."}
+            placeholder={language === "greek" ? "Buscar: ágape, G26, amor..." : "Buscar: chesed, H2617, misericórdia..."}
             className="input-glass w-full pl-10 text-sm"
           />
           <Search className="absolute left-3 top-3.5 w-4 h-4 text-white/25" />
@@ -177,7 +177,7 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
                       {lexicalData.academic_discussion || "Análise profunda disponível via RAG."}
                     </p>
                     <div className="flex gap-2">
-                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono">Source: {lexicalData.source || "TheoAI"}</span>
+                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono">Fonte: {lexicalData.source || "TheoAI"}</span>
                     </div>
                   </div>
                 ) : (
@@ -288,7 +288,7 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
       {/* Footer */}
       <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
-          Word Study · Strong&apos;s Concordance
+          Estudo de Palavras · Concordância de Strong
         </p>
       </div>
     </div>

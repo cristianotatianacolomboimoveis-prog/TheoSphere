@@ -36,7 +36,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <PenTool className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight uppercase">Sermon Builder AI</h2>
+            <h2 className="text-lg font-black tracking-tight uppercase">Criador de Sermões IA</h2>
             <p className="text-[10px] text-white/30 font-bold tracking-[0.2em]">Homilética Acadêmica & RAG</p>
           </div>
         </div>

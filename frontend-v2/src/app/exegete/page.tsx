@@ -17,7 +17,7 @@ export default function ExegetePage() {
         <Menu className="w-5 h-5 text-white/40 cursor-pointer hover:text-white transition-colors" />
         <div className="flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.3em]">TheoAI Exegesis Engine</span>
+          <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.3em]">Motor de Exegese TheoAI</span>
         </div>
         <RotateCcw className="w-5 h-5 text-white/40 cursor-pointer hover:text-white transition-colors" />
       </div>

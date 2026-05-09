@@ -17,12 +17,80 @@
 :root {
   --background: #05080f;
   --foreground: #f8fafc;
+  --surface: #0a0f1a;
+  --surface-hover: #111b2e;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --muted: rgba(255, 255, 255, 0.5);
+  --muted-strong: rgba(255, 255, 255, 0.7);
+  --primary: #f59e0b;
+  --primary-foreground: #070b14;
+  --accent: #3b82f6;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
   --radius: 14px;
   --radius-sm: 8px;
   --radius-lg: 20px;
   --radius-xl: 32px;
+}
+
+/* Light theme — opt-in via [data-theme="light"] on <html>. */
+:root[data-theme="light"] {
+  --background: #f8fafc;
+  --foreground: #0a0f1a;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --muted: rgba(15, 23, 42, 0.55);
+  --muted-strong: rgba(15, 23, 42, 0.75);
+  --primary: #d97706;
+  --primary-foreground: #ffffff;
+  --accent: #2563eb;
+}
+
+/* Respect reduced-motion preference globally (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible keyboard-focus ring (WCAG 2.4.7). Mouse users keep clean look. */
+:focus:not(:focus-visible) { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-to-content link for keyboard / screen-reader users */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -40px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  z-index: 100000;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 8px; }
+
+/* Thin scrollbar variant for compact panels (sidebar etc.) */
+.thin-scrollbar::-webkit-scrollbar { width: 3px; }
+.thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
 }
 
 * {

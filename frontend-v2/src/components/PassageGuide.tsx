@@ -207,7 +207,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
               <ScrollText className="w-5 h-5 text-slate-950" />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight"><span className="text-gradient">PASSAGE GUIDE</span></h2>
+              <h2 className="text-lg font-black tracking-tight"><span className="text-gradient">GUIA DE PASSAGEM</span></h2>
               <p className="text-[10px] text-white/30 font-bold tracking-[0.2em] uppercase">Estudo Exegético Profundo</p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
             value={inputRef}
             onChange={(e) => setInputRef(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="Ex: John 3:16, Romans 8:28"
+            placeholder="Ex: João 3:16, Romanos 8:28"
             className="input-glass flex-grow text-sm focus:border-amber-500/50"
           />
           <button onClick={handleSearch} className="btn-primary px-4 bg-gradient-to-br from-amber-500 to-orange-600 hover:shadow-amber-500/20">

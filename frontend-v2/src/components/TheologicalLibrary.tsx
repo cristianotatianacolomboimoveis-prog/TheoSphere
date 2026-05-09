@@ -383,7 +383,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
               </div>
               <div>
                 <h2 className="text-base font-bold tracking-tight">
-                  Global <span className="text-gradient">Library</span>
+                  <span className="text-gradient">Biblioteca</span> Global
                 </h2>
                 <p className="text-[10px] text-amber-500/80 font-bold tracking-widest uppercase">
                   APIs Públicas & Open Source
@@ -438,7 +438,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                 { id: "all" as const, label: "Todas as Bases" },
                 { id: "gutenberg" as const, label: "Gutenberg" },
                 { id: "openlibrary" as const, label: "Open Library" },
-                { id: "crossref" as const, label: "Academic Papers" },
+                { id: "crossref" as const, label: "Artigos Acadêmicos" },
                 { id: "scielo_br" as const, label: "SciELO & BR" },
               ].map((s) => (
                 <button
@@ -581,7 +581,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
               <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-3">
                 <Globe2 className="w-4 h-4 text-white/20" />
                 <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">
-                  Sincronizado via {selectedBook.source === "crossref" ? "Crossref Academic API" : selectedBook.source === "gutenberg" ? "Project Gutenberg" : "Open Library"}
+                  Sincronizado via {selectedBook.source === "crossref" ? "Crossref (Artigos Acadêmicos)" : selectedBook.source === "gutenberg" ? "Project Gutenberg" : "Open Library"}
                 </span>
               </div>
             </motion.div>

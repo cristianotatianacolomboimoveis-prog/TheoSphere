@@ -437,8 +437,8 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 <BookOpen className="w-4.5 h-4.5 text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold tracking-tight">Factbook</h2>
-                <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Enciclopédia Bíblica</p>
+                <h2 className="text-base font-bold tracking-tight">Enciclopédia Bíblica</h2>
+                <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Pessoas, Lugares e Eventos</p>
               </div>
             </div>
           )}
@@ -524,7 +524,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
       <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
-          Factbook · TheoSphere OS
+          Enciclopédia · TheoSphere OS
         </p>
       </div>
     </div>

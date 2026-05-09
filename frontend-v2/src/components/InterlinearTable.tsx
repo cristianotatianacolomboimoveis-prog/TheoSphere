@@ -68,7 +68,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <div>
-              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1 block">Biblical Exegesis PhD</span>
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1 block">Exegese Bíblica PhD</span>
               <h2 className="text-3xl font-serif text-white font-bold tracking-tight">
                 {selectedBook.namePt} {selectedChapter}:{verse}
               </h2>
@@ -84,7 +84,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             }`}
           >
             <Info className="w-4 h-4" />
-            Deep Analysis: {deepMode ? "ON" : "OFF"}
+            Análise Profunda: {deepMode ? "ATIVA" : "DESATIVADA"}
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Lexical Root Origin</span>
+                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Origem da Raiz Lexical</span>
                 <p className="text-[12px] text-white/60 font-serif italic">
                   {hoveredWord.root} ({hoveredWord.rootTrans})
                 </p>

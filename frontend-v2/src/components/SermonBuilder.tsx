@@ -152,7 +152,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       <div className="flex-grow flex flex-col p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Sermon Builder</h2>
+            <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Criador de Sermões</h2>
             <p className="text-[10px] text-blue-400 font-bold tracking-[0.1em]">MODO HOMILÉTICA</p>
           </div>
           <div className="flex gap-2">

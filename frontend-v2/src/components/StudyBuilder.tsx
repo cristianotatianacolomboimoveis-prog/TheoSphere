@@ -173,7 +173,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
                 <Users className="w-4.5 h-4.5 text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold tracking-tight">Study Builder</h2>
+                <h2 className="text-base font-bold tracking-tight">Criador de Estudos</h2>
                 <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Estudo Bíblico</p>
               </div>
             </div>
@@ -240,7 +240,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
                 />
                 <input
                   type="text" value={passage} onChange={(e) => setPassage(e.target.value)}
-                  placeholder="Passagem base (ex: Philippians 4:1-9)"
+                  placeholder="Passagem base (ex: Filipenses 4:1-9)"
                   className="input-glass w-full text-sm"
                 />
                 <div className="glass-amber rounded-xl p-4">
@@ -331,7 +331,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={additionalRefs.join(", ")}
                   onChange={(e) => setAdditionalRefs(e.target.value.split(",").map(v => v.trim()).filter(Boolean))}
-                  placeholder="Ex: Romans 8:28, James 1:2-4, Hebrews 12:1"
+                  placeholder="Ex: Romanos 8:28, Tiago 1:2-4, Hebreus 12:1"
                   className="input-glass w-full text-xs font-mono"
                 />
               </div>
@@ -353,7 +353,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
 
       <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
-          Study Builder · TheoSphere OS
+          Criador de Estudos · TheoSphere OS
         </p>
       </div>
     </div>

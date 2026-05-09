@@ -38,10 +38,10 @@ export default function ResourceGuide() {
   }, []);
 
   const tabs = [
-    { id: "resources", label: "Resources", icon: Library },
-    { id: "sermon", label: "Sermon", icon: PenTool },
-    { id: "manuscripts", label: "Manuscripts", icon: ImageIcon },
-    { id: "notes", label: "Notes", icon: MessageSquare },
+    { id: "resources", label: "Recursos", icon: Library },
+    { id: "sermon", label: "Sermão", icon: PenTool },
+    { id: "manuscripts", label: "Manuscritos", icon: ImageIcon },
+    { id: "notes", label: "Notas", icon: MessageSquare },
   ];
 
   return (

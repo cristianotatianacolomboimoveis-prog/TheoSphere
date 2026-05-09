@@ -367,10 +367,10 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">TheoAI Active Engine</span>
+            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Motor TheoAI Ativo</span>
           </div>
           <div className="divider-v h-3 bg-white/10" />
-          <span className="text-[9px] text-white/20 font-medium italic">RAG-powered academic exegesis.</span>
+          <span className="text-[9px] text-white/20 font-medium italic">Exegese acadêmica com RAG.</span>
         </div>
       </div>
     </div>

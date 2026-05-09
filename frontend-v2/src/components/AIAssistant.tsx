@@ -314,11 +314,11 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             >
               <div className="mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Queries</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Consultas</p>
                   <p className="text-sm font-bold text-white/70">{sessionStats.totalQueries}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Cache Hits</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Acertos de Cache</p>
                   <p className="text-sm font-bold text-emerald-400">
                     {sessionStats.cacheHits}
                     {sessionStats.totalQueries > 0 && (

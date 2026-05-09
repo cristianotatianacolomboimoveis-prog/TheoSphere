@@ -5,9 +5,9 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRigh
 import { motion, AnimatePresence } from "framer-motion";
 
 const CODICES = [
-  { id: "sinaiticus", name: "Codex Sinaiticus", century: "IV", language: "Greek", url: "https://codexsinaiticus.org/en/manuscript.aspx" },
-  { id: "vaticanus", name: "Codex Vaticanus", century: "IV", language: "Greek", url: "https://digi.vatlib.it/view/MSS_Vat.gr.1209" },
-  { id: "alexandrinus", name: "Codex Alexandrinus", century: "V", language: "Greek", url: "https://www.bl.uk/manuscripts/FullDisplay.aspx?ref=Royal_MS_1_d_viii" }
+  { id: "sinaiticus", name: "Codex Sinaiticus", century: "IV", language: "Grego", url: "https://codexsinaiticus.org/en/manuscript.aspx" },
+  { id: "vaticanus", name: "Codex Vaticanus", century: "IV", language: "Grego", url: "https://digi.vatlib.it/view/MSS_Vat.gr.1209" },
+  { id: "alexandrinus", name: "Codex Alexandrinus", century: "V", language: "Grego", url: "https://www.bl.uk/manuscripts/FullDisplay.aspx?ref=Royal_MS_1_d_viii" }
 ];
 
 export default function ManuscriptViewer({ reference }: { reference: string }) {
@@ -17,7 +17,7 @@ export default function ManuscriptViewer({ reference }: { reference: string }) {
   return (
     <div className="flex flex-col h-full bg-[#05080f]/40 text-white p-6 overflow-hidden">
       <div className="mb-6">
-        <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Virtual Codex</h2>
+        <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Códex Virtual</h2>
         <p className="text-[10px] text-blue-400 font-bold tracking-[0.1em] uppercase">Visualização de Manuscritos Originais</p>
       </div>
 

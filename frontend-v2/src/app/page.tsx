@@ -23,7 +23,7 @@ import {
   Zap,
   Image as ImageIcon,
   MessageSquare,
-  LayoutDashboard
+  Globe,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
@@ -32,7 +32,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 // ─── Heavy components: lazy-loaded, no SSR ─────────────────────────────────
 const BibleReader = dynamic(() => import("@/components/BibleReader"), {
   ssr: false,
-  loading: () => <BootingFallback label="Carregando Bible Reader" />,
+  loading: () => <BootingFallback label="Carregando Leitor Bíblico" />,
 });
 const ExegesisPanel = dynamic(() => import("@/components/ExegesisPanel"), { ssr: false });
 const SermonBuilder = dynamic(() => import("@/components/SermonBuilder"), { ssr: false });
@@ -75,12 +75,12 @@ const PRIMARY_TOOLS: ToolDefinition[] = [
   { key: "exegesis", label: "Análise Exegética", icon: Zap, color: "text-amber-400" },
   { key: "guide", label: "Guia de Passagem", icon: BookOpen, color: "text-blue-400" },
   { key: "word", label: "Estudo de Palavras", icon: Search, color: "text-emerald-400" },
-  { key: "factbook", label: "Factbook", icon: BookMarked, color: "text-purple-400" },
+  { key: "factbook", label: "Enciclopédia Bíblica", icon: BookMarked, color: "text-purple-400" },
 ];
 
 const CREATIVE_TOOLS: ToolDefinition[] = [
-  { key: "sermon", label: "Sermon Builder", icon: ScrollText, color: "text-orange-400" },
-  { key: "study", label: "Study Builder", icon: GraduationCap, color: "text-indigo-400" },
+  { key: "sermon", label: "Criador de Sermões", icon: ScrollText, color: "text-orange-400" },
+  { key: "study", label: "Criador de Estudos", icon: GraduationCap, color: "text-indigo-400" },
   { key: "notes", label: "Minhas Notas", icon: MessageSquare, color: "text-pink-400" },
 ];
 
@@ -91,8 +91,8 @@ const EXPLORATION_TOOLS: ToolDefinition[] = [
 ];
 
 const AI_TOOLS: ToolDefinition[] = [
-  { key: "ai", label: "TheoAI Assistant", icon: Bot, color: "text-blue-500" },
-  { key: "console", label: "Agentic Console", icon: Sparkles, color: "text-amber-500" },
+  { key: "ai", label: "Assistente TheoAI", icon: Bot, color: "text-blue-500" },
+  { key: "console", label: "Console Agêntica", icon: Sparkles, color: "text-amber-500" },
 ];
 
 export default function TheoSphereApp() {
@@ -137,12 +137,24 @@ export default function TheoSphereApp() {
     <div className="flex w-full h-screen overflow-hidden bg-[#05080f] text-white font-sans">
       
       {/* ─── Persistent Left Sidebar (The "OS" Shell) ──────────────────────── */}
-      <aside className="w-20 flex-shrink-0 flex flex-col items-center py-6 border-r border-white/5 bg-[#05080f] z-40">
-        {/* Brand Logo */}
-        <div className="mb-8 p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20 cursor-pointer hover:scale-110 transition-transform"
-             onClick={() => setActiveTool(null)}>
-          <LayoutDashboard className="w-6 h-6 text-slate-950" />
-        </div>
+      <aside
+        aria-label="Navegação principal"
+        className="w-20 flex-shrink-0 flex flex-col items-center py-6 border-r border-white/5 bg-[#05080f] z-40"
+      >
+        {/* Brand Mark — Gold Globe (system identity) */}
+        <button
+          type="button"
+          onClick={() => setActiveTool(null)}
+          aria-label="Início — TheoSphere"
+          title="TheoSphere"
+          className="mb-8 relative w-12 h-12 rounded-[18px] bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 flex items-center justify-center shadow-[0_0_24px_rgba(245,158,11,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.15)] hover:shadow-[0_0_32px_rgba(245,158,11,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all hover:scale-[1.04] active:scale-95 group"
+        >
+          <Globe className="w-[24px] h-[24px] text-slate-950 drop-shadow-sm" strokeWidth={2.25} />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-[18px] bg-gradient-to-br from-white/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        </button>
 
         <div className="flex-grow flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
           <div className="flex flex-col gap-1">
@@ -179,7 +191,7 @@ export default function TheoSphereApp() {
       </aside>
 
       {/* ─── Main Content Surface ────────────────────────────────────────── */}
-      <main className="flex-grow relative overflow-hidden bg-black">
+      <main id="main" className="flex-grow relative overflow-hidden bg-black">
         {/* BibleReader is the primary desktop background */}
         <BibleReader onClose={() => {}} />
 
@@ -191,27 +203,27 @@ export default function TheoSphereApp() {
             </ToolOverlay>
           )}
           {activeTool === "guide" && (
-            <ToolOverlay key="guide" onClose={closeTool} label="Passage Guide">
+            <ToolOverlay key="guide" onClose={closeTool} label="Guia de Passagem">
               <PassageGuide onClose={closeTool} initialRef={currentReference} />
             </ToolOverlay>
           )}
           {activeTool === "word" && (
-             <ToolOverlay key="word" onClose={closeTool} label="Word Study">
+             <ToolOverlay key="word" onClose={closeTool} label="Estudo de Palavras">
                <WordStudy onClose={closeTool} />
              </ToolOverlay>
           )}
           {activeTool === "factbook" && (
-            <ToolOverlay key="factbook" onClose={closeTool} label="Factbook">
+            <ToolOverlay key="factbook" onClose={closeTool} label="Enciclopédia Bíblica">
               <Factbook onClose={closeTool} />
             </ToolOverlay>
           )}
           {activeTool === "sermon" && (
-             <ToolOverlay key="sermon" onClose={closeTool} label="Sermon Builder">
+             <ToolOverlay key="sermon" onClose={closeTool} label="Criador de Sermões">
                <SermonBuilder onClose={closeTool} />
              </ToolOverlay>
           )}
           {activeTool === "study" && (
-            <ToolOverlay key="study" onClose={closeTool} label="Study Builder">
+            <ToolOverlay key="study" onClose={closeTool} label="Criador de Estudos">
               <StudyBuilder onClose={closeTool} />
             </ToolOverlay>
           )}
@@ -236,7 +248,7 @@ export default function TheoSphereApp() {
             </FullScreenOverlay>
           )}
           {activeTool === "ai" && (
-             <ToolOverlay key="ai" onClose={closeTool} label="TheoAI Assistant">
+             <ToolOverlay key="ai" onClose={closeTool} label="Assistente TheoAI">
                <AIAssistant onClose={closeTool} />
              </ToolOverlay>
           )}

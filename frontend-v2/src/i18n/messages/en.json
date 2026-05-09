@@ -1,0 +1,50 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Error",
+    "retry": "Retry",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "empty": "Nothing here yet",
+    "confirm": "Confirm"
+  },
+  "resourceGuide": {
+    "tabs": {
+      "resources": "Resources",
+      "sermon": "Sermon",
+      "manuscripts": "Manuscripts",
+      "notes": "Notes"
+    }
+  },
+  "interlinear": {
+    "deepAnalysis": "Deep Analysis",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "wordStudy": {
+    "source": "Source"
+  },
+  "studyBuilder": {
+    "title": "Study Builder"
+  },
+  "sermonBuilder": {
+    "title": "Sermon Builder AI"
+  },
+  "passageGuide": {
+    "title": "PASSAGE GUIDE"
+  },
+  "library": {
+    "global": "Global",
+    "library": "Library"
+  },
+  "exegesis": {
+    "engineActive": "TheoAI Active Engine"
+  }
+}

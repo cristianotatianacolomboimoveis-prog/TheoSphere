@@ -1,0 +1,50 @@
+{
+  "common": {
+    "loading": "Carregando…",
+    "error": "Erro",
+    "retry": "Tentar novamente",
+    "close": "Fechar",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "search": "Buscar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "empty": "Nada por aqui ainda",
+    "confirm": "Confirmar"
+  },
+  "resourceGuide": {
+    "tabs": {
+      "resources": "Recursos",
+      "sermon": "Sermão",
+      "manuscripts": "Manuscritos",
+      "notes": "Notas"
+    }
+  },
+  "interlinear": {
+    "deepAnalysis": "Análise Profunda",
+    "on": "ATIVA",
+    "off": "DESATIVADA"
+  },
+  "wordStudy": {
+    "source": "Fonte"
+  },
+  "studyBuilder": {
+    "title": "Criador de Estudos"
+  },
+  "sermonBuilder": {
+    "title": "Criador de Sermões IA"
+  },
+  "passageGuide": {
+    "title": "GUIA DE PASSAGEM"
+  },
+  "library": {
+    "global": "Global",
+    "library": "Biblioteca"
+  },
+  "exegesis": {
+    "engineActive": "Motor TheoAI Ativo"
+  }
+}
