@@ -53,15 +53,15 @@ export default function AgenticConsole() {
   }, [steps, result]);
 
   return (
-    <div className="flex flex-col h-[500px] w-full max-w-4xl mx-auto bg-[#0a0f1d]/90 border border-blue-500/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.15)] backdrop-blur-3xl font-sans">
+    <div className="flex flex-col h-[500px] w-full max-w-4xl mx-auto bg-surface border border-primary/30 rounded-3xl overflow-hidden shadow-[0_0_50px_hsla(var(--primary)/0.15)] backdrop-blur-3xl font-sans">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-blue-500/20 bg-blue-500/5 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-primary/20 bg-primary/5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_15px_hsla(var(--primary)/0.5)]">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-white tracking-tight uppercase">TheoAI Agentic Console</h3>
+            <h3 className="text-sm font-black text-foreground tracking-tight uppercase">TheoAI Agentic Console</h3>
             <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest opacity-70">Persona: Teólogo Sistemático PhD</p>
           </div>
         </div>
@@ -77,11 +77,11 @@ export default function AgenticConsole() {
       {/* Terminal Area */}
       <div 
         ref={scrollRef}
-        className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-black/20"
+        className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-background"
       >
         {!steps.length && !result && (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30">
-            <Terminal className="w-12 h-12 text-blue-400" />
+            <Terminal className="w-12 h-12 text-primary" />
             <p className="text-xs font-medium tracking-widest uppercase">Aguardando comando...</p>
           </div>
         )}
@@ -95,7 +95,7 @@ export default function AgenticConsole() {
               className="flex items-start gap-3"
             >
               <Check className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
-              <span className="text-[11px] text-white/70 font-mono leading-relaxed">{step}</span>
+              <span className="text-[11px] text-foreground/70 font-mono leading-relaxed">{step}</span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -103,7 +103,7 @@ export default function AgenticConsole() {
         {isProcessing && (
           <div className="flex items-center gap-3 animate-pulse">
             <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-            <span className="text-[11px] text-blue-400 font-mono uppercase tracking-widest">Processing request...</span>
+            <span className="text-[11px] text-blue-400 font-mono uppercase tracking-widest">Processando requisição...</span>
           </div>
         )}
 
@@ -111,13 +111,13 @@ export default function AgenticConsole() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-6 rounded-2xl bg-white/[0.03] border border-white/5 prose prose-invert prose-xs max-w-none shadow-inner"
+            className="mt-6 p-6 rounded-2xl bg-surface-hover border border-border-subtle prose prose-invert prose-xs max-w-none shadow-inner"
           >
             <div className="flex items-center gap-2 mb-4 text-blue-400">
               <Sparkles className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Analysis Result</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Resultado da Análise</span>
             </div>
-            <div className="text-white/80 leading-relaxed font-serif whitespace-pre-wrap">
+            <div className="text-foreground/80 leading-relaxed font-serif whitespace-pre-wrap">
               {result}
             </div>
           </motion.div>
@@ -125,15 +125,15 @@ export default function AgenticConsole() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white/[0.02] border-t border-white/5">
+      <div className="p-4 bg-surface border-t border-border-subtle">
         <div className="relative group">
           <input 
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask TheoAI for a deep exegesis or theological inquiry..."
-            className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 transition-all focus:ring-4 focus:ring-blue-500/5"
+            placeholder="Pergunte ao TheoAI sobre uma exegese profunda ou dúvida teológica..."
+            className="w-full bg-background/50 border border-border-subtle rounded-2xl py-4 pl-6 pr-14 text-sm text-foreground placeholder:text-foreground/50 focus:outline-none focus:border-primary/50 transition-all focus:ring-4 focus:ring-primary/5"
           />
           <button 
             onClick={handleSend}
@@ -145,10 +145,10 @@ export default function AgenticConsole() {
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
           <div className="flex gap-4">
-            <span className="text-[9px] text-white/20 font-bold uppercase tracking-tighter">Model: Gemini 1.5 Flash</span>
-            <span className="text-[9px] text-white/20 font-bold uppercase tracking-tighter">Context: Hybrid RAG</span>
+            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">Modelo: Gemini 1.5 Flash</span>
+            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">Contexto: Hybrid RAG</span>
           </div>
-          <span className="text-[9px] text-blue-500/50 font-bold uppercase tracking-tighter">Ready for Prompting</span>
+          <span className="text-[9px] text-primary/50 font-bold uppercase tracking-tighter">Pronto para receber comando</span>
         </div>
       </div>
     </div>

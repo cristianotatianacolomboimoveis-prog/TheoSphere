@@ -123,7 +123,11 @@ export class EmbeddingService implements OnModuleDestroy {
     if (this.redis && this.redis.status === 'ready') {
       // Fire-and-forget; latency mustn't block the caller.
       this.redis
-        .setex(this.cacheKey(normalized), this.L2_TTL_S, JSON.stringify(embedding))
+        .setex(
+          this.cacheKey(normalized),
+          this.L2_TTL_S,
+          JSON.stringify(embedding),
+        )
         .catch((err) =>
           this.logger.warn(`L2 write failed: ${(err as Error).message}`),
         );

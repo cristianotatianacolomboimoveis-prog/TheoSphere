@@ -331,15 +331,36 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
     setIsTranslating(true);
     
     try {
+      const token =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('theosphere-access-token')
+          : null;
+      if (!token) {
+        setTranslatedContent(
+          `[Tradução requer login]\n\n${textToTranslate}`,
+        );
+        return;
+      }
       const res = await fetch('/api/translate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToTranslate, targetLang: 'pt' })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: textToTranslate, targetLang: 'pt' }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setTranslatedContent(`[Tradução Automática Dinâmica — TheoSphere]\n\n***\n\n${data.translated}`);
+      } else if (res.status === 429) {
+        setTranslatedContent(
+          `[Limite de traduções atingido. Aguarde 1 minuto.]\n\n${textToTranslate}`,
+        );
+      } else if (res.status === 401) {
+        setTranslatedContent(
+          `[Sessão expirou — faça login novamente]\n\n${textToTranslate}`,
+        );
       } else {
         setTranslatedContent(`[Falha na tradução automática. Exibindo original]\n\n${textToTranslate}`);
       }

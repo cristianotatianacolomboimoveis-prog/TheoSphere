@@ -1,50 +1,99 @@
 /**
  * Fallback AI Responses for TheoSphere.
- * 
+ *
  * Used when the AI provider (Gemini/OpenAI) is unavailable.
  */
 
-export function generateFallbackResponse(query: string, jsonMode: boolean = false): string {
+export function generateFallbackResponse(
+  query: string,
+  jsonMode: boolean = false,
+): string {
   const lower = query.toLowerCase();
 
   if (jsonMode) {
     return JSON.stringify({
-      verse: query.match(/\b([1-3]?\s?[a-zA-Z]+)\s(\d+):(\d+)\b/)?.[0] || "João 3:16",
-      original_language: lower.includes("hebraico") || lower.includes("hb") || lower.includes("bhs") ? "HB" : "GK",
+      verse:
+        query.match(/\b([1-3]?\s?[a-zA-Z]+)\s(\d+):(\d+)\b/)?.[0] ||
+        'João 3:16',
+      original_language:
+        lower.includes('hebraico') ||
+        lower.includes('hb') ||
+        lower.includes('bhs')
+          ? 'HB'
+          : 'GK',
       interlinear: [
-        { word: "ἐν", transliteration: "en", strong: "G1722", morphology: "prep", translation: "no" },
-        { word: "ἀρχῇ", transliteration: "archē", strong: "G746", morphology: "noun: dat sing fem", translation: "princípio" },
-        { word: "ἦν", transliteration: "ēn", strong: "G1510", morphology: "verb: impf act ind 3 sing", translation: "era" },
-        { word: "ὁ", transliteration: "ho", strong: "G3588", morphology: "art: nom sing masc", translation: "o" },
-        { word: "Λόgος", transliteration: "Logos", strong: "G3056", morphology: "noun: nom sing masc", translation: "Verbo" }
+        {
+          word: 'ἐν',
+          transliteration: 'en',
+          strong: 'G1722',
+          morphology: 'prep',
+          translation: 'no',
+        },
+        {
+          word: 'ἀρχῇ',
+          transliteration: 'archē',
+          strong: 'G746',
+          morphology: 'noun: dat sing fem',
+          translation: 'princípio',
+        },
+        {
+          word: 'ἦν',
+          transliteration: 'ēn',
+          strong: 'G1510',
+          morphology: 'verb: impf act ind 3 sing',
+          translation: 'era',
+        },
+        {
+          word: 'ὁ',
+          transliteration: 'ho',
+          strong: 'G3588',
+          morphology: 'art: nom sing masc',
+          translation: 'o',
+        },
+        {
+          word: 'Λόgος',
+          transliteration: 'Logos',
+          strong: 'G3056',
+          morphology: 'noun: nom sing masc',
+          translation: 'Verbo',
+        },
       ],
       lexical_analysis: [
-        { 
-          word: "Λόγος (Logos)", 
-          bdag_halot_sense: "Princípio ordenador, palavra viva, revelação divina encarnada.", 
-          academic_discussion: "Discussão central no prólogo joanino sobre a preexistência do Messias." 
-        }
+        {
+          word: 'Λόγος (Logos)',
+          bdag_halot_sense:
+            'Princípio ordenador, palavra viva, revelação divina encarnada.',
+          academic_discussion:
+            'Discussão central no prólogo joanino sobre a preexistência do Messias.',
+        },
       ],
-      syntactic_notes: "O uso do imperfeito 'ēn' indica existência contínua no passado eterno.",
+      syntactic_notes:
+        "O uso do imperfeito 'ēn' indica existência contínua no passado eterno.",
       syntactic_graph: {
         nodes: [
-          { id: "1", label: "Verbo", type: "subject" },
-          { id: "2", label: "era", type: "verb" },
-          { id: "3", label: "princípio", type: "context" }
+          { id: '1', label: 'Verbo', type: 'subject' },
+          { id: '2', label: 'era', type: 'verb' },
+          { id: '3', label: 'princípio', type: 'context' },
         ],
         edges: [
-          { source: "1", target: "2", relation: "sujeito-verbo" },
-          { source: "2", target: "3", relation: "temporal" }
-        ]
+          { source: '1', target: '2', relation: 'sujeito-verbo' },
+          { source: '2', target: '3', relation: 'temporal' },
+        ],
       },
       technical_commentary: [
-        { source: "F.F. Bruce", view: "O Verbo não teve início, Ele já era no início." },
-        { source: "Calvino", view: "A divindade de Cristo é estabelecida por Sua eternidade." }
+        {
+          source: 'F.F. Bruce',
+          view: 'O Verbo não teve início, Ele já era no início.',
+        },
+        {
+          source: 'Calvino',
+          view: 'A divindade de Cristo é estabelecida por Sua eternidade.',
+        },
       ],
-      systematic_connection: { 
-        locus: "Cristologia", 
-        explanation: "Aseidade e eternidade da Segunda Pessoa da Trindade." 
-      }
+      systematic_connection: {
+        locus: 'Cristologia',
+        explanation: 'Aseidade e eternidade da Segunda Pessoa da Trindade.',
+      },
     });
   }
 

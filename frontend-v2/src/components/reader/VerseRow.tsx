@@ -18,7 +18,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-yellow-400/30 text-yellow-200 rounded px-0.5">{part}</mark>
+          <mark key={i} className="bg-primary/30 text-primary rounded px-0.5">{part}</mark>
         ) : (
           part
         )
@@ -41,15 +41,15 @@ export const VerseRow: React.FC<VerseRowProps> = ({
       onClick={onClick}
       className={`group relative transition-all duration-300 py-4 px-4 rounded-2xl border border-transparent ${
         selected
-          ? "bg-blue-600/20 border-blue-500/30 shadow-lg"
-          : "hover:bg-white/[0.03]"
+          ? "bg-accent/20 border-accent/30 shadow-lg"
+          : "hover:bg-surface-hover"
       }`}
     >
       <div className="flex gap-4">
-        <span className="text-[11px] font-black text-blue-500/50 mt-1.5 min-w-[20px] tabular-nums">
+        <span className="text-[11px] font-black text-accent/50 mt-1.5 min-w-[20px] tabular-nums">
           {verse}
         </span>
-        <span className="text-[17px] leading-[1.8] font-serif text-white/90">
+        <span className="text-[17px] leading-[1.8] font-serif text-foreground/90">
           {highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
         </span>
       </div>
@@ -57,12 +57,12 @@ export const VerseRow: React.FC<VerseRowProps> = ({
 
     {/* Secondary Version (Parallel) */}
     {secondaryText && (
-      <div className="py-4 px-4 rounded-2xl border border-transparent bg-amber-500/[0.02]">
+      <div className="py-4 px-4 rounded-2xl border border-transparent bg-primary/[0.04]">
         <div className="flex gap-4">
-          <span className="text-[11px] font-black text-amber-500/30 mt-1.5 min-w-[20px] tabular-nums">
+          <span className="text-[11px] font-black text-primary/30 mt-1.5 min-w-[20px] tabular-nums">
             {verse}
           </span>
-          <span className="text-[17px] leading-[1.8] font-serif text-white/60 italic">
+          <span className="text-[17px] leading-[1.8] font-serif text-foreground/60 italic">
             {secondaryText}
           </span>
         </div>

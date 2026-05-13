@@ -20,7 +20,11 @@ import { PrismaService } from '../prisma.service';
         if (!secret) {
           throw new Error('JWT_SECRET is not configured');
         }
-        const expiresIn = config.get<string>('JWT_EXPIRES_IN') ?? '7d';
+        // SEC-004 partial mitigation: until refresh tokens land, keep the
+        // access-token lifetime short so a stolen token (XSS, log leak) has
+        // a 1-hour window instead of a week. Override via JWT_EXPIRES_IN if
+        // you genuinely need longer-lived tokens for a specific environment.
+        const expiresIn = config.get<string>('JWT_EXPIRES_IN') ?? '1h';
         return {
           secret,
           // `expiresIn` accepts a vercel/ms string ("7d", "15m", ...) or a

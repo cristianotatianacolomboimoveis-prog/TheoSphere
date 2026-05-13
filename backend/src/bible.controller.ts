@@ -1,8 +1,30 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { BibleIngestionService } from './bible-ingestion.service';
+import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
+
+const ALLOWED_TRANSLATIONS = new Set([
+  'ARA',
+  'NVIPT',
+  'KJV',
+  'TR',
+  'WLC',
+  'web',
+  'kjv',
+  'asv',
+  'ylt',
+]);
 
 @Controller('api/v1/bible')
 export class BibleController {
+  private readonly logger = new Logger(BibleController.name);
+
   constructor(private ingestionService: BibleIngestionService) {}
 
   @Get('versions')
@@ -41,19 +63,42 @@ export class BibleController {
     return { success: true, data: { verses, translation, bookId, chapter } };
   }
 
+  /**
+   * Fallback proxy to bible-api.com. Hardened (SEC-006):
+   *   • translation allow-list — no value-injection into the upstream URL
+   *   • ref length cap — defends against gigantic path components
+   *   • safeFetch with 5s timeout + 2 retries (exp. backoff)
+   */
   @Get('fallback')
   async getFallback(
     @Query('ref') ref: string,
     @Query('translation') translation: string,
   ) {
+    if (!ref || typeof ref !== 'string' || ref.length > 64) {
+      throw new BadRequestException('ref is required and must be ≤ 64 chars');
+    }
+    if (!translation || !ALLOWED_TRANSLATIONS.has(translation)) {
+      throw new BadRequestException(
+        `translation must be one of: ${[...ALLOWED_TRANSLATIONS].join(', ')}`,
+      );
+    }
+
+    const url =
+      `https://bible-api.com/${encodeURIComponent(ref)}` +
+      `?translation=${encodeURIComponent(translation)}`;
+
     try {
-      const url = `https://bible-api.com/${encodeURIComponent(ref)}?translation=${translation}`;
-      const response = await fetch(url);
+      const response = await safeFetch(url, { timeoutMs: 5_000, retries: 2 });
       if (!response.ok) return { success: false, data: [] };
       const data = await response.json();
       return { success: true, data };
-    } catch (error) {
-      return { success: false, error: error.message };
+    } catch (err) {
+      this.logger.warn(
+        `[fallback] upstream failure: ${
+          err instanceof SafeFetchError ? err.message : String(err)
+        }`,
+      );
+      return { success: false, error: 'upstream unavailable' };
     }
   }
 

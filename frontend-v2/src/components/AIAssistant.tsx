@@ -232,9 +232,9 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#070b14] text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* ── Header ───────────────────────────────────────── */}
-      <div className="px-6 pt-5 pb-4 border-b border-white/5 flex-shrink-0">
+      <div className="px-6 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20 animate-pulse-glow">
@@ -312,7 +312,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 grid grid-cols-2 gap-3">
+              <div className="mt-3 p-3 rounded-xl bg-surface border border-border-subtle grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Consultas</p>
                   <p className="text-sm font-bold text-white/70">{sessionStats.totalQueries}</p>
@@ -396,7 +396,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.08 }}
                     onClick={() => sendMessage(sp.prompt)}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 hover:bg-white/[0.04] transition-all text-left group"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border-subtle hover:border-primary/20 hover:bg-surface-hover transition-all text-left group"
                   >
                     <Icon className="w-4 h-4 text-purple-400/60 group-hover:text-purple-400 transition-colors flex-shrink-0" />
                     <span className="text-xs text-white/50 group-hover:text-white/80 transition-colors flex-grow">
@@ -426,8 +426,8 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                 <div
                   className={`max-w-[85%] rounded-xl px-4 py-3 ${
                     msg.role === "user"
-                      ? "bg-amber-500/15 border border-amber-500/20 text-white/90"
-                      : "bg-white/[0.03] border border-white/5"
+                      ? "bg-amber-500/15 border border-amber-500/20 text-foreground"
+                      : "bg-surface-hover border border-border-subtle"
                   }`}
                 >
                   {msg.role === "user" ? (
@@ -477,7 +477,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* ── Input Area ───────────────────────────────────── */}
-      <div className="px-4 py-3 border-t border-white/5 flex-shrink-0">
+      <div className="px-4 py-3 border-t border-border-subtle flex-shrink-0">
         <div className="flex gap-2">
           <input
             ref={inputRef}

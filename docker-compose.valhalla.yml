@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  valhalla:
+    image: gisops/valhalla:latest
+    container_name: theosphere-valhalla
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./valhalla_data:/custom_files
+    environment:
+      # O valhalla precisa construir os tiles a partir do .osm.pbf que colocarmos na pasta
+      - build_elevation=True
+      - build_admins=True
+      - build_time_zones=True
+      - build_tar=True
+      - force_rebuild=False
+      # Configurações de performance para roteamento dinâmico
+      - serve_tiles=True
+      - USE_TRAFFIC=True # Habilita o motor a olhar para o histórico de trânsito
+    command: /usr/local/sbin/run.sh
+    restart: always

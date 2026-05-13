@@ -1,7 +1,7 @@
 /**
  * System Prompts for TheoSphere AI (TheoAI).
- * 
- * Centralizing prompts here allows for easier versioning, testing, and 
+ *
+ * Centralizing prompts here allows for easier versioning, testing, and
  * future integration with Prompt Management Systems (e.g., LangSmith, Portkey).
  */
 

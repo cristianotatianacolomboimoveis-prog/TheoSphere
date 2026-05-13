@@ -79,8 +79,7 @@ describe('Hybrid search infrastructure (e2e)', () => {
   });
 
   describe('pgvector cosine search', () => {
-    const vec = (n: number): string =>
-      `[${Array(768).fill(n).join(',')}]`;
+    const vec = (n: number): string => `[${Array(768).fill(n).join(',')}]`;
 
     beforeAll(async () => {
       // Seed 3 verses with deterministic embeddings: nearly identical pair

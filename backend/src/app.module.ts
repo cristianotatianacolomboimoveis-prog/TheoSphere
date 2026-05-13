@@ -30,8 +30,12 @@ import { AuditModule } from './audit/audit.module';
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3002),
-        DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
-        DIRECT_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
+        DATABASE_URL: Joi.string()
+          .uri({ scheme: ['postgresql', 'postgres'] })
+          .required(),
+        DIRECT_URL: Joi.string()
+          .uri({ scheme: ['postgresql', 'postgres'] })
+          .required(),
         JWT_SECRET: Joi.string().min(32).required(),
         JWT_EXPIRES_IN: Joi.string().default('7d'),
         ALLOWED_ORIGINS: Joi.string().optional(),

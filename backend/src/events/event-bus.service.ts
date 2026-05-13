@@ -20,8 +20,7 @@ export const EVENT_CHANNELS = {
   RAG_HIT: 'theosphere:rag:hit',
 } as const;
 
-export type EventChannel =
-  (typeof EVENT_CHANNELS)[keyof typeof EVENT_CHANNELS];
+export type EventChannel = (typeof EVENT_CHANNELS)[keyof typeof EVENT_CHANNELS];
 
 export interface LogEvent {
   level: 'log' | 'warn' | 'error' | 'debug';
@@ -61,7 +60,10 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
   private healthy = false;
 
   // channel → handlers
-  private readonly handlers = new Map<string, Set<(payload: unknown) => void>>();
+  private readonly handlers = new Map<
+    string,
+    Set<(payload: unknown) => void>
+  >();
 
   constructor(private readonly config: ConfigService) {}
 
@@ -122,10 +124,7 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await Promise.allSettled([
-      this.publisher?.quit(),
-      this.subscriber?.quit(),
-    ]);
+    await Promise.allSettled([this.publisher?.quit(), this.subscriber?.quit()]);
   }
 
   /** Returns true if the publisher connection is currently usable. */
@@ -141,9 +140,7 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.publisher.publish(channel, JSON.stringify(payload));
     } catch (err) {
-      this.logger.warn(
-        `publish(${channel}) failed: ${(err as Error).message}`,
-      );
+      this.logger.warn(`publish(${channel}) failed: ${(err as Error).message}`);
     }
   }
 
@@ -172,10 +169,10 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
-    handlers.add(handler as (p: unknown) => void);
+    handlers.add(handler);
 
     return async () => {
-      handlers?.delete(handler as (p: unknown) => void);
+      handlers?.delete(handler);
       if (handlers && handlers.size === 0) {
         this.handlers.delete(channel);
         try {

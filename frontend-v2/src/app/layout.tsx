@@ -44,7 +44,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${inter.variable} antialiased min-h-full flex flex-col bg-[#05080f]`}>
+      <body className={`${inter.variable} antialiased min-h-full flex flex-col bg-background`}>
         <a href="#main" className="skip-link">Pular para o conteúdo</a>
         <ClientProviders>
           {children}

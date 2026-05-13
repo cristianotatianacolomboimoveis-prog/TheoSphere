@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Globe,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useTheoStore } from "@/store/useTheoStore";
@@ -32,7 +33,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 // ─── Heavy components: lazy-loaded, no SSR ─────────────────────────────────
 const BibleReader = dynamic(() => import("@/components/BibleReader"), {
   ssr: false,
-  loading: () => <BootingFallback label="Carregando Leitor Bíblico" />,
+  loading: () => <BootingFallback label="BIBLE READER" />,
 });
 const ExegesisPanel = dynamic(() => import("@/components/ExegesisPanel"), { ssr: false });
 const SermonBuilder = dynamic(() => import("@/components/SermonBuilder"), { ssr: false });
@@ -116,8 +117,8 @@ export default function TheoSphereApp() {
         className={
           "group relative p-3 rounded-2xl transition-all duration-300 " +
           (isActive
-            ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            : "text-white/30 hover:text-white/60 hover:bg-white/5")
+            ? "bg-surface text-foreground shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            : "text-foreground/30 hover:text-foreground/60 hover:bg-surface-hover")
         }
       >
         <Icon className={`w-6 h-6 ${isActive ? t.color : "group-hover:" + t.color}`} />
@@ -126,7 +127,7 @@ export default function TheoSphereApp() {
         )}
         
         {/* Tooltip on Hover (Sidebar Style) */}
-        <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#0a0f1a] border border-white/10 text-[10px] font-black uppercase tracking-widest text-white opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
+        <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-surface border border-border-strong text-[10px] font-black uppercase tracking-widest text-foreground opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
           {t.label}
         </div>
       </button>
@@ -134,12 +135,12 @@ export default function TheoSphereApp() {
   };
 
   return (
-    <div className="flex w-full h-screen overflow-hidden bg-[#05080f] text-white font-sans">
+    <div className="flex w-full h-screen overflow-hidden bg-background text-foreground font-sans">
       
       {/* ─── Persistent Left Sidebar (The "OS" Shell) ──────────────────────── */}
       <aside
         aria-label="Navegação principal"
-        className="w-20 flex-shrink-0 flex flex-col items-center py-6 border-r border-white/5 bg-[#05080f] z-40"
+        className="w-20 flex-shrink-0 flex flex-col items-center py-6 border-r border-border-subtle bg-background z-40"
       >
         {/* Brand Mark — Gold Globe (system identity) */}
         <button
@@ -161,37 +162,42 @@ export default function TheoSphereApp() {
              {PRIMARY_TOOLS.map(renderToolIcon)}
           </div>
           
-          <div className="w-8 h-px bg-white/5 mx-auto my-2" />
+          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
           
           <div className="flex flex-col gap-1">
              {CREATIVE_TOOLS.map(renderToolIcon)}
           </div>
 
-          <div className="w-8 h-px bg-white/5 mx-auto my-2" />
+          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
 
           <div className="flex flex-col gap-1">
              {EXPLORATION_TOOLS.map(renderToolIcon)}
           </div>
 
-          <div className="w-8 h-px bg-white/5 mx-auto my-2" />
+          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
 
           <div className="flex flex-col gap-1">
              {AI_TOOLS.map(renderToolIcon)}
           </div>
         </div>
 
-        {/* User Account / Settings */}
-        <button
-          onClick={() => setAuthOpen(true)}
-          className="mt-auto p-3 rounded-2xl text-white/20 hover:text-white hover:bg-white/5 transition-all"
-          title="Configurações da Conta"
-        >
-          <ShieldCheck className="w-6 h-6" />
-        </button>
+        <div className="mt-auto flex flex-col gap-2 pb-2">
+          {/* Theme Toggle */}
+          <ThemeToggle className="text-foreground/20 hover:text-foreground hover:bg-surface-hover" />
+          
+          {/* User Account / Settings */}
+          <button
+            onClick={() => setAuthOpen(true)}
+            className="p-3 rounded-2xl text-foreground/20 hover:text-foreground hover:bg-surface-hover transition-all"
+            title="Configurações da Conta"
+          >
+            <ShieldCheck className="w-6 h-6" />
+          </button>
+        </div>
       </aside>
 
       {/* ─── Main Content Surface ────────────────────────────────────────── */}
-      <main id="main" className="flex-grow relative overflow-hidden bg-black">
+      <main id="main" className="flex-grow relative overflow-hidden bg-background">
         {/* BibleReader is the primary desktop background */}
         <BibleReader onClose={() => {}} />
 
@@ -280,12 +286,12 @@ function ToolOverlay({
   label: string;
 }) {
   return (
-    <div className="absolute inset-0 z-50 bg-[#05080f]/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
-      <div className="w-full h-full max-w-7xl bg-[#05080f] rounded-[32px] border border-white/10 shadow-2xl overflow-hidden flex flex-col relative">
+    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
+      <div className="w-full h-full max-w-7xl bg-background rounded-[32px] border border-border-strong shadow-2xl overflow-hidden flex flex-col relative">
         {/* Integrated Window Header */}
-        <div className="h-12 flex-shrink-0 flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.02]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{label}</span>
-          <button onClick={onClose} className="p-1 hover:bg-white/5 rounded-lg text-white/30 hover:text-white transition-all">
+        <div className="h-12 flex-shrink-0 flex items-center justify-between px-6 border-b border-border-subtle bg-surface/50">
+          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">{label}</span>
+          <button onClick={onClose} className="p-1 hover:bg-surface-hover rounded-lg text-foreground/30 hover:text-foreground transition-all">
              <span className="text-xs font-bold px-2 uppercase">Fechar [Esc]</span>
           </button>
         </div>
@@ -305,10 +311,10 @@ function FullScreenOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-[#05080f] animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-50 bg-background animate-in fade-in duration-500">
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 z-[60] px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[10px] font-black uppercase tracking-widest border border-white/10 backdrop-blur-xl transition-all"
+        className="absolute top-6 right-6 z-[60] px-4 py-2 rounded-xl bg-surface hover:bg-surface-hover text-foreground/70 hover:text-foreground text-[10px] font-black uppercase tracking-widest border border-border-strong backdrop-blur-xl transition-all"
       >
         Voltar para o Texto
       </button>
@@ -319,13 +325,13 @@ function FullScreenOverlay({
 
 function BootingFallback({ label }: { label: string }) {
   return (
-    <div className="h-screen w-full bg-[#05080f] text-white flex items-center justify-center">
+    <div className="h-screen w-full bg-background text-foreground flex items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 animate-pulse" />
-          <div className="absolute inset-0 bg-amber-500/10 blur-2xl animate-pulse" />
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/40 animate-pulse" />
+          <div className="absolute inset-0 bg-primary/10 blur-2xl animate-pulse" />
         </div>
-        <span className="text-[10px] tracking-[0.4em] font-black text-white/60 uppercase">
+        <span className="text-[10px] tracking-[0.4em] font-black text-foreground/60 uppercase">
           {label}…
         </span>
       </div>

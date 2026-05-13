@@ -375,7 +375,9 @@ export class RagService {
         '=== FIM DOS VERSÍCULOS ===',
       ].join('\n\n');
     } catch (err) {
-      this.logger.error(`Bible hybrid search failed: ${(err as Error).message}`);
+      this.logger.error(
+        `Bible hybrid search failed: ${(err as Error).message}`,
+      );
       return '';
     }
   }

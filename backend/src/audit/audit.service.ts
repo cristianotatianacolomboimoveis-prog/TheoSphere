@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import { PrismaService } from '../prisma.service';
-import {
-  EVENT_CHANNELS,
-  EventBusService,
-} from '../events/event-bus.service';
+import { EVENT_CHANNELS, EventBusService } from '../events/event-bus.service';
 
 /**
  * Stable, dot-namespaced identifiers for privileged actions.

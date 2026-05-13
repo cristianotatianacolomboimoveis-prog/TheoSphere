@@ -58,7 +58,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
   return (
     <div className="animate-fade-in-up space-y-4">
       {/* Exegesis Header Card */}
-      <div className="bg-[#0f172a]/80 border border-white/5 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl relative overflow-hidden group">
+      <div className="bg-surface/80 border border-border-subtle rounded-3xl p-8 shadow-2xl backdrop-blur-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
           <BookOpen className="w-32 h-32 text-blue-400 rotate-12" />
         </div>
@@ -94,7 +94,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
         {words && words.length > 0 ? words.map((word, wi) => (
           <div 
             key={wi} 
-            className="group flex items-center bg-[#0d1117] border border-white/10 rounded-[2.5rem] p-6 hover:bg-[#161b22] hover:border-blue-500/20 transition-all duration-300 shadow-xl"
+            className="group flex items-center bg-surface border border-border-subtle rounded-[2.5rem] p-6 hover:bg-surface-hover hover:border-primary/20 transition-all duration-300 shadow-xl"
             onMouseEnter={(e) => { setHoveredWord(word); onWordHover?.(word.original, word.strong, { x: e.clientX, y: e.clientY }); }}
             onMouseLeave={() => setHoveredWord(null)}
             onMouseMove={handleMouseMove}
@@ -102,7 +102,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             {/* Left: Original Word (Fixed Width, centered) */}
             <div className="w-32 flex-shrink-0 flex justify-center">
               <span 
-                className="text-3xl font-serif text-white/40 group-hover:text-white transition-colors"
+                className="text-3xl font-serif text-foreground/40 group-hover:text-foreground transition-colors"
                 dir={!isNT ? "rtl" : "ltr"}
               >
                 {word.original}
@@ -114,7 +114,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <div className="text-lg font-bold text-[#3b82f6] tracking-wide leading-none">
                 {word.translit}
               </div>
-              <div className="text-[13px] text-white/30 leading-snug font-medium line-clamp-2">
+              <div className="text-[13px] text-foreground/30 leading-snug font-medium line-clamp-2">
                 {word.translations.join(", ")}
               </div>
               
@@ -127,7 +127,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-3 mt-3 border-t border-white/5 flex flex-wrap gap-4">
+                    <div className="pt-3 mt-3 border-t border-border-subtle flex flex-wrap gap-4">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[8px] font-black text-blue-400/40 uppercase tracking-widest">Morfologia (Exegese)</span>
                         <span className="text-[10px] text-blue-300/80 font-medium">{translateMorphology(word.morphology, isNT)}</span>
@@ -157,7 +157,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             </div>
           </div>
         )) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-[#0f172a]/40 border border-white/5 rounded-3xl relative overflow-hidden group">
+          <div className="flex flex-col items-center justify-center py-20 bg-surface/40 border border-border-subtle rounded-3xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent animate-pulse" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -171,7 +171,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <p className="text-sm text-blue-400 font-black uppercase tracking-[0.3em] mb-2 animate-pulse">
                 TheoAI: Iniciando Escaneamento PhD
               </p>
-              <p className="text-[10px] text-white/30 font-medium uppercase tracking-widest text-center max-w-xs">
+              <p className="text-[10px] text-foreground/30 font-medium uppercase tracking-widest text-center max-w-xs">
                 Dados estáticos ausentes. Ativando Redes Neurais Teológicas para Gênesis...
               </p>
             </motion.div>
@@ -192,7 +192,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               top: mousePos.y - 140,
               zIndex: 100
             }}
-            className="w-80 bg-[#0a0f1a]/98 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-none p-6 shadow-blue-500/10"
+            className="w-80 bg-surface/98 backdrop-blur-2xl border border-border-subtle rounded-2xl shadow-2xl overflow-hidden pointer-events-none p-6 shadow-primary/10"
           >
             <div className="flex items-center justify-between mb-5">
               <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -202,22 +202,22 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             </div>
             
             <div className="mb-5">
-              <h4 className="text-4xl font-serif text-white mb-1.5 tracking-tight">{hoveredWord.original}</h4>
-              <p className="text-[11px] text-blue-400/60 italic font-mono font-bold tracking-tight">
+              <h4 className="text-4xl font-serif text-foreground mb-1.5 tracking-tight">{hoveredWord.original}</h4>
+              <p className="text-[11px] text-primary/60 italic font-mono font-bold tracking-tight">
                 {hoveredWord.translit} <span className="mx-2 opacity-30">•</span> {translateMorphology(hoveredWord.morphology, isNT)}
               </p>
             </div>
 
-            <div className="space-y-4 border-t border-white/5 pt-5">
+            <div className="space-y-4 border-t border-border-subtle pt-5">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Semantic Range (Lexicon)</span>
-                <p className="text-[12px] text-white/80 leading-relaxed font-medium">
+                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">Lexicon PhD Analysis</span>
+                <p className="text-[12px] text-foreground/80 leading-relaxed font-medium">
                   {hoveredWord.translations.join(", ")}
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Origem da Raiz Lexical</span>
-                <p className="text-[12px] text-white/60 font-serif italic">
+                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">Origem da Raiz Lexical</span>
+                <p className="text-[12px] text-foreground/60 font-serif italic">
                   {hoveredWord.root} ({hoveredWord.rootTrans})
                 </p>
               </div>

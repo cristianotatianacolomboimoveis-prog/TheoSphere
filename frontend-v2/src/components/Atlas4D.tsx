@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import Map, { NavigationControl, Source } from "react-map-gl/mapbox";
+import Map, { NavigationControl } from "react-map-gl/maplibre";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import DeckGL from "@deck.gl/react";
 import { ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
@@ -25,9 +27,9 @@ if (typeof window !== "undefined") {
   }
 }
 
-// Definindo o Token como fallback para evitar erros na UI (Em produção, vem do .env)
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "mocktoken";
-const isInvalidToken = MAPBOX_TOKEN === "mocktoken" || MAPBOX_TOKEN === "your_real_mapbox_token_here" || !MAPBOX_TOKEN;
+// Valhalla + MapLibre usam basemaps open-source (ex: Carto, OSM). Sem necessidade de token proprietário!
+const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const VALHALLA_URL = process.env.NEXT_PUBLIC_VALHALLA_URL || "http://localhost:8002/route";
 
 interface ViewState {
   longitude: number;
@@ -242,53 +244,25 @@ export default function Atlas4D() {
         onViewStateChange={(e) => setViewState(e.viewState as ViewState)}
         getTooltip={({ object }: any) => object && `${object.name || 'Trajeto'}\n${object.description || ''}`}
       >
-        {!isInvalidToken && (
           <Map
-            mapboxAccessToken={MAPBOX_TOKEN}
-            mapStyle={offlineMode ? "mapbox://styles/mapbox/satellite-v9" : "mapbox://styles/mapbox/dark-v11"}
+            mapStyle={MAP_STYLE}
             reuseMaps
-            terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
+            // Valhalla historical routing will overlay here via DeckGL TripsLayer
           >
-            <Source
-              id="mapbox-dem"
-              type="raster-dem"
-              url="mapbox://mapbox.mapbox-terrain-dem-v1"
-              tileSize={512}
-              maxzoom={14}
-            />
             <NavigationControl position="top-right" />
           </Map>
-        )}
 
-        {isInvalidToken && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#05080f]/90 z-[5]">
-             <div className="max-w-md text-center p-12 glass-heavy rounded-[32px] border border-amber-500/20 shadow-2xl">
-                <MapPin className="w-12 h-12 text-amber-500 mx-auto mb-6 animate-bounce" />
-                <h3 className="text-xl font-bold text-white mb-4">Mapa de Alta Resolução Indisponível</h3>
-                <p className="text-sm text-white/40 leading-relaxed mb-8">
-                  Para habilitar o Atlas 4D com topografia 3D e satélite, insira um token válido do Mapbox em <code className="bg-white/5 px-2 py-1 rounded">frontend-v2/.env.local</code>.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <a href="https://account.mapbox.com/" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-widest rounded-xl transition-all">
-                    Obter Token Gratuito
-                  </a>
-                  <button onClick={() => setOfflineMode(true)} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white/60 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">
-                    Tentar Modo Offline (Experimental)
-                  </button>
-                </div>
-             </div>
-          </div>
-        )}
+
       </DeckGL>
 
       {/* OVERLAYS UI */}
       <div className="absolute top-6 left-6 z-10 glass-heavy p-4 rounded-2xl border border-white/10 flex items-center gap-5 shadow-2xl animate-fade-in-down">
         <div>
           <h2 className="text-sm font-black text-white flex items-center gap-2.5">
-            <Layers className="w-4 h-4 text-amber-500 animate-pulse-glow" /> 
-            <span className="text-gradient">THEOSPHERE ATLAS 4D</span>
+            <Layers className="w-4 h-4 text-emerald-500 animate-pulse-glow" /> 
+            <span className="text-gradient">ATLAS 4D (Valhalla Engine)</span>
           </h2>
-          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">Motor WebGL Local-First</p>
+          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">MapLibre + Open-Source Routing</p>
         </div>
         
         {/* Offline Badge */}

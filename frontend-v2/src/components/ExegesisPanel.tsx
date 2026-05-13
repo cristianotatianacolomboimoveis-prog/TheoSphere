@@ -111,10 +111,10 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
   }, [verse, chat]);
 
   return (
-    <div className="flex flex-col h-full bg-[#05080f]/40 backdrop-blur-2xl text-white overflow-hidden font-sans">
+    <div className="flex flex-col h-full bg-background/40 backdrop-blur-2xl text-foreground overflow-hidden font-sans">
       {/* Table Header Versículo */}
-      <div className="bg-gradient-to-r from-orange-600/30 via-amber-500/10 to-transparent py-4 text-center border-b border-amber-500/20 relative">
-        <span className="text-xs font-black text-amber-500 uppercase tracking-[0.4em] drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+      <div className="bg-gradient-to-r from-primary/30 via-primary/10 to-transparent py-4 text-center border-b border-primary/20 relative">
+        <span className="text-xs font-black text-primary uppercase tracking-[0.4em] drop-shadow-[0_0_8px_hsl(var(--primary)/0.3)]">
           {verse}
         </span>
         
@@ -125,23 +125,23 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
               navigator.clipboard.writeText(citation);
               alert("Citação ABNT copiada!");
             }}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all text-white/30 hover:text-amber-500 group"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-all text-foreground/30 hover:text-primary group"
             title="Copiar Citação Acadêmica (ABNT)"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-full transition-colors"
           >
-            <X className="w-4 h-4 text-white/40" />
+            <X className="w-4 h-4 text-foreground/40" />
           </button>
         </div>
       </div>
 
       {/* Tabs Navigation */}
       {!loading && data && (
-        <div className="flex px-8 border-b border-white/5 bg-white/[0.01]">
+        <div className="flex px-8 border-b border-border-subtle bg-surface">
           {[
             { id: "interlinear", label: "Interlinear", icon: BookOpen },
             { id: "lexical", label: "Léxico", icon: Sparkles },
@@ -154,8 +154,8 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${
                 activeTab === tab.id 
-                  ? "border-amber-500 text-amber-500 bg-amber-500/5" 
-                  : "border-transparent text-white/30 hover:text-white/60"
+                  ? "border-primary text-primary bg-primary/5" 
+                  : "border-transparent text-foreground/30 hover:text-foreground/60"
               }`}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -178,10 +178,10 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                <div className="absolute inset-0 bg-amber-500/20 blur-2xl animate-pulse rounded-full" />
             </motion.div>
             <div className="text-center space-y-4">
-              <p className="text-[11px] font-black text-amber-500 uppercase tracking-[0.4em] animate-pulse">
+              <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em] animate-pulse">
                 Iniciando Escaneamento Exegético PhD...
               </p>
-              <p className="text-[9px] text-white/20 font-medium tracking-widest uppercase">
+              <p className="text-[9px] text-foreground/20 font-medium tracking-widest uppercase">
                 Consultando Léxicos BDAG/HALOT & Comentários Técnicos
               </p>
             </div>
@@ -198,23 +198,23 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {data.interlinear?.map((word, idx) => (
-                    <div key={idx} className="p-6 rounded-xl bg-white/[0.03] border border-white/5 hover:border-amber-500/30 transition-all group">
+                    <div key={idx} className="p-6 rounded-xl bg-surface border border-border-subtle hover:border-primary/30 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <span className="text-4xl font-serif text-white group-hover:text-amber-200 transition-colors" dir="auto">{word.word}</span>
                         <span className="text-[9px] font-black text-amber-500/50 uppercase bg-amber-500/10 px-2 py-1 rounded">{word.strong}</span>
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Transliteração</p>
-                          <p className="text-sm font-serif italic text-white/60">{word.transliteration}</p>
+                          <p className="text-[10px] font-black text-foreground/20 uppercase tracking-widest mb-1">Transliteração</p>
+                          <p className="text-sm font-serif italic text-foreground/60">{word.transliteration}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Morfologia</p>
-                          <p className="text-[11px] text-white/40 leading-relaxed">{word.morphology}</p>
+                          <p className="text-[10px] font-black text-foreground/20 uppercase tracking-widest mb-1">Morfologia</p>
+                          <p className="text-[11px] text-foreground/40 leading-relaxed">{word.morphology}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Tradução</p>
-                          <p className="text-sm font-serif italic text-amber-500/80">"{word.translation}"</p>
+                          <p className="text-[10px] font-black text-foreground/20 uppercase tracking-widest mb-1">Tradução</p>
+                          <p className="text-sm font-serif italic text-primary/80">"{word.translation}"</p>
                         </div>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                   className="space-y-8"
                 >
                   {data.lexical_analysis?.map((lex, idx) => (
-                    <div key={idx} className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <div key={idx} className="p-8 rounded-2xl bg-surface border border-border-subtle">
                       <h3 className="text-2xl font-serif text-amber-500 mb-4">{lex.word}</h3>
                       <div className="grid md:grid-cols-2 gap-8">
                         <div>
@@ -258,7 +258,7 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="h-[500px] rounded-3xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex items-center justify-center"
+                  className="h-[500px] rounded-3xl bg-surface border border-border-subtle relative overflow-hidden flex items-center justify-center"
                 >
                   <div className="absolute inset-0 opacity-20 pointer-events-none">
                     <div className="w-full h-full bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-[size:30px_30px]" />
@@ -307,7 +307,7 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                   className="grid gap-6"
                 >
                   {data.technical_commentary?.map((comm, idx) => (
-                    <div key={idx} className="p-8 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/5">
+                    <div key={idx} className="p-8 rounded-2xl bg-gradient-to-br from-surface to-transparent border border-border-subtle">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
                           <BookOpen className="w-4 h-4 text-amber-500" />
@@ -363,7 +363,7 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
       </div>
 
       {/* Footer Info */}
-      <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+      <div className="px-8 py-4 bg-surface border-t border-border-subtle flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />

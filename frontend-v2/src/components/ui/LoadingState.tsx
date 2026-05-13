@@ -15,10 +15,10 @@ export interface LoadingStateProps {
 }
 
 const accentClass: Record<NonNullable<LoadingStateProps["accent"]>, string> = {
-  amber: "text-amber-500",
-  blue: "text-blue-500",
+  amber: "text-primary",
+  blue: "text-accent",
   emerald: "text-emerald-500",
-  white: "text-white/60",
+  white: "text-foreground/60",
 };
 
 /**
@@ -38,7 +38,7 @@ export function LoadingState({
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}
-            className="h-3 rounded bg-white/5"
+            className="h-3 rounded bg-border-subtle"
             style={{ width: `${85 - i * 10}%` }}
           />
         ))}
@@ -50,7 +50,7 @@ export function LoadingState({
   if (variant === "inline") {
     return (
       <span
-        className={`inline-flex items-center gap-2 text-xs text-white/50 ${className}`}
+        className={`inline-flex items-center gap-2 text-xs text-muted ${className}`}
         role="status"
         aria-live="polite"
       >
@@ -63,12 +63,12 @@ export function LoadingState({
   if (variant === "fullscreen") {
     return (
       <div
-        className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#05080f]/80 backdrop-blur-sm gap-4 ${className}`}
+        className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm gap-4 ${className}`}
         role="status"
         aria-live="polite"
       >
         <Loader2 className={`w-12 h-12 animate-spin ${accentClass[accent]}`} />
-        <p className="text-xs text-white/50 font-medium tracking-widest uppercase">
+        <p className="text-xs text-muted font-medium tracking-widest uppercase">
           {label}
         </p>
       </div>
@@ -82,7 +82,7 @@ export function LoadingState({
       aria-live="polite"
     >
       <Loader2 className={`w-10 h-10 animate-spin ${accentClass[accent]}`} />
-      <p className="text-xs text-white/40 font-medium tracking-wider uppercase">{label}</p>
+      <p className="text-xs text-muted font-medium tracking-wider uppercase">{label}</p>
     </div>
   );
 }

@@ -18,16 +18,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = app.get(ConfigService);
-  const allowedOrigins =
-    config
-      .get<string>('ALLOWED_ORIGINS')
-      ?.split(',')
-      .map((s) => s.trim())
-      .filter(Boolean) ?? [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-    ];
+  const allowedOrigins = config
+    .get<string>('ALLOWED_ORIGINS')
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) ?? [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -46,17 +45,42 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   // ─── Security headers ───────────────────────────────────────────────────
-  // Helmet provides robust security headers (CSP, XSS Protection, etc.)
-  app.use(helmet());
+  // Explicit CSP (DT-7). This is an API — no HTML responses — so the policy
+  // is defense-in-depth for any docs/Swagger surface served from the same
+  // origin. The frontend (Next.js) ships its own CSP separately.
+  //
+  // crossOriginResourcePolicy is loosened to 'cross-origin' so cached
+  // chapter responses can be consumed by the frontend running on a
+  // different origin (Vercel) and the Cesium tile worker.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          connectSrc: ["'self'", 'https:', 'wss:'],
+          workerSrc: ["'self'", 'blob:'],
+          frameAncestors: ["'none'"],
+          objectSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   const port = config.get<number>('PORT') ?? 3002;
   await app.listen(port);
-  logger.log(`✅ TheoSphere backend up on :${port} (${config.get('NODE_ENV')})`);
+  logger.log(
+    `✅ TheoSphere backend up on :${port} (${config.get('NODE_ENV')})`,
+  );
   logger.log(`   CORS origins: ${allowedOrigins.join(', ')}`);
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('❌ Failed to bootstrap TheoSphere backend:', err);
   process.exit(1);
 });

@@ -1,6 +1,6 @@
 /**
  * Classic Commentaries (Public Domain).
- * 
+ *
  * Extracted from RagService to keep the service logic clean.
  */
 

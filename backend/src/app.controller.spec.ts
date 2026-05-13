@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { OrchestratorService } from './orchestrator.service';
-import { SimpleAuthGuard } from './auth/simple-auth.guard';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
 
 describe('AppController', () => {
@@ -25,7 +24,7 @@ describe('AppController', () => {
         },
       ],
     })
-      .overrideGuard(SimpleAuthGuard)
+      .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -33,10 +32,16 @@ describe('AppController', () => {
   });
 
   describe('locations', () => {
-    it('should return locations data', async () => {
-      const result = await appController.getLocations();
+    it('returns a paginated slice with default page=1 limit=100', async () => {
+      const result = await appController.getLocations(1, 100);
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
+      expect(result.meta).toMatchObject({ page: 1, limit: 100, total: 0, hasMore: false });
+    });
+
+    it('caps limit at 200', async () => {
+      const result = await appController.getLocations(1, 999);
+      expect(result.meta.limit).toBe(200);
     });
   });
 });

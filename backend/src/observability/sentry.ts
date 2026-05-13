@@ -16,9 +16,15 @@ export function initSentry(): void {
     dsn,
     environment: process.env.NODE_ENV ?? 'development',
     release: process.env.SENTRY_RELEASE,
-    tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1'),
+    tracesSampleRate: parseFloat(
+      process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1',
+    ),
     // Drop noisy infra warnings; keep app errors and LLM failures.
-    ignoreErrors: ['ECONNRESET', 'ETIMEDOUT', 'ERR_HTTP_CONTENT_LENGTH_MISMATCH'],
+    ignoreErrors: [
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'ERR_HTTP_CONTENT_LENGTH_MISMATCH',
+    ],
     beforeSend(event) {
       // Defensive redaction: strip secret-bearing headers AND any field
       // in the request body that looks like a credential. Sentry default
@@ -47,7 +53,7 @@ export function initSentry(): void {
       }
       const data = event.request?.data;
       if (data && typeof data === 'object') {
-        for (const k of Object.keys(data as Record<string, unknown>)) {
+        for (const k of Object.keys(data)) {
           if (SECRET_KEYS.has(k)) {
             (data as Record<string, unknown>)[k] = '[REDACTED]';
           }

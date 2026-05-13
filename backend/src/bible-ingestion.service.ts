@@ -3,10 +3,8 @@ import { PrismaService } from './prisma.service';
 import { EmbeddingService } from './rag/embedding.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ApiClient, BibleClient } from '@youversion/platform-core';
-import {
-  EventBusService,
-  EVENT_CHANNELS,
-} from './events/event-bus.service';
+import { EventBusService, EVENT_CHANNELS } from './events/event-bus.service';
+import { safeFetch } from './common/http/safe-fetch';
 
 @Injectable()
 export class BibleIngestionService {
@@ -102,7 +100,9 @@ export class BibleIngestionService {
         `[Ingestion] Fetching from Bolls.life: ${transUpper} ${bookId}:${chapter}...`,
       );
       const url = `https://bolls.life/get-chapter/${transUpper}/${bookId}/${chapter}/`;
-      const response = await fetch(url);
+      // SEC-006: bounded timeout + retries; a slow Bolls.life upstream should
+      // not block ingestion or saturate the event loop on this pod.
+      const response = await safeFetch(url, { timeoutMs: 5_000, retries: 2 });
       if (response.ok) {
         data = await response.json();
         // Bolls.life não fornece copyright direto no endpoint de capítulo,

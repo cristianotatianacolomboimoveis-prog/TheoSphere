@@ -143,9 +143,7 @@ export class SemanticCacheService {
     try {
       await this.pruneExpired();
     } catch (err) {
-      this.logger.warn(
-        `scheduledPrune failed: ${(err as Error).message}`,
-      );
+      this.logger.warn(`scheduledPrune failed: ${(err as Error).message}`);
     }
   }
 
@@ -273,7 +271,9 @@ export class SemanticCacheService {
         );
       `;
     } catch (err) {
-      this.logger.error(`Failed to insert cache entry: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to insert cache entry: ${(err as Error).message}`,
+      );
     }
   }
 

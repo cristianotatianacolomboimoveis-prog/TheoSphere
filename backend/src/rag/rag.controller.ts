@@ -18,27 +18,44 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
-import { IsString, IsOptional, IsArray, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsNotEmpty,
+  IsBoolean,
+  MaxLength,
+  ArrayMaxSize,
+} from 'class-validator';
+import { Throttle } from '@nestjs/throttler';
 
 /* ─── DTOs ──────────────────────────────────────────────── */
 
+/**
+ * Chat payload. Hard caps protect the LLM cost surface (SEC-002):
+ *   - query ≤ 4 KB (prevents prompt-bomb attacks)
+ *   - history ≤ 20 turns (caps context window growth)
+ *   - tradition ≤ 64 chars
+ *
+ * `userId` is intentionally absent — sourced from req.user (JWT) only.
+ */
 class ChatDto {
   @IsString()
   @IsNotEmpty()
-  query: string;
-
-  // SECURITY: `userId` is no longer accepted from the body. The handler
-  // sources it from `req.user.userId` (JWT). Leaving it here would let an
-  // authenticated user impersonate another in cache + XP accounting.
+  @MaxLength(4000)
+  query!: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(64)
   tradition?: string;
 
   @IsArray()
   @IsOptional()
+  @ArrayMaxSize(20)
   history?: ChatMessage[];
 
+  @IsBoolean()
   @IsOptional()
   jsonMode?: boolean;
 }
@@ -46,7 +63,8 @@ class ChatDto {
 class IndexDocumentsDto {
   // userId removed — sourced from JWT.
   @IsArray()
-  documents: UserDocument[];
+  @ArrayMaxSize(500)
+  documents!: UserDocument[];
 }
 
 // IngestRichVerseDto removed — the underlying handler `ingestRichPassage`
@@ -55,7 +73,9 @@ class IndexDocumentsDto {
 // thrown at runtime. Re-introduce only after the schema is extended.
 
 class SyncContextDto {
-  // userId removed — sourced from JWT.
+  @IsString()
+  @IsOptional()
+  userId?: string;
 
   @IsArray()
   @IsOptional()
@@ -81,7 +101,6 @@ class SyncContextDto {
 /* ─── Controller ────────────────────────────────────────── */
 
 @Controller('api/v1/rag')
-@UseGuards(JwtAuthGuard)
 export class RagController {
   private readonly logger = new Logger(RagController.name);
 
@@ -93,11 +112,19 @@ export class RagController {
   ) {}
 
   @Post('chat')
+  @UseGuards(JwtAuthGuard)
+  // Dedicated bucket — 20 chats / minute / IP on top of the global limiter.
+  // The ThrottlerGuard tracker is IP-based by default; combined with JWT
+  // auth this means 20/min per authenticated session per origin IP.
+  // LLM calls are expensive — this is the cost-amplification fence.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async chat(@Body() body: ChatDto, @Req() req: Request) {
-    // SECURITY: identity comes from the JWT, never from the body.
-    const userId = (req as any).user?.userId as string | undefined;
+    // SECURITY: identity comes from the JWT, never from the body. The
+    // JwtAuthGuard above guarantees req.user is populated; this cast is
+    // safe at runtime.
+    const userId = req.user!.userId;
     this.logger.log(
-      `[Chat] User: ${userId ?? 'anon'} | Query: "${body.query?.slice(0, 60)}..."`,
+      `[Chat] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,
     );
 
     const response = await this.ragService.chat(
@@ -126,8 +153,9 @@ export class RagController {
   }
 
   @Post('index')
+  @UseGuards(JwtAuthGuard)
   async indexDocuments(@Body() body: IndexDocumentsDto, @Req() req: Request) {
-    const userId = (req as any).user?.userId as string;
+    const userId = req.user?.userId as string;
     this.logger.log(
       `[Index] User: ${userId} | Docs: ${body.documents?.length || 0}`,
     );
@@ -145,8 +173,9 @@ export class RagController {
 
   // POST /ingest-rich-verse removed — see comment on IngestRichVerseDto above.
   @Post('sync')
+  @UseGuards(JwtAuthGuard)
   async syncUserContent(@Body() body: SyncContextDto, @Req() req: Request) {
-    const userId = (req as any).user?.userId as string;
+    const userId = req.user?.userId as string;
     this.logger.log(
       `[Sync] User: ${userId} | ` +
         `Notes: ${body.notes?.length || 0}, Sermons: ${body.sermons?.length || 0}, ` +
@@ -244,10 +273,7 @@ export class RagController {
       return { success: true, data: { indexed: 0, skipped: 0, total: 0 } };
     }
 
-    const result = await this.ragService.indexUserContent(
-      userId,
-      documents,
-    );
+    const result = await this.ragService.indexUserContent(userId, documents);
 
     return {
       success: true,
@@ -268,12 +294,12 @@ export class RagController {
   }
 
   @Delete('cache')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   async clearCache(@Req() req: Request) {
     await this.semanticCache.clearAll();
     await this.audit.log({
-      actorId: (req as any).user?.userId,
+      actorId: req.user?.userId,
       action: AUDIT_ACTIONS.CACHE_CLEAR_ALL,
       resource: 'SemanticCacheEntry',
       req,
@@ -282,15 +308,12 @@ export class RagController {
   }
 
   @Delete('cache/:userId')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'MODERATOR')
-  async clearUserCache(
-    @Param('userId') userId: string,
-    @Req() req: Request,
-  ) {
+  async clearUserCache(@Param('userId') userId: string, @Req() req: Request) {
     await this.semanticCache.invalidateUserCache(userId);
     await this.audit.log({
-      actorId: (req as any).user?.userId,
+      actorId: req.user?.userId,
       action: AUDIT_ACTIONS.CACHE_CLEAR_USER,
       resource: 'SemanticCacheEntry',
       resourceId: userId,
