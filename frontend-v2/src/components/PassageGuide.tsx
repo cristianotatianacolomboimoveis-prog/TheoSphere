@@ -7,6 +7,7 @@ import {
   Library, Languages, Trash2, Save 
 } from "lucide-react";
 import { useToast } from "./Toast";
+import { api } from "@/lib/api";
 
 interface UserNote {
   id: string;
@@ -26,6 +27,8 @@ import { DICTIONARIES, searchDictionaries } from "@/data/dictionaries";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
+import { BIBLE_BOOK_TO_ID } from "@/lib/bibleUtils";
+
 interface VerseData {
   verse: number;
   text: string;
@@ -36,6 +39,61 @@ interface Section {
   title: string;
   icon: React.ElementType;
   open: boolean;
+}
+
+/* ─── Helpers ────────────────────────────────────────────── */
+
+/**
+ * Normalizes a reference like "Gênesis 1:1" to "Genesis 1:1"
+ * to match internal dataset keys.
+ */
+function normalizeRefToEnglish(ref: string): string {
+  if (!ref) return "";
+  const parts = ref.split(" ");
+  if (parts.length < 2) return ref;
+  
+  // Handle books with numbers like "1 João"
+  let bookName = "";
+  let chapterVerse = "";
+  
+  if (/^\d/.test(parts[0])) {
+    bookName = parts[0] + " " + parts[1];
+    chapterVerse = parts.slice(2).join(" ");
+  } else {
+    bookName = parts[0];
+    chapterVerse = parts.slice(1).join(" ");
+  }
+
+  // Reverse mapping from BIBLE_BOOK_TO_ID values back to English keys
+  // This is a bit manual since BIBLE_BOOK_TO_ID is ID-based
+  const id = BIBLE_BOOK_TO_ID[bookName];
+  if (!id) return ref;
+
+  // Find the English key for this ID (first key in English that maps to this ID)
+  const englishKeys: Record<number, string> = {
+    1: "Genesis", 2: "Exodus", 3: "Leviticus", 4: "Numbers", 5: "Deuteronomy",
+    6: "Joshua", 7: "Judges", 8: "Ruth", 9: "1 Samuel", 10: "2 Samuel",
+    11: "1 Kings", 12: "2 Kings", 13: "1 Chronicles", 14: "2 Chronicles",
+    15: "Ezra", 16: "Nehemiah", 17: "Esther", 18: "Job", 19: "Psalms",
+    20: "Proverbs", 21: "Ecclesiastes", 22: "Song of Solomon", 23: "Isaiah",
+    24: "Jeremiah", 25: "Lamentations", 26: "Ezekiel", 27: "Daniel", 28: "Hosea",
+    29: "Joel", 30: "Amos", 31: "Obadiah", 32: "Jonah", 33: "Micah", 34: "Nahum",
+    35: "Habakkuk", 36: "Zephaniah", 37: "Haggai", 38: "Zechariah", 39: "Malachi",
+    40: "Matthew", 41: "Mark", 42: "Luke", 43: "John", 44: "Acts", 45: "Romans",
+    46: "1 Corinthians", 47: "2 Corinthians", 48: "Galatians", 49: "Ephesians",
+    50: "Philippians", 51: "Colossians", 52: "1 Thessalonians", 53: "2 Thessalonians",
+    54: "1 Timothy", 55: "2 Timothy", 56: "Titus", 57: "Philemon", 58: "Hebrews",
+    59: "James", 60: "1 Peter", 61: "2 Peter", 62: "1 John", 63: "2 John",
+    64: "3 John", 65: "Jude", 66: "Revelation"
+  };
+
+  const engBook = englishKeys[id];
+  return engBook ? `${engBook} ${chapterVerse}` : ref;
+}
+
+function isHebrewOrGreek(text: string): boolean {
+  // Simple heuristic: Hebrew (U+0590 to U+05FF) or Greek (U+0370 to U+03FF)
+  return /[\u0590-\u05FF\u0370-\u03FF]/.test(text);
 }
 
 /* ─── Component ──────────────────────────────────────────── */
@@ -113,16 +171,30 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   const fetchPassage = useCallback(async (ref: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://bible-api.com/${encodeURIComponent(ref)}?translation=kjv`);
-      const data = await res.json();
-      if (data.verses) {
-        setVerses(data.verses.map((v: { verse: number; text: string }) => ({
-          verse: v.verse, text: v.text.trim(),
-        })));
-        setReference(data.reference || ref);
+      // CONFIG.API_BASE_URL já contém /api/v1 — usar path relativo.
+      const result = await api.get<any>(`search/verses?q=${encodeURIComponent(ref)}&limit=50`);
+      if (result.success && result.data) {
+        // Deduplicate and filter: keep only Portuguese, one version per verse number
+        const seenVerses = new Set<number>();
+        const filtered = result.data.reduce((acc: VerseData[], v: any) => {
+          const vNum = v.verse;
+          const vText = v.text.trim();
+          
+          if (!seenVerses.has(vNum) && !isHebrewOrGreek(vText)) {
+            seenVerses.add(vNum);
+            acc.push({ verse: vNum, text: vText });
+          }
+          return acc;
+        }, []);
+
+        setVerses(filtered);
+        setReference(ref);
       }
-    } catch { /* no-op */ }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error("Erro ao buscar passagem localmente:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchPassage(reference); }, []);
@@ -134,6 +206,9 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   /* ── Extract context from text ────────────────────────── */
   const fullText = useMemo(() => verses.map(v => v.text).join(" ").toLowerCase(), [verses]);
 
+  /* ── Normalized context for matching ──────────────────── */
+  const normalizedRef = useMemo(() => normalizeRefToEnglish(reference), [reference]);
+
   /* ── Contextual Datasets (Memoized for Performance) ── */
   const relatedPeople = useMemo(() => {
     return BIBLICAL_PEOPLE.filter(p => fullText.includes(p.namePt.toLowerCase()));
@@ -144,27 +219,35 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   }, [fullText]);
 
   const relatedEvents = useMemo(() => {
-    return BIBLICAL_EVENTS.filter(e => 
-      e.scriptureBase.toLowerCase().includes(reference.toLowerCase()) ||
-      reference.toLowerCase().includes(e.scriptureBase.toLowerCase())
-    );
-  }, [reference]);
+    return BIBLICAL_EVENTS.filter(e => {
+      const normalizedBase = normalizeRefToEnglish(e.scriptureBase);
+      return normalizedBase.toLowerCase().includes(normalizedRef.toLowerCase()) ||
+             normalizedRef.toLowerCase().includes(normalizedBase.toLowerCase()) ||
+             (normalizedRef.split(':')[0] === normalizedBase.split(':')[0] && normalizedRef.split(':')[0].length > 0);
+    });
+  }, [normalizedRef]);
 
   const relatedTopics = useMemo(() => {
     return THEOLOGICAL_TOPICS.filter(t =>
-      t.keyVerses.some(v => v.toLowerCase().includes(reference.toLowerCase().split(" ")[0]))
+      t.keyVerses.some(v => {
+        const normalizedV = normalizeRefToEnglish(v);
+        return normalizedV.toLowerCase().includes(normalizedRef.toLowerCase()) ||
+               normalizedRef.toLowerCase().includes(normalizedV.toLowerCase().split(':')[0]);
+      })
     );
-  }, [reference]);
+  }, [normalizedRef]);
 
-  const crossRefs = findRelatedReferences(reference);
-  const commentaries = getCommentariesForReference(reference);
+  const crossRefs = findRelatedReferences(normalizedRef);
+  const commentaries = getCommentariesForReference(normalizedRef);
   
   // Simulated dictionary extraction (would use NLP in real world)
-  const commonTheologicalTerms = ["grace", "justification", "baptism", "sanctification", "love", "world", "believe"];
-  const dictionaryMatches = DICTIONARIES.filter(d => 
-    fullText.includes(d.word.toLowerCase()) || 
-    commonTheologicalTerms.some(term => fullText.includes(term) && d.word.toLowerCase() === term)
-  );
+  const commonTheologicalTerms = ["graça", "justificação", "batismo", "santificação", "amor", "mundo", "crer", "princípio", "deus", "criar", "céu", "terra"];
+  const dictionaryMatches = useMemo(() => {
+    return DICTIONARIES.filter(d => 
+      fullText.includes(d.word.toLowerCase()) || 
+      commonTheologicalTerms.some(term => fullText.includes(term) && d.word.toLowerCase().includes(term))
+    );
+  }, [fullText]);
 
   /* ── Lazy Loading de Comentários ──────────────────────── */
   const [visibleCommentCount, setVisibleCommentCount] = useState(5);
@@ -195,12 +278,12 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
 
   /* ── Render ───────────────────────────────────────────── */
   return (
-    <div className="flex flex-col h-full bg-[#05080f]/95 backdrop-blur-3xl text-white overflow-hidden shadow-2xl border-l border-white/5 relative animate-fade-in">
+    <div className="flex flex-col h-full bg-background/95 backdrop-blur-3xl text-foreground overflow-hidden shadow-2xl border-l border-border-subtle relative animate-fade-in">
       {/* Absolute glow background for premium feel */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-white/5 flex-shrink-0 relative z-10 bg-gradient-to-b from-[#05080f] to-transparent">
+      <div className="px-6 pt-6 pb-4 border-b border-border-subtle flex-shrink-0 relative z-10 bg-gradient-to-b from-background to-transparent">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25 animate-pulse-glow">
@@ -254,9 +337,11 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
               if (section.id === "places") badgeCount = relatedLocations.length;
               if (section.id === "commentaries") badgeCount = commentaries.length;
               if (section.id === "dictionaries") badgeCount = dictionaryMatches.length;
+              if (section.id === "events") badgeCount = relatedEvents.length;
+              if (section.id === "topics") badgeCount = relatedTopics.length;
               
               return (
-                <div key={section.id} className="rounded-[18px] border border-white/5 bg-white/[0.01] overflow-hidden backdrop-blur-md transition-all hover:border-white/10 group/section">
+                <div key={section.id} className="rounded-[18px] border border-border-subtle bg-white/[0.01] overflow-hidden backdrop-blur-md transition-all hover:border-border-strong group/section">
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full flex items-center gap-3.5 px-5 py-4 hover:bg-white/[0.03] transition-colors text-left group"
@@ -286,10 +371,10 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                         <div className="px-4 pb-4 pt-1">
                           {/* ── Text Section ──────── */}
                           {section.id === "text" && (
-                            <div className="bible-text text-[15px] leading-[1.9] p-4 bg-[#0a0f1a] rounded-xl border border-white/5 shadow-inner">
+                            <div className="bible-text text-[15px] leading-[1.9] p-4 bg-surface rounded-xl border border-border-subtle shadow-inner">
                               <h3 className="text-xl font-serif font-bold text-amber-400 mb-3">{reference}</h3>
-                              {verses.map((v) => (
-                                <span key={v.verse} className="verse inline">
+                              {verses.map((v, i) => (
+                                <span key={`${v.verse}-${i}`} className="verse inline">
                                   <sup className="verse-number text-amber-500/50 mr-1">{v.verse}</sup>
                                   {v.text}{" "}
                                 </span>
@@ -311,14 +396,14 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                                       <h4 className="text-sm font-bold text-white/90">{comm.author}</h4>
                                       <p className="text-[10px] text-amber-400/60 font-medium">{comm.title} ({comm.year})</p>
                                     </div>
-                                    <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 uppercase tracking-wider">{comm.tradition}</span>
+                                    <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-border-strong text-white/40 uppercase tracking-wider">{comm.tradition}</span>
                                   </div>
                                   <div className="relative">
-                                    <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-white/10 pl-3 py-1">"{comm.text}"</p>
+                                    <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-border-strong pl-3 py-1">"{comm.text}"</p>
                                   </div>
                                 </div>
                               )) : (
-                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-white/10 rounded-lg">Nenhum comentário clássico indexado para esta passagem.</p>
+                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">Nenhum comentário clássico indexado para esta passagem.</p>
                               )}
                               
                               {/* Elemento alvo para o Lazy Loading (Infinite Scroll) */}
@@ -334,15 +419,15 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {section.id === "dictionaries" && (
                             <div className="space-y-3">
                               {dictionaryMatches.length > 0 ? dictionaryMatches.map((dict) => (
-                                <div key={dict.id} className="p-3 rounded-lg bg-[#0a0f1a] border border-white/[0.05]">
-                                  <div className="flex justify-between items-center border-b border-white/5 pb-2 mb-2">
+                                <div key={dict.id} className="p-3 rounded-lg bg-surface border border-border-subtle">
+                                  <div className="flex justify-between items-center border-b border-border-subtle pb-2 mb-2">
                                     <h4 className="text-sm font-bold text-blue-400">{dict.word}</h4>
                                     <span className="text-[9px] text-white/30 uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded">{dict.source}</span>
                                   </div>
                                   <p className="text-xs text-white/60 leading-relaxed">{dict.definition}</p>
                                 </div>
                               )) : (
-                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-white/10 rounded-lg">Nenhum termo de dicionário relevante detectado.</p>
+                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">Nenhum termo de dicionário relevante detectado.</p>
                               )}
                             </div>
                           )}
@@ -422,7 +507,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                                   </div>
                                   <p className="text-[10px] text-white/30 mb-2 uppercase tracking-wider">{event.period}</p>
                                   <p className="text-xs text-white/50 leading-relaxed">{event.description}</p>
-                                  <div className="mt-3 pt-2 border-t border-white/5 flex gap-2">
+                                  <div className="mt-3 pt-2 border-t border-border-subtle flex gap-2">
                                     <span className="text-[10px] text-purple-400/80 font-medium">Significado:</span>
                                     <span className="text-[10px] text-white/40 italic">{event.significance}</span>
                                   </div>
@@ -437,15 +522,15 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {section.id === "topics" && (
                             <div className="space-y-3">
                               {relatedTopics.length > 0 ? relatedTopics.map((topic) => (
-                                <div key={topic.id} className="p-4 rounded-xl bg-[#0a0f1a] border border-white/[0.05]">
-                                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                                <div key={topic.id} className="p-4 rounded-xl bg-surface border border-border-subtle">
+                                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border-subtle">
                                     <Lightbulb className="w-4 h-4 text-amber-500" />
                                     <h4 className="text-sm font-bold text-white/90">{topic.namePt}</h4>
                                     <span className="ml-auto text-[9px] bg-white/5 px-2 py-0.5 rounded text-white/40">{topic.category}</span>
                                   </div>
                                   <p className="text-xs text-white/60 leading-relaxed mb-3">{topic.definition}</p>
                                   {topic.perspectives.length > 0 && (
-                                    <div className="bg-white/[0.02] rounded-lg p-3 space-y-2 border border-white/5">
+                                    <div className="bg-white/[0.02] rounded-lg p-3 space-y-2 border border-border-subtle">
                                       <span className="text-[9px] uppercase tracking-widest text-amber-500/60 font-bold block mb-1">Perspectivas Teológicas</span>
                                       {topic.perspectives.slice(0, 3).map((p, i) => (
                                         <div key={i} className="flex gap-2">
@@ -469,7 +554,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                                 <textarea
                                   value={noteContent}
                                   onChange={(e) => setNoteContent(e.target.value)}
-                                  className="w-full h-28 bg-[#0a0f1a] border border-white/10 rounded-xl p-3 text-xs text-white/70 resize-none focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-white/20 shadow-inner"
+                                  className="w-full h-28 bg-surface border border-border-strong rounded-xl p-3 text-xs text-foreground/70 resize-none focus:outline-none focus:border-accent/50 transition-colors placeholder:text-muted shadow-inner"
                                   placeholder={`Escreva sua reflexão sobre ${reference}...`}
                                 />
                                 <div className="flex justify-end mt-2">
@@ -483,10 +568,10 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                               </div>
 
                               {currentPassageNotes.length > 0 && (
-                                <div className="space-y-2 mt-4 pt-4 border-t border-white/5">
+                                <div className="space-y-2 mt-4 pt-4 border-t border-border-subtle">
                                   <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-3">Notas salvas para esta referência</p>
                                   {currentPassageNotes.map(note => (
-                                    <div key={note.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/5 group relative">
+                                    <div key={note.id} className="p-3 rounded-lg bg-white/[0.02] border border-border-subtle group relative">
                                       <p className="text-[11px] text-white/60 leading-relaxed whitespace-pre-wrap">{note.content}</p>
                                       <div className="flex items-center justify-between mt-2">
                                         <span className="text-[9px] text-white/20">{new Date(note.timestamp).toLocaleDateString()}</span>
@@ -515,7 +600,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between flex-shrink-0 bg-[#070b14]/80 backdrop-blur-md relative z-10">
+      <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between flex-shrink-0 bg-surface/80 backdrop-blur-md relative z-10">
         <div className="flex items-center gap-1.5">
           <Library className="w-3.5 h-3.5 text-amber-500/50" />
           <p className="text-[9px] text-white/30 font-medium">BIBLE STUDY TOOLS V2</p>

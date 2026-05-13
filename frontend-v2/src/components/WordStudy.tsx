@@ -10,6 +10,7 @@ import { STRONGS_GREEK, searchStrongs, type StrongsEntry } from "@/data/strongsG
 import { STRONGS_HEBREW, searchStrongsHebrew } from "@/data/strongsHebrew";
 import { TranslationRing } from "./word-study/TranslationRing";
 import { ExegeticalConcordance } from "./word-study/ExegeticalConcordance";
+import { api } from "@/lib/api";
 
 /* ─── Component ──────────────────────────────────────────── */
 
@@ -27,14 +28,13 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
     setLoadingLexical(true);
     setLoadingOccurrences(true);
     try {
-      // Busca Análise Lexical
-      const resLex = await fetch(`/api/v1/bible/lexical/${strongId}`);
-      const jsonLex = await resLex.json();
+      // Endpoints moved to /linguistics/* and lib/api already prefixes /api/v1.
+      // Old paths /api/v1/bible/lexical and /api/v1/bible/search-root would
+      // 404: bible controller never had those routes.
+      const jsonLex = await api.get<any>(`linguistics/lexical/${strongId}`);
       if (jsonLex.success) setLexicalData(jsonLex.data);
 
-      // Busca Ocorrências (Concordância)
-      const resOcc = await fetch(`/api/v1/bible/search-root/${strongId}`);
-      const jsonOcc = await resOcc.json();
+      const jsonOcc = await api.get<any>(`linguistics/search-root/${strongId}`);
       if (jsonOcc.success) setOccurrences(jsonOcc.data);
     } catch (e) {
       console.error("Erro ao buscar dados linguísticos:", e);
@@ -71,9 +71,9 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
 
   /* ── Render ───────────────────────────────────────────── */
   return (
-    <div className="flex flex-col h-full bg-[#070b14] text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-white/5 flex-shrink-0">
+      <div className="px-5 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -199,7 +199,7 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
               />
 
               {/* Related Words */}
-              <div className="glass rounded-xl border border-white/5 p-4">
+              <div className="glass rounded-xl border border-border-subtle p-4">
                 <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-3">
                   Palavras Relacionadas
                 </h4>
@@ -220,18 +220,18 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
                     <button
                       key={entry.number}
                       onClick={() => setSelectedEntry(entry)}
-                      className="group w-full flex items-center bg-[#0d1117] border border-white/5 rounded-[2rem] p-4 hover:bg-[#161b22] hover:border-blue-500/20 transition-all duration-300 shadow-lg"
+                      className="group w-full flex items-center bg-surface border border-border-subtle rounded-[2rem] p-4 hover:bg-surface-hover hover:border-accent/20 transition-all duration-300 shadow-lg"
                     >
                       <div className="w-16 flex-shrink-0 flex justify-center">
-                        <span className="text-2xl font-serif text-white/40 group-hover:text-white transition-colors">
+                        <span className="text-2xl font-serif text-muted group-hover:text-foreground transition-colors">
                           {entry.lemma}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-0.5 pl-4 border-l border-white/5 overflow-hidden">
-                        <div className="text-[15px] font-bold text-[#3b82f6] tracking-wide leading-tight">
+                      <div className="flex flex-col gap-0.5 pl-4 border-l border-border-subtle overflow-hidden">
+                        <div className="text-[15px] font-bold text-accent tracking-wide leading-tight">
                           {entry.transliteration}
                         </div>
-                        <div className="text-[11px] text-white/30 truncate font-medium">
+                        <div className="text-[11px] text-muted truncate font-medium">
                           {entry.definitionPt}
                         </div>
                       </div>
@@ -257,18 +257,18 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
                       <button
                         key={entry.number}
                         onClick={() => setSelectedEntry(entry)}
-                        className="group w-full flex items-center bg-[#0d1117] border border-white/5 rounded-[2.5rem] p-5 hover:bg-[#161b22] hover:border-blue-500/20 transition-all duration-300 shadow-lg"
+                        className="group w-full flex items-center bg-surface border border-border-subtle rounded-[2.5rem] p-5 hover:bg-surface-hover hover:border-accent/20 transition-all duration-300 shadow-lg"
                       >
                         <div className="w-20 flex-shrink-0 flex justify-center">
-                          <span className="text-2xl font-serif text-white/30 group-hover:text-white transition-colors">
+                          <span className="text-2xl font-serif text-muted group-hover:text-foreground transition-colors">
                             {entry.lemma}
                           </span>
                         </div>
-                        <div className="flex flex-col gap-1 pl-6 border-l border-white/5 overflow-hidden">
-                          <div className="text-[16px] font-bold text-[#3b82f6] tracking-tight leading-none">
+                        <div className="flex flex-col gap-1 pl-6 border-l border-border-subtle overflow-hidden">
+                          <div className="text-[16px] font-bold text-accent tracking-tight leading-none">
                             {entry.transliteration}
                           </div>
-                          <div className="text-[12px] text-white/25 truncate font-medium">
+                          <div className="text-[12px] text-muted truncate font-medium">
                             {entry.definitionPt}
                           </div>
                         </div>
@@ -286,7 +286,7 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
+      <div className="px-5 py-2.5 border-t border-border-subtle flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
           Estudo de Palavras · Concordância de Strong
         </p>

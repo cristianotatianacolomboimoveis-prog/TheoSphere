@@ -87,9 +87,24 @@ export async function request<T = unknown>(
     ...rest
   } = opts;
 
-  const url = path.startsWith("http")
-    ? path
-    : `${CONFIG.API_BASE_URL.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+  // Guard against the double-prefix footgun: CONFIG.API_BASE_URL already
+  // ends in /api/v1, so callers passing "/api/v1/foo" would produce
+  // /api/v1/api/v1/foo. Strip a leading /api/v1 segment defensively and
+  // warn in dev so the caller can be cleaned up.
+  let normalizedPath = path;
+  if (!path.startsWith("http") && /^\/?api\/v1\//.test(path)) {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[lib/api] Path "${path}" includes /api/v1/ but the base URL already does — stripping. Use a relative path like "${path.replace(/^\/?api\/v1\//, "")}" instead.`,
+      );
+    }
+    normalizedPath = path.replace(/^\/?api\/v1\//, "");
+  }
+
+  const url = normalizedPath.startsWith("http")
+    ? normalizedPath
+    : `${CONFIG.API_BASE_URL.replace(/\/$/, "")}/${normalizedPath.replace(/^\//, "")}`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

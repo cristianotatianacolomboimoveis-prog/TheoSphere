@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { X, Maximize2, Minimize2, ZoomIn, ZoomOut, Filter, Share2, Layers } from 'lucide-react';
 import { useTheoStore } from '@/store/useTheoStore';
+import { api } from '@/lib/api';
 
 // Carregamento dinâmico para evitar erros de SSR com Three.js
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false });
@@ -27,9 +28,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
     async function fetchGraph() {
       setLoading(true);
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002";
-        const res = await fetch(`${API_BASE}/api/v1/rag/graph?q=${encodeURIComponent(currentRef)}`);
-        const result = await res.json();
+        const result = await api.get<any>(`rag/graph?q=${encodeURIComponent(currentRef)}`);
         if (result.success) {
           setData(result.data);
         }
@@ -53,7 +52,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-2xl flex flex-col transition-all duration-500 ${fullscreen ? 'p-0' : 'p-6'}`}>
+    <div className={`fixed inset-0 z-[100] bg-background/95 backdrop-blur-2xl flex flex-col transition-all duration-500 ${fullscreen ? 'p-0' : 'p-6'}`}>
       {/* Background Aurora Effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
@@ -61,7 +60,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Header Panel */}
-      <div className="relative z-10 flex items-center justify-between mb-4 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md">
+      <div className="relative z-10 flex items-center justify-between mb-4 bg-white/5 border border-border-strong p-4 rounded-2xl backdrop-blur-md">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Layers className="w-6 h-6 text-white" />
@@ -73,7 +72,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-3 mr-6 px-4 py-2 bg-black/20 rounded-xl border border-white/5">
+          <div className="hidden md:flex items-center gap-3 mr-6 px-4 py-2 bg-black/20 rounded-xl border border-border-subtle">
              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[9px] uppercase font-bold text-white/40">Versículos</span></div>
              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-[9px] uppercase font-bold text-white/40">Conceitos</span></div>
              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[9px] uppercase font-bold text-white/40">Seu Drive</span></div>
@@ -89,7 +88,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Graph Area */}
-      <div className="flex-grow relative rounded-3xl border border-white/5 overflow-hidden bg-black/40 group">
+      <div className="flex-grow relative rounded-3xl border border-border-subtle overflow-hidden bg-black/40 group">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
             <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
@@ -124,7 +123,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
         )}
 
         {/* Legend/Controls Overlay */}
-        <div className="absolute bottom-6 left-6 p-4 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col gap-3 shadow-2xl">
+        <div className="absolute bottom-6 left-6 p-4 bg-slate-900/80 backdrop-blur-xl border border-border-strong rounded-2xl flex flex-col gap-3 shadow-2xl">
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Nó Ativo</span>
             <span className="text-sm font-bold text-amber-500">{currentRef}</span>
@@ -137,7 +136,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Tips Overlay */}
-        <div className="absolute top-6 right-6 p-3 bg-white/5 border border-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-6 right-6 p-3 bg-white/5 border border-border-subtle rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
            <p className="text-[10px] text-white/40 leading-tight">Botão Esquerdo: Rotacionar<br/>Botão Direito: Panorâmica<br/>Scroll: Zoom</p>
         </div>
       </div>
