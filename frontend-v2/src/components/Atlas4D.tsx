@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import Map, { NavigationControl } from "react-map-gl/maplibre";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Map, { NavigationControl } from "@vis.gl/react-maplibre";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import DeckGL from "@deck.gl/react";
@@ -14,21 +14,20 @@ import { Protocol } from "pmtiles";
 import { useTheoStore } from "@/store/useTheoStore";
 import { decodeBinaryPath } from "@/lib/geoBinary";
 import { useTheoWorker } from "@/hooks/useTheoWorker";
-import { TimeController } from "./atlas/TimeController";
+import { TimeController, TIMELINE_EVENTS, CATEGORY_COLORS, TimelineEvent } from "./atlas/TimeController";
 
 // Registrar Protocolo PMTiles para o mapa offline (safely)
 if (typeof window !== "undefined") {
   try {
-    const maplibregl = require("maplibre-gl");
     const protocol = new Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
   } catch (e) {
-    console.warn("maplibre-gl not available for PMTiles protocol, skipping.");
+    console.warn("PMTiles protocol registration skipped:", e);
   }
 }
 
-// Valhalla + MapLibre usam basemaps open-source (ex: Carto, OSM). Sem necessidade de token proprietário!
-const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+// Mudança para o mapa colorido (Carto Voyager)
+const MAP_STYLE = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 const VALHALLA_URL = process.env.NEXT_PUBLIC_VALHALLA_URL || "http://localhost:8002/route";
 
 interface ViewState {
@@ -41,6 +40,13 @@ interface ViewState {
   transitionInterpolator?: any;
 }
 
+const hexToRgb = (hex: string): [number, number, number, number] => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b, 255];
+};
+
 export default function Atlas4D() {
   const [viewState, setViewState] = useState<ViewState>({
     longitude: 35.2137, // Jerusalem Default
@@ -51,13 +57,15 @@ export default function Atlas4D() {
   });
 
   // Store state
-  const { activeVerseId, currentTime, setCurrentTime, activeTrekId } = useTheoStore();
+  const { activeVerseId, currentTime, setCurrentTime } = useTheoStore();
+  // activeTrekId não está no store atualmente — feature de "treks" foi removida.
+  const activeTrekId: string | null = null;
 
   const [locations, setLocations] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]); // GeoJSON routes
   const [offlineMode, setOfflineMode] = useState(false);
   const [time, setTime] = useState(0); // Para animação do TripsLayer
-  const workerRef = useRef<Worker | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
   // Loop de Animação 4D
   useEffect(() => {
@@ -128,11 +136,8 @@ export default function Atlas4D() {
       return;
     }
     
-    workerRef.current?.postMessage({
-      type: "FIND_LOCATIONS_BY_VERSE",
-      payload: { verseRef: activeVerseId }
-    });
-  }, [activeVerseId]);
+    postMessage("FIND_LOCATIONS_BY_VERSE", { verseRef: activeVerseId });
+  }, [activeVerseId, postMessage]);
 
   /* ── 2. Time Slider Effect (4D) with Debounce ── */
   useEffect(() => {
@@ -229,6 +234,50 @@ export default function Atlas4D() {
       getFillColor: (d: any) => isLocationActive(d) ? [16, 185, 129, 255] : [100, 100, 100, 30],
       getLineColor: [255, 255, 255, 200],
       lineWidthMinPixels: 2,
+    }),
+
+    // TIMELINE EVENTS ON MAP
+    new ScatterplotLayer<TimelineEvent>({
+      id: "timeline-events-layer",
+      data: TIMELINE_EVENTS.filter(ev => ev.location && Math.abs(ev.year - currentTime) <= 50),
+      pickable: true,
+      opacity: 1,
+      stroked: true,
+      filled: true,
+      radiusScale: 15,
+      radiusMinPixels: 12,
+      radiusMaxPixels: 25,
+      getPosition: (d) => d.location as [number, number],
+      getFillColor: (d) => hexToRgb(CATEGORY_COLORS[d.category]),
+      getLineColor: [255, 255, 255, 255],
+      lineWidthMinPixels: 3,
+      onClick: ({ object }) => object && setSelectedEvent(object),
+      transitions: {
+        getPosition: 600,
+        getFillColor: 600
+      }
+    }),
+
+    // TIMELINE EVENT TEXTS
+    new TextLayer<TimelineEvent>({
+      id: "timeline-text-layer",
+      data: TIMELINE_EVENTS.filter(ev => ev.location && Math.abs(ev.year - currentTime) <= 50),
+      getPosition: (d) => [d.location![0], d.location![1] + 0.15],
+      getText: (d) => `${d.icon} ${d.label}\n📍 ${d.locationName}\n(${d.year < 0 ? Math.abs(d.year) + ' a.C.' : d.year + ' d.C.'})`,
+      getSize: 15,
+      getAngle: 0,
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "center",
+      getColor: [0, 0, 0, 255],
+      fontFamily: "Inter, Arial, sans-serif",
+      fontWeight: 800,
+      background: true,
+      getBackgroundColor: [255, 255, 255, 245],
+      backgroundPadding: [10, 6],
+      getBorderColor: (d) => hexToRgb(CATEGORY_COLORS[d.category]),
+      getBorderWidth: 2,
+      // CRITICAL: Incluir caracteres latinos para suportar acentos portugueses
+      characterSet: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~áàâãéèêíïóòôõúùûçÁÀÂÃÉÈÊÍÏÓÒÔÕÚÙÛÇ"
     })
   ], [locations, routes, currentTime, time, userPins]);
 
@@ -238,21 +287,45 @@ export default function Atlas4D() {
     <div className="relative w-full h-full bg-[#05080f] overflow-hidden rounded-[24px] border border-white/5 shadow-2xl animate-fade-in">
       {/* MAPA DECK.GL 4D */}
       <DeckGL
-        initialViewState={viewState}
+        viewState={viewState}
         controller={true}
         layers={layers}
-        onViewStateChange={(e) => setViewState(e.viewState as ViewState)}
-        getTooltip={({ object }: any) => object && `${object.name || 'Trajeto'}\n${object.description || ''}`}
+        onViewStateChange={(e) => {
+          // Deferir a atualização para fora do ciclo de renderização para evitar o erro de colisão de estado
+          Promise.resolve().then(() => {
+            setViewState(e.viewState as ViewState);
+          });
+        }}
+        getTooltip={({ object }: any) => object && !selectedEvent && `${object.name || object.label || 'Evento'}\n${object.locationName || ''}\n${object.description || ''}`}
       >
           <Map
             mapStyle={MAP_STYLE}
             reuseMaps
-            // Valhalla historical routing will overlay here via DeckGL TripsLayer
+            onLoad={(e) => {
+              const map = e.target;
+              try {
+                const style = map.getStyle();
+                if (style && style.layers) {
+                  style.layers.forEach((layer: any) => {
+                    if (layer.layout && layer.layout["text-field"]) {
+                      map.setLayoutProperty(layer.id, "text-field", [
+                        "coalesce",
+                        ["get", "name:pt"],
+                        ["get", "name_pt"],
+                        ["get", "name:en"],
+                        ["get", "name_en"],
+                        ["get", "name"]
+                      ]);
+                    }
+                  });
+                }
+              } catch (err) {
+                console.warn("Falha ao localizar mapa:", err);
+              }
+            }}
           >
             <NavigationControl position="top-right" />
           </Map>
-
-
       </DeckGL>
 
       {/* OVERLAYS UI */}
@@ -260,23 +333,98 @@ export default function Atlas4D() {
         <div>
           <h2 className="text-sm font-black text-white flex items-center gap-2.5">
             <Layers className="w-4 h-4 text-emerald-500 animate-pulse-glow" /> 
-            <span className="text-gradient">ATLAS 4D (Valhalla Engine)</span>
+            <span className="text-gradient">ATLAS 4D (Motor Valhalla)</span>
           </h2>
-          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">MapLibre + Open-Source Routing</p>
+          <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-bold">MapLibre + Roteamento Open-Source</p>
         </div>
         
         {/* Offline Badge */}
         {offlineMode && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
             <WifiOff className="w-3 h-3" />
-            <span className="text-[8px] font-black uppercase tracking-widest">OFFLINE SYNC</span>
+            <span className="text-[8px] font-black uppercase tracking-widest">SINCRONISMO OFFLINE</span>
           </div>
         )}
       </div>
 
+      {/* IMAGE VIEWER MODAL */}
+      {selectedEvent && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center p-12 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-5xl bg-slate-900 rounded-[32px] border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row h-full max-h-[700px]">
+             {/* Close Button */}
+             <button 
+              onClick={() => setSelectedEvent(null)}
+              className="absolute top-6 right-6 z-[110] w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all"
+             >
+               <span className="text-xl font-bold">✕</span>
+             </button>
+
+             {/* Image side */}
+             <div className="flex-grow relative bg-black group overflow-hidden">
+               {selectedEvent.imageUrl ? (
+                 <img 
+                  src={selectedEvent.imageUrl} 
+                  alt={selectedEvent.label}
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                 />
+               ) : (
+                 <div className="w-full h-full flex items-center justify-center text-white/20">Sem Imagem Disponível</div>
+               )}
+               <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
+             </div>
+
+             {/* Content side */}
+             <div className="w-full md:w-[380px] p-8 flex flex-col justify-center bg-gradient-to-b from-slate-900 to-[#05080f]">
+               <div className="mb-6">
+                 <span 
+                  className="text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full border border-current mb-4 inline-block"
+                  style={{ color: CATEGORY_COLORS[selectedEvent.category] }}
+                 >
+                   {selectedEvent.year < 0 ? `${Math.abs(selectedEvent.year)} a.C.` : `${selectedEvent.year} d.C.`}
+                 </span>
+                 <h3 className="text-3xl font-black text-white leading-tight mb-2">{selectedEvent.label}</h3>
+                 <p className="text-amber-500 font-bold flex items-center gap-2 text-sm">
+                   <span>📍</span> {selectedEvent.locationName}
+                 </p>
+               </div>
+               
+               <div className="h-px w-full bg-white/10 mb-6" />
+               
+               <p className="text-white/60 text-sm leading-relaxed mb-8 overflow-y-auto max-h-48 pr-1" style={{scrollbarWidth: 'thin'}}>
+                 {selectedEvent.summary || selectedEvent.description}
+               </p>
+
+               <button 
+                onClick={() => setSelectedEvent(null)}
+                className="w-full py-4 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-amber-500 transition-colors"
+               >
+                 Voltar ao Mapa
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
+
       <TimeController 
         currentTime={currentTime} 
-        onTimeChange={(year) => setCurrentTime(year)} 
+        onTimeChange={(year, location) => {
+          setCurrentTime(year);
+          // Auto-select event if clicking on card
+          const ev = TIMELINE_EVENTS.find(e => e.year === year);
+          if (ev && ev.imageUrl) setSelectedEvent(ev);
+
+          if (location) {
+            setViewState({
+              longitude: location[0],
+              latitude: location[1],
+              zoom: 7,
+              pitch: 45,
+              bearing: 0,
+              transitionDuration: 1500,
+              transitionInterpolator: new FlyToInterpolator()
+            });
+          }
+        }} 
       />
     </div>
   );

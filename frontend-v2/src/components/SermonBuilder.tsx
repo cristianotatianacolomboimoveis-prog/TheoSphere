@@ -1,11 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { CONFIG } from "@/lib/config";
 import { 
   Type, List, Layout, Save, Download, 
   Trash2, Wand2, ChevronDown, BookOpen, X, FileText, Plus 
 } from "lucide-react";
 import { useToast } from "./Toast";
+import { useCollaboration } from "@/hooks/useCollaboration";
+import { useVoice } from "@/hooks/useVoice";
+import { useRAG } from "@/hooks/useRAG";
+import { Mic, MicOff, Play, Square, Loader2 } from "lucide-react";
 
 interface Sermon {
   id: string;
@@ -19,9 +24,67 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState("");
   const [template, setTemplate] = useState("expositivo");
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { show } = useToast();
+  const { chat } = useRAG();
+
+  const { 
+    isListening, transcript, startListening, stopListening, speak, stopSpeaking 
+  } = useVoice();
+
+  // Sync transcript to content
+  useEffect(() => {
+    if (isListening && transcript) {
+      handleContentChange(content + " " + transcript);
+    }
+  }, [transcript]);
+
+  const processDictation = async () => {
+    stopListening();
+    setIsProcessingVoice(true);
+    try {
+      // Use the specialized dictate endpoint
+      const response = await fetch(`${CONFIG.API_BASE_URL}/rag/dictate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // BUG fix: previous key 'theosphere-token' never existed →
+          // Authorization was always 'Bearer null'. Real key is set by useAuth.
+          'Authorization': `Bearer ${localStorage.getItem('theosphere-access-token') ?? ''}`
+        },
+        body: JSON.stringify({ transcript: content })
+      });
+      const json = await response.json();
+      if (json.success) {
+        handleContentChange(json.data.content);
+        show("Esboço organizado pela IA!", "success");
+      } else {
+        show("Erro ao organizar ditado", "error");
+      }
+    } catch (e) {
+      show("Erro ao organizar ditado", "error");
+    } finally {
+      setIsProcessingVoice(false);
+    }
+  };
+
+  const roomId = activeId || "new-sermon";
+  const { users, cursors, updateContent, updateCursor } = useCollaboration(roomId, content, (remoteContent) => {
+    setContent(remoteContent);
+  });
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+    updateContent(newContent);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Get position relative to the editor container
+    const rect = e.currentTarget.getBoundingClientRect();
+    updateCursor(e.clientX - rect.left, e.clientY - rect.top);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('theosphere-sermons');
@@ -109,7 +172,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex h-full bg-[#05080f]/40 text-white overflow-hidden">
+    <div className="flex h-full bg-background/40 text-foreground overflow-hidden">
       {/* Sidebar Histórico */}
       <div className="w-64 border-r border-white/5 flex flex-col p-4 bg-black/20">
         <button 
@@ -155,7 +218,25 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Criador de Sermões</h2>
             <p className="text-[10px] text-blue-400 font-bold tracking-[0.1em]">MODO HOMILÉTICA</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            {/* Multiplayer Avatars */}
+            <div className="flex -space-x-2 mr-4">
+              {users.map((u, i) => (
+                <div 
+                  key={i} 
+                  title={`Usuário na sala: ${u}`}
+                  className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-[#05080f] flex items-center justify-center text-[8px] font-black shadow-lg shadow-blue-500/10"
+                >
+                  P{i + 1}
+                </div>
+              ))}
+              {users.length > 1 && (
+                <div className="ml-4 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-[8px] text-green-400 font-black animate-pulse uppercase tracking-widest">
+                  Colaborativo
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={exportSermon}
               title="Exportar como .txt"
@@ -190,7 +271,27 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <option value="tematico" className="bg-[#05080f]">Template: Temático</option>
             <option value="textual" className="bg-[#05080f]">Template: Textual</option>
           </select>
-          <div className="ml-auto flex gap-1">
+          <div className="ml-auto flex gap-1 items-center">
+            {/* Voice Controls */}
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5 mr-2">
+              <button 
+                onClick={isListening ? processDictation : startListening}
+                className={`p-1.5 rounded-md transition-all ${
+                  isListening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'hover:bg-white/10 text-white/30'
+                }`}
+                title={isListening ? "Parar e Organizar" : "Iniciar Ditado"}
+              >
+                {isProcessingVoice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />)}
+              </button>
+              <button 
+                onClick={() => speak(content)}
+                className="p-1.5 rounded-md hover:bg-white/10 text-white/30"
+                title="Ouvir Sermão"
+              >
+                <Play className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><Type className="w-3.5 h-3.5" /></button>
             <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><List className="w-3.5 h-3.5" /></button>
             <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><Wand2 className="w-3.5 h-3.5" /></button>
@@ -198,7 +299,32 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Editor Area */}
-        <div className="flex-grow flex flex-col bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden focus-within:border-blue-500/20 transition-all shadow-inner">
+        <div 
+          className="flex-grow flex flex-col bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden focus-within:border-blue-500/20 transition-all shadow-inner relative"
+          onMouseMove={handleMouseMove}
+        >
+          {/* Collaborative Cursors Overlay */}
+          <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+            {Object.values(cursors).map(cursor => (
+              <div 
+                key={cursor.userId}
+                className="absolute transition-all duration-75 ease-out"
+                style={{ left: cursor.x, top: cursor.y }}
+              >
+                <div 
+                  className="w-3 h-3 rounded-full shadow-lg border-2 border-[#05080f]"
+                  style={{ backgroundColor: cursor.color }}
+                />
+                <div 
+                  className="ml-2 px-1.5 py-0.5 rounded bg-surface border border-white/10 text-[8px] font-black whitespace-nowrap shadow-xl"
+                  style={{ color: cursor.color }}
+                >
+                  {cursor.userName}
+                </div>
+              </div>
+            ))}
+          </div>
+
           <input 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -207,7 +333,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
           />
           <textarea 
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => handleContentChange(e.target.value)}
             className="flex-grow bg-transparent p-6 outline-none text-sm font-serif leading-relaxed text-white/70 resize-none custom-scrollbar"
             placeholder="Comece a escrever seu sermão ou arraste insights da exegese..."
           />

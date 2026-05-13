@@ -24,6 +24,8 @@ import {
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
+import { Button } from "./ui/Button";
+import { Card, CardContent } from "./ui/Card";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -82,6 +84,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
   const {
     chat,
     syncUserContent,
+    syncDrive,
     isBackendAvailable,
     lastSyncResult,
     totalSaved,
@@ -286,6 +289,18 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
               <RefreshCw className="w-4 h-4" />
             </button>
 
+            {/* Google Drive Sync button */}
+            <button
+              onClick={() => {
+                const folderId = prompt("ID da Pasta do Google Drive (deixe em branco para o padrão):");
+                syncDrive(folderId || undefined, undefined);
+              }}
+              className="p-2 rounded-lg hover:bg-white/5 transition-all text-white/30 hover:text-white/60"
+              title="Sincronizar Biblioteca do Google Drive"
+            >
+              <Database className="w-4 h-4" />
+            </button>
+
             {messages.length > 0 && (
               <button
                 onClick={clearChat}
@@ -360,29 +375,41 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       <div className="flex-grow overflow-y-auto custom-scrollbar px-5 py-4">
         {messages.length === 0 ? (
           /* ── Welcome Screen ────────────────────────────── */
-          <div className="flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full pt-10 pb-4 px-2">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center mb-4 border border-purple-500/10">
               <Sparkles className="w-8 h-8 text-purple-400/60" />
             </div>
-            <h3 className="text-lg font-bold text-white/80 mb-1">TheoAI + RAG</h3>
-            <p className="text-xs text-white/30 text-center mb-2 max-w-xs">
-              Assistente teológico com Retrieval-Augmented Generation.
-              Suas notas e sermões enriquecem as respostas.
+            <h3 className="text-xl font-bold text-white/90 mb-1">TheoAI + RAG</h3>
+            <p className="text-sm text-amber-500/90 font-bold tracking-widest uppercase mb-4 text-center max-w-sm">
+              Precisão Científica e Rigor Técnico
             </p>
+            
+            <Card className="mb-6 max-w-md w-full bg-white/[0.02]">
+              <CardContent className="p-4">
+                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
+                  <Database className="w-3 h-3 text-white/30" />
+                  Base de Dados RAG (Indexada)
+                </p>
+                <ul className="text-xs text-white/70 space-y-2.5">
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Quase 45 mil anotações exegéticas e comentários acadêmicos aprofundados</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Centenas de reconstruções cartográficas e mapas históricos</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Extenso material comparativo e infográficos temáticos</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Ensaios e monografias sobre os desafios da teologia contemporânea</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Prólogos estruturais e análises de contexto para todos os livros canônicos</li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Motor avançado de referências cruzadas e elucidação doutrinária</li>
+                </ul>
+              </CardContent>
+            </Card>
 
             {/* RAG Benefits */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15">
                 <Zap className="w-2.5 h-2.5 text-emerald-400" />
                 <span className="text-[9px] text-emerald-400/80 font-bold">Cache Semântico</span>
               </div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/15">
                 <Database className="w-2.5 h-2.5 text-blue-400" />
-                <span className="text-[9px] text-blue-400/80 font-bold">Contexto Pessoal</span>
-              </div>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/15">
-                <TrendingDown className="w-2.5 h-2.5 text-green-400" />
-                <span className="text-[9px] text-green-400/80 font-bold">~95% Economia</span>
+                <span className="text-[9px] text-blue-400/80 font-bold">Contexto Google Drive</span>
               </div>
             </div>
 
@@ -489,17 +516,18 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             className="input-glass flex-grow text-sm"
             disabled={isTyping}
           />
-          <button
+          <Button
             onClick={() => sendMessage()}
             disabled={!input.trim() || isTyping}
-            className={`p-3 rounded-xl transition-all ${
+            size="icon"
+            className={
               input.trim() && !isTyping
-                ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
-                : "bg-white/5 text-white/20 cursor-not-allowed"
-            }`}
+                ? ""
+                : "bg-white/5 text-white/20 cursor-not-allowed shadow-none scale-100"
+            }
           >
             <Send className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
         <p className="text-[9px] text-white/15 text-center mt-2 uppercase tracking-widest">
           TheoAI · RAG · Cache Semântico · Economia ~95%
