@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { CONFIG } from "@/lib/config";
+import { api } from "@/lib/api";
 import { 
   Type, List, Layout, Save, Download, 
   Trash2, Wand2, ChevronDown, BookOpen, X, FileText, Plus 
@@ -45,25 +45,20 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
     stopListening();
     setIsProcessingVoice(true);
     try {
-      // Use the specialized dictate endpoint
-      const response = await fetch(`${CONFIG.API_BASE_URL}/rag/dictate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // BUG fix: previous key 'theosphere-token' never existed →
-          // Authorization was always 'Bearer null'. Real key is set by useAuth.
-          'Authorization': `Bearer ${localStorage.getItem('theosphere-access-token') ?? ''}`
-        },
-        body: JSON.stringify({ transcript: content })
-      });
-      const json = await response.json();
+      // lib/api injeta Authorization, gerencia timeout e faz auto-refresh
+      // em 401. Nenhuma manipulação manual de localStorage aqui.
+      const json = await api.post<{ success: boolean; data: { content: string } }>(
+        "rag/dictate",
+        { transcript: content },
+        { timeoutMs: 30_000 },
+      );
       if (json.success) {
         handleContentChange(json.data.content);
         show("Esboço organizado pela IA!", "success");
       } else {
         show("Erro ao organizar ditado", "error");
       }
-    } catch (e) {
+    } catch {
       show("Erro ao organizar ditado", "error");
     } finally {
       setIsProcessingVoice(false);
@@ -174,7 +169,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex h-full bg-background/40 text-foreground overflow-hidden">
       {/* Sidebar Histórico */}
-      <div className="w-64 border-r border-white/5 flex flex-col p-4 bg-black/20">
+      <div className="w-64 border-r border-border-subtle flex flex-col p-4 bg-black/20">
         <button 
           onClick={createNew}
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-bold mb-6"
@@ -189,7 +184,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
               key={s.id}
               onClick={() => loadSermon(s)}
               className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${
-                activeId === s.id ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-white/[0.02] border-transparent hover:border-white/10 text-white/50'
+                activeId === s.id ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-white/[0.02] border-transparent hover:border-border-strong text-white/50'
               }`}
             >
               <FileText className="w-4 h-4 flex-shrink-0" />
@@ -240,7 +235,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <button 
               onClick={exportSermon}
               title="Exportar como .txt"
-              className="p-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+              className="p-2 rounded-xl bg-white/5 border border-border-strong text-white/50 hover:bg-white/10 hover:text-white transition-all"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -262,18 +257,18 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Toolbar */}
-        <div className="flex gap-2 mb-4 p-1.5 bg-white/5 rounded-2xl border border-white/5">
+        <div className="flex gap-2 mb-4 p-1.5 bg-white/5 rounded-2xl border border-border-subtle">
           <select 
             onChange={(e) => applyTemplate(e.target.value)}
             className="bg-transparent text-[10px] font-bold uppercase tracking-widest px-3 outline-none cursor-pointer text-white/50 hover:text-white"
           >
-            <option value="expositivo" className="bg-[#05080f]">Template: Expositivo</option>
-            <option value="tematico" className="bg-[#05080f]">Template: Temático</option>
-            <option value="textual" className="bg-[#05080f]">Template: Textual</option>
+            <option value="expositivo" className="bg-background">Template: Expositivo</option>
+            <option value="tematico" className="bg-background">Template: Temático</option>
+            <option value="textual" className="bg-background">Template: Textual</option>
           </select>
           <div className="ml-auto flex gap-1 items-center">
             {/* Voice Controls */}
-            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5 mr-2">
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-border-subtle mr-2">
               <button 
                 onClick={isListening ? processDictation : startListening}
                 className={`p-1.5 rounded-md transition-all ${
@@ -300,7 +295,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
 
         {/* Editor Area */}
         <div 
-          className="flex-grow flex flex-col bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden focus-within:border-blue-500/20 transition-all shadow-inner relative"
+          className="flex-grow flex flex-col bg-white/[0.02] border border-border-subtle rounded-3xl overflow-hidden focus-within:border-blue-500/20 transition-all shadow-inner relative"
           onMouseMove={handleMouseMove}
         >
           {/* Collaborative Cursors Overlay */}
@@ -316,7 +311,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
                   style={{ backgroundColor: cursor.color }}
                 />
                 <div 
-                  className="ml-2 px-1.5 py-0.5 rounded bg-surface border border-white/10 text-[8px] font-black whitespace-nowrap shadow-xl"
+                  className="ml-2 px-1.5 py-0.5 rounded bg-surface border border-border-strong text-[8px] font-black whitespace-nowrap shadow-xl"
                   style={{ color: cursor.color }}
                 >
                   {cursor.userName}
@@ -328,7 +323,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
           <input 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="bg-transparent px-6 py-4 text-lg font-serif border-b border-white/5 outline-none text-white/90"
+            className="bg-transparent px-6 py-4 text-lg font-serif border-b border-border-subtle outline-none text-white/90"
             placeholder="Título do Sermão..."
           />
           <textarea 

@@ -6,6 +6,7 @@ import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { generateCitation } from "@/lib/citationGenerator";
+import { logger } from "@/lib/logger";
 
 interface InterlinearWord {
   word: string;
@@ -133,7 +134,7 @@ Não inclua texto antes ou depois do JSON.`;
 
         // Caso 3: sem JSON detectável — renderiza como markdown.
         if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
-          console.warn(
+          logger.warn(
             "[ExegesisPanel] IA retornou prosa em vez de JSON estruturado. " +
               "Exibindo fallback markdown."
           );
@@ -153,7 +154,7 @@ Não inclua texto antes ou depois do JSON.`;
             setData(JSON.parse(sanitized) as ExegesisData);
           } catch {
             // Parse falhou completamente — fallback markdown com o texto bruto.
-            console.warn(
+            logger.warn(
               "[ExegesisPanel] JSON irrecuperável. Exibindo fallback markdown."
             );
             setMarkdownFallback(rawText);
@@ -164,7 +165,7 @@ Não inclua texto antes ou depois do JSON.`;
         if (error.name === "AbortError") {
           // Silenciar — requisição cancelada por unmount/retry.
         } else {
-          console.error("Erro ao carregar exegese:", error);
+          logger.error("Erro ao carregar exegese:", error);
           setError(error.message || "Erro de conexão.");
         }
       } finally {

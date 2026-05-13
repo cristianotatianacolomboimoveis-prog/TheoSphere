@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { edgeAI } from "../lib/edge-ai";
+import { api, ApiError } from "../lib/api";
+import { logger } from "../lib/logger";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -96,7 +99,12 @@ let globalAIWorker: Worker | null = null;
 function getAIWorker() {
   if (typeof window === "undefined") return null;
   if (!globalAIWorker) {
-    globalAIWorker = new Worker(new URL("../lib/transformersWorker.ts", import.meta.url));
+    try {
+      globalAIWorker = new Worker(new URL("../lib/transformersWorker.ts", import.meta.url));
+    } catch (err) {
+      logger.error("Failed to create AI Worker:", err);
+      return null;
+    }
   }
   return globalAIWorker;
 }
@@ -110,24 +118,33 @@ export function useRAG() {
   const [isBackendAvailable, setIsBackendAvailable] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [totalSaved, setTotalSaved] = useState(0);
+  const [edgeAIStatus, setEdgeAIStatus] = useState<{ progress: number; text: string } | null>(null);
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const userId = useRef(getUserId());
+
+  /* ── Inicializa IA de Borda (WebGPU) ──────────────────── */
+  const initEdgeAI = useCallback(async () => {
+    try {
+      await edgeAI.init((report) => {
+        setEdgeAIStatus(report);
+      });
+      setEdgeAIStatus({ progress: 1, text: "Edge AI pronta (Offline Mode)" });
+    } catch (err) {
+      logger.error("Falha ao inicializar Edge AI:", err);
+      setEdgeAIStatus({ progress: 0, text: "WebGPU não suportada" });
+    }
+  }, []);
 
   /* ── Verifica se o backend está disponível ────────────── */
   const checkBackend = useCallback(async (): Promise<boolean> => {
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/api/v1/rag/stats`, {
-        method: "GET",
-        headers: { 
-          "X-User-ID": userId.current,
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        },
-        signal: AbortSignal.timeout(2000),
+      // /rag/stats é público; usamos só como heartbeat.
+      await api.get<unknown>("rag/stats", {
+        timeoutMs: 2000,
+        withAuth: false,
       });
-      const available = res.ok;
-      setIsBackendAvailable(available);
-      return available;
+      setIsBackendAvailable(true);
+      return true;
     } catch {
       setIsBackendAvailable(false);
       return false;
@@ -141,77 +158,58 @@ export function useRAG() {
     tradition?: string,
     jsonMode: boolean = false,
   ): Promise<RagResponse> => {
-    // Tenta o backend primeiro
-    try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/api/v1/rag/chat`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-User-ID": userId.current,
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          query,
-          userId: userId.current,
-          tradition,
-          history: history.slice(-6), 
-          jsonMode,
-        }),
-        signal: AbortSignal.timeout(20000), // Reduzido para 20s
-      });
-
-      if (res.ok) {
-        const data = await res.json();
+    // Tenta o backend primeiro (se online)
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      try {
+        const data = await api.post<{ success: boolean; data: RagResponse }>(
+          "rag/chat",
+          // userId removido — backend pega do JWT (SEC-002).
+          { query, tradition, history: history.slice(-6), jsonMode },
+          { timeoutMs: 20_000 },
+        );
         if (data.success && data.data) {
           if (data.data.meta.cached) {
-            setTotalSaved(prev => prev + 0.015);
+            setTotalSaved((prev) => prev + 0.015);
           }
           return data.data;
         }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          // Sessão expirou e o auto-refresh também falhou — useAuth já foi
+          // notificado pelo evento global. Cai pra Edge AI silenciosamente.
+        } else {
+          logger.warn(
+            "[RAG] Backend lento ou indisponível, tentando Edge AI…",
+          );
+        }
       }
-    } catch (error) {
-      console.warn("[RAG] Backend indisponível, usando fallback local:", error);
     }
 
-    // Fallback: IA Local
-    const content = jsonMode 
-      ? JSON.stringify({
-          verse: query,
-          original_language: "GK",
-          interlinear: [
-            { word: "...", transliteration: "...", strong: "...", morphology: "...", translation: "..." }
-          ],
-          lexical_analysis: [
-            { word: "...", bdag_halot_sense: "Offline mode active. Check connection.", academic_discussion: "..." }
-          ],
-          syntactic_notes: "Offline mode",
-          syntactic_graph: { nodes: [], edges: [] },
-          technical_commentary: [],
-          systematic_connection: { locus: "N/A", explanation: "..." }
-        })
-      : await generateLocalAIResponse(query);
+    // Fallback: IA de Borda (WebGPU) se estiver pronta
+    if (edgeAI.isReady()) {
+      const systemPrompt = `Você é o TheoAI, assistente PhD em teologia. Analise a passagem bíblica ou questão fornecida. Responda em Português. Tradição: ${tradition || 'Geral'}. ${jsonMode ? 'Responda APENAS em JSON seguindo o esquema acadêmico.' : ''}`;
+      const content = await edgeAI.generate(query, systemPrompt);
+      return {
+        content,
+        meta: { cached: false, contextUsed: false, contextDocCount: 0, tokensEstimated: 0, costEstimated: 0, cacheSource: "user" }
+      };
+    }
 
+    // Fallback Final: IA Local Básica (Transformers.js) ou Estática
+    const content = await generateLocalAIResponse(query, jsonMode);
     return {
       content,
-      meta: {
-        cached: false,
-        contextUsed: true,
-        contextDocCount: 1,
-        tokensEstimated: 0,
-        costEstimated: 0,
-        cacheSource: "user"
-      },
+      meta: { cached: false, contextUsed: true, contextDocCount: 1, tokensEstimated: 0, costEstimated: 0, cacheSource: "user" },
     };
   }, []);
 
   /* ── IA Local via Transformers.js (Singleton Worker) ───── */
-  const generateLocalAIResponse = async (query: string): Promise<string> => {
+  const generateLocalAIResponse = async (query: string, jsonMode: boolean = false): Promise<string> => {
     return new Promise((resolve) => {
       const aiWorker = getAIWorker();
       
       if (!aiWorker) {
-        resolve(generateLocalResponse(query));
+        resolve(generateLocalResponse(query, jsonMode));
         return;
       }
 
@@ -219,15 +217,20 @@ export function useRAG() {
         if (e.data.type === "EMBEDDING_GENERATED") {
           aiWorker.removeEventListener("message", messageHandler);
           aiWorker.removeEventListener("error", errorHandler);
-          resolve(`[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`);
+          
+          if (jsonMode) {
+             resolve(generateLocalResponse(query, true));
+          } else {
+             resolve(`[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`);
+          }
         }
       };
 
       const errorHandler = (err: any) => {
-        console.error("[RAG] Worker error:", err);
+        logger.error("[RAG] Worker error:", err);
         aiWorker.removeEventListener("message", messageHandler);
         aiWorker.removeEventListener("error", errorHandler);
-        resolve(generateLocalResponse(query));
+        resolve(generateLocalResponse(query, jsonMode));
       };
 
       aiWorker.addEventListener("message", messageHandler);
@@ -253,62 +256,57 @@ export function useRAG() {
       
       if (totalDocs === 0) return null;
 
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/api/v1/rag/sync`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-User-ID": userId.current,
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          userId: userId.current,
-          ...data,
-        }),
-        signal: AbortSignal.timeout(30000),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        if (result.success) {
-          const syncResult = result.data as SyncResult;
-          setLastSyncResult(syncResult);
-          localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
-          console.log(`[RAG Sync] Indexados: ${syncResult.indexed}, Já existentes: ${syncResult.skipped}, Total: ${syncResult.total}`);
-          return syncResult;
-        }
+      const result = await api.post<{ success: boolean; data: SyncResult }>(
+        "rag/sync",
+        data,
+        { timeoutMs: 30_000 },
+      );
+      if (result.success) {
+        setLastSyncResult(result.data);
+        localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+        return result.data;
       }
     } catch (error) {
-      console.warn("[RAG Sync] Falha na sincronização:", error);
+      logger.warn("[RAG Sync] Falha na sincronização:", error);
     }
     return null;
   }, []);
 
+  /* ── Sincroniza Google Drive ──────────────────────────── */
+  const syncDrive = useCallback(
+    async (folderId?: string, tradition?: string): Promise<unknown> => {
+      try {
+        // /drive-library/* não tem o prefixo /api/v1 — usar URL absoluta.
+        return await api.post(
+          `${API_BASE}/drive-library/ingest`,
+          { folderId: folderId || "", tradition: tradition || "Geral" },
+          { timeoutMs: 60_000 * 5 },
+        );
+      } catch (error) {
+        logger.warn("[RAG Drive] Falha na ingestão do Drive:", error);
+      }
+      return null;
+    },
+    [],
+  );
+
   /* ── Obtém estatísticas ───────────────────────────────── */
   const getStats = useCallback(async (): Promise<RagStats | null> => {
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/api/v1/rag/stats`, {
-        headers: { 
-          "X-User-ID": userId.current,
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        },
-        signal: AbortSignal.timeout(5000),
+      const data = await api.get<{ data: RagStats }>("rag/stats", {
+        timeoutMs: 5_000,
+        withAuth: false,
       });
-      if (res.ok) {
-        const data = await res.json();
-        return data.data;
-      }
-    } catch {}
-    return null;
+      return data.data;
+    } catch {
+      return null;
+    }
   }, []);
 
   /* ── Auto-sync ao montar ──────────────────────────────── */
   useEffect(() => {
-    // Verifica backend e sincroniza na montagem
     checkBackend().then((available) => {
       if (available) {
-        // Verifica se já sincronizou recentemente
         const lastSync = parseInt(localStorage.getItem(LAST_SYNC_KEY) || "0");
         if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
           syncUserContent();
@@ -316,7 +314,6 @@ export function useRAG() {
       }
     });
 
-    // Sincronização periódica
     syncTimerRef.current = setInterval(() => {
       if (isBackendAvailable) {
         syncUserContent();
@@ -330,7 +327,10 @@ export function useRAG() {
 
   return {
     chat,
+    initEdgeAI,
+    edgeAIStatus,
     syncUserContent,
+    syncDrive,
     getStats,
     checkBackend,
     isBackendAvailable,
@@ -342,8 +342,44 @@ export function useRAG() {
 
 /* ─── Fallback Local (quando backend está offline) ──────── */
 
-function generateLocalResponse(query: string): string {
+function generateLocalResponse(query: string, jsonMode: boolean = false): string {
   const lower = query.toLowerCase();
+
+  if (jsonMode) {
+    const isNT = /joao|joão|john|3:16/i.test(lower);
+    
+    if (!isNT) {
+      return JSON.stringify({
+        verse: "Gênesis 1:1",
+        original_language: "HB",
+        interlinear: [
+          { word: "בְּרֵאשִׁית", transliteration: "bereshit", strong: "H7225", morphology: "Prep + Substantivo", translation: "No princípio" },
+          { word: "בָּרָא", transliteration: "bara", strong: "H1254", morphology: "Verbo Qal Perf.", translation: "criou" },
+          { word: "אֱלֹהִים", transliteration: "elohim", strong: "H430", morphology: "Substantivo Pl.", translation: "Deus" }
+        ],
+        lexical_analysis: [{ word: "bara", bdag_halot_sense: "Criar ex-nihilo", academic_discussion: "Ato criativo soberano" }],
+        syntactic_notes: "Estrutura V-S típica de ênfase narrativa.",
+        syntactic_graph: { nodes: [{id: "1", label: "bara", type: "verb"}], edges: [] },
+        technical_commentary: [{ source: "TheoLocal", view: "Afirmação da transcendência divina." }],
+        systematic_connection: { locus: "Protologia", explanation: "Deus como causa primária." }
+      });
+    }
+
+    return JSON.stringify({
+      verse: "João 3:16",
+      original_language: "GK",
+      interlinear: [
+        { word: "Οὕτως", transliteration: "Houtōs", strong: "G3779", morphology: "Advérbio", translation: "De tal maneira" },
+        { word: "γὰρ", transliteration: "gar", strong: "G1063", morphology: "Conjunção", translation: "porque" },
+        { word: "ἠγάπησεν", transliteration: "ēgapēsen", strong: "G25", morphology: "Verbo Aoristo", translation: "amou" }
+      ],
+      lexical_analysis: [{ word: "agape", bdag_halot_sense: "Amor sacrificial", academic_discussion: "Foco no objeto amado" }],
+      syntactic_notes: "Aoristo indicando ação histórica definitiva.",
+      syntactic_graph: { nodes: [{id: "1", label: "amou", type: "verb"}], edges: [] },
+      technical_commentary: [{ source: "TheoLocal", view: "O ápice da revelação do amor divino." }],
+      systematic_connection: { locus: "Soteriologia", explanation: "A salvação centrada na fé em Cristo." }
+    });
+  }
 
   if (lower.includes("predestinação") || lower.includes("livre-arbítrio") || lower.includes("calvinism")) {
     return `## Predestinação vs Livre-Arbítrio
@@ -399,37 +435,6 @@ N.T. Wright argumenta que Romanos 9 trata da fidelidade de Deus à aliança.
 - **σκεύη ὀργῆς** (skeuē orgēs) — vasos de ira
 
 **Grau de Tensão Teológica: 90/100**`;
-  }
-
-  if (lower.includes("dons") || lower.includes("espírito") || lower.includes("cessacion")) {
-    return `## Dons Espirituais: Cessacionismo vs Continuacionismo
-
-### 📖 Cessacionismo
-Os dons milagrosos cessaram com a era apostólica e o fechamento do cânon.
-**Defensores:** B.B. Warfield, John MacArthur, R.C. Sproul
-
-### 📖 Continuacionismo
-Todos os dons permanecem ativos até a volta de Cristo.
-**Defensores:** Wayne Grudem, Sam Storms, John Piper
-
-### 📊 Dados Históricos
-- Irineu (130-202 d.C.) relata dons em sua época
-- O avivamento da Rua Azusa (1906) impulsionou o pentecostalismo moderno
-
-**Grau de Tensão Teológica: 72/100**`;
-  }
-
-  if (lower.includes("batismo") || lower.includes("imersão") || lower.includes("aspersão")) {
-    return `## Batismo: Aspersão vs Imersão
-
-### 📖 Batismo por Imersão
-**βαπτίζω** (baptizō) = "mergulhar, imergir"
-Romanos 6:3-4 — simbolismo de morte e ressurreição
-
-### 📖 Batismo por Aspersão/Derramamento
-Didaquê (70-100 d.C.) permitia derramamento quando não havia água suficiente.
-
-**Grau de Tensão Teológica: 65/100**`;
   }
 
   return `## Análise Teológica
