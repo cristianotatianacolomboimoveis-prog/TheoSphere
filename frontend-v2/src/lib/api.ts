@@ -19,6 +19,18 @@ import { CONFIG } from "./config";
 const TOKEN_STORAGE_KEY = "theosphere-access-token";
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.map((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -89,6 +101,7 @@ export async function request<T = unknown>(
       headers: buildHeaders(headers, withAuth),
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
+      credentials: 'include',
     });
   } catch (err) {
     clearTimeout(timer);
@@ -100,11 +113,55 @@ export async function request<T = unknown>(
   clearTimeout(timer);
 
   // Force-logout on 401 so the UI can recover (token expired or revoked).
-  if (response.status === 401 && typeof window !== "undefined") {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    window.localStorage.removeItem("theosphere-user-id");
-    // Dispatch a global event so subscribed components can re-route to login.
-    window.dispatchEvent(new CustomEvent("theosphere:unauthorized"));
+  if (response.status === 401) {
+    if (!withAuth) {
+      throw new ApiError("Não autorizado", 401);
+    }
+
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        // CONFIG.API_BASE_URL já termina em /api/v1, então só anexamos
+        // /auth/refresh — anexar /api/v1/auth/refresh gera path duplicado.
+        const refreshUrl = `${CONFIG.API_BASE_URL.replace(/\/$/, "")}/auth/refresh`;
+        const refreshRes = await fetch(refreshUrl, {
+          method: "POST",
+          headers: buildHeaders({}, false),
+          credentials: 'include',
+        });
+
+        if (refreshRes.ok) {
+          const { accessToken } = await refreshRes.json();
+          window.localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+          isRefreshing = false;
+          onTokenRefreshed(accessToken);
+          
+          // Retry original request
+          return request<T>(path, opts);
+        }
+      } catch (err) {
+        console.error("Token refresh failed:", err);
+      } finally {
+        isRefreshing = false;
+      }
+
+      // If refresh failed or was skipped
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem("theosphere-user-id");
+        window.dispatchEvent(new CustomEvent("theosphere:unauthorized"));
+      }
+      throw new ApiError("Sessão expirada. Por favor, faça login novamente.", 401);
+    } else {
+      // Outra request já está renovando o token — aguarda e refaz.
+      // `_token` recebido aqui é o novo accessToken; não precisamos dele
+      // porque request<T> vai relê-lo do localStorage no buildHeaders.
+      return new Promise<T>((resolve, reject) => {
+        subscribeTokenRefresh(() => {
+          request<T>(path, opts).then(resolve).catch(reject);
+        });
+      });
+    }
   }
 
   let parsed: unknown = null;
