@@ -52,14 +52,18 @@ interface ExegesisPanelProps {
 
 export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ExegesisData | null>(null);
+  // Fallback: when the LLM ignores jsonMode and replies in prose/markdown,
+  // we still want to show the user *something* useful instead of throwing.
+  const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"interlinear" | "lexical" | "syntax" | "commentary" | "systematic">("interlinear");
   const { chat } = useRAG();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const fetchExegesis = async () => {
-      // Cancela requisição pendente anterior
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -67,31 +71,101 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
       const signal = abortControllerRef.current.signal;
 
       setLoading(true);
-      const prompt = `Realize uma análise exegética PhD para ${verse}. 
-      Inclua um 'syntactic_graph' com nodes (palavras) e edges (relações gramaticais como sujeito, objeto, modificador).
-      Use o jsonMode para retornar a estrutura completa definida no seu sistema.`;
+      setError(null);
+      setMarkdownFallback(null);
+
+      // Inclui o schema explícito no prompt — Gemini's `responseMimeType:
+      // application/json` honra melhor quando o schema está visível.
+      const prompt = `Realize uma análise exegética PhD profunda para ${verse}.
+
+REGRAS CRÍTICAS:
+1. NUNCA use '...' ou espaços reservados.
+2. Forneça o texto original, transliteração, código Strong e morfologia.
+3. Retorne APENAS um objeto JSON válido seguindo EXATAMENTE este schema:
+
+{
+  "verse": "${verse}",
+  "original_language": "Hebraico" | "Grego" | "Aramaico",
+  "interlinear": [
+    { "word": "<palavra original>", "transliteration": "<...>", "strong": "<G/H####>", "morphology": "<...>", "translation": "<português>" }
+  ],
+  "lexical_analysis": [
+    { "word": "<palavra>", "bdag_halot_sense": "<sentido lexicográfico>", "academic_discussion": "<discussão>" }
+  ],
+  "syntactic_notes": "<análise sintática em texto>",
+  "syntactic_graph": {
+    "nodes": [{ "id": "n1", "label": "<...>", "type": "subject|verb|object|modifier" }],
+    "edges": [{ "source": "n1", "target": "n2", "relation": "<rel>" }]
+  },
+  "technical_commentary": [
+    { "source": "<comentarista>", "view": "<posição>" }
+  ],
+  "systematic_connection": { "locus": "<lócus teológico>", "explanation": "<...>" }
+}
+
+Não inclua texto antes ou depois do JSON.`;
 
       try {
         const response = await chat(prompt, [], undefined, true);
-        
-        // Se o sinal foi abortado, interrompe o processamento do estado
         if (signal.aborted) return;
 
         if (!response || !response.content) {
           throw new Error("Resposta da IA vazia");
         }
 
-        try {
-          const parsed = JSON.parse(response.content);
-          setData(parsed);
-        } catch (e) {
-          console.error("Erro ao parsear JSON:", e);
+        const content = response.content;
+
+        // Caso 1: backend já fez parse e retornou objeto.
+        if (typeof content === "object" && content !== null) {
+          setData(content as ExegesisData);
+          return;
         }
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.log("Busca exegética cancelada pelo usuário (novo clique)");
+
+        // Caso 2: string — pode vir como markdown puro ou JSON.
+        const rawText = typeof content === "string" ? content : "";
+
+        // Extrai bloco ```json ... ``` se houver
+        const jsonBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        const candidate = jsonBlockMatch?.[1] ?? rawText;
+
+        const startIdx = candidate.indexOf("{");
+        const endIdx = candidate.lastIndexOf("}");
+
+        // Caso 3: sem JSON detectável — renderiza como markdown.
+        if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+          console.warn(
+            "[ExegesisPanel] IA retornou prosa em vez de JSON estruturado. " +
+              "Exibindo fallback markdown."
+          );
+          setMarkdownFallback(rawText);
+          return;
+        }
+
+        const potentialJson = candidate.substring(startIdx, endIdx + 1);
+        try {
+          setData(JSON.parse(potentialJson) as ExegesisData);
+        } catch {
+          // Última chance: sanitizar trailing commas e comentários.
+          try {
+            const sanitized = potentialJson
+              .replace(/,\s*([\]}])/g, "$1")
+              .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, "");
+            setData(JSON.parse(sanitized) as ExegesisData);
+          } catch {
+            // Parse falhou completamente — fallback markdown com o texto bruto.
+            console.warn(
+              "[ExegesisPanel] JSON irrecuperável. Exibindo fallback markdown."
+            );
+            setMarkdownFallback(rawText);
+          }
+        }
+      } catch (err) {
+        const error = err as Error;
+        if (error.name === "AbortError") {
+          // Silenciar — requisição cancelada por unmount/retry.
         } else {
           console.error("Erro ao carregar exegese:", error);
+          setError(error.message || "Erro de conexão.");
         }
       } finally {
         if (!signal.aborted) {
@@ -102,13 +176,12 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
 
     fetchExegesis();
 
-    // Cleanup: aborta requisição se o componente for desmontado
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [verse, chat]);
+  }, [verse, retryCount, chat]);
 
   return (
     <div className="flex flex-col h-full bg-background/40 backdrop-blur-2xl text-foreground overflow-hidden font-sans">
@@ -185,6 +258,48 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                 Consultando Léxicos BDAG/HALOT & Comentários Técnicos
               </p>
             </div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full py-24 px-12 text-center">
+            <div className="p-4 rounded-full bg-red-500/10 mb-6">
+              <Info className="w-12 h-12 text-red-500" />
+            </div>
+            <h3 className="text-xl font-serif font-bold text-white mb-2">Falha na Conexão Teológica</h3>
+            <p className="text-sm text-foreground/60 mb-8 max-w-md leading-relaxed">{error}</p>
+            <button 
+              onClick={() => { setError(null); setLoading(true); setRetryCount(prev => prev + 1); }}
+              className="px-8 py-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-xl text-primary text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              Reiniciar Escaneamento
+            </button>
+          </div>
+        ) : markdownFallback ? (
+          /* Fallback: a IA respondeu em prosa em vez de JSON estruturado.
+             Renderizamos o texto cru com um aviso, em vez de quebrar a UI. */
+          <div className="max-w-3xl mx-auto py-8">
+            <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-300/80 leading-relaxed">
+                A IA retornou uma análise narrativa em vez de dados estruturados.
+                Mostrando o texto bruto. Você pode{" "}
+                <button
+                  onClick={() => {
+                    setMarkdownFallback(null);
+                    setLoading(true);
+                    setRetryCount((n) => n + 1);
+                  }}
+                  className="underline font-bold hover:text-amber-200"
+                >
+                  tentar novamente
+                </button>{" "}
+                para forçar uma resposta estruturada.
+              </div>
+            </div>
+            <article className="prose prose-invert prose-sm max-w-none">
+              <pre className="whitespace-pre-wrap font-serif text-[14px] leading-relaxed text-foreground/80 bg-transparent border-0 p-0">
+                {markdownFallback}
+              </pre>
+            </article>
           </div>
         ) : data ? (
           <div className="max-w-6xl mx-auto">
@@ -280,7 +395,7 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
                                  {edge.relation}
                                </span>
                             </div>
-                            <div className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-medium">
+                            <div className="px-4 py-2 rounded-lg bg-white/5 border border-border-strong text-white/60 text-xs font-medium">
                               {targetNode?.label}
                             </div>
                           </div>
