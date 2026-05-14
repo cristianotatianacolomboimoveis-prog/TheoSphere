@@ -29,9 +29,25 @@ model User {
   embeddings  UserEmbedding[]
   chatHistory ChatHistory[]
   auditLogs   AuditLog[]
+  refreshTokens RefreshToken[]
 
   @@index([institutionId])
   @@index([role])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedBy String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }
 
 // Academic Institutions
@@ -54,6 +70,10 @@ model Location {
   category    String
   description String
   geom        Unsupported("geography(Point, 4326)")
+
+  @@index([name])
+  @@index([era])
+  @@index([category])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,4 +239,23 @@ model TechnicalCommentary {
   createdAt DateTime @default(now())
 
   @@index([bookId, chapter, verse])
+}
+
+/// Cross-references (TSK — Treasury of Scripture Knowledge, public domain).
+/// One row per (source, target) pair — denormalised on purpose so we can
+/// rank, paginate and filter without unmarshalling arrays. Source/target are
+/// canonical English short references (e.g. "John 3:16") to match the
+/// frontend store's `activeBook` convention.
+model CrossReference {
+  id        String   @id @default(uuid())
+  sourceRef String // ex: "John 3:16"
+  targetRef String // ex: "Romans 5:8"
+  /// TSK provides a relevance hint; openbible.info also exposes community
+  /// votes. Lower rank / higher votes = better hit. NULL when unknown.
+  rank      Int?
+  votes     Int?
+  createdAt DateTime @default(now())
+
+  @@unique([sourceRef, targetRef])
+  @@index([sourceRef])
 }

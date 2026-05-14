@@ -22,8 +22,10 @@
     "db:seed": "ts-node seed.ts",
     "db:seed:phd": "ts-node prisma/seed-phd.ts",
     "db:seed:enterprise": "ts-node prisma/seed-enterprise.ts",
+    "db:seed:tsk": "ts-node prisma/seed-tsk.ts",
     "db:studio": "prisma studio",
-    "ingest:drive": "ts-node trigger-ingest.ts"
+    "ingest:drive": "ts-node trigger-ingest.ts",
+    "tsk:import": "ts-node scripts/import-tsk-full.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -25,6 +25,8 @@ import { useRouter } from "next/navigation";
 import { ReaderHeader } from "./reader/ReaderHeader";
 import { VerseRow } from "./reader/VerseRow";
 import { Button, Card, CardHeader } from "./ui";
+import { CrossRefsPopover } from "./CrossRefsPopover";
+import { useChapterCrossRefs } from "@/hooks/useCrossRefs";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -101,6 +103,13 @@ export default function BibleReader({
   const [showResourceGuide, setShowResourceGuide] = useState(true);
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const [amplifyAnchor, setAmplifyAnchor] = useState<{ x: number, y: number, verse: number } | null>(null);
+
+  // Cross-refs popover anchor — { x, y, sourceRef }. Null = fechado.
+  const [crossRefAnchor, setCrossRefAnchor] = useState<{
+    x: number;
+    y: number;
+    sourceRef: string;
+  } | null>(null);
   const [hoverData, setHoverData] = useState<{ 
     word: string; 
     strongId: string; 
@@ -192,6 +201,19 @@ export default function BibleReader({
   const versesToRender = searchMode && searchQuery.trim()
     ? allVerses.filter(v => v.text.toLowerCase().includes(searchQuery.toLowerCase()))
     : allVerses;
+
+  // Cross-refs: monta lista de refs canônicas do capítulo aberto e carrega
+  // o counter via /cross-refs/counts. Re-roda só quando o capítulo muda.
+  const chapterRefs = React.useMemo(
+    () =>
+      versesToRender.map(
+        (v) => `${selectedBook.nameEn} ${selectedChapter}:${v.verse}`,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedBook.nameEn, selectedChapter, versesToRender.length],
+  );
+  const { counts: crossRefCounts, list: listCrossRefs } =
+    useChapterCrossRefs(chapterRefs);
   
   const rowVirtualizer = useVirtualizer({
     count: versesToRender.length,
@@ -540,6 +562,19 @@ export default function BibleReader({
                           selected={selectedVerses.has(vPrimary.verse)}
                           onClick={() => toggleVerseSelection(vPrimary.verse)}
                           highlightQuery={searchMode ? searchQuery : undefined}
+                          crossRefCount={
+                            crossRefCounts[
+                              `${selectedBook.nameEn} ${selectedChapter}:${vPrimary.verse}`
+                            ] || 0
+                          }
+                          onCrossRefClick={(e) => {
+                            const ref = `${selectedBook.nameEn} ${selectedChapter}:${vPrimary.verse}`;
+                            setCrossRefAnchor({
+                              x: e.clientX,
+                              y: e.clientY,
+                              sourceRef: ref,
+                            });
+                          }}
                         />
                       </div>
                     );
@@ -637,6 +672,26 @@ export default function BibleReader({
           position={hoverData.pos}
           onClose={() => setHoverData(null)}
           onOpenWordStudy={onOpenWordStudy}
+        />
+      )}
+
+      {crossRefAnchor && (
+        <CrossRefsPopover
+          sourceRef={crossRefAnchor.sourceRef}
+          position={{ x: crossRefAnchor.x, y: crossRefAnchor.y }}
+          loader={() => listCrossRefs(crossRefAnchor.sourceRef)}
+          onClose={() => setCrossRefAnchor(null)}
+          onJump={({ book, chapter, verse }) => {
+            // Encontra o livro no catálogo e troca a referência ativa do store.
+            const targetBook = BIBLE_BOOKS.find(
+              (b) => b.nameEn === book || b.namePt === book,
+            );
+            if (targetBook) {
+              setBibleReference(targetBook.namePt, chapter);
+              // Marca o versículo destino para destaque/scroll.
+              setActiveVerse(`${targetBook.nameEn} ${chapter}:${verse}`);
+            }
+          }}
         />
       )}
     </div>
