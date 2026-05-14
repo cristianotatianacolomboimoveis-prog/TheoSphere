@@ -7,7 +7,7 @@
  * and upgrades the UI to a premium vertical Sidebar for professional discovery.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import {
   BookOpen,
@@ -24,16 +24,16 @@ import {
   Image as ImageIcon,
   MessageSquare,
   Globe,
+  Share2,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import * as Framer from "framer-motion";
-const { motion, AnimatePresence } = Framer;
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheoStore } from "@/store/useTheoStore";
 
 // ─── Heavy components: lazy-loaded, no SSR ─────────────────────────────────
 const BibleReader = dynamic(() => import("@/components/BibleReader"), {
   ssr: false,
-  loading: () => <BootingFallback label="BIBLE READER" />,
+  loading: () => <BootingFallback label="LEITOR BÍBLICO" />,
 });
 const ExegesisPanel = dynamic(() => import("@/components/ExegesisPanel"), { ssr: false });
 const SermonBuilder = dynamic(() => import("@/components/SermonBuilder"), { ssr: false });
@@ -48,6 +48,7 @@ const AgenticConsole = dynamic(() => import("@/components/AgenticConsole"), { ss
 const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
 const ManuscriptViewer = dynamic(() => import("@/components/ManuscriptViewer"), { ssr: false });
 const NoteEditor = dynamic(() => import("@/components/NoteEditor"), { ssr: false });
+const TheoSGraph = dynamic(() => import("@/components/TheoSGraph"), { ssr: false });
 
 // ─── Tool registry ──────────────────────────────────────────────────────────
 type ToolKey =
@@ -63,6 +64,7 @@ type ToolKey =
   | "console"
   | "manuscripts"
   | "notes"
+  | "graph"
   | null;
 
 interface ToolDefinition {
@@ -88,6 +90,7 @@ const CREATIVE_TOOLS: ToolDefinition[] = [
 const EXPLORATION_TOOLS: ToolDefinition[] = [
   { key: "atlas", label: "Atlas 4D", icon: Map, color: "text-cyan-400" },
   { key: "manuscripts", label: "Manuscritos Digitais", icon: ImageIcon, color: "text-rose-400" },
+  { key: "graph", label: "Topologia Teológica", icon: Share2, color: "text-amber-500" },
   { key: "library", label: "Biblioteca", icon: Library, color: "text-slate-400" },
 ];
 
@@ -96,14 +99,45 @@ const AI_TOOLS: ToolDefinition[] = [
   { key: "console", label: "Console Agêntica", icon: Sparkles, color: "text-amber-500" },
 ];
 
-export default function TheoSphereApp() {
-  const [activeTool, setActiveTool] = useState<ToolKey>(null);
+export default function TheoSphereOS() {
+  const { 
+    activeBook, 
+    activeChapter, 
+    activeVerseId, 
+    visibleVerseId, 
+    activeTool, 
+    setActiveTool,
+    _hasHydrated 
+  } = useTheoStore();
+
   const [authOpen, setAuthOpen] = useState(false);
-  
-  const { activeBook, activeChapter, activeVerseId, visibleVerseId } = useTheoStore();
+  // Strong's ID pré-selecionado quando o usuário clica em "Estudo Completo"
+  // no StrongOverlay do BibleReader. Resetado quando o tool fecha.
+  const [pendingStrongId, setPendingStrongId] = useState<string | null>(null);
+
+  // Keyboard shortcut: Esc to close tool
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveTool(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setActiveTool]);
+
   const currentReference = visibleVerseId || activeVerseId || `${activeBook} ${activeChapter}`;
 
-  const closeTool = () => setActiveTool(null);
+  const closeTool = () => {
+    setActiveTool(null);
+    setPendingStrongId(null);
+  };
+
+  const openWordStudyWithStrong = (strongId: string) => {
+    setPendingStrongId(strongId);
+    setActiveTool("word");
+  };
+
+  // Hydration Guard: Prevents UI flickering and mismatches
+  if (!_hasHydrated) return <BootingFallback label="NÚCLEO THEOSPHERE" />;
 
   const renderToolIcon = (t: ToolDefinition) => {
     const Icon = t.icon;
@@ -135,12 +169,12 @@ export default function TheoSphereApp() {
   };
 
   return (
-    <div className="flex w-full h-screen overflow-hidden bg-background text-foreground font-sans">
+    <div className="flex flex-col md:flex-row w-full h-screen overflow-hidden bg-background text-foreground font-sans">
       
-      {/* ─── Persistent Left Sidebar (The "OS" Shell) ──────────────────────── */}
+      {/* ─── Persistent Sidebar (The "OS" Shell) ──────────────────────── */}
       <aside
         aria-label="Navegação principal"
-        className="w-20 flex-shrink-0 flex flex-col items-center py-6 border-r border-border-subtle bg-background z-40"
+        className="fixed bottom-0 left-0 w-full h-16 md:relative md:h-full md:w-20 flex md:flex-col flex-row items-center justify-around md:justify-start py-2 md:py-6 border-t md:border-t-0 md:border-r border-border-subtle bg-background/80 backdrop-blur-xl z-40"
       >
         {/* Brand Mark — Gold Globe (system identity) */}
         <button
@@ -148,7 +182,7 @@ export default function TheoSphereApp() {
           onClick={() => setActiveTool(null)}
           aria-label="Início — TheoSphere"
           title="TheoSphere"
-          className="mb-8 relative w-12 h-12 rounded-[18px] bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 flex items-center justify-center shadow-[0_0_24px_rgba(245,158,11,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.15)] hover:shadow-[0_0_32px_rgba(245,158,11,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all hover:scale-[1.04] active:scale-95 group"
+          className="hidden md:flex mb-8 relative w-12 h-12 rounded-[18px] bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 items-center justify-center shadow-[0_0_24px_rgba(245,158,11,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.15)] hover:shadow-[0_0_32px_rgba(245,158,11,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all hover:scale-[1.04] active:scale-95 group flex-shrink-0"
         >
           <Globe className="w-[24px] h-[24px] text-slate-950 drop-shadow-sm" strokeWidth={2.25} />
           <span
@@ -157,34 +191,31 @@ export default function TheoSphereApp() {
           />
         </button>
 
-        <div className="flex-grow flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
-          <div className="flex flex-col gap-1">
+        <div className="flex md:flex-col flex-row gap-2 md:gap-4 overflow-x-auto md:overflow-y-auto no-scrollbar md:pb-10 flex-grow justify-around md:justify-start px-4 md:px-0">
+          <div className="flex md:flex-col flex-row gap-1">
              {PRIMARY_TOOLS.map(renderToolIcon)}
           </div>
           
-          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
+          <div className="hidden md:block w-8 h-px bg-border-subtle mx-auto my-2" />
           
-          <div className="flex flex-col gap-1">
+          <div className="flex md:flex-col flex-row gap-1">
              {CREATIVE_TOOLS.map(renderToolIcon)}
           </div>
 
-          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
+          <div className="hidden md:block w-8 h-px bg-border-subtle mx-auto my-2" />
 
-          <div className="flex flex-col gap-1">
+          <div className="flex md:flex-col flex-row gap-1">
              {EXPLORATION_TOOLS.map(renderToolIcon)}
           </div>
 
-          <div className="w-8 h-px bg-border-subtle mx-auto my-2" />
+          <div className="hidden md:block w-8 h-px bg-border-subtle mx-auto my-2" />
 
-          <div className="flex flex-col gap-1">
+          <div className="flex md:flex-col flex-row gap-1">
              {AI_TOOLS.map(renderToolIcon)}
           </div>
         </div>
 
-        <div className="mt-auto flex flex-col gap-2 pb-2">
-          {/* Theme Toggle */}
-          <ThemeToggle className="text-foreground/20 hover:text-foreground hover:bg-surface-hover" />
-          
+        <div className="hidden md:flex mt-auto flex-col gap-2 pb-2">
           {/* User Account / Settings */}
           <button
             onClick={() => setAuthOpen(true)}
@@ -197,9 +228,9 @@ export default function TheoSphereApp() {
       </aside>
 
       {/* ─── Main Content Surface ────────────────────────────────────────── */}
-      <main id="main" className="flex-grow relative overflow-hidden bg-background">
+      <main id="main" className="flex-grow relative overflow-hidden bg-background pb-16 md:pb-0">
         {/* BibleReader is the primary desktop background */}
-        <BibleReader onClose={() => {}} />
+        <BibleReader onClose={() => {}} onOpenWordStudy={openWordStudyWithStrong} />
 
         {/* Floating Tool Overlays */}
         <AnimatePresence mode="wait">
@@ -215,7 +246,7 @@ export default function TheoSphereApp() {
           )}
           {activeTool === "word" && (
              <ToolOverlay key="word" onClose={closeTool} label="Estudo de Palavras">
-               <WordStudy onClose={closeTool} />
+               <WordStudy onClose={closeTool} initialStrongId={pendingStrongId} />
              </ToolOverlay>
           )}
           {activeTool === "factbook" && (
@@ -263,6 +294,11 @@ export default function TheoSphereApp() {
               <AgenticConsole />
             </FullScreenOverlay>
           )}
+          {activeTool === "graph" && (
+            <FullScreenOverlay onClose={closeTool}>
+              <TheoSGraph onClose={closeTool} />
+            </FullScreenOverlay>
+          )}
         </AnimatePresence>
       </main>
 
@@ -286,7 +322,7 @@ function ToolOverlay({
   label: string;
 }) {
   return (
-    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
+    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-8 animate-in animate-fade-in animate-zoom-in duration-300">
       <div className="w-full h-full max-w-7xl bg-background rounded-[32px] border border-border-strong shadow-2xl overflow-hidden flex flex-col relative">
         {/* Integrated Window Header */}
         <div className="h-12 flex-shrink-0 flex items-center justify-between px-6 border-b border-border-subtle bg-surface/50">
@@ -311,7 +347,7 @@ function FullScreenOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-background animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-50 bg-background animate-in animate-fade-in duration-500">
       <button
         onClick={onClose}
         className="absolute top-6 right-6 z-[60] px-4 py-2 rounded-xl bg-surface hover:bg-surface-hover text-foreground/70 hover:text-foreground text-[10px] font-black uppercase tracking-widest border border-border-strong backdrop-blur-xl transition-all"

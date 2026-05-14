@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, BookOpen, ChevronRight, ChevronLeft, X, Zap, BookMarked,
   ChevronDown, Bookmark, Copy, Check, Loader2, ArrowLeft, ArrowRight,
-  Star, Columns, SplitSquareHorizontal, FileText, Hash, Maximize2, Library, Users, MapPin
+  Star, Columns, SplitSquareHorizontal, FileText, Hash, Maximize2, Library, Users, MapPin, Volume2, Square
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTheoStore } from "@/store/useTheoStore";
@@ -19,10 +19,12 @@ import { InterlinearTable } from "./InterlinearTable";
 import { BIBLE_BOOK_TO_ID, isNewTestament } from "@/lib/bibleUtils";
 import ResourceGuide from "./ResourceGuide";
 import { useBible } from "@/hooks/useBible";
+import { useVoice } from "@/hooks/useVoice";
 import ErrorBoundary from "./ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { ReaderHeader } from "./reader/ReaderHeader";
 import { VerseRow } from "./reader/VerseRow";
+import { Button, Card, CardHeader } from "./ui";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -32,6 +34,7 @@ export const TRANSLATIONS = [
   { id: "almeida", name: "Almeida Corrigida Fiel (ACF)", lang: "PT", type: "Equivalência Formal" },
   { id: "naa", name: "Nova Almeida Atualizada (NAA)", lang: "PT", type: "Equivalência Formal" },
   { id: "nvt", name: "Nova Versão Transformadora (NVT)", lang: "PT", type: "Dinâmica Contemporânea" },
+  { id: "sefaria", name: "Sefaria (Hebraico e Comentários)", lang: "HE/EN", type: "Acadêmico/Original" },
   { id: "kjv", name: "King James Version (KJV)", lang: "EN", type: "Equivalência Formal" },
   { id: "asv", name: "American Standard Version (ASV)", lang: "EN", type: "Equivalência Formal" },
   { id: "web", name: "World English Bible (WEB)", lang: "EN", type: "Equivalência Dinâmica" },
@@ -40,7 +43,18 @@ export const TRANSLATIONS = [
 
 /* ─── Component ──────────────────────────────────────────── */
 
-export default function BibleReader({ onClose }: { onClose: () => void }) {
+export default function BibleReader({
+  onClose,
+  onOpenWordStudy,
+}: {
+  onClose: () => void;
+  /**
+   * Chamado quando o usuário clica em "Estudo Completo" no StrongOverlay.
+   * page.tsx usa isso para mudar activeTool → 'word' e pré-selecionar a
+   * entrada Strong's no WordStudy.
+   */
+  onOpenWordStudy?: (strongId: string) => void;
+}) {
   const router = useRouter();
   const { 
     activeBook, activeChapter, activeVerseId, visibleVerseId, viewMode: storeViewMode,
@@ -52,7 +66,14 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
 
   const handleWorkerMessage = useCallback((type: string, payload: any) => {
     if (type === "STRONGS_DATA") {
-      setHoverData(prev => prev ? { ...prev, definition: payload.definition || prev.definition } : null);
+      setHoverData(prev => prev ? { 
+        ...prev, 
+        definition: payload.definition || "Sem definição disponível",
+        grammar: payload.morphology || payload.part_of_speech || "",
+        lemma: payload.lemma || "",
+        occurrences: payload.occurrences || 0,
+        bookOccurrences: payload.bookOccurrences || 0
+      } : null);
     }
     if (type === "SYNC_PROGRESS") {
       setSyncProgress(payload.progress);
@@ -70,7 +91,7 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
 
   const { chaptersData, secondaryData, interlinearMap, loading } = useBible(primaryTranslation, storeViewMode === "exegesis" ? "interlinear" : "text", secondaryTranslation || undefined);
   
-  const selectedBook = BIBLE_BOOKS.find(b => b.nameEn === activeBook) || BIBLE_BOOKS[42];
+  const selectedBook = BIBLE_BOOKS.find(b => b.namePt === activeBook || b.nameEn === activeBook) || BIBLE_BOOKS[0];
   const selectedChapter = activeChapter;
 
   const [showBookSelector, setShowBookSelector] = useState(false);
@@ -80,12 +101,36 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
   const [showResourceGuide, setShowResourceGuide] = useState(true);
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const [amplifyAnchor, setAmplifyAnchor] = useState<{ x: number, y: number, verse: number } | null>(null);
-  const [hoverData, setHoverData] = useState<{ word: string; strongId: string; definition: string; pos: { x: number; y: number } } | null>(null);
+  const [hoverData, setHoverData] = useState<{ 
+    word: string; 
+    strongId: string; 
+    definition: string; 
+    grammar?: string;
+    lemma?: string;
+    occurrences?: number;
+    bookOccurrences?: number;
+    pos: { x: number; y: number } 
+  } | null>(null);
 
   // Sync state
   const [syncProgress, setSyncProgress] = useState(0);
   const [currentSyncBook, setCurrentSyncBook] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Audio Reading state
+  const { speak, stopSpeaking } = useVoice();
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const toggleReading = () => {
+    if (isPlaying) {
+      stopSpeaking();
+      setIsPlaying(false);
+    } else {
+      const fullText = versesToRender.map(v => `${v.verse}. ${v.text}`).join(" ");
+      speak(fullText);
+      setIsPlaying(true);
+    }
+  };
 
   // Search state
   const [searchMode, setSearchMode] = useState(false);
@@ -106,10 +151,10 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
       else next.add(verseNum);
       return next;
     });
-    setActiveVerse(`${selectedBook.nameEn} ${selectedChapter}:${verseNum}`);
+    setActiveVerse(`${selectedBook.namePt} ${selectedChapter}:${verseNum}`);
   };
 
-  const setSelectedBook = (book: BibleBook) => setBibleReference(book.nameEn, 1);
+  const setSelectedBook = (book: BibleBook) => setBibleReference(book.namePt, 1);
   const setSelectedChapter = (chapter: number) => setBibleReference(activeBook, chapter);
 
   const handleAmplify = (e: React.MouseEvent, verseNum: number) => {
@@ -118,10 +163,20 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
   };
 
   // Task 3: Strong's hover handler – dispatches FETCH_STRONGS to the worker
-  const handleWordHover = useCallback((word: string, strongId: string, pos: { x: number; y: number }) => {
-    setHoverData({ word, strongId, definition: "Carregando...", pos });
-    workerPost("FETCH_STRONGS", { strongId });
-  }, [workerPost]);
+  const handleWordHover = useCallback((word: any, event: React.MouseEvent) => {
+    if (word.strong) {
+      setHoverData({
+        word: word.original,
+        strongId: word.strong,
+        definition: "Carregando exegese...",
+        pos: { x: event.clientX, y: event.clientY }
+      });
+      workerPost("FETCH_STRONGS", { 
+        strongId: word.strong,
+        book: activeBook
+      });
+    }
+  }, [workerPost, activeBook]);
 
   // Search: focus input when entering search mode
   useEffect(() => {
@@ -260,6 +315,17 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
                 title="Buscar no capítulo"
               >
                 <Search className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Read Bible button */}
+              <button
+                onClick={toggleReading}
+                className={`px-3 py-2 rounded-lg border transition-all ${
+                  isPlaying ? "bg-accent/20 border-accent/30 text-accent animate-pulse" : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-accent"
+                }`}
+                title={isPlaying ? "Parar Leitura" : "Ouvir Capítulo"}
+              >
+                {isPlaying ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
               </button>
             </>
           )}
@@ -438,30 +504,8 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
                     );
                   })}
                 </div>
-              ) : searchMode && searchQuery.trim() ? (
-                /* Search results: non-virtualized for simplicity */
-                <div className="space-y-1 pb-32 px-2">
-                  {versesToRender.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-foreground/30">
-                      <Search className="w-8 h-8 mb-3 opacity-30" />
-                      <p className="text-sm">Nenhum versículo encontrado para &ldquo;{searchQuery}&rdquo;</p>
-                    </div>
-                  ) : versesToRender.map((vPrimary) => {
-                    const vSecondary = secondaryData?.verses.find(v => v.verse === vPrimary.verse);
-                    return (
-                      <VerseRow
-                        key={vPrimary.verse}
-                        verse={vPrimary.verse}
-                        text={vPrimary.text}
-                        secondaryText={vSecondary?.text}
-                        selected={selectedVerses.has(vPrimary.verse)}
-                        onClick={() => toggleVerseSelection(vPrimary.verse)}
-                        highlightQuery={searchQuery}
-                      />
-                    );
-                  })}
-                </div>
               ) : (
+                /* Unified Virtualized Reader (handles Reading and Search) */
                 <div
                   style={{
                     height: `${rowVirtualizer.getTotalSize()}px`,
@@ -469,7 +513,12 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
                     position: 'relative'
                   }}
                 >
-                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  {versesToRender.length === 0 && searchMode && searchQuery.trim() ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-foreground/30 absolute inset-0">
+                      <Search className="w-8 h-8 mb-3 opacity-30" />
+                      <p className="text-sm">Nenhum versículo encontrado para &ldquo;{searchQuery}&rdquo;</p>
+                    </div>
+                  ) : rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const vPrimary = versesToRender[virtualRow.index];
                     const vSecondary = secondaryData?.verses[virtualRow.index];
 
@@ -490,6 +539,7 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
                           secondaryText={vSecondary?.text}
                           selected={selectedVerses.has(vPrimary.verse)}
                           onClick={() => toggleVerseSelection(vPrimary.verse)}
+                          highlightQuery={searchMode ? searchQuery : undefined}
                         />
                       </div>
                     );
@@ -523,37 +573,71 @@ export default function BibleReader({ onClose }: { onClose: () => void }) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             style={{ left: amplifyAnchor.x, top: amplifyAnchor.y }}
-            className="fixed z-[100] w-56 bg-surface/95 backdrop-blur-2xl border border-border-strong rounded-2xl shadow-2xl p-2"
+            className="fixed z-[100] w-56"
           >
-            <div className="px-3 py-2 border-b border-border-subtle mb-1">
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Ampliar Referência</p>
-              <p className="text-[11px] text-foreground/60 font-mono mt-0.5">{selectedBook.nameEn} {selectedChapter}:{amplifyAnchor.verse}</p>
-            </div>
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-all text-xs text-foreground/80 group">
-              <BookOpen className="w-4 h-4 text-foreground/20 group-hover:text-primary" />
-              Estudo de Palavras
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-all text-xs text-foreground/80 group">
-              <Users className="w-4 h-4 text-foreground/20 group-hover:text-amber-400" />
-              Ver no Factbook
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-all text-xs text-foreground/80 group">
-              <MapPin className="w-4 h-4 text-foreground/20 group-hover:text-emerald-400" />
-              Localizar no Atlas4D
-            </button>
-            <div className="h-px bg-border-subtle my-1" />
-            <button 
-              onClick={() => setAmplifyAnchor(null)}
-              className="w-full flex items-center justify-center px-3 py-2 rounded-xl hover:bg-red-500/10 transition-all text-[10px] font-bold text-red-500/60 uppercase"
-            >
-              Fechar
-            </button>
+            <Card className="shadow-2xl p-1 bg-surface/95 backdrop-blur-2xl border-border-strong">
+              <CardHeader className="px-3 py-2 border-b border-border-subtle mb-1 bg-transparent">
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Ampliar Referência</p>
+                <p className="text-[11px] text-foreground/60 font-mono mt-0.5">{selectedBook.namePt} {selectedChapter}:{amplifyAnchor.verse}</p>
+              </CardHeader>
+              
+              <div className="space-y-0.5 p-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-primary"
+                >
+                  <BookOpen className="w-4 h-4 text-foreground/20 group-hover:text-primary" />
+                  Estudo de Palavras
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-amber-400"
+                >
+                  <Users className="w-4 h-4 text-foreground/20 group-hover:text-amber-400" />
+                  Ver no Factbook
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-emerald-400"
+                >
+                  <MapPin className="w-4 h-4 text-foreground/20 group-hover:text-emerald-400" />
+                  Localizar no Atlas4D
+                </Button>
+                
+                <div className="h-px bg-border-subtle my-1 mx-2" />
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setAmplifyAnchor(null)}
+                  className="w-full justify-center text-[10px] font-black text-red-500/60 hover:text-red-500 hover:bg-red-500/10 uppercase tracking-widest"
+                >
+                  Fechar
+                </Button>
+              </div>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>
       
       {hoverData && (
-        <StrongOverlay word={hoverData.word} strongId={hoverData.strongId} definition={hoverData.definition} position={hoverData.pos} onClose={() => setHoverData(null)} />
+        <StrongOverlay
+          word={hoverData.word}
+          lemma={hoverData.lemma}
+          strongId={hoverData.strongId}
+          definition={hoverData.definition}
+          grammar={hoverData.grammar}
+          occurrences={hoverData.occurrences}
+          bookOccurrences={hoverData.bookOccurrences}
+          position={hoverData.pos}
+          onClose={() => setHoverData(null)}
+          onOpenWordStudy={onOpenWordStudy}
+        />
       )}
     </div>
   );

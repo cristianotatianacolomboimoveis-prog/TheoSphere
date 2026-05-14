@@ -39,7 +39,18 @@ interface LibraryLookupResponse {
 
 /* ─── Component ──────────────────────────────────────────── */
 
-export default function WordStudy({ onClose }: { onClose: () => void }) {
+export default function WordStudy({
+  onClose,
+  initialStrongId,
+}: {
+  onClose: () => void;
+  /**
+   * Quando setado (ex: vindo do StrongOverlay do BibleReader), pré-seleciona
+   * a entrada com esse Strong's ID e dispara automaticamente a análise
+   * lexical + lookup na biblioteca pessoal.
+   */
+  initialStrongId?: string | null;
+}) {
   const [query, setQuery] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<StrongsEntry | null>(null);
   const [language, setLanguage] = useState<"greek" | "hebrew">("greek");
@@ -124,6 +135,25 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
     // ação explícita do usuário.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEntry]);
+
+  // Pré-seleção via prop (ex: vindo do StrongOverlay do BibleReader).
+  // Roda só uma vez por mudança de initialStrongId. Greek prefix = G, Hebrew = H.
+  React.useEffect(() => {
+    if (!initialStrongId) return;
+    const isHebrew = initialStrongId.startsWith("H");
+    const targetLang = isHebrew ? "hebrew" : "greek";
+    if (language !== targetLang) {
+      setLanguage(targetLang);
+    }
+    const table = isHebrew ? STRONGS_HEBREW : STRONGS_GREEK;
+    const entry = (table as Record<string, StrongsEntry>)[initialStrongId];
+    if (entry) {
+      setSelectedEntry(entry);
+    }
+    // Intencionalmente fora das deps: queremos disparar exatamente quando o
+    // pai muda initialStrongId, não em re-renders por mudança de language.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStrongId]);
 
   /* ── Search ───────────────────────────────────────────── */
   const results = useMemo(() => {
