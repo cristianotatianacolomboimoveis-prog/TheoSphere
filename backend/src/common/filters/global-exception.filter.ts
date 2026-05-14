@@ -90,18 +90,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private normalize(raw: unknown): { error: string; message: unknown } {
+    const errorMap: Record<string, string> = {
+      'Unauthorized': 'Acesso não autorizado ou sessão expirada',
+      'Forbidden': 'Você não tem permissão para realizar esta ação',
+      'Not Found': 'O recurso solicitado não foi encontrado',
+      'Bad Request': 'Dados da requisição inválidos',
+      'Conflict': 'Conflito de dados (já existe um registro similar)',
+      'Internal Server Error': 'Ocorreu um erro interno em nossos sistemas',
+      'Payload Too Large': 'Arquivo ou conteúdo muito grande para ser processado',
+      'Unsupported Media Type': 'Formato de arquivo não suportado',
+      'Too Many Requests': 'Muitas requisições. Por favor, aguarde um pouco.',
+      'Gateway Timeout': 'O servidor demorou muito para responder. Tente novamente.',
+    };
+
     if (typeof raw === 'string') {
-      return { error: raw, message: raw };
+      return { error: errorMap[raw] || raw, message: errorMap[raw] || raw };
     }
     if (raw && typeof raw === 'object') {
       const obj = raw as Record<string, unknown>;
+      const rawError = typeof obj.error === 'string' ? obj.error : 'Erro';
       return {
-        error: typeof obj.error === 'string' ? obj.error : 'Error',
-        // class-validator returns `message: string[]` — that's fine to pass
-        // through. Avoid leaking `stack`, `cause`, or constructor names.
-        message: obj.message ?? obj.error ?? 'Error',
+        error: errorMap[rawError] || rawError,
+        message: obj.message ?? obj.error ?? 'Erro inesperado',
       };
     }
-    return { error: 'Error', message: 'Error' };
+    return { error: 'Erro', message: 'Erro inesperado' };
   }
 }

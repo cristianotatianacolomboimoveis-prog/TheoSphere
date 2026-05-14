@@ -1,0 +1,39 @@
+{
+  "passo": 4,
+  "descricao": "Teste de Anotações e Favoritos do TheoSphere",
+  "status": "PARCIAL",
+  "score_tecnico": 7,
+  "severidade": "MEDIA",
+  "impacto": [
+    "personalizacao",
+    "resiliencia",
+    "inteligencia"
+  ],
+  "evidencias": [
+    "Sistema de Personal RAG (UserContextService) implementado com suporte a embeddings",
+    "Suporte a múltiplos tipos de documentos: notas, sermões, destaques e favoritos",
+    "Lógica de similaridade de cosseno (0.3 threshold) para recuperação de contexto pessoal",
+    "Persistência no banco (pgvector) falhando silenciosamente em ambiente simulado",
+    "Dependência crítica de Redis para cache de contexto não persistida em .env"
+  ],
+  "erros": [
+    "Persistência síncrona em UserEmbedding falhando sem logs claros (Error suppression no catch)",
+    "Risco de perda de dados se o processo cair e a persistência no DB falhar (visto que o Map é em memória)"
+  ],
+  "recomendacoes": [
+    {
+      "acao": "Melhorar a observabilidade: não silenciar erros de persistência no DB, usar retentativas ou filas (BullMQ)",
+      "prioridade": "ALTA",
+      "esforco": "MEDIO",
+      "risco_nao_corrigir": "Inconsistência entre o que o usuário anota e o que a IA 'lembra' após restart do servidor",
+      "impacto_esperado": "Confiabilidade total do sistema de memórias personalizadas"
+    },
+    {
+      "acao": "Migrar o índice em memória para um cache persistente ou carregar do DB no onModuleInit",
+      "prioridade": "MEDIA",
+      "esforco": "MEDIO",
+      "risco_nao_corrigir": "Aquecimento lento do cache e uso excessivo de RAM por pod",
+      "impacto_esperado": "Escalabilidade horizontal facilitada"
+    }
+  ]
+}

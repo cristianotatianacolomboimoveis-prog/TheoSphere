@@ -12,10 +12,8 @@ export default function PWAManager() {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(
           (registration) => {
-            console.log('SW registered: ', registration);
           },
           (err) => {
-            console.log('SW registration failed: ', err);
           }
         );
       });
@@ -31,7 +29,6 @@ export default function PWAManager() {
     window.addEventListener('appinstalled', () => {
       setShowInstallBtn(false);
       setDeferredPrompt(null);
-      console.log('TheoSphere PWA installed successfully.');
     });
   }, []);
 
@@ -39,7 +36,6 @@ export default function PWAManager() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
     setDeferredPrompt(null);
     setShowInstallBtn(false);
   };

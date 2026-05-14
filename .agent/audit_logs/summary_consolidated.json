@@ -1,0 +1,433 @@
+[
+  {
+    "passo": 0,
+    "descricao": "Preparação e Indexação Completa do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 9,
+    "severidade": "BAIXA",
+    "impacto": [
+      "manutenibilidade",
+      "arquitetura"
+    ],
+    "evidencias": [
+      "Identificado backend NestJS com Prisma e PostgreSQL",
+      "Identificado frontend Next.js 16 com React 19 e Tailwind 4",
+      "Identificado Cloudflare Worker para Edge Caching",
+      "Estrutura de diretórios organizada e padronizada",
+      "Versões de ferramentas modernas (Node 24, Prisma 5.22)"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Auditar remanescentes de TODO/FIXME no código core",
+        "prioridade": "BAIXA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Dívida técnica acumulada",
+        "impacto_esperado": "Melhoria na clareza do código"
+      }
+    ]
+  },
+  {
+    "passo": 0.5,
+    "descricao": "Análise Arquitetural Profunda do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 10,
+    "severidade": "BAIXA",
+    "impacto": [
+      "escalabilidade",
+      "seguranca",
+      "manutenibilidade"
+    ],
+    "evidencias": [
+      "Uso avançado de pgvector (768 dimensões) para RAG e Cache Semântico",
+      "Integração de PostGIS para dados geoespaciais bíblicos",
+      "Arquitetura modular em NestJS com clara separação de domínios",
+      "Sistema de Audit Log estruturado e persistente",
+      "Estratégia de Refresh Tokens para segurança de sessão"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Considerar refatoração do rag.service.ts para sub-serviços especializados se crescer além de 1000 linhas",
+        "prioridade": "BAIXA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Aumento da complexidade cognitiva e dificuldade de testes unitários",
+        "impacto_esperado": "Melhor testabilidade e manutenção"
+      }
+    ]
+  },
+  {
+    "passo": 1,
+    "descricao": "Teste de Conexões e Dependências do TheoSphere",
+    "status": "PARCIAL",
+    "score_tecnico": 8,
+    "severidade": "BAIXA",
+    "impacto": [
+      "estabilidade",
+      "performance"
+    ],
+    "evidencias": [
+      "Banco de Dados (Supabase) conectado: 145 versículos detectados",
+      "Latência de query bruta (SELECT 1): 585ms",
+      "API Key do Gemini validada (ListModels executado com sucesso)",
+      "Ambiente Node.js 24 e Prisma 5.22 operacionais"
+    ],
+    "erros": [
+      "Redis não está configurado ou ativo no .env (cache em memória provável)",
+      "Latência de DB acima do alvo ideal de 500ms (585ms detectados)"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "Habilitar Redis para cache distribuído e rate limiting robusto",
+        "prioridade": "MEDIA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Gargalos de performance sob carga e inconsistência de cache em instâncias múltiplas",
+        "impacto_esperado": "Redução drástica na latência de leitura e proteção contra abusos"
+      },
+      {
+        "acao": "Otimizar conexão com Supabase (revisar pgbouncer e localização da região)",
+        "prioridade": "BAIXA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Experiência do usuário levemente degradada em operações síncronas",
+        "impacto_esperado": "Latência <300ms"
+      }
+    ]
+  },
+  {
+    "passo": 10,
+    "descricao": "Teste de Segurança do TheoSphere",
+    "status": "REPROVADO",
+    "score_tecnico": 3,
+    "severidade": "CRITICA",
+    "impacto": [
+      "privacidade",
+      "integridade",
+      "compliance"
+    ],
+    "evidencias": [
+      "Vulnerabilidade de Personificação (Impersonation) em RagController.chat: o sistema aceita 'x-user-id' via header sem validação se o usuário não estiver logado",
+      "Vulnerabilidade de dependência (CVE-2024-XXXX): fast-uri <=3.1.1 (High Severity - Path Traversal) detectada no backend",
+      "IDOR evitado em endpoints de sincronização (uso correto de req.user via JWT)",
+      "XSS mitigado pelo uso de React e ausência de dangerouslySetInnerHTML no frontend",
+      "Segurança de transporte (HTTPS) delegada ao Cloudflare (Arquitetura recomendada)"
+    ],
+    "erros": [
+      "Header Spoofing: Permite que um atacante leia ou injete memórias no contexto de qualquer usuário apenas sabendo o ID",
+      "Dependency Rot: Presença de CVE de alta severidade em biblioteca de rede"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "REMOVER suporte a 'x-user-id' via header em produção. O ID do usuário DEVE vir exclusivamente do JWT verificado",
+        "prioridade": "CRITICA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Vazamento massivo de dados pessoais de estudo e anotações",
+        "impacto_esperado": "Isolamento total de dados por usuário"
+      },
+      {
+        "acao": "Executar 'npm audit fix' e atualizar dependências vulneráveis",
+        "prioridade": "ALTA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Exploração de Path Traversal no servidor",
+        "impacto_esperado": "Redução da superfície de ataque"
+      }
+    ]
+  },
+  {
+    "passo": 11,
+    "descricao": "Teste de CI/CD e Deploy do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 10,
+    "severidade": "BAIXA",
+    "impacto": [
+      "operacao",
+      "resiliencia",
+      "seguranca"
+    ],
+    "evidencias": [
+      "Pipeline de CI/CD (GitHub Actions) implementado para testes, lint e auditorias",
+      "Dockerfile Multi-stage seguindo as melhores práticas: non-root user, tini, alpine",
+      "Healthchecks (Liveness/Readiness) configurados para orquestração (K8s/Railway)",
+      "Integração nativa com Sentry para Error Tracking e Performance Monitoring",
+      "Lógica de migração automática (prisma migrate deploy) no entrypoint do container"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Adicionar verificação de vulnerabilidades de container (ex: Trivy ou Snyk) no pipeline de CI",
+        "prioridade": "MEDIA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Presença de CVEs em bibliotecas do sistema operacional (Alpine) não detectadas pelo npm audit",
+        "impacto_esperado": "Hardening total da infraestrutura de execução"
+      }
+    ]
+  },
+  {
+    "passo": 2,
+    "descricao": "Teste Funcional da Bíblia no TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 10,
+    "severidade": "BAIXA",
+    "impacto": [
+      "usabilidade",
+      "performance",
+      "acessibilidade"
+    ],
+    "evidencias": [
+      "API /api/v1/bible/chapter validada com sucesso (João 3 recuperado)",
+      "Implementação de virtualização (@tanstack/react-virtual) para alta performance",
+      "Sistema de tradução paralela síncrona operacional",
+      "Integração de Strong's Numbers via workers para exegese profunda",
+      "Interface premium com glassmorphism e animações Framer Motion"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Adicionar suporte a 'infinite scroll' entre capítulos para navegação mais fluida",
+        "prioridade": "BAIXA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Fricção na leitura contínua",
+        "impacto_esperado": "Melhoria na retenção do usuário"
+      }
+    ]
+  },
+  {
+    "passo": 3,
+    "descricao": "Teste de Busca e Pesquisa do TheoSphere",
+    "status": "REPROVADO",
+    "score_tecnico": 4,
+    "severidade": "ALTA",
+    "impacto": [
+      "usabilidade",
+      "funcionalidade"
+    ],
+    "evidencias": [
+      "Busca por 'Pharisee' retornou 0 resultados, apesar de presente em João 3:1",
+      "Busca por 'Pharisees5330' (token com número Strong colado) funcionou",
+      "Identificado problema crítico de tokenização: números Strong estão concatenados com as palavras no DB",
+      "Validação de entrada mínima (2 caracteres) operacional (HTTP 400)",
+      "Parser de busca avançada operacional, mas limitado pela base de dados"
+    ],
+    "erros": [
+      "FTS (Full Text Search) quebrado devido a ruído de dados (números Strong concatenados)",
+      "Busca semântica prejudicada pela qualidade do texto bruto no banco"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "Sanitizar a base de dados: separar números Strong das palavras com espaços ou movê-los para metadados/JSON",
+        "prioridade": "CRITICA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Busca textual inutilizável para o usuário final",
+        "impacto_esperado": "Recuperação total da funcionalidade de busca e melhoria no ranking"
+      },
+      {
+        "acao": "Reindexar GIN (tsvector) após a limpeza dos dados",
+        "prioridade": "ALTA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Resultados de busca inconsistentes",
+        "impacto_esperado": "Performance de busca em milissegundos"
+      }
+    ]
+  },
+  {
+    "passo": 4,
+    "descricao": "Teste de Anotações e Favoritos do TheoSphere",
+    "status": "PARCIAL",
+    "score_tecnico": 7,
+    "severidade": "MEDIA",
+    "impacto": [
+      "personalizacao",
+      "resiliencia",
+      "inteligencia"
+    ],
+    "evidencias": [
+      "Sistema de Personal RAG (UserContextService) implementado com suporte a embeddings",
+      "Suporte a múltiplos tipos de documentos: notas, sermões, destaques e favoritos",
+      "Lógica de similaridade de cosseno (0.3 threshold) para recuperação de contexto pessoal",
+      "Persistência no banco (pgvector) falhando silenciosamente em ambiente simulado",
+      "Dependência crítica de Redis para cache de contexto não persistida em .env"
+    ],
+    "erros": [
+      "Persistência síncrona em UserEmbedding falhando sem logs claros (Error suppression no catch)",
+      "Risco de perda de dados se o processo cair e a persistência no DB falhar (visto que o Map é em memória)"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "Melhorar a observabilidade: não silenciar erros de persistência no DB, usar retentativas ou filas (BullMQ)",
+        "prioridade": "ALTA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Inconsistência entre o que o usuário anota e o que a IA 'lembra' após restart do servidor",
+        "impacto_esperado": "Confiabilidade total do sistema de memórias personalizadas"
+      },
+      {
+        "acao": "Migrar o índice em memória para um cache persistente ou carregar do DB no onModuleInit",
+        "prioridade": "MEDIA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Aquecimento lento do cache e uso excessivo de RAM por pod",
+        "impacto_esperado": "Escalabilidade horizontal facilitada"
+      }
+    ]
+  },
+  {
+    "passo": 5,
+    "descricao": "Teste de Dicionários e Léxicos do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 10,
+    "severidade": "BAIXA",
+    "impacto": [
+      "academicismo",
+      "usabilidade",
+      "resiliencia"
+    ],
+    "evidencias": [
+      "Base de dados de Léxicos contém referências acadêmicas de peso (BDAG, TDNT)",
+      "Suporte a Strong IDs (G26, G3056, G5485) validado no banco",
+      "Unicode Grego e Hebraico (χάρις, Bereshit) renderizados com perfeição",
+      "Fallback offline implementado via dicionários estáticos no frontend (Easton, ISBE)",
+      "Lógica de Concordância via 'Search by Root' funcional (apesar do ruído de dados detectado no Passo 3)"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Expandir a base de Léxicos para cobrir 100% dos Strong IDs (atualmente parece focado em termos teológicos chave)",
+        "prioridade": "BAIXA",
+        "effort": "ALTO",
+        "risco_nao_corrigir": "Lacunas no estudo de passagens menos frequentes",
+        "impacto_esperado": "Cobertura exegética total"
+      }
+    ]
+  },
+  {
+    "passo": 6,
+    "descricao": "Teste de Planos e Lembretes do TheoSphere",
+    "status": "PARCIAL",
+    "score_tecnico": 5,
+    "severidade": "MEDIA",
+    "impacto": [
+      "engajamento",
+      "retencao"
+    ],
+    "evidencias": [
+      "Componente StudyBuilder.tsx e hook useNotesSystem.ts implementados no frontend",
+      "Estrutura de dados para StudyPlan definida e integrada ao estado global",
+      "Ausência de serviços de notificação push (FCM/OneSignal) no backend ou frontend",
+      "Ausência de integração com provedores de e-mail (AWS SES, SendGrid, etc.)",
+      "Tarefas agendadas (@Cron) limitadas a manutenção técnica e ingestão"
+    ],
+    "erros": [
+      "Funcionalidade de Lembretes é meramente declarativa (não gera ações proativas)",
+      "Falta de motor de notificações para engajamento do usuário"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "Implementar Firebase Cloud Messaging (FCM) ou Web Push API para lembretes reais",
+        "prioridade": "MEDIA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Baixo engajamento e esquecimento dos planos de estudo pelos usuários",
+        "impacto_esperado": "Aumento na retenção diária (DAU)"
+      },
+      {
+        "acao": "Configurar um serviço de Email (ex: NestJS Mailer + Amazon SES) para sumários semanais",
+        "prioridade": "BAIXA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Perda de canal de comunicação enterprise e relatórios de progresso",
+        "impacto_esperado": "Melhoria na percepção de valor do plano Premium"
+      }
+    ]
+  },
+  {
+    "passo": 7,
+    "descricao": "Teste de Sincronização Multi-Dispositivo do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 9,
+    "severidade": "BAIXA",
+    "impacto": [
+      "colaboracao",
+      "usabilidade",
+      "mobilidade"
+    ],
+    "evidencias": [
+      "Gateway de colaboração via WebSockets (Socket.io) totalmente operacional",
+      "Integração com Yjs para sincronização de documentos sem conflitos (CRDT)",
+      "Sistema de presença em tempo real (rooms e cursor_move) implementado",
+      "Suporte a sugestões de IA compartilhadas em salas de estudo",
+      "Arquitetura permite escalabilidade via namespaces e broadcast por sala"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Adicionar persistência de estado Yjs no Redis (Y-Redis) para evitar perda de dados se todos os clientes desconectarem da sala",
+        "prioridade": "MEDIA",
+        "esforco": "MEDIO",
+        "risco_nao_corrigir": "Perda de edições colaborativas síncronas que não foram salvas via API REST (sync)",
+        "impacto_esperado": "Resiliência total em sessões colaborativas"
+      }
+    ]
+  },
+  {
+    "passo": 8,
+    "descricao": "Teste de Acessibilidade do TheoSphere",
+    "status": "PARCIAL",
+    "score_tecnico": 6,
+    "severidade": "MEDIA",
+    "impacto": [
+      "inclusao",
+      "ux"
+    ],
+    "evidencias": [
+      "Componentes de botão utilizam focus-visible para navegação segura via teclado",
+      "Uso correto de tags semânticas (<button>, <input>) no frontend",
+      "Paleta de cores moderna com suporte a temas Dark/Light (next-themes)",
+      "Identificados diversos botões de ícones (X, Search, Volume) sem aria-label explícito",
+      "Uso frequente de cores com baixa opacidade (foreground/30) que podem violar WCAG AA"
+    ],
+    "erros": [
+      "Falta de suporte completo para leitores de tela em componentes complexos (Mapas/Gráficos)",
+      "Dependência excessiva de feedback visual sem redundância textual (ARIA)"
+    ],
+    "recomendacoes": [
+      {
+        "acao": "Auditar todos os botões de ícone e adicionar aria-label e title descritivos",
+        "prioridade": "ALTA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Inutilizabilidade do software para usuários cegos ou com deficiência visual severa",
+        "impacto_esperado": "Conformidade com padrões internacionais de acessibilidade (WCAG)"
+      },
+      {
+        "acao": "Revisar contrastes de texto secundário, garantindo ratio mínimo de 4.5:1",
+        "prioridade": "MEDIA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Dificuldade de leitura para usuários com baixa visão ou em ambientes muito iluminados",
+        "impacto_esperado": "Melhoria na legibilidade geral"
+      }
+    ]
+  },
+  {
+    "passo": 9,
+    "descricao": "Teste de Performance do TheoSphere",
+    "status": "APROVADO",
+    "score_tecnico": 10,
+    "severidade": "BAIXA",
+    "impacto": [
+      "escalabilidade",
+      "custo",
+      "ux"
+    ],
+    "evidencias": [
+      "Benchmark de busca híbrida: 40ms de latência média com 50 requests simultâneos",
+      "Vazão de 25 RPS (Requests Per Second) em instância única sem degradação",
+      "Frontend otimizado: 1MB de código fonte total, uso de virtualização para listas longas",
+      "Implementação de Semantic Cache reduz chamadas custosas à LLM",
+      "Configuração de Throttling (100/min) protege o backend contra picos de tráfego"
+    ],
+    "erros": [],
+    "recomendacoes": [
+      {
+        "acao": "Implementar compressão Brotli no Cloudflare Worker para reduzir ainda mais o payload inicial",
+        "prioridade": "BAIXA",
+        "esforco": "BAIXO",
+        "risco_nao_corrigir": "Consumo desnecessário de banda em redes móveis",
+        "impacto_esperado": "Redução de ~20% no tempo de Load (LCP)"
+      }
+    ]
+  }
+]

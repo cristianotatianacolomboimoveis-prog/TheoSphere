@@ -1,0 +1,38 @@
+{
+  "passo": 6,
+  "descricao": "Teste de Planos e Lembretes do TheoSphere",
+  "status": "PARCIAL",
+  "score_tecnico": 5,
+  "severidade": "MEDIA",
+  "impacto": [
+    "engajamento",
+    "retencao"
+  ],
+  "evidencias": [
+    "Componente StudyBuilder.tsx e hook useNotesSystem.ts implementados no frontend",
+    "Estrutura de dados para StudyPlan definida e integrada ao estado global",
+    "Ausência de serviços de notificação push (FCM/OneSignal) no backend ou frontend",
+    "Ausência de integração com provedores de e-mail (AWS SES, SendGrid, etc.)",
+    "Tarefas agendadas (@Cron) limitadas a manutenção técnica e ingestão"
+  ],
+  "erros": [
+    "Funcionalidade de Lembretes é meramente declarativa (não gera ações proativas)",
+    "Falta de motor de notificações para engajamento do usuário"
+  ],
+  "recomendacoes": [
+    {
+      "acao": "Implementar Firebase Cloud Messaging (FCM) ou Web Push API para lembretes reais",
+      "prioridade": "MEDIA",
+      "esforco": "MEDIO",
+      "risco_nao_corrigir": "Baixo engajamento e esquecimento dos planos de estudo pelos usuários",
+      "impacto_esperado": "Aumento na retenção diária (DAU)"
+    },
+    {
+      "acao": "Configurar um serviço de Email (ex: NestJS Mailer + Amazon SES) para sumários semanais",
+      "prioridade": "BAIXA",
+      "esforco": "MEDIO",
+      "risco_nao_corrigir": "Perda de canal de comunicação enterprise e relatórios de progresso",
+      "impacto_esperado": "Melhoria na percepção de valor do plano Premium"
+    }
+  ]
+}

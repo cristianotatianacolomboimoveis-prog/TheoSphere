@@ -22,10 +22,8 @@ class SemanticSearchEngine {
     if (this.model || this.isInitializing) return;
     this.isInitializing = true;
     
-    console.log("Loading TheoAI Semantic Model...");
     this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     this.isInitializing = false;
-    console.log("TheoAI Semantic Model Ready.");
   }
 
   /**

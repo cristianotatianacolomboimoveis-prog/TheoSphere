@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { initSentry } from './observability/sentry';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 // Initialize Sentry BEFORE Nest spins up — captures bootstrap-time errors too.
 initSentry();
@@ -27,6 +28,8 @@ async function bootstrap() {
     'http://localhost:3001',
     'http://localhost:3002',
   ];
+  
+  app.use(cookieParser());
 
   app.enableCors({
     origin: allowedOrigins,

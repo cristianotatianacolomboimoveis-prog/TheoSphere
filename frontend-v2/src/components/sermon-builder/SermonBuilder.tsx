@@ -28,9 +28,9 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#05080f] text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-white overflow-hidden">
       {/* Header PhD */}
-      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
+      <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
             <PenTool className="w-5 h-5 text-white" />
@@ -46,7 +46,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex px-6 border-b border-white/5 bg-white/[0.02]">
+      <div className="flex px-6 border-b border-border-subtle bg-white/[0.02]">
         {(["write", "ai", "structure"] as const).map(tab => (
           <button
             key={tab}
@@ -91,7 +91,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* AI Sidebar (Contextual) */}
-        <div className="w-80 border-l border-white/5 bg-black/20 backdrop-blur-xl p-6 hidden lg:block">
+        <div className="w-80 border-l border-border-subtle bg-black/20 backdrop-blur-xl p-6 hidden lg:block">
           <div className="flex items-center gap-2 mb-6 text-amber-500">
             <Sparkles className="w-4 h-4" />
             <span className="text-[10px] font-black uppercase tracking-widest">Sugestões de IA</span>
@@ -107,7 +107,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
               Gerar Esboço via RAG
             </button>
 
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+            <div className="p-4 rounded-2xl bg-white/5 border border-border-subtle">
               <h4 className="text-[10px] font-bold text-white/40 uppercase mb-3 flex items-center gap-2">
                 <Quote className="w-3 h-3" /> Citações Recomendadas
               </h4>
@@ -121,7 +121,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Footer Controls */}
-      <div className="p-4 border-t border-white/5 bg-[#05080f] flex justify-between items-center px-8">
+      <div className="p-4 border-t border-border-subtle bg-background flex justify-between items-center px-8">
         <div className="flex items-center gap-4">
           <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Palavras: 0</span>
           <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Tempo est.: 0min</span>

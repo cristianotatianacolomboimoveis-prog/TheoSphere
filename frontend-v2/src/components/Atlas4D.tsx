@@ -284,7 +284,7 @@ export default function Atlas4D() {
   const yearLabel = currentTime < 0 ? `${Math.abs(currentTime)} a.C.` : `${currentTime} d.C.`;
 
   return (
-    <div className="relative w-full h-full bg-[#05080f] overflow-hidden rounded-[24px] border border-white/5 shadow-2xl animate-fade-in">
+    <div className="relative w-full h-full bg-background overflow-hidden rounded-[24px] border border-border-subtle shadow-2xl animate-fade-in">
       {/* MAPA DECK.GL 4D */}
       <DeckGL
         viewState={viewState}
@@ -329,7 +329,7 @@ export default function Atlas4D() {
       </DeckGL>
 
       {/* OVERLAYS UI */}
-      <div className="absolute top-6 left-6 z-10 glass-heavy p-4 rounded-2xl border border-white/10 flex items-center gap-5 shadow-2xl animate-fade-in-down">
+      <div className="absolute top-6 left-6 z-10 glass-heavy p-4 rounded-2xl border border-border-strong flex items-center gap-5 shadow-2xl animate-fade-in-down">
         <div>
           <h2 className="text-sm font-black text-white flex items-center gap-2.5">
             <Layers className="w-4 h-4 text-emerald-500 animate-pulse-glow" /> 
@@ -350,11 +350,11 @@ export default function Atlas4D() {
       {/* IMAGE VIEWER MODAL */}
       {selectedEvent && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-12 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-5xl bg-slate-900 rounded-[32px] border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row h-full max-h-[700px]">
+          <div className="relative w-full max-w-5xl bg-slate-900 rounded-[32px] border border-border-strong overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row h-full max-h-[700px]">
              {/* Close Button */}
              <button 
               onClick={() => setSelectedEvent(null)}
-              className="absolute top-6 right-6 z-[110] w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all"
+              className="absolute top-6 right-6 z-[110] w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xl border border-border-strong transition-all"
              >
                <span className="text-xl font-bold">✕</span>
              </button>

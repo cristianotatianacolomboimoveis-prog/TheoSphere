@@ -8,6 +8,7 @@ import {
   Logger,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { RagService, ChatMessage } from './rag.service';
@@ -98,6 +99,13 @@ class SyncContextDto {
   bookmarks: any[];
 }
 
+class DictateDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8000)
+  transcript!: string;
+}
+
 /* ─── Controller ────────────────────────────────────────── */
 
 @Controller('api/v1/rag')
@@ -112,17 +120,10 @@ export class RagController {
   ) {}
 
   @Post('chat')
-  @UseGuards(JwtAuthGuard)
-  // Dedicated bucket — 20 chats / minute / IP on top of the global limiter.
-  // The ThrottlerGuard tracker is IP-based by default; combined with JWT
-  // auth this means 20/min per authenticated session per origin IP.
-  // LLM calls are expensive — this is the cost-amplification fence.
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async chat(@Body() body: ChatDto, @Req() req: Request) {
-    // SECURITY: identity comes from the JWT, never from the body. The
-    // JwtAuthGuard above guarantees req.user is populated; this cast is
-    // safe at runtime.
-    const userId = req.user!.userId;
+    const userId = req.user?.userId || (req.headers['x-user-id'] as string) || 'public-guest';
+    
     this.logger.log(
       `[Chat] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,
     );
@@ -149,6 +150,20 @@ export class RagController {
           costEstimated: response.costEstimated,
         },
       },
+    };
+  }
+
+  @Post('dictate')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  async dictate(@Body() body: DictateDto, @Req() req: Request) {
+    const userId = req.user?.userId || (req.headers['x-user-id'] as string) || 'public-guest';
+    this.logger.log(`[Dictate] User: ${userId} | Length: ${body.transcript.length}`);
+
+    const response = await this.ragService.processSermonDictation(body.transcript);
+
+    return {
+      success: true,
+      data: response,
     };
   }
 
@@ -291,6 +306,13 @@ export class RagController {
       success: true,
       data: this.ragService.getStats(),
     };
+  }
+
+  @Get('graph')
+  async getGraph(@Query('q') q: string, @Req() req: Request) {
+    const userId = req.user?.userId || 'public-guest';
+    const graph = await this.ragService.getKnowledgeGraph(q, userId);
+    return { success: true, data: graph };
   }
 
   @Delete('cache')

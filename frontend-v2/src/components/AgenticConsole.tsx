@@ -11,7 +11,7 @@ export default function AgenticConsole() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
   const [result, setResult] = useState<string | null>(null);
-  const { chat } = useRAG();
+  const { chat, initEdgeAI, edgeAIStatus } = useRAG();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const predefinedSteps = [
@@ -65,8 +65,30 @@ export default function AgenticConsole() {
             <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest opacity-70">Persona: Teólogo Sistemático PhD</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
+        <div className="flex items-center gap-4">
+          {edgeAIStatus ? (
+             <div className="flex flex-col items-end gap-1">
+               <div className="flex gap-2 items-center">
+                 <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{edgeAIStatus.text}</span>
+                 <span className="text-[8px] font-mono text-blue-400/50">{(edgeAIStatus.progress * 100).toFixed(0)}%</span>
+               </div>
+               <div className="w-24 h-1 bg-blue-500/10 rounded-full overflow-hidden">
+                 <motion.div 
+                   className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+                   initial={{ width: 0 }}
+                   animate={{ width: `${edgeAIStatus.progress * 100}%` }}
+                 />
+               </div>
+             </div>
+          ) : (
+            <button 
+              onClick={initEdgeAI}
+              className="text-[8px] px-3 py-1.5 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 font-black uppercase tracking-widest transition-all"
+            >
+              Ativar IA Offline (Edge GPU)
+            </button>
+          )}
+          <div className="flex gap-1.5 ml-2">
             <div className="w-2 h-2 rounded-full bg-red-500/50" />
             <div className="w-2 h-2 rounded-full bg-amber-500/50" />
             <div className="w-2 h-2 rounded-full bg-emerald-500/50" />
@@ -145,7 +167,9 @@ export default function AgenticConsole() {
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
           <div className="flex gap-4">
-            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">Modelo: Gemini 1.5 Flash</span>
+            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">
+              {edgeAIStatus?.progress === 1 ? "Modelo: Edge AI (WebGPU Offline)" : "Modelo: Gemini 1.5 Flash"}
+            </span>
             <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">Contexto: Hybrid RAG</span>
           </div>
           <span className="text-[9px] text-primary/50 font-bold uppercase tracking-tighter">Pronto para receber comando</span>

@@ -18,7 +18,7 @@ export interface ClassicCommentary {
 export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   {
     id: 'calvin-john-3-16',
-    reference: 'John 3:16',
+    reference: 'João 3:16',
     author: 'João Calvino',
     work: 'Comentários sobre o Evangelho de João',
     year: '1553',
@@ -27,7 +27,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-john-3-16',
-    reference: 'John 3:16',
+    reference: 'João 3:16',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -36,7 +36,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-john-3-16',
-    reference: 'John 3:16',
+    reference: 'João 3:16',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1885',
@@ -45,7 +45,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'wesley-john-3-16',
-    reference: 'John 3:16',
+    reference: 'João 3:16',
     author: 'John Wesley',
     work: 'Explanatory Notes upon the New Testament',
     year: '1755',
@@ -54,7 +54,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'barnes-john-3-16',
-    reference: 'John 3:16',
+    reference: 'João 3:16',
     author: 'Albert Barnes',
     work: "Barnes' Notes on the New Testament",
     year: '1832',
@@ -63,7 +63,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-john-1-1',
-    reference: 'John 1:1',
+    reference: 'João 1:1',
     author: 'João Calvino',
     work: 'Comentários sobre o Evangelho de João',
     year: '1553',
@@ -72,7 +72,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-john-1-1',
-    reference: 'John 1:1',
+    reference: 'João 1:1',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -81,7 +81,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-romans-3-23',
-    reference: 'Romans 3:23',
+    reference: 'Romanos 3:23',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -90,7 +90,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-romans-3-23',
-    reference: 'Romans 3:23',
+    reference: 'Romanos 3:23',
     author: 'João Calvino',
     work: 'Comentários sobre Romanos',
     year: '1540',
@@ -99,7 +99,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-romans-5-8',
-    reference: 'Romans 5:8',
+    reference: 'Romanos 5:8',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -108,7 +108,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-romans-5-8',
-    reference: 'Romans 5:8',
+    reference: 'Romanos 5:8',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1871',
@@ -117,7 +117,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'gill-romans-8-28',
-    reference: 'Romans 8:28',
+    reference: 'Romanos 8:28',
     author: 'John Gill',
     work: 'Exposition of the Entire Bible',
     year: '1763',
@@ -126,7 +126,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'wesley-romans-8-28',
-    reference: 'Romans 8:28',
+    reference: 'Romanos 8:28',
     author: 'John Wesley',
     work: 'Explanatory Notes upon the New Testament',
     year: '1755',
@@ -135,7 +135,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-romans-8-38-39',
-    reference: 'Romans 8:38-39',
+    reference: 'Romanos 8:38-39',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1869',
@@ -144,7 +144,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-genesis-1-1',
-    reference: 'Genesis 1:1',
+    reference: 'Gênesis 1:1',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -153,7 +153,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-genesis-1-1',
-    reference: 'Genesis 1:1',
+    reference: 'Gênesis 1:1',
     author: 'João Calvino',
     work: 'Comentários sobre o Gênesis',
     year: '1554',
@@ -162,7 +162,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-ephesians-2-8-9',
-    reference: 'Ephesians 2:8-9',
+    reference: 'Efésios 2:8-9',
     author: 'João Calvino',
     work: 'Comentários sobre Efésios',
     year: '1548',
@@ -171,7 +171,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-ephesians-2-8-9',
-    reference: 'Ephesians 2:8-9',
+    reference: 'Efésios 2:8-9',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -180,7 +180,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-ephesians-2-8-9',
-    reference: 'Ephesians 2:8-9',
+    reference: 'Efésios 2:8-9',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1858',
@@ -189,7 +189,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-hebrews-11-1',
-    reference: 'Hebrews 11:1',
+    reference: 'Hebreus 11:1',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -198,7 +198,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-hebrews-11-1',
-    reference: 'Hebrews 11:1',
+    reference: 'Hebreus 11:1',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1866',
@@ -207,7 +207,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-psalms-23-1',
-    reference: 'Psalms 23:1',
+    reference: 'Salmos 23:1',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -216,7 +216,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-psalms-23-1',
-    reference: 'Psalms 23:1',
+    reference: 'Salmos 23:1',
     author: 'Charles Spurgeon',
     work: 'The Treasury of David',
     year: '1865',
@@ -225,7 +225,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-isaiah-53-5',
-    reference: 'Isaiah 53:5',
+    reference: 'Isaías 53:5',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -234,7 +234,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-isaiah-53-5',
-    reference: 'Isaiah 53:5',
+    reference: 'Isaías 53:5',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1877',
@@ -243,7 +243,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-1cor-13-4-7',
-    reference: '1 Corinthians 13:4-7',
+    reference: '1 Coríntios 13:4-7',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -252,7 +252,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-philippians-4-13',
-    reference: 'Philippians 4:13',
+    reference: 'Filipenses 4:13',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -261,7 +261,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-philippians-4-13',
-    reference: 'Philippians 4:13',
+    reference: 'Filipenses 4:13',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1876',
@@ -270,7 +270,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-jeremiah-29-11',
-    reference: 'Jeremiah 29:11',
+    reference: 'Jeremias 29:11',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -279,7 +279,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-matthew-5-3-12',
-    reference: 'Matthew 5:3-12',
+    reference: 'Mateus 5:3-12',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -288,7 +288,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'spurgeon-matthew-5-3-12',
-    reference: 'Matthew 5:3-12',
+    reference: 'Mateus 5:3-12',
     author: 'Charles Spurgeon',
     work: 'Metropolitan Tabernacle Pulpit',
     year: '1872',
@@ -298,7 +298,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-matthew-6-9',
-    reference: 'Matthew 6:9-13',
+    reference: 'Mateus 6:9-13',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -308,7 +308,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-matthew-28-19',
-    reference: 'Matthew 28:18-20',
+    reference: 'Mateus 28:18-20',
     author: 'João Calvino',
     work: 'Comentários sobre a Harmonia dos Evangelhos',
     year: '1555',
@@ -318,7 +318,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'henry-ephesians-6-11',
-    reference: 'Ephesians 6:10-18',
+    reference: 'Efésios 6:10-18',
     author: 'Matthew Henry',
     work: 'Commentary on the Whole Bible',
     year: '1706',
@@ -328,7 +328,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
   },
   {
     id: 'calvin-2tim-3-16',
-    reference: '2 Timothy 3:16',
+    reference: '2 Timóteo 3:16',
     author: 'João Calvino',
     work: 'Comentários sobre as Epístolas Pastorais',
     year: '1548',

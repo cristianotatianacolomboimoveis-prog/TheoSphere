@@ -1,34 +1,47 @@
 "use client";
 
 import * as React from "react";
-import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from "next-themes";
-import type { ThemeProviderProps } from "next-themes";
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return (
-    <NextThemesProvider
-      attribute="data-theme"
-      defaultTheme="dark"
-      enableSystem
-      disableTransitionOnChange
-      {...props}
-    >
-      {children}
-    </NextThemesProvider>
-  );
+interface ThemeProviderProps {
+  children: React.ReactNode;
 }
 
 /**
- * useTheme — wrapper sobre next-themes com helper `toggle()`.
- * Usa o hook oficial do next-themes (nunca require()).
+ * TheoSphere Theme Provider (React 19 Optimized)
+ * 
+ * Bypasses next-themes script injection which crashes React 19/Next 16.
+ * Manages 'data-theme' attribute manually on the document element.
  */
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [theme, setTheme] = React.useState<"dark" | "light">("dark");
+
+  React.useEffect(() => {
+    // Sincroniza com o DOM
+    const root = window.document.documentElement;
+    root.setAttribute("data-theme", theme);
+    root.style.colorScheme = theme;
+  }, [theme]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+const ThemeContext = React.createContext<{
+  theme: string;
+  setTheme: (t: "dark" | "light") => void;
+} | null>(null);
+
 export function useTheme() {
-  const ctx = useNextTheme();
+  const ctx = React.useContext(ThemeContext);
+  if (!ctx) return { theme: "dark", setTheme: () => {}, toggle: () => {} };
+
   return {
     theme: ctx.theme,
-    resolvedTheme: ctx.resolvedTheme,
+    resolvedTheme: ctx.theme,
     setTheme: ctx.setTheme,
-    toggle: () =>
-      ctx.setTheme(ctx.resolvedTheme === "dark" ? "light" : "dark"),
+    toggle: () => ctx.setTheme(ctx.theme === "dark" ? "light" : "dark"),
   };
 }

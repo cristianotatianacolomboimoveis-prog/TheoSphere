@@ -17,7 +17,7 @@ export const ExegeticalConcordance: React.FC<ExegeticalConcordanceProps> = ({
   occurrences,
   lexicalData
 }) => (
-  <div className="glass rounded-xl border border-white/5 p-4 mb-4">
+  <div className="glass rounded-xl border border-border-subtle p-4 mb-4">
     <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Hash className="w-3.5 h-3.5" />

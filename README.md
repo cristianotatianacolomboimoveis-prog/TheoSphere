@@ -7,8 +7,16 @@ Este projeto passou por uma reconstrução completa e estabilização para ating
 - **Infraestrutura**: Estável com fallback inteligente (resiliência a falta de Redis/Docker).
 - **Backend (NestJS)**: Hardened com filtros globais de exceção, Sentry e auditoria.
 - **Frontend (Next.js 15)**: Nova interface "OS Shell" com Sidebar e Console Agêntico funcional.
-- **AI/RAG**: Pipeline otimizado com cache semântico e fallbacks robustos para modo offline.
-- **Dados**: Dataset enriquecido com entradas acadêmicas de alta qualidade (BDAG/HALOT).
+- **AI/RAG**: Pipeline otimizado com cache semântico e fallbacks robustos para modo offline. Sua arquitetura de IA é baseada em **precisão científica e rigor técnico**.
+- **Dados e Recursos**: Dataset gigantesco e academicamente validado contendo:
+  - Quase 45 mil anotações exegéticas e comentários acadêmicos aprofundados
+  - Centenas de reconstruções cartográficas e mapas históricos
+  - Extenso material comparativo com tabelas de correlação teológica
+  - Inúmeros infográficos e sínteses temáticas detalhadas
+  - Ensaios e monografias sobre os desafios da teologia cristã contemporânea
+  - Prólogos estruturais e análises de contexto para todos os livros canônicos
+  - Motor avançado de referências cruzadas e léxico integrado
+  - Farta diagramação visual para elucidação de doutrinas complexas
 
 ## 🛠️ Como Iniciar
 

@@ -41,13 +41,13 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-bold text-white transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-border-strong rounded-2xl text-xs font-bold text-white transition-all"
           >
             <RefreshCw className="w-4 h-4" />
             Reiniciar Núcleo
           </button>
           
-          <div className="mt-12 p-4 bg-black/40 rounded-xl border border-white/5 text-left max-w-2xl overflow-auto max-h-40">
+          <div className="mt-12 p-4 bg-black/40 rounded-xl border border-border-subtle text-left max-w-2xl overflow-auto max-h-40">
              <pre className="text-[10px] font-mono text-red-400/60 leading-tight">
                {this.state.error?.stack}
              </pre>

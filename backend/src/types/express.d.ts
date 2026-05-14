@@ -12,7 +12,6 @@
 import type { Role } from '../auth/roles.decorator';
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface User {
       userId: string;

@@ -23,7 +23,7 @@ interface InterlinearTableProps {
   selectedChapter: number;
   isNT: boolean;
   words: WordData[];
-  onWordHover?: (word: string, strongId: string, pos: { x: number; y: number }) => void;
+  onWordHover?: (word: any, event: React.MouseEvent) => void;
 }
 
 export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, words, onWordHover }: InterlinearTableProps) {
@@ -80,7 +80,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             className={`flex items-center gap-3 px-6 py-2.5 rounded-2xl border transition-all text-[11px] font-black uppercase tracking-widest ${
               deepMode 
                 ? "bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/30" 
-                : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                : "bg-white/5 border-border-strong text-white/40 hover:bg-white/10"
             }`}
           >
             <Info className="w-4 h-4" />
@@ -95,7 +95,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
           <div 
             key={wi} 
             className="group flex items-center bg-surface border border-border-subtle rounded-[2.5rem] p-6 hover:bg-surface-hover hover:border-primary/20 transition-all duration-300 shadow-xl"
-            onMouseEnter={(e) => { setHoveredWord(word); onWordHover?.(word.original, word.strong, { x: e.clientX, y: e.clientY }); }}
+            onMouseEnter={(e) => { setHoveredWord(word); onWordHover?.(word, e); }}
             onMouseLeave={() => setHoveredWord(null)}
             onMouseMove={handleMouseMove}
           >
@@ -111,7 +111,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
 
             {/* Right: Textual Details (Translit over Definition) */}
             <div className="flex flex-col gap-1 pr-8">
-              <div className="text-lg font-bold text-[#3b82f6] tracking-wide leading-none">
+              <div className="text-lg font-bold text-accent tracking-wide leading-none">
                 {word.translit}
               </div>
               <div className="text-[13px] text-foreground/30 leading-snug font-medium line-clamp-2">
@@ -198,7 +198,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Lexicon PhD Analysis
               </span>
-              <span className="text-[10px] font-mono text-white/30 bg-white/5 px-2 py-1 rounded border border-white/10">{hoveredWord.strong}</span>
+              <span className="text-[10px] font-mono text-white/30 bg-white/5 px-2 py-1 rounded border border-border-strong">{hoveredWord.strong}</span>
             </div>
             
             <div className="mb-5">

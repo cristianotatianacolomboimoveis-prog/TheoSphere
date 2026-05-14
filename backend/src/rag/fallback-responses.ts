@@ -10,93 +10,186 @@ export function generateFallbackResponse(
 ): string {
   const lower = query.toLowerCase();
 
+  const isNT =
+    /mateus|marcos|lucas|joao|joão|atos|romanos|corintios|coríntios|galatas|gálatas|efesios|efésios|filipenses|colossenses|tessalonicenses|timoteo|timóteo|tito|filemon|filemom|hebreus|tiago|pedro|judas|apocalipse|mt|mc|lc|jo|at|rm|co|gl|ef|fp|cl|ts|tm|tt|fm|hb|tg|pe|jd|ap/i.test(
+      lower,
+    );
+
   if (jsonMode) {
+    if (!isNT) {
+      return JSON.stringify({
+        verse:
+          query.match(/\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i)?.[0] ||
+          'Gênesis 1:1',
+        original_language: 'HB',
+        interlinear: [
+          {
+            word: 'בְּרֵאשִׁית',
+            transliteration: 'bereshit',
+            strong: 'H7225',
+            morphology: 'Preposição + Substantivo (Fem. Sing.)',
+            translation: 'No princípio',
+          },
+          {
+            word: 'בָּרָא',
+            transliteration: 'bara',
+            strong: 'H1254',
+            morphology: 'Verbo Qal (Perf. 3 Masc. Sing.)',
+            translation: 'criou',
+          },
+          {
+            word: 'אֱלֹהִים',
+            transliteration: 'elohim',
+            strong: 'H430',
+            morphology: 'Substantivo (Masc. Plur.)',
+            translation: 'Deus',
+          },
+          {
+            word: 'אֵת',
+            transliteration: 'et',
+            strong: 'H853',
+            morphology: 'Partícula indicadora de objeto direto',
+            translation: '(marca de objeto)',
+          },
+          {
+            word: 'הַשָּׁמַיִם',
+            transliteration: 'hashamayim',
+            strong: 'H8064',
+            morphology: 'Artigo + Substantivo (Masc. Plur.)',
+            translation: 'os céus',
+          },
+        ],
+        lexical_analysis: [
+          {
+            word: 'בָּרָא (bara)',
+            bdag_halot_sense: 'Criar, produzir, transformar. Usado exclusivamente para a atividade criativa de Deus a partir do nada (ex nihilo).',
+            academic_discussion:
+              'O termo sugere uma novidade absoluta na existência, distinguindo o Criador da criação.',
+          },
+        ],
+        syntactic_notes:
+          'A estrutura V-S (Verbo-Sujeito) no início do texto enfatiza a ação criadora divina como ponto de partida da história.',
+        syntactic_graph: {
+          nodes: [
+            { id: '1', label: 'bara (criou)', type: 'verb' },
+            { id: '2', label: 'Elohim (Deus)', type: 'subject' },
+            { id: '3', label: 'hashamayim (céus)', type: 'object' },
+          ],
+          edges: [
+            { source: '1', target: '2', relation: 'sujeito' },
+            { source: '1', target: '3', relation: 'objeto' },
+          ],
+        },
+        technical_commentary: [
+          {
+            source: 'Comentário de Calvino',
+            view: 'Deus criou o mundo para que fosse o teatro de Sua glória.',
+          },
+        ],
+        systematic_connection: {
+          locus: 'Teologia Própria / Protologia',
+          explanation: 'Afirma a soberania e a preexistência de Deus sobre toda a matéria.',
+        },
+      });
+    }
+
     return JSON.stringify({
       verse:
-        query.match(/\b([1-3]?\s?[a-zA-Z]+)\s(\d+):(\d+)\b/)?.[0] ||
+        query.match(/\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i)?.[0] ||
         'João 3:16',
-      original_language:
-        lower.includes('hebraico') ||
-        lower.includes('hb') ||
-        lower.includes('bhs')
-          ? 'HB'
-          : 'GK',
+      original_language: 'GK',
       interlinear: [
         {
-          word: 'ἐν',
-          transliteration: 'en',
-          strong: 'G1722',
-          morphology: 'prep',
-          translation: 'no',
+          word: 'Οὕτως',
+          transliteration: 'Houtōs',
+          strong: 'G3779',
+          morphology: 'Advérbio',
+          translation: 'De tal maneira',
         },
         {
-          word: 'ἀρχῇ',
-          transliteration: 'archē',
-          strong: 'G746',
-          morphology: 'noun: dat sing fem',
-          translation: 'princípio',
+          word: 'γὰρ',
+          transliteration: 'gar',
+          strong: 'G1063',
+          morphology: 'Conjunção pós-positiva',
+          translation: 'porque',
         },
         {
-          word: 'ἦν',
-          transliteration: 'ēn',
-          strong: 'G1510',
-          morphology: 'verb: impf act ind 3 sing',
-          translation: 'era',
+          word: 'ἠγάπησεν',
+          transliteration: 'ēgapēsen',
+          strong: 'G25',
+          morphology: 'Verbo Aoristo Ativo (3 Sing.)',
+          translation: 'amou',
         },
         {
           word: 'ὁ',
           transliteration: 'ho',
           strong: 'G3588',
-          morphology: 'art: nom sing masc',
+          morphology: 'Artigo (Nom. Sing. Masc.)',
           translation: 'o',
         },
         {
-          word: 'Λόgος',
-          transliteration: 'Logos',
-          strong: 'G3056',
-          morphology: 'noun: nom sing masc',
-          translation: 'Verbo',
+          word: 'Θεὸς',
+          transliteration: 'Theos',
+          strong: 'G2316',
+          morphology: 'Substantivo (Nom. Sing. Masc.)',
+          translation: 'Deus',
         },
       ],
       lexical_analysis: [
         {
-          word: 'Λόγος (Logos)',
-          bdag_halot_sense:
-            'Princípio ordenador, palavra viva, revelação divina encarnada.',
-          academic_discussion:
-            'Discussão central no prólogo joanino sobre a preexistência do Messias.',
+          word: 'ἀγάπη (agapē)',
+          bdag_halot_sense: 'Amor sacrificial, incondicional e volitivo.',
+          academic_discussion: 'Distinto de eros ou philia, agape foca no bem do objeto amado.',
         },
       ],
-      syntactic_notes:
-        "O uso do imperfeito 'ēn' indica existência contínua no passado eterno.",
+      syntactic_notes: 'O uso do tempo Aoristo indica uma ação completa e histórica: o amor de Deus manifestado na vinda de Cristo.',
       syntactic_graph: {
         nodes: [
-          { id: '1', label: 'Verbo', type: 'subject' },
-          { id: '2', label: 'era', type: 'verb' },
-          { id: '3', label: 'princípio', type: 'context' },
+          { id: '1', label: 'amou', type: 'verb' },
+          { id: '2', label: 'Deus', type: 'subject' },
+          { id: '3', label: 'mundo', type: 'object' },
         ],
         edges: [
-          { source: '1', target: '2', relation: 'sujeito-verbo' },
-          { source: '2', target: '3', relation: 'temporal' },
+          { source: '1', target: '2', relation: 'sujeito' },
+          { source: '1', target: '3', relation: 'objeto' },
         ],
       },
       technical_commentary: [
         {
-          source: 'F.F. Bruce',
-          view: 'O Verbo não teve início, Ele já era no início.',
-        },
-        {
-          source: 'Calvino',
-          view: 'A divindade de Cristo é estabelecida por Sua eternidade.',
+          source: 'B.B. Warfield',
+          view: 'O foco não é a qualidade do mundo, mas a imensidão do amor de Deus por ele.',
         },
       ],
       systematic_connection: {
-        locus: 'Cristologia',
-        explanation: 'Aseidade e eternidade da Segunda Pessoa da Trindade.',
+        locus: 'Soteriologia',
+        explanation: 'A centralidade da fé como canal da vida eterna.',
       },
     });
   }
 
+  // ─── Lógica de Fallback JSON Universal ────────────────────────────
+  if (jsonMode) {
+    // Se não for uma das passagens "Gold" acima, gera um template dinâmico básico
+    // para evitar que o frontend quebre ao receber texto puro.
+    return JSON.stringify({
+      verse: query.replace(/exegese|análise|phd/gi, '').trim() || 'Referência Bíblica',
+      original_language: 'HB/GK',
+      interlinear: [
+        { word: '...', transliteration: '...', strong: '...', morphology: '...', translation: 'Dados indisponíveis no modo offline' }
+      ],
+      lexical_analysis: [
+        { word: '...', bdag_halot_sense: 'Conexão limitada ou modo de segurança ativo.', academic_discussion: 'O sistema de fallback foi acionado para preservar a estabilidade da interface.' }
+      ],
+      syntactic_notes: 'Análise sintática suspensa temporariamente.',
+      syntactic_graph: { nodes: [], edges: [] },
+      technical_commentary: [
+        { source: 'Sistema de Recuperação', view: 'A IA principal não pôde processar esta requisição no formato solicitado. Por favor, tente novamente em alguns instantes.' }
+      ],
+      systematic_connection: { locus: 'Geral', explanation: 'Conexão teológica em processamento.' }
+    });
+  }
+
+  // ─── Lógica de Fallback Textual (Markdown) ─────────────────────────
   if (
     lower.includes('predestinação') ||
     lower.includes('livre-arbítrio') ||

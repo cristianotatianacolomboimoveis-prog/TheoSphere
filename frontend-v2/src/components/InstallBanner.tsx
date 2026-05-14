@@ -23,7 +23,6 @@ export default function InstallBanner() {
     window.addEventListener('appinstalled', () => {
       setIsVisible(false);
       setDeferredPrompt(null);
-      console.log('TheoSphere instalado com sucesso.');
     });
 
     return () => {
@@ -39,7 +38,6 @@ export default function InstallBanner() {
     
     // Espera pela resposta do usuário
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
     
     // Limpa o prompt
     setDeferredPrompt(null);

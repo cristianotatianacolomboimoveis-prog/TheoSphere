@@ -38,6 +38,18 @@ export const BIBLICAL_PEOPLE: BiblicalPerson[] = [
     period: "Início da Criação"
   },
   {
+    id: "deus",
+    namePt: "Deus",
+    nameHe: "אֱלֹהִים (Elohim) / יהוה (Yahweh)",
+    etymology: "O Ser Supremo, o Criador.",
+    covenant: "Adâmica",
+    theologicalFunction: "Criador, Sustentador, Legislador e Redentor. O motor primário de toda a história bíblica.",
+    genealogy: "Autoexistente (Sem princípio nem fim).",
+    description: "O Deus Triúno que traz todas as coisas à existência e governa com soberania absoluta.",
+    keyVerses: ["Genesis 1:1", "Exodus 3:14", "Revelation 1:8"],
+    period: "Eternidade"
+  },
+  {
     id: "noe",
     namePt: "Noé",
     nameHe: "נֹחַ (Noach)",

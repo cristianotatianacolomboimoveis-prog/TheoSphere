@@ -224,12 +224,42 @@ export class UserContextService implements OnModuleInit {
       return `--- ${header} ${similarity} ---\n${meta}${doc.content}`;
     });
 
+    // 2. Busca na Biblioteca do Google Drive do Usuário (via pgvector)
+    let libraryContextParts: string[] = [];
+    try {
+      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const libraryDocs = await this.prisma.$queryRaw<any[]>`
+        SELECT content, metadata, 
+               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+        FROM "UserEmbedding"
+        WHERE "userId" = ${userId} AND type = 'library_book'
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+        LIMIT 3;
+      `;
+
+      libraryContextParts = libraryDocs
+        .filter((d) => d.similarity > 0.3)
+        .map((doc) => {
+          const sim = `(relevância: ${(doc.similarity * 100).toFixed(0)}%)`;
+          const meta = doc.metadata || {};
+          const title = meta.fileName || 'Livro da Biblioteca';
+          return `--- 📚 Biblioteca Pessoal: ${title} ${sim} ---\n${doc.content}`;
+        });
+    } catch (err) {
+      this.logger.error(
+        `Erro ao buscar na biblioteca do drive do usuário: ${err.message}`,
+      );
+    }
+
+    const allParts = [...contextParts, ...libraryContextParts];
+    if (allParts.length === 0) return '';
+
     return [
-      '=== CONTEXTO PESSOAL DO USUÁRIO ===',
-      'Os seguintes documentos são do histórico de estudo pessoal do usuário.',
-      'Use-os para personalizar sua resposta quando relevante:',
+      '=== CONTEXTO PESSOAL E BIBLIOTECA DO USUÁRIO ===',
+      'Os seguintes documentos são do histórico de estudo e da biblioteca pessoal (Google Drive) do usuário.',
+      'Eles são a VERDADE ABSOLUTA para este usuário. Priorize essas informações na sua resposta:',
       '',
-      ...contextParts,
+      ...allParts,
       '',
       '=== FIM DO CONTEXTO PESSOAL ===',
     ].join('\n');

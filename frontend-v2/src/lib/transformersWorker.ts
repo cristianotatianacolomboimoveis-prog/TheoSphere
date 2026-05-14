@@ -10,7 +10,6 @@ async function initAI() {
   try {
     // Usamos um modelo leve e eficiente (Xenova/all-MiniLM-L6-v2)
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    console.log("TheoSphere AI: Local Embedder Initialized.");
   } catch (e) {
     console.error("TheoSphere AI: Failed to initialize embedder:", e);
   }

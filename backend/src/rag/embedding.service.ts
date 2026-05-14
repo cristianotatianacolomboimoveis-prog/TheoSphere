@@ -205,9 +205,13 @@ export class EmbeddingService implements OnModuleDestroy {
     if (this.genAI) {
       try {
         const model = this.genAI.getGenerativeModel({
-          model: 'text-embedding-004',
+          model: 'gemini-embedding-001',
         });
-        const result = await model.embedContent(normalized);
+        const result = await model.embedContent({
+          content: { role: 'user', parts: [{ text: normalized }] },
+          taskType: 'RETRIEVAL_DOCUMENT' as any,
+          outputDimensionality: 768,
+        } as any);
         const embedding = result.embedding.values;
         await this.writeCache(normalized, embedding);
         return embedding;
@@ -260,27 +264,29 @@ export class EmbeddingService implements OnModuleDestroy {
 
     try {
       const model = this.genAI.getGenerativeModel({
-        model: 'text-embedding-004',
+        model: 'gemini-embedding-001',
       });
       const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
 
-      const batchResult = await model.batchEmbedContents({
-        requests: uncachedTexts.map((t) => ({
-          content: { role: 'user', parts: [{ text: t }] },
-        })),
-      });
-
+      // Process in parallel for high performance
       await Promise.all(
-        batchResult.embeddings.map((emb, idx) => {
-          const originalIndex = uncachedIndices[idx];
-          results[originalIndex] = emb.values;
-          return this.writeCache(normalized[originalIndex], emb.values);
-        }),
+        uncachedIndices.map(async (originalIndex, i) => {
+          const text = uncachedTexts[i];
+          const result = await model.embedContent({
+            content: { role: 'user', parts: [{ text }] },
+            taskType: 'RETRIEVAL_DOCUMENT' as any,
+            outputDimensionality: 768,
+          } as any);
+
+          const embedding = result.embedding.values;
+          results[originalIndex] = embedding;
+          await this.writeCache(normalized[originalIndex], embedding);
+        })
       );
 
       return results as number[][];
     } catch (error) {
-      this.logger.error(`Erro Gemini batch embedding: ${error.message}`);
+      this.logger.error(`Erro Gemini embedding: ${error.message}`);
       return texts.map((t) =>
         this.generateLocalFallbackEmbedding(this.normalizeText(t)),
       );

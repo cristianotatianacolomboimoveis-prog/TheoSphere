@@ -1,0 +1,38 @@
+{
+  "passo": 3,
+  "descricao": "Teste de Busca e Pesquisa do TheoSphere",
+  "status": "REPROVADO",
+  "score_tecnico": 4,
+  "severidade": "ALTA",
+  "impacto": [
+    "usabilidade",
+    "funcionalidade"
+  ],
+  "evidencias": [
+    "Busca por 'Pharisee' retornou 0 resultados, apesar de presente em João 3:1",
+    "Busca por 'Pharisees5330' (token com número Strong colado) funcionou",
+    "Identificado problema crítico de tokenização: números Strong estão concatenados com as palavras no DB",
+    "Validação de entrada mínima (2 caracteres) operacional (HTTP 400)",
+    "Parser de busca avançada operacional, mas limitado pela base de dados"
+  ],
+  "erros": [
+    "FTS (Full Text Search) quebrado devido a ruído de dados (números Strong concatenados)",
+    "Busca semântica prejudicada pela qualidade do texto bruto no banco"
+  ],
+  "recomendacoes": [
+    {
+      "acao": "Sanitizar a base de dados: separar números Strong das palavras com espaços ou movê-los para metadados/JSON",
+      "prioridade": "CRITICA",
+      "esforco": "MEDIO",
+      "risco_nao_corrigir": "Busca textual inutilizável para o usuário final",
+      "impacto_esperado": "Recuperação total da funcionalidade de busca e melhoria no ranking"
+    },
+    {
+      "acao": "Reindexar GIN (tsvector) após a limpeza dos dados",
+      "prioridade": "ALTA",
+      "esforco": "BAIXO",
+      "risco_nao_corrigir": "Resultados de busca inconsistentes",
+      "impacto_esperado": "Performance de busca em milissegundos"
+    }
+  ]
+}

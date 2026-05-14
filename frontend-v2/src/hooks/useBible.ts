@@ -18,12 +18,9 @@ export interface ChapterData {
   source?: "cache" | "api";
 }
 
-const getBackendUrl = () => {
-  if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:3002/api/v1/bible`;
-  }
-  return "http://localhost:3002/api/v1/bible";
-};
+import { CONFIG } from "@/lib/config";
+
+const BACKEND_URL = `${CONFIG.API_BASE_URL}/bible`;
 
 export function useBible(primaryTranslation: string, viewMode: "text" | "interlinear", secondaryTranslation?: string) {
   const { activeBook, activeChapter, _hasHydrated } = useTheoStore();
@@ -68,12 +65,11 @@ export function useBible(primaryTranslation: string, viewMode: "text" | "interli
     setLoading(true);
     setChaptersData([]);
 
-    const backendUrl = getBackendUrl();
     postMessage("FETCH_BIBLE_CHAPTER", {
       book: activeBook,
       chapter: activeChapter,
       translation: primaryTranslation,
-      backendUrl
+      backendUrl: BACKEND_URL
     });
 
     if (secondaryTranslation) {
@@ -81,7 +77,7 @@ export function useBible(primaryTranslation: string, viewMode: "text" | "interli
         book: activeBook,
         chapter: activeChapter,
         translation: secondaryTranslation,
-        backendUrl,
+        backendUrl: BACKEND_URL,
         isSecondary: true
       });
     }
@@ -90,7 +86,7 @@ export function useBible(primaryTranslation: string, viewMode: "text" | "interli
       postMessage("FETCH_INTERLINEAR_CHAPTER", {
         book: activeBook,
         chapter: activeChapter,
-        backendUrl
+        backendUrl: BACKEND_URL
       });
     }
   }, [activeBook, activeChapter, primaryTranslation, secondaryTranslation, viewMode, _hasHydrated, postMessage]);

@@ -11,11 +11,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import {
-  IsString,
-  IsNotEmpty,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
 import { OrchestratorService } from './orchestrator.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 

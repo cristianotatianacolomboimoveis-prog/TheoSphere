@@ -162,7 +162,7 @@ function crossrefToItem(work: CrossrefWork): BookItem {
 
 function BookSkeleton() {
   return (
-    <div className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+    <div className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-border-subtle">
       <div className="w-14 h-20 rounded-lg skeleton flex-shrink-0" />
       <div className="flex-grow space-y-2 py-1">
         <div className="h-4 w-3/4 skeleton" />
@@ -385,9 +385,9 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
   /* ── Render ───────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col h-full bg-[#070b14] text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <div className="px-6 pt-5 pb-4 border-b border-white/5 flex-shrink-0 bg-gradient-to-b from-[#070b14] to-transparent z-10">
+      <div className="px-6 pt-5 pb-4 border-b border-border-subtle flex-shrink-0 bg-gradient-to-b from-[#070b14] to-transparent z-10">
         <div className="flex items-center justify-between mb-4">
           {selectedBook ? (
             <button
@@ -443,7 +443,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all border ${
                       activeCategory === cat.id
                         ? "bg-amber-500 border-amber-500 text-slate-950 shadow-lg shadow-amber-500/15"
-                        : "bg-white/[0.03] border-white/5 text-white/40 hover:text-white/70 hover:border-white/15"
+                        : "bg-white/[0.03] border-border-subtle text-white/40 hover:text-white/70 hover:border-white/15"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -468,7 +468,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                   className={`text-[10px] px-2.5 py-1 rounded-md border transition-all font-bold ${
                     sourceFilter === s.id
                       ? "bg-white/10 border-white/20 text-white"
-                      : "border-white/5 text-white/25 hover:text-white/50 hover:border-white/10"
+                      : "border-border-subtle text-white/25 hover:text-white/50 hover:border-border-strong"
                   }`}
                 >
                   {s.label}
@@ -490,9 +490,9 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
             <motion.div key="detail" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="p-6 pb-20">
               <div className="flex gap-6 mb-8">
                 {selectedBook.coverUrl ? (
-                  <img src={selectedBook.coverUrl} alt="" className="w-32 h-48 rounded-xl object-cover shadow-2xl flex-shrink-0 border border-white/10" />
+                  <img src={selectedBook.coverUrl} alt="" className="w-32 h-48 rounded-xl object-cover shadow-2xl flex-shrink-0 border border-border-strong" />
                 ) : (
-                  <div className="w-32 h-48 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center flex-shrink-0 shadow-2xl">
+                  <div className="w-32 h-48 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-border-strong flex items-center justify-center flex-shrink-0 shadow-2xl">
                     {selectedBook.source === "crossref" ? <GraduationCap className="w-10 h-10 text-white/20" /> : <BookOpen className="w-10 h-10 text-white/20" />}
                   </div>
                 )}
@@ -514,7 +514,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                   
                   <div className="flex flex-wrap gap-1.5 mb-5">
                     {selectedBook.subjects.map((s, i) => (
-                      <span key={i} className="text-[9px] font-bold tracking-wider uppercase bg-white/[0.03] border border-white/10 px-2 py-0.5 rounded-md text-white/50">
+                      <span key={i} className="text-[9px] font-bold tracking-wider uppercase bg-white/[0.03] border border-border-strong px-2 py-0.5 rounded-md text-white/50">
                         {s}
                       </span>
                     ))}
@@ -546,17 +546,17 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
 
               {/* Inline Reader with Translation AI */}
               {readingLoading && (
-                <div className="flex flex-col items-center justify-center py-16 glass rounded-xl border border-white/5">
+                <div className="flex flex-col items-center justify-center py-16 glass rounded-xl border border-border-subtle">
                   <Loader2 className="w-8 h-8 text-amber-500 animate-spin mb-4" />
                   <span className="text-xs font-bold tracking-widest uppercase text-white/40">Conectando ao Acervo...</span>
                 </div>
               )}
 
               {(readingContent || translatedContent) && (
-                <div className="relative glass-heavy rounded-2xl border border-white/10 p-1 mt-6 shadow-2xl overflow-hidden group">
+                <div className="relative glass-heavy rounded-2xl border border-border-strong p-1 mt-6 shadow-2xl overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
                   
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle bg-white/[0.02]">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60">
                       Leitor Integrado <span className="text-white/20 mx-1">•</span> Texto Bruto
                     </h4>
@@ -583,8 +583,8 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
               )}
 
               {iframeUrl && !readingContent && (
-                <div className="relative glass-heavy rounded-2xl border border-white/10 p-1 mt-6 shadow-2xl overflow-hidden group h-[70vh] w-full">
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
+                <div className="relative glass-heavy rounded-2xl border border-border-strong p-1 mt-6 shadow-2xl overflow-hidden group h-[70vh] w-full">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle bg-white/[0.02]">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60">
                       Leitor Integrado Nativo
                     </h4>
@@ -599,7 +599,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
               )}
 
               {/* Source badge */}
-              <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-3">
+              <div className="mt-8 pt-6 border-t border-border-subtle flex items-center justify-center gap-3">
                 <Globe2 className="w-4 h-4 text-white/20" />
                 <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">
                   Sincronizado via {selectedBook.source === "crossref" ? "Crossref (Artigos Acadêmicos)" : selectedBook.source === "gutenberg" ? "Project Gutenberg" : "Open Library"}
@@ -622,9 +622,9 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                   className="w-full flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] hover:border-amber-500/30 transition-all text-left group shadow-lg"
                 >
                   {book.coverUrl ? (
-                    <img src={book.coverUrl} alt="" className="w-16 h-24 rounded-lg object-cover flex-shrink-0 border border-white/5 group-hover:border-amber-500/40 transition-all shadow-md" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <img src={book.coverUrl} alt="" className="w-16 h-24 rounded-lg object-cover flex-shrink-0 border border-border-subtle group-hover:border-amber-500/40 transition-all shadow-md" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
-                    <div className="w-16 h-24 rounded-lg bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center flex-shrink-0">
+                    <div className="w-16 h-24 rounded-lg bg-gradient-to-br from-white/5 to-white/[0.02] border border-border-strong flex items-center justify-center flex-shrink-0">
                       {book.source === "crossref" ? <GraduationCap className="w-6 h-6 text-white/20 group-hover:text-amber-500/50 transition-colors" /> : <BookOpen className="w-6 h-6 text-white/20 group-hover:text-amber-500/50 transition-colors" />}
                     </div>
                   )}
@@ -635,7 +635,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
                     <p className="text-[11px] text-white/50 font-medium truncate">{book.author}</p>
                     <div className="mt-auto pt-3 flex flex-wrap items-center gap-1.5">
                       <span className={`tag text-[7px] px-1.5 py-0.5 ${book.source === "gutenberg" ? "tag-emerald" : book.source === "openlibrary" ? "tag-blue" : "tag-amber"}`}>
-                        {book.source === "crossref" ? "ACADEMIC PAPER" : book.source.toUpperCase()}
+                        {book.source === "crossref" ? "ARTIGO ACADÊMICO" : book.source.toUpperCase()}
                       </span>
                       {!book.language.includes("pt") && (
                         <span className="text-[8px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
@@ -660,7 +660,7 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-3 border-t border-white/5 flex-shrink-0 bg-[#070b14]/90 backdrop-blur-md z-10 relative">
+      <div className="px-6 py-3 border-t border-border-subtle flex-shrink-0 bg-[#070b14]/90 backdrop-blur-md z-10 relative">
         <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
         <p className="text-[9px] text-white/20 text-center uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2">
           <Globe2 className="w-3 h-3" /> Conectado às maiores bibliotecas open source do mundo

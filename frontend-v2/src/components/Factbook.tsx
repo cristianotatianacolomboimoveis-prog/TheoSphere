@@ -115,13 +115,13 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           <div className="glass-amber rounded-xl p-4">
             <p className="text-sm text-white/70 leading-relaxed font-serif">{p.description}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2 flex items-center gap-1.5">
               <Clock className="w-3 h-3" /> Período
             </h4>
             <p className="text-sm text-white/60">{p.timeline || p.period}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
               <BookOpen className="w-3 h-3" /> Referências
             </h4>
@@ -131,7 +131,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-2 flex items-center gap-1.5">
               <Link2 className="w-3 h-3" /> Pessoas Relacionadas
             </h4>
@@ -142,7 +142,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           {(p.relatedLocations?.length ?? 0) > 0 && (
-            <div className="glass rounded-xl border border-white/5 p-4">
+            <div className="glass rounded-xl border border-border-subtle p-4">
               <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
                 <MapPin className="w-3 h-3" /> Locais
               </h4>
@@ -155,7 +155,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           )}
 
           {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-white/5 pt-6">
+          <div className="mt-6 border-t border-border-subtle pt-6">
             {!aiAnalysis && !loadingAi ? (
               <button 
                 onClick={() => generateAiAnalysis(p)}
@@ -165,12 +165,12 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 <span className="text-xs font-bold text-amber-500">Gerar Análise IA Profunda (RAG)</span>
               </button>
             ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-white/10">
+              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
                 <Loader2 className="w-6 h-6 text-amber-500 animate-spin mb-2" />
                 <span className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">Consultando Bibliotecas...</span>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-[#0a0f1a] border border-blue-500/20 relative group">
+              <div className="p-4 rounded-xl bg-surface border border-blue-500/20 relative group">
                 <div className="absolute top-4 right-4">
                   <Sparkles className="w-4 h-4 text-blue-400 opacity-30" />
                 </div>
@@ -207,13 +207,13 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
               {(loc as any).description || (loc as any).theologicalSignificance}
             </p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2 flex items-center gap-1.5">
               <Globe2 className="w-3 h-3" /> Coordenadas
             </h4>
             <p className="text-xs text-white/40 font-mono">{loc.coordinates[1].toFixed(4)}, {loc.coordinates[0].toFixed(4)}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
               <BookOpen className="w-3 h-3" /> Referências Bíblicas
             </h4>
@@ -225,7 +225,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-white/5 pt-6">
+          <div className="mt-6 border-t border-border-subtle pt-6">
             {!aiAnalysis && !loadingAi ? (
               <button 
                 onClick={() => generateAiAnalysis(loc)}
@@ -235,12 +235,12 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 <span className="text-xs font-bold text-blue-400">Gerar Análise Geográfica (RAG)</span>
               </button>
             ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-white/10">
+              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
                 <Loader2 className="w-6 h-6 text-blue-500 animate-spin mb-2" />
                 <span className="text-[10px] font-bold text-blue-500/60 uppercase tracking-widest">Consultando Atlas...</span>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-[#0a0f1a] border border-blue-500/20 relative group">
+              <div className="p-4 rounded-xl bg-surface border border-blue-500/20 relative group">
                 <div className="absolute top-4 right-4">
                   <Sparkles className="w-4 h-4 text-blue-400 opacity-30" />
                 </div>
@@ -275,11 +275,11 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           <div className="glass-amber rounded-xl p-4">
             <p className="text-sm text-white/70 leading-relaxed font-serif">{e.description}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2">Significado Teológico</h4>
             <p className="text-sm text-emerald-400/70 leading-relaxed italic font-serif">{e.significance || e.soteriologicalSignificance}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
               <BookOpen className="w-3 h-3" /> Referências
             </h4>
@@ -290,7 +290,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           {e.people.length > 0 && (
-            <div className="glass rounded-xl border border-white/5 p-4">
+            <div className="glass rounded-xl border border-border-subtle p-4">
               <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-2">Pessoas Envolvidas</h4>
               <div className="flex flex-wrap gap-1.5">
                 {e.people.map((p, i) => <span key={i} className="tag tag-purple text-[10px]">{p}</span>)}
@@ -298,7 +298,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {e.locations.length > 0 && (
-            <div className="glass rounded-xl border border-white/5 p-4">
+            <div className="glass rounded-xl border border-border-subtle p-4">
               <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">Locais</h4>
               <div className="flex flex-wrap gap-1.5">
                 {e.locations.map((l, i) => <span key={i} className="tag tag-blue text-[10px]">{l}</span>)}
@@ -307,7 +307,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           )}
 
           {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-white/5 pt-6">
+          <div className="mt-6 border-t border-border-subtle pt-6">
             {!aiAnalysis && !loadingAi ? (
               <button 
                 onClick={() => generateAiAnalysis(e)}
@@ -317,12 +317,12 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 <span className="text-xs font-bold text-purple-400">Reconstruir Evento via IA (RAG)</span>
               </button>
             ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-white/10">
+              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
                 <Loader2 className="w-6 h-6 text-purple-500 animate-spin mb-2" />
                 <span className="text-[10px] font-bold text-purple-500/60 uppercase tracking-widest">Processando Cronologia...</span>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-[#0a0f1a] border border-purple-500/20 relative group">
+              <div className="p-4 rounded-xl bg-surface border border-accent/20 relative group">
                 <div className="absolute top-4 right-4">
                   <Sparkles className="w-4 h-4 text-purple-400 opacity-30" />
                 </div>
@@ -354,7 +354,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           <div className="glass-amber rounded-xl p-4">
             <p className="text-sm text-white/70 leading-relaxed font-serif">{t.definition}</p>
           </div>
-          <div className="glass rounded-xl border border-white/5 p-4">
+          <div className="glass rounded-xl border border-border-subtle p-4">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">Referências Bíblicas</h4>
             <div className="space-y-1">
               {t.keyVerses.map((v, i) => (
@@ -363,7 +363,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           {t.perspectives.length > 0 && (
-            <div className="glass rounded-xl border border-white/5 p-4">
+            <div className="glass rounded-xl border border-border-subtle p-4">
               <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-3">Perspectivas Teológicas</h4>
               <div className="space-y-3">
                 {t.perspectives.map((p, i) => (
@@ -376,7 +376,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {t.relatedTopics.length > 0 && (
-            <div className="glass rounded-xl border border-white/5 p-4">
+            <div className="glass rounded-xl border border-border-subtle p-4">
               <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-amber-400 mb-2">Tópicos Relacionados</h4>
               <div className="flex flex-wrap gap-1.5">
                 {t.relatedTopics.map((rt, i) => <span key={i} className="tag tag-amber text-[10px]">{rt}</span>)}
@@ -385,7 +385,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           )}
 
           {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-white/5 pt-6">
+          <div className="mt-6 border-t border-border-subtle pt-6">
             {!aiAnalysis && !loadingAi ? (
               <button 
                 onClick={() => generateAiAnalysis(t)}
@@ -395,12 +395,12 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 <span className="text-xs font-bold text-amber-500">Aprofundar Tópico via RAG</span>
               </button>
             ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-white/10">
+              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
                 <Loader2 className="w-6 h-6 text-amber-500 animate-spin mb-2" />
                 <span className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">Consultando Teologia...</span>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-[#0a0f1a] border border-amber-500/20 relative group">
+              <div className="p-4 rounded-xl bg-surface border border-accent/20 relative group">
                 <div className="absolute top-4 right-4">
                   <Sparkles className="w-4 h-4 text-amber-500 opacity-30" />
                 </div>
@@ -422,9 +422,9 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
   /* ── Render ───────────────────────────────────────────── */
   return (
-    <div className="flex flex-col h-full bg-[#070b14] text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-white/5 flex-shrink-0">
+      <div className="px-5 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           {selected ? (
             <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors">
@@ -470,7 +470,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all border ${
                       activeTab === tab.id
                         ? "bg-amber-500 border-amber-500 text-slate-950"
-                        : "bg-white/[0.03] border-white/5 text-white/40 hover:text-white/70"
+                        : "bg-white/[0.03] border-border-subtle text-white/40 hover:text-white/70"
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -522,7 +522,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
         </AnimatePresence>
       </div>
 
-      <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
+      <div className="px-5 py-2.5 border-t border-border-subtle flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
           Enciclopédia · TheoSphere OS
         </p>

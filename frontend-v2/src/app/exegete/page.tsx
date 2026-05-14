@@ -11,9 +11,9 @@ export default function ExegetePage() {
   const { activeBook, activeChapter } = useTheoStore();
 
   return (
-    <div className="w-full h-screen bg-[#05080f] flex flex-col overflow-hidden">
+    <div className="w-full h-screen bg-background flex flex-col overflow-hidden">
       {/* Header Premium TheoSphere (Sincronizado com o sistema) */}
-      <div className="h-14 glass-heavy border-b border-white/5 flex items-center justify-between px-6 flex-shrink-0 z-50">
+      <div className="h-14 glass-heavy border-b border-border-subtle flex items-center justify-between px-6 flex-shrink-0 z-50">
         <Menu className="w-5 h-5 text-white/40 cursor-pointer hover:text-white transition-colors" />
         <div className="flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -23,7 +23,7 @@ export default function ExegetePage() {
       </div>
 
       {/* Área de Conteúdo TheoSphere Dark */}
-      <div className="flex-grow relative overflow-hidden bg-[#05080f]">
+      <div className="flex-grow relative overflow-hidden bg-background">
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px]" />
         </div>
@@ -54,7 +54,7 @@ export default function ExegetePage() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-heavy rounded-[32px] border border-white/5 shadow-2xl overflow-hidden"
+              className="glass-heavy rounded-[32px] border border-border-subtle shadow-2xl overflow-hidden"
             >
                <ExegesisPanel 
                  verse={`${activeBook} ${activeChapter}:1`} 

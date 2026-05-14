@@ -31,7 +31,7 @@ export default function NoteEditor({ reference }: { reference: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#05080f]/20 p-6 space-y-6">
+    <div className="flex flex-col h-full bg-background/20 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Caderno de Notas</h2>
@@ -52,7 +52,7 @@ export default function NoteEditor({ reference }: { reference: string }) {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Escreva suas reflexões sobre este versículo aqui..."
-          className="flex-grow bg-white/[0.02] border border-white/5 rounded-3xl p-6 outline-none text-sm font-serif leading-relaxed text-white/70 focus:border-emerald-500/20 transition-all resize-none"
+          className="flex-grow bg-white/[0.02] border border-border-subtle rounded-3xl p-6 outline-none text-sm font-serif leading-relaxed text-white/70 focus:border-emerald-500/20 transition-all resize-none"
         />
       </div>
 

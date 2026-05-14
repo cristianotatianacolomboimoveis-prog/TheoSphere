@@ -30,7 +30,7 @@ const fieldClass =
 const stateClass = (hasError: boolean) =>
   hasError
     ? "border-red-500/40 focus:ring-red-500/50 focus:border-red-500/60"
-    : "border-white/10 focus:ring-amber-500/50 focus:border-amber-500/50";
+    : "border-border-strong focus:ring-amber-500/50 focus:border-amber-500/50";
 
 /**
  * Padronized form field with label, hint, and error message.

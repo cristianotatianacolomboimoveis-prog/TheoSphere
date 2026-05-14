@@ -160,7 +160,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex flex-col h-full bg-[#070b14] text-white overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-white/5 flex-shrink-0">
+      <div className="px-5 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center justify-between">
           {view !== "list" ? (
             <button onClick={() => setView("list")} className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors">
@@ -267,7 +267,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
             <motion.div key="editor" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
               <input
                 type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-transparent text-lg font-bold text-white outline-none border-b border-white/5 pb-2 mb-1 focus:border-cyan-500/30"
+                className="w-full bg-transparent text-lg font-bold text-white outline-none border-b border-border-subtle pb-2 mb-1 focus:border-cyan-500/30"
               />
               <div className="flex items-center gap-2 mb-4">
                 <BookOpen className="w-3.5 h-3.5 text-cyan-400/40" />
@@ -306,7 +306,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
                   ))}
                   <button
                     onClick={() => setQuestions(prev => [...prev, ""])}
-                    className="w-full py-2 rounded-lg border border-dashed border-white/10 hover:border-cyan-500/30 text-white/20 hover:text-cyan-400 text-xs flex items-center justify-center gap-1.5 transition-all"
+                    className="w-full py-2 rounded-lg border border-dashed border-border-strong hover:border-cyan-500/30 text-white/20 hover:text-cyan-400 text-xs flex items-center justify-center gap-1.5 transition-all"
                   >
                     <Plus className="w-3 h-3" /> Adicionar Pergunta
                   </button>
@@ -351,7 +351,7 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
         </AnimatePresence>
       </div>
 
-      <div className="px-5 py-2.5 border-t border-white/5 flex-shrink-0">
+      <div className="px-5 py-2.5 border-t border-border-subtle flex-shrink-0">
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
           Criador de Estudos · TheoSphere OS
         </p>

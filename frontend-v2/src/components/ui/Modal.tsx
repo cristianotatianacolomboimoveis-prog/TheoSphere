@@ -79,7 +79,7 @@ export function Modal({
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${sizeClass[size]} bg-[#0d1117]/90 border border-white/10 rounded-2xl shadow-2xl overflow-hidden glass-heavy animate-in fade-in zoom-in duration-300 focus:outline-none`}
+        className={`relative w-full ${sizeClass[size]} bg-surface/90 border border-border-strong rounded-2xl shadow-2xl overflow-hidden glass-heavy animate-in fade-in zoom-in duration-300 focus:outline-none`}
       >
         {!hideCloseButton && (
           <button
@@ -93,7 +93,7 @@ export function Modal({
         )}
 
         {(title || description) && (
-          <div className="px-8 pt-7 pb-4 border-b border-white/5">
+          <div className="px-8 pt-7 pb-4 border-b border-border-subtle">
             {title && (
               <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
             )}
@@ -106,7 +106,7 @@ export function Modal({
         <div className="px-8 py-6 max-h-[70vh] overflow-y-auto">{children}</div>
 
         {footer && (
-          <div className="px-8 py-4 bg-black/20 border-t border-white/5 flex items-center justify-end gap-3">
+          <div className="px-8 py-4 bg-black/20 border-t border-border-subtle flex items-center justify-end gap-3">
             {footer}
           </div>
         )}

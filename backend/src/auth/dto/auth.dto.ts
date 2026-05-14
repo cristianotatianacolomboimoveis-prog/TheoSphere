@@ -17,27 +17,27 @@ import {
  * Clients send plaintext over TLS; the backend hashes with bcrypt cost 12.
  */
 export class RegisterDto {
-  @IsEmail({}, { message: 'email must be a valid e-mail address' })
+  @IsEmail({}, { message: 'O e-mail deve ser um endereço de e-mail válido.' })
   @MaxLength(254) // RFC 5321
   email!: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(12, { message: 'password must be at least 12 characters' })
+  @MinLength(12, { message: 'A senha deve ter pelo menos 12 caracteres.' })
   @MaxLength(128)
-  @Matches(/[A-Z]/, { message: 'password must contain an uppercase letter' })
-  @Matches(/[a-z]/, { message: 'password must contain a lowercase letter' })
-  @Matches(/[0-9]/, { message: 'password must contain a digit' })
+  @Matches(/[A-Z]/, { message: 'A senha deve conter pelo menos uma letra maiúscula.' })
+  @Matches(/[a-z]/, { message: 'A senha deve conter pelo menos uma letra minúscula.' })
+  @Matches(/[0-9]/, { message: 'A senha deve conter pelo menos um número.' })
   password!: string;
 }
 
 export class LoginDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'O e-mail deve ser um endereço de e-mail válido.' })
   @MaxLength(254)
   email!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'A senha é obrigatória.' })
   @MaxLength(128)
   password!: string;
 }

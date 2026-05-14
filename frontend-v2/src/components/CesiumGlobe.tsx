@@ -70,14 +70,14 @@ export default function CesiumGlobe() {
               outlineWidth={2}
             />
             <EntityDescription>
-              <div className="p-2 bg-slate-900 text-white rounded-lg border border-white/10">
-                <h3 className="text-amber-400 font-bold border-b border-white/10 pb-1 mb-2">{loc.names.pt}</h3>
+              <div className="p-2 bg-slate-900 text-white rounded-lg border border-border-strong">
+                <h3 className="text-amber-400 font-bold border-b border-border-strong pb-1 mb-2">{loc.names.pt}</h3>
                 <p className="text-xs text-white/70 leading-relaxed mb-3">
                   {(loc as any).description || (loc as any).theologicalSignificance}
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {loc.references.map(ref => (
-                    <span key={ref} className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-amber-500/80">
+                    <span key={ref} className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-border-subtle text-amber-500/80">
                       {ref}
                     </span>
                   ))}

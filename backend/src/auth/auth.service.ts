@@ -5,6 +5,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { hashPassword, needsRehash, verifyPassword } from './password.util';
 
@@ -15,6 +17,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async register(email: string, password: string) {
@@ -73,14 +76,80 @@ export class AuthService {
     }
 
     const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = await this.generateRefreshToken(user.id);
+
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
         plan: user.plan,
         xp: user.xp,
       },
+    };
+  }
+
+  async generateRefreshToken(userId: string): Promise<string> {
+    const token = crypto.randomBytes(40).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token,
+        userId,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  async refresh(token: string) {
+    const refreshToken = await this.prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!refreshToken || refreshToken.revokedAt || refreshToken.expiresAt < new Date()) {
+      // Security: if token is reused/invalid, revoke all tokens for this user
+      if (refreshToken && refreshToken.revokedAt) {
+        await this.prisma.refreshToken.updateMany({
+          where: { userId: refreshToken.userId },
+          data: { revokedAt: new Date() },
+        });
+        throw new UnauthorizedException('Token de atualização reutilizado detectado. Todas as sessões revogadas.');
+      }
+      throw new UnauthorizedException('Token de atualização inválido ou expirado.');
+    }
+
+    // Rotate token: revoke old one and create new one
+    const newToken = crypto.randomBytes(40).toString('hex');
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+    await this.prisma.refreshToken.update({
+      where: { id: refreshToken.id },
+      data: {
+        revokedAt: new Date(),
+        replacedBy: newToken,
+      },
+    });
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token: newToken,
+        userId: refreshToken.userId,
+        expiresAt: newExpiresAt,
+      },
+    });
+
+    const payload = { sub: refreshToken.user.id, email: refreshToken.user.email };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: newToken,
     };
   }
 }

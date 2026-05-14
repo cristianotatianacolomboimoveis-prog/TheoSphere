@@ -79,5 +79,38 @@ export const SEED_LOCATIONS: GeoLocation3D[] = [
     era: "Século VIII a.C. - Presente",
     events: ["Martírio de Pedro/Paulo", "Incêndio de Roma", "Edito de Milão"],
     references: ["Acts 28", "Romans 1", "Revelation 17"]
+  },
+  {
+    id: "terra",
+    type: "region",
+    coordinates: [35.0, 31.0], // Representativo (Israel)
+    names: { canonical: "The Earth", pt: "Terra" },
+    theologicalSignificance: "O palco da história humana e da revelação divina. Criada boa, corrompida pela Queda e destinada à renovação em Cristo.",
+    archaeologicalNotes: "O domínio material criado por Deus 'ex nihilo'.",
+    era: "Criação - Presente",
+    events: ["A Criação", "O Dilúvio", "Nova Terra"],
+    references: ["Genesis 1:1", "Psalm 24:1", "Revelation 21:1"]
+  },
+  {
+    id: "ceus",
+    type: "region",
+    coordinates: [35.0, 32.0], // Representativo
+    names: { canonical: "The Heavens", pt: "Céus" },
+    theologicalSignificance: "O domínio da morada de Deus e das hostes celestiais. Criado simultaneamente com a terra como a esfera espiritual da realidade.",
+    archaeologicalNotes: "Designa tanto a expansão física quanto a dimensão espiritual.",
+    era: "Criação - Presente",
+    events: ["A Criação", "Ascensão de Cristo"],
+    references: ["Genesis 1:1", "Matthew 6:9", "Acts 1:11"]
+  },
+  {
+    id: "eden",
+    type: "region",
+    coordinates: [45.0, 31.0], // Localização teórica (Mesopotâmia)
+    names: { canonical: "Garden of Eden", pt: "Éden" },
+    theologicalSignificance: "O protótipo do Templo; lugar de comunhão perfeita entre Deus e o homem. O paraíso perdido que será restaurado.",
+    archaeologicalNotes: "Muitos sugerem a localização próxima aos rios Tigre e Eufrates.",
+    era: "Era Primitiva",
+    events: ["A Criação do Homem", "A Queda"],
+    references: ["Genesis 2:8", "Genesis 3:24", "Ezekiel 28:13"]
   }
 ];

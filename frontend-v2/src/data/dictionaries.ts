@@ -29,6 +29,30 @@ export const DICTIONARIES: DictionaryEntry[] = [
     word: "Sanctification",
     source: "ISBE",
     definition: "O processo contínuo pelo qual o Espírito Santo transforma o caráter do crente à imagem de Cristo. Envolve a separação do pecado e a dedicação a Deus. É progressivo nesta vida e será concluído apenas na glorificação.",
+  },
+  {
+    id: "gen-principio",
+    word: "Princípio (Bereshit)",
+    source: "Teologia Bíblica",
+    definition: "O ponto inicial da criação e do tempo. No contexto de Gênesis 1:1, aponta para a origem absoluta do universo por decreto divino. João 1:1 ecoa este termo ligando-o à preexistência do Logos.",
+  },
+  {
+    id: "gen-deus",
+    word: "Deus (Elohim)",
+    source: "Teologia Própria",
+    definition: "O nome plural de Deus usado na criação, indicando plenitude de poder e majestade. Sugere, na perspectiva cristã, a pluralidade de pessoas na unidade da essência (Trindade).",
+  },
+  {
+    id: "gen-criar",
+    word: "Criar (Bara)",
+    source: "Léxico Hebraico",
+    definition: "Termo usado exclusivamente para a atividade criadora de Deus. Em Gênesis 1:1, indica a criação 'ex nihilo' (a partir do nada), sem o uso de matéria preexistente.",
+  },
+  {
+    id: "gen-ceus-terra",
+    word: "Céus e Terra",
+    source: "Cosmologia Bíblica",
+    definition: "Merismo hebraico que designa a totalidade do universo — tudo o que existe no domínio espiritual e material.",
   }
 ];
 

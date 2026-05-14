@@ -125,7 +125,7 @@ class Pipeline {
         // Verificamos se o item já existe ANTES de gastar tokens
         const exists = await this.pgClient.query('SELECT 1 FROM "ExegeticalChunk" WHERE id = $1 LIMIT 1', [item.id]);
         
-        if (exists.rowCount > 0) {
+        if ((exists.rowCount ?? 0) > 0) {
           totalProcessed++;
           continue; 
         }

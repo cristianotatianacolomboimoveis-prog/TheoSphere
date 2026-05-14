@@ -19,6 +19,8 @@ import { SearchModule } from './search/search.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { AuditModule } from './audit/audit.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
+import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 
 @Module({
   imports: [
@@ -37,7 +39,7 @@ import { AuditModule } from './audit/audit.module';
           .uri({ scheme: ['postgresql', 'postgres'] })
           .required(),
         JWT_SECRET: Joi.string().min(32).required(),
-        JWT_EXPIRES_IN: Joi.string().default('7d'),
+        JWT_EXPIRES_IN: Joi.string().default('15m'),
         ALLOWED_ORIGINS: Joi.string().optional(),
         OPENAI_API_KEY: Joi.string().optional().allow(''),
         GEMINI_API_KEY: Joi.string().optional().allow(''),
@@ -71,7 +73,7 @@ import { AuditModule } from './audit/audit.module';
       useFactory: () => {
         const redisUrl = process.env.REDIS_URL;
         const base = {
-          throttlers: [{ ttl: 60_000, limit: 20 }], // 20/min default
+          throttlers: [{ ttl: 60_000, limit: 100 }], // Increased to 100/min
         } as any;
         if (redisUrl) {
           base.storage = new ThrottlerStorageRedisService(new Redis(redisUrl));
@@ -89,12 +91,13 @@ import { AuditModule } from './audit/audit.module';
     LinguisticsModule,
     GeospatialModule,
     SearchModule,
+    CollaborationModule,
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ThrottlerUserGuard,
     },
     AppService,
     OrchestratorService,

@@ -1,0 +1,29 @@
+{
+  "passo": 5,
+  "descricao": "Teste de Dicionários e Léxicos do TheoSphere",
+  "status": "APROVADO",
+  "score_tecnico": 10,
+  "severidade": "BAIXA",
+  "impacto": [
+    "academicismo",
+    "usabilidade",
+    "resiliencia"
+  ],
+  "evidencias": [
+    "Base de dados de Léxicos contém referências acadêmicas de peso (BDAG, TDNT)",
+    "Suporte a Strong IDs (G26, G3056, G5485) validado no banco",
+    "Unicode Grego e Hebraico (χάρις, Bereshit) renderizados com perfeição",
+    "Fallback offline implementado via dicionários estáticos no frontend (Easton, ISBE)",
+    "Lógica de Concordância via 'Search by Root' funcional (apesar do ruído de dados detectado no Passo 3)"
+  ],
+  "erros": [],
+  "recomendacoes": [
+    {
+      "acao": "Expandir a base de Léxicos para cobrir 100% dos Strong IDs (atualmente parece focado em termos teológicos chave)",
+      "prioridade": "BAIXA",
+      "effort": "ALTO",
+      "risco_nao_corrigir": "Lacunas no estudo de passagens menos frequentes",
+      "impacto_esperado": "Cobertura exegética total"
+    }
+  ]
+}

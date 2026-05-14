@@ -78,7 +78,6 @@ export function speakWord(text: string, isNT: boolean, strongId?: string) {
 
       const audio = new Audio(humanSources[index]);
       audio.play().then(() => {
-        console.log(`[Audio] Pronúncia HUMANA ativada: ${strongId}`);
       }).catch(() => {
         tryPlay(index + 1);
       });

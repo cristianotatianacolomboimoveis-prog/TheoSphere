@@ -34,9 +34,7 @@ export async function verifyPassword(
   stored: string,
 ): Promise<boolean> {
   if (stored.startsWith(PASSWORD_VERSION_PREFIX)) {
-    const sha256 = createHash('sha256')
-      .update(plain, 'utf-8')
-      .digest('base64');
+    const sha256 = createHash('sha256').update(plain, 'utf-8').digest('base64');
     return bcrypt.compare(sha256, stored.slice(PASSWORD_VERSION_PREFIX.length));
   }
   // Legacy bcrypt-only hash. Still safe to compare, but the 72-byte

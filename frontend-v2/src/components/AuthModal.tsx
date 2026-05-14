@@ -46,7 +46,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             onClick={() => setIsLogin(true)}
             className={`flex-1 py-4 text-sm font-semibold transition-all ${isLogin ? 'text-primary border-b-2 border-primary' : 'text-foreground/50 hover:text-foreground/80'}`}
           >
-            Login
+            Entrar
           </button>
           <button 
             onClick={() => setIsLogin(false)}
@@ -82,7 +82,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-foreground/50 uppercase tracking-wider mb-1.5 ml-1">Email</label>
+              <label className="block text-xs font-medium text-foreground/50 uppercase tracking-wider mb-1.5 ml-1">E-mail</label>
               <input 
                 type="email"
                 required

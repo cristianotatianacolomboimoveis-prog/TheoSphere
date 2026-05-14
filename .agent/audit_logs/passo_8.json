@@ -1,0 +1,38 @@
+{
+  "passo": 8,
+  "descricao": "Teste de Acessibilidade do TheoSphere",
+  "status": "PARCIAL",
+  "score_tecnico": 6,
+  "severidade": "MEDIA",
+  "impacto": [
+    "inclusao",
+    "ux"
+  ],
+  "evidencias": [
+    "Componentes de botão utilizam focus-visible para navegação segura via teclado",
+    "Uso correto de tags semânticas (<button>, <input>) no frontend",
+    "Paleta de cores moderna com suporte a temas Dark/Light (next-themes)",
+    "Identificados diversos botões de ícones (X, Search, Volume) sem aria-label explícito",
+    "Uso frequente de cores com baixa opacidade (foreground/30) que podem violar WCAG AA"
+  ],
+  "erros": [
+    "Falta de suporte completo para leitores de tela em componentes complexos (Mapas/Gráficos)",
+    "Dependência excessiva de feedback visual sem redundância textual (ARIA)"
+  ],
+  "recomendacoes": [
+    {
+      "acao": "Auditar todos os botões de ícone e adicionar aria-label e title descritivos",
+      "prioridade": "ALTA",
+      "esforco": "BAIXO",
+      "risco_nao_corrigir": "Inutilizabilidade do software para usuários cegos ou com deficiência visual severa",
+      "impacto_esperado": "Conformidade com padrões internacionais de acessibilidade (WCAG)"
+    },
+    {
+      "acao": "Revisar contrastes de texto secundário, garantindo ratio mínimo de 4.5:1",
+      "prioridade": "MEDIA",
+      "esforco": "BAIXO",
+      "risco_nao_corrigir": "Dificuldade de leitura para usuários com baixa visão ou em ambientes muito iluminados",
+      "impacto_esperado": "Melhoria na legibilidade geral"
+    }
+  ]
+}

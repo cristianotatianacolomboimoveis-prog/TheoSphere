@@ -36,7 +36,12 @@ describe('AppController', () => {
       const result = await appController.getLocations(1, 100);
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
-      expect(result.meta).toMatchObject({ page: 1, limit: 100, total: 0, hasMore: false });
+      expect(result.meta).toMatchObject({
+        page: 1,
+        limit: 100,
+        total: 0,
+        hasMore: false,
+      });
     });
 
     it('caps limit at 200', async () => {

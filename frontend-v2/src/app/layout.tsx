@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 import ClientProviders from "@/components/ClientProviders";
 
@@ -38,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full" suppressHydrationWarning>
+    <html lang="pt-BR" className="h-full" suppressHydrationWarning data-theme="dark">
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -47,7 +48,9 @@ export default function RootLayout({
       <body className={`${inter.variable} antialiased min-h-full flex flex-col bg-background`}>
         <a href="#main" className="skip-link">Pular para o conteúdo</a>
         <ClientProviders>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </ClientProviders>
       </body>
     </html>

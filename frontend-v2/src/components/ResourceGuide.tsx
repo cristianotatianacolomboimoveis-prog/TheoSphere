@@ -45,9 +45,9 @@ export default function ResourceGuide() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#05080f]/40 backdrop-blur-3xl border-l border-white/5 text-white overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-full bg-background/40 backdrop-blur-3xl border-l border-border-subtle text-white overflow-hidden shadow-2xl">
       {/* Sidebar Tabs */}
-      <div className="flex border-b border-white/5 bg-[#05080f]/60 p-1">
+      <div className="flex border-b border-border-subtle bg-background/60 p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -179,7 +179,7 @@ export default function ResourceGuide() {
       </AnimatePresence>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-white/5 bg-[#05080f]/80">
+      <div className="px-6 py-4 border-t border-border-subtle bg-background/80">
         <p className="text-[8px] text-white/10 text-center uppercase tracking-[0.2em] font-black">TheoSphere Ultimate Suite</p>
       </div>
     </div>

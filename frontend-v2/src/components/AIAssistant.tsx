@@ -220,7 +220,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
           </span>
         )}
         {meta.costEstimated > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/30 font-mono">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-border-strong text-[9px] text-white/30 font-mono">
             ~${meta.costEstimated.toFixed(4)}
           </span>
         )}
@@ -484,7 +484,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center flex-shrink-0 border border-purple-500/10">
                   <Bot className="w-3.5 h-3.5 text-purple-400/80" />
                 </div>
-                <div className="bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3">
+                <div className="bg-white/[0.03] border border-border-subtle rounded-xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <div className="w-2 h-2 rounded-full bg-purple-400/40" style={{ animation: "typing 1.2s ease-in-out infinite 0s" }} />
