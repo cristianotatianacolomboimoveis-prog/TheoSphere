@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  X, Search, BookOpen, Languages, Hash, BarChart3, ChevronRight, BookMarked, Sparkles, Loader2
+  X, Search, BookOpen, Languages, Hash, BarChart3, ChevronRight, BookMarked, Sparkles, Loader2,
+  Library as LibraryIcon, FileText, ExternalLink,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
@@ -10,7 +11,31 @@ import { STRONGS_GREEK, searchStrongs, type StrongsEntry } from "@/data/strongsG
 import { STRONGS_HEBREW, searchStrongsHebrew } from "@/data/strongsHebrew";
 import { TranslationRing } from "./word-study/TranslationRing";
 import { ExegeticalConcordance } from "./word-study/ExegeticalConcordance";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+
+/* ─── Types ──────────────────────────────────────────────── */
+
+interface LibraryExcerpt {
+  content: string;
+  fileName: string;
+  fileId?: string;
+  tradition?: string;
+  chunkIndex?: number;
+  lemma?: string;
+  strongId?: string;
+  similarity?: number;
+  source: "vector" | "fulltext" | "hybrid";
+}
+
+interface LibraryLookupResponse {
+  success: boolean;
+  data: {
+    term: string;
+    strongId?: string;
+    count: number;
+    excerpts: LibraryExcerpt[];
+  };
+}
 
 /* ─── Component ──────────────────────────────────────────── */
 
@@ -22,6 +47,13 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [loadingLexical, setLoadingLexical] = useState(false);
   const [loadingOccurrences, setLoadingOccurrences] = useState(false);
+
+  /* ── Library lookup state ─────────────────────────────── */
+  // Trechos retornados pelo /api/v1/library/lookup — busca nos PDFs/DOCX
+  // que o usuário importou via Drive (BDAG, HALOT, TDNT, comentários, etc.).
+  const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
 
   /* ── API Integration ──────────────────────────────────── */
   const fetchLexicalAnalysis = async (strongId: string) => {
@@ -43,6 +75,55 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
       setLoadingOccurrences(false);
     }
   };
+
+  /**
+   * Consulta a biblioteca pessoal do usuário (PDFs/DOCX indexados via Drive)
+   * por trechos relevantes ao termo + Strong's. Hybrid search no backend:
+   * vector similarity + ILIKE literal.
+   *
+   * Falha em silêncio (login ausente, biblioteca vazia, backend offline):
+   * a aba apenas mostra "sem resultados" — não derruba o WordStudy.
+   */
+  const fetchLibraryExcerpts = async (entry: StrongsEntry) => {
+    setLoadingLibrary(true);
+    setLibraryError(null);
+    setLibraryExcerpts([]);
+    try {
+      const term = entry.lemma || entry.transliteration;
+      const qs = new URLSearchParams({
+        term,
+        strongId: entry.number,
+        limit: "10",
+      });
+      const res = await api.get<LibraryLookupResponse>(
+        `library/lookup?${qs.toString()}`,
+        { timeoutMs: 15_000 },
+      );
+      if (res.success) {
+        setLibraryExcerpts(res.data.excerpts);
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setLibraryError("Faça login para consultar sua biblioteca");
+      } else if (err instanceof ApiError && err.status === 404) {
+        setLibraryError("Endpoint indisponível — atualize o backend");
+      } else {
+        setLibraryError("Não foi possível consultar sua biblioteca agora");
+      }
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
+
+  // Carrega lexical + library quando o usuário seleciona uma entrada.
+  React.useEffect(() => {
+    if (!selectedEntry) return;
+    void fetchLibraryExcerpts(selectedEntry);
+    // fetchLexicalAnalysis é chamado pelo botão "Ativar Análise Crítica"
+    // — preservamos esse fluxo manual para não disparar custo de IA sem
+    // ação explícita do usuário.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEntry]);
 
   /* ── Search ───────────────────────────────────────────── */
   const results = useMemo(() => {
@@ -187,6 +268,109 @@ export default function WordStudy({ onClose }: { onClose: () => void }) {
                   >
                     Ativar Análise Crítica
                   </button>
+                )}
+              </div>
+
+              {/* Sua Biblioteca — trechos vindos dos PDFs/DOCX do Drive */}
+              <div className="glass rounded-xl border border-amber-500/20 p-4 mb-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-10">
+                  <LibraryIcon className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 flex items-center gap-2">
+                    <LibraryIcon className="w-3.5 h-3.5" /> Sua Biblioteca
+                  </h4>
+                  {libraryExcerpts.length > 0 && (
+                    <span className="text-[9px] text-amber-400/70 font-mono">
+                      {libraryExcerpts.length} {libraryExcerpts.length === 1 ? "trecho" : "trechos"}
+                    </span>
+                  )}
+                </div>
+
+                {loadingLibrary ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                    <span className="text-[10px] text-amber-400/60 uppercase font-black tracking-widest">
+                      Buscando em seus livros…
+                    </span>
+                  </div>
+                ) : libraryError ? (
+                  <p className="text-[11px] text-amber-300/60 italic py-2">{libraryError}</p>
+                ) : libraryExcerpts.length === 0 ? (
+                  <p className="text-[11px] text-white/30 italic py-2">
+                    Nenhum trecho encontrado nas suas obras importadas. Sincronize sua pasta do Drive para indexar seus léxicos e comentários.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[320px] overflow-y-auto thin-scrollbar">
+                    {libraryExcerpts.map((ex, i) => (
+                      <article
+                        key={`${ex.fileId ?? ex.fileName}-${ex.chunkIndex ?? i}`}
+                        className="group bg-black/20 border border-white/5 rounded-lg p-3 hover:border-amber-500/30 transition-colors"
+                      >
+                        <header className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <FileText className="w-3 h-3 text-amber-400/60 flex-shrink-0" />
+                            <span className="text-[10px] font-bold text-amber-200/80 truncate">
+                              {ex.fileName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {typeof ex.similarity === "number" && (
+                              <span className="text-[8px] font-mono text-emerald-400/70 px-1.5 py-0.5 rounded bg-emerald-500/10">
+                                {(ex.similarity * 100).toFixed(0)}%
+                              </span>
+                            )}
+                            <span
+                              className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                ex.source === "hybrid"
+                                  ? "bg-amber-500/20 text-amber-300"
+                                  : ex.source === "vector"
+                                  ? "bg-blue-500/10 text-blue-300/70"
+                                  : "bg-slate-500/10 text-slate-300/70"
+                              }`}
+                              title={
+                                ex.source === "hybrid"
+                                  ? "Match em similaridade + texto literal"
+                                  : ex.source === "vector"
+                                  ? "Similaridade semântica"
+                                  : "Texto literal"
+                              }
+                            >
+                              {ex.source === "hybrid" ? "★" : ex.source === "vector" ? "≈" : "=="}
+                            </span>
+                            {ex.fileId && (
+                              <a
+                                href={`https://drive.google.com/file/d/${ex.fileId}/view`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-400/60 hover:text-amber-300"
+                                title="Abrir no Drive"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </header>
+                        <p className="text-[11px] text-white/70 leading-relaxed font-serif line-clamp-4 whitespace-pre-line">
+                          {ex.content}
+                        </p>
+                        {(ex.lemma || ex.tradition) && (
+                          <footer className="flex gap-2 mt-1.5">
+                            {ex.lemma && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300/70 font-serif italic">
+                                {ex.lemma}
+                              </span>
+                            )}
+                            {ex.tradition && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300/70">
+                                {ex.tradition}
+                              </span>
+                            )}
+                          </footer>
+                        )}
+                      </article>
+                    ))}
+                  </div>
                 )}
               </div>
 
