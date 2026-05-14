@@ -476,7 +476,32 @@ export default function BibleReader({
                 Segunda Versão (Comparação Paralela)
               </p>
               <div className="space-y-1">
-                {TRANSLATIONS.map(t => (
+                {/* Opção "Sem comparação" no topo — desliga a coluna paralela.
+                    Antes não havia jeito de voltar pra uma única coluna depois
+                    de selecionar uma tradução secundária. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSecondaryTranslation("");
+                    setShowSecondarySelector(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
+                    !secondaryTranslation
+                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/5"
+                      : "hover:bg-surface-hover border-transparent text-foreground/40 hover:text-foreground/80"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold">Sem comparação</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 font-mono">
+                      —
+                    </span>
+                  </div>
+                </button>
+
+                {/* Filtra a tradução primária da lista — comparar com ela
+                    mesma seria sempre idêntico. */}
+                {TRANSLATIONS.filter((t) => t.id !== primaryTranslation).map((t) => (
                   <button
                     key={t.id}
                     onClick={() => { setSecondaryTranslation(t.id); setShowSecondarySelector(false); }}
@@ -501,6 +526,31 @@ export default function BibleReader({
           {/* Main Reader Area */}
           <div className="flex-grow h-full relative overflow-hidden">
             <div ref={parentRef} className="h-full overflow-y-auto custom-scrollbar px-6 py-8 relative z-10">
+              {/* Header de colunas em modo sinótico — só aparece quando há
+                  tradução secundária. Sticky para acompanhar o scroll e
+                  identificar visualmente qual coluna é qual sem precisar
+                  voltar ao topo. */}
+              {secondaryTranslation && !loading && storeViewMode !== "exegesis" && (
+                <div className="sticky top-0 z-20 -mt-8 -mx-6 mb-4 px-8 py-2.5 grid grid-cols-2 gap-8 bg-background/85 backdrop-blur-xl border-b border-border-subtle">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
+                      {primaryTranslation.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-foreground/40 truncate">
+                      {TRANSLATIONS.find((t) => t.id === primaryTranslation)?.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/20">
+                      {secondaryTranslation.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-foreground/40 truncate">
+                      {TRANSLATIONS.find((t) => t.id === secondaryTranslation)?.name}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
