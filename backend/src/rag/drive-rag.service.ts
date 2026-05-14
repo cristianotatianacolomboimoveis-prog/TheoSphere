@@ -3,9 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { google } from 'googleapis';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
-const pdfParse = require('pdf-parse');
-import * as mammoth from 'mammoth';
 import { v4 as uuidv4 } from 'uuid';
+import { findExtractor, SUPPORTED_MIME_QUERY } from './text-extractors';
 
 @Injectable()
 export class DriveRagService {
@@ -99,13 +98,14 @@ export class DriveRagService {
 
     try {
       const response = await drive.files.list({
-        q: `'${targetFolderId}' in parents and trashed = false and (mimeType='application/pdf' or mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')`,
+        q: `'${targetFolderId}' in parents and trashed = false and (${SUPPORTED_MIME_QUERY})`,
         fields: 'files(id, name, mimeType)',
+        pageSize: 1000,
       });
 
       const files = response.data.files || [];
       this.logger.log(
-        `Encontrados ${files.length} arquivos (PDF/DOCX) na biblioteca.`,
+        `Encontrados ${files.length} arquivos suportados (PDF/DOCX/EPUB) na biblioteca.`,
       );
 
       for (const file of files) {
@@ -134,19 +134,30 @@ export class DriveRagService {
       );
 
       const buffer = Buffer.from(response.data);
-      let text = '';
 
-      // Extração 100% focada em texto, ignorando completamente as imagens
-      if (file.mimeType === 'application/pdf') {
-        const parser = new pdfParse.PDFParse(new Uint8Array(buffer));
-        const pdfData = await parser.getText();
-        text = pdfData.text;
-      } else if (
-        file.mimeType ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ) {
-        const result = await mammoth.extractRawText({ buffer });
-        text = result.value;
+      // Dispatch por mime — text-extractors.ts registra um handler por
+      // formato. EPUBs entram aqui pelo mesmo pipeline que PDF/DOCX.
+      const extractor = findExtractor(file.mimeType);
+      if (!extractor) {
+        this.logger.warn(
+          `Formato não suportado: ${file.mimeType} (${file.name})`,
+        );
+        return;
+      }
+
+      let text = '';
+      let fileMeta: Record<string, unknown> = {};
+      try {
+        const result = await extractor.extract(buffer);
+        text = result.text;
+        fileMeta = result.meta ?? {};
+      } catch (err) {
+        this.logger.error(
+          `Falha ao extrair texto de ${file.name}: ${
+            err instanceof Error ? err.message : 'unknown'
+          }`,
+        );
+        return;
       }
 
       if (!text || text.trim().length === 0) {
@@ -177,6 +188,9 @@ export class DriveRagService {
             fileId: file.id,
             tradition,
             chunkIndex: i + j,
+            // Metadados do próprio arquivo (EPUB exposes title/author/lang via OPF).
+            // Útil pra UI exibir "BDAG (3ª ed.)" em vez de "BDAG3.epub".
+            ...fileMeta,
             ...enriched,
           };
 
@@ -232,6 +246,38 @@ export class DriveRagService {
     }
 
     return chunks;
+  }
+
+  /**
+   * Apaga todos os UserEmbedding do tipo `library_book` do usuário e
+   * re-importa a pasta inteira. Usar quando:
+   *   • Heurística `extractLemmaAndStrong` foi atualizada e queremos re-popular
+   *     a metadata das obras já indexadas.
+   *   • Suporte a novo formato foi adicionado e o usuário tem livros nesse
+   *     formato que foram ignorados na ingestão anterior.
+   *   • A pasta foi reorganizada.
+   *
+   * NB: a operação é destrutiva — apaga ANTES de re-ingerir. Por isso é
+   * exposta apenas via endpoint admin e roda síncrono para que a UI possa
+   * exibir progresso (lookups durante o reindex podem ter recall reduzido).
+   */
+  async reindex(
+    folderId?: string,
+    userId?: string,
+    tradition: string = 'Geral',
+  ): Promise<{ deleted: number; filesProcessed: number }> {
+    const targetUserId = userId || 'public-guest';
+    this.logger.log(
+      `[Reindex] Limpando UserEmbedding (library_book) do usuário ${targetUserId}…`,
+    );
+
+    const { count } = await this.prisma.userEmbedding.deleteMany({
+      where: { userId: targetUserId, type: 'library_book' },
+    });
+
+    this.logger.log(`[Reindex] Removidos ${count} chunks. Re-ingerindo pasta…`);
+    const result = await this.ingestFolder(folderId, userId, tradition);
+    return { deleted: count, filesProcessed: result.filesProcessed };
   }
 
   /**
