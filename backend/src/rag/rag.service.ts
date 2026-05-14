@@ -11,6 +11,7 @@ import { THEO_AI_SYSTEM_PROMPT } from './prompts';
 import { CLASSIC_COMMENTARIES } from './classic-commentaries';
 import { generateFallbackResponse } from './fallback-responses';
 import { TheologicalSourcesService } from './theological-sources.service';
+import { CURATED_GRAPHS } from './curated-graphs.registry';
 
 /**
  * RagService — Orquestrador principal do sistema RAG via Google Gemini.
@@ -636,6 +637,13 @@ export class RagService {
    */
   async getKnowledgeGraph(query: string, userId?: string) {
     this.logger.log(`[Graph] Gerando topologia teológica para: "${query}"`);
+
+    // Check for curated graphs first
+    const curated = CURATED_GRAPHS[query];
+    if (curated) {
+      this.logger.log(`[Graph] Retornando grafo curado para: "${query}"`);
+      return curated;
+    }
 
     const nodes: any[] = [];
     const links: any[] = [];

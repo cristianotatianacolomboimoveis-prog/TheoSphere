@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@deck.gl/layers', '@deck.gl/geo-layers', '@deck.gl/core', '@deck.gl/react', 'luma.gl', '@luma.gl/core', '@luma.gl/engine', '@luma.gl/webgl'],
   async headers() {
     return [
       {

@@ -4,13 +4,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, BookOpen, ChevronRight, ChevronLeft, X, Zap, BookMarked,
   ChevronDown, Bookmark, Copy, Check, Loader2, ArrowLeft, ArrowRight,
-  Star, Columns, SplitSquareHorizontal, FileText, Hash, Maximize2, Library, Users, MapPin, Volume2, Square
+  Star, Columns, SplitSquareHorizontal, FileText, Hash, Maximize2, Library, Users, MapPin, Volume2, Square, Languages
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTheoStore } from "@/store/useTheoStore";
 import { semanticSearch } from "@/lib/semanticSearch";
 import { StrongOverlay } from "./StrongOverlay";
-import { BIBLE_BOOKS, getBooksByTestament, type BibleBook } from "@/data/bibleBooks";
+import { getBooksByTestament, BIBLE_BOOKS } from "@/data/bibleBooks";
+import { type BibleBook } from "@/store/useTheoStore";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useTheoWorker } from "@/hooks/useTheoWorker";
@@ -23,6 +24,11 @@ import { useVoice } from "@/hooks/useVoice";
 import ErrorBoundary from "./ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { ReaderHeader } from "./reader/ReaderHeader";
+import { ReaderToolbar } from "./reader/ReaderToolbar";
+import { ReaderSearch } from "./reader/ReaderSearch";
+import { BookSelector } from "./reader/BookSelector";
+import { ChapterSelector } from "./reader/ChapterSelector";
+import { AIInsights } from "./reader/AIInsights";
 import { VerseRow } from "./reader/VerseRow";
 import { Button, Card, CardHeader } from "./ui";
 import { CrossRefsPopover } from "./CrossRefsPopover";
@@ -75,11 +81,11 @@ export default function BibleReader({
     if (type === "STRONGS_DATA") {
       setHoverData(prev => prev ? { 
         ...prev, 
-        definition: payload.definition || "Sem definição disponível",
-        grammar: payload.morphology || payload.part_of_speech || "",
-        lemma: payload.lemma || "",
-        occurrences: payload.occurrences || 0,
-        bookOccurrences: payload.bookOccurrences || 0
+        definition: payload.definition, 
+        occurrences: payload.occurrences,
+        bookOccurrences: payload.bookOccurrences,
+        transliteration: payload.transliteration,
+        pronunciation: payload.pronunciation
       } : null);
     }
     if (type === "SYNC_PROGRESS") {
@@ -98,7 +104,7 @@ export default function BibleReader({
 
   const { chaptersData, secondaryData, interlinearMap, loading } = useBible(primaryTranslation, storeViewMode === "exegesis" ? "interlinear" : "text", secondaryTranslation || undefined);
   
-  const selectedBook = BIBLE_BOOKS.find(b => b.namePt === activeBook || b.nameEn === activeBook) || BIBLE_BOOKS[0];
+  const selectedBook = BIBLE_BOOKS.find(b => b.namePt === activeBook || b.nameEn === activeBook) || BIBLE_BOOKS[0] || {} as BibleBook;
   const selectedChapter = activeChapter;
 
   const [showBookSelector, setShowBookSelector] = useState(false);
@@ -115,6 +121,8 @@ export default function BibleReader({
     y: number;
     sourceRef: string;
   } | null>(null);
+  const [translatedVerse, setTranslatedVerse] = useState<{ verse: number, text: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
   const [hoverData, setHoverData] = useState<{ 
     word: string; 
     strongId: string; 
@@ -123,7 +131,9 @@ export default function BibleReader({
     lemma?: string;
     occurrences?: number;
     bookOccurrences?: number;
-    pos: { x: number; y: number } 
+    pos: { x: number; y: number };
+    transliteration?: string;
+    pronunciation?: string;
   } | null>(null);
 
   // Sync state
@@ -214,6 +224,26 @@ export default function BibleReader({
     }
   }, [workerPost, activeBook]);
 
+  const handleTranslate = async (verseNum: number, text: string) => {
+    setTranslating(true);
+    try {
+      const response = await fetch('/api/v1/enterprise/ai/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, targetLang: 'Inglês' }) // Exemplo: traduzir para inglês
+      });
+      const result = await response.json();
+      if (result.success) {
+        setTranslatedVerse({ verse: verseNum, text: result.data });
+      }
+    } catch (error) {
+      console.error("Translation error:", error);
+      // Aqui poderíamos disparar um toast real se houvesse um hook global de toast
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // Search: focus input when entering search mode
   useEffect(() => {
     if (searchMode) {
@@ -283,114 +313,37 @@ export default function BibleReader({
       />
 
       <div className="px-6 pb-4 border-b border-border-subtle flex-shrink-0 relative z-20">
-        <div className="flex gap-2 relative mt-4">
-          {searchMode ? (
-            /* Search input bar — sintaxe Logos-style ativa pelo placeholder */
-            <div className="flex-grow flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-hover border border-accent/30">
-                <Search className="w-4 h-4 text-accent flex-shrink-0" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Escape") setSearchMode(false); }}
-                  placeholder='Buscar… (ex: book:John "in the beginning")'
-                  className="flex-grow bg-transparent text-sm text-foreground/90 placeholder-foreground/30 outline-none"
-                  title='Sintaxe avançada: AND, OR, "frase exata", book:Nome, chapter:1-3, -excluir'
-                />
-                {searchQuery && (
-                  <span className="text-[10px] text-accent/60 font-mono flex-shrink-0">
-                    {isAdvanced
-                      ? `${advanced.hits.length} hit${advanced.hits.length !== 1 ? "s" : ""}`
-                      : `${versesToRender.length} resultado${versesToRender.length !== 1 ? "s" : ""}`}
-                  </span>
-                )}
-                <button
-                  onClick={() => setSearchMode(false)}
-                  className="p-1 rounded-md hover:bg-red-500/10 text-foreground/30 hover:text-red-400 transition-all flex-shrink-0"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              {/* Chips indicando o que o parser interpretou — Logos-style preview */}
-              {isAdvanced && advanced.parsed && (
-                <QueryChips parsed={advanced.parsed} hitsCount={advanced.hits.length} />
-              )}
-              {isAdvanced && advanced.error && (
-                <p className="text-[10px] text-red-400 px-1">{advanced.error}</p>
-              )}
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => { setShowBookSelector(!showBookSelector); setShowChapterSelector(false); setShowTranslationSelector(false); setShowSecondarySelector(false); }}
-                className="flex-grow flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm"
-              >
-                <span className="font-semibold text-foreground/90">{selectedBook.namePt}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-foreground/30 transition-transform ${showBookSelector ? "rotate-180" : ""}`} />
-              </button>
-              <button
-                onClick={() => { setShowChapterSelector(!showChapterSelector); setShowBookSelector(false); setShowTranslationSelector(false); setShowSecondarySelector(false); }}
-                className="px-4 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm font-bold text-accent flex items-center gap-1"
-              >
-                {selectedChapter}
-                <ChevronDown className={`w-3 h-3 text-foreground/30 transition-transform ${showChapterSelector ? "rotate-180" : ""}`} />
-              </button>
-              <button
-                onClick={() => { setShowTranslationSelector(!showTranslationSelector); setShowBookSelector(false); setShowChapterSelector(false); setShowSecondarySelector(false); }}
-                className={`px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 border ${showTranslationSelector ? "bg-accent/20 border-accent/30 text-accent" : "bg-surface-hover/50 border-border-subtle text-foreground/60 hover:border-accent/20"}`}
-              >
-                {primaryTranslation.toUpperCase()}
-                <ChevronDown className={`w-3 h-3 transition-transform ${showTranslationSelector ? "rotate-180" : ""}`} />
-              </button>
+        <ReaderToolbar
+          primaryTranslation={primaryTranslation}
+          setPrimaryTranslation={setPrimaryTranslation}
+          secondaryTranslation={secondaryTranslation}
+          setSecondaryTranslation={setSecondaryTranslation}
+          searchMode={searchMode}
+          setSearchMode={setSearchMode}
+          showBookSelector={showBookSelector}
+          setShowBookSelector={setShowBookSelector}
+          showChapterSelector={showChapterSelector}
+          setShowChapterSelector={setShowChapterSelector}
+          showTranslationSelector={showTranslationSelector}
+          setShowTranslationSelector={setShowTranslationSelector}
+          showSecondarySelector={showSecondarySelector}
+          setShowSecondarySelector={setShowSecondarySelector}
+          chaptersData={chaptersData}
+          isPlaying={isPlaying}
+          toggleReading={toggleReading}
+        />
 
-              {/* Parallel translation toggle */}
-              <button
-                onClick={() => { setShowSecondarySelector(!showSecondarySelector); setShowBookSelector(false); setShowChapterSelector(false); setShowTranslationSelector(false); }}
-                className={`px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 border ${secondaryTranslation ? "border-primary/30 bg-primary/10 text-primary" : "border-border-subtle bg-surface-hover/50 text-foreground/30 hover:text-foreground/60"}`}
-                title="Tradução paralela"
-              >
-                <SplitSquareHorizontal className="w-3.5 h-3.5" />
-                {secondaryTranslation ? secondaryTranslation.toUpperCase() : "//"}
-              </button>
-
-              {/* Source badge: cache (local) vs API (remote) */}
-              {chaptersData.length > 0 && chaptersData[0].source && (
-                <span
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border flex-shrink-0 ${
-                    chaptersData[0].source === "cache"
-                      ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                      : "bg-blue-500/10 border-blue-500/25 text-blue-400"
-                  }`}
-                  title={chaptersData[0].source === "cache" ? "Servido do cache local (DuckDB)" : "Servido da API remota"}
-                >
-                  {chaptersData[0].source === "cache" ? "💾 Local" : "🌐 API"}
-                </span>
-              )}
-
-              {/* Search button */}
-              <button
-                onClick={() => { setSearchMode(true); setShowBookSelector(false); setShowChapterSelector(false); setShowTranslationSelector(false); setShowSecondarySelector(false); }}
-                className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-foreground/30 hover:text-accent"
-                title="Buscar no capítulo"
-              >
-                <Search className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Read Bible button */}
-              <button
-                onClick={toggleReading}
-                className={`px-3 py-2 rounded-lg border transition-all ${
-                  isPlaying ? "bg-accent/20 border-accent/30 text-accent animate-pulse" : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-accent"
-                }`}
-                title={isPlaying ? "Parar Leitura" : "Ouvir Capítulo"}
-              >
-                {isPlaying ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </button>
-            </>
-          )}
-        </div>
+        {searchMode && (
+          <ReaderSearch
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            setSearchMode={setSearchMode}
+            isAdvanced={isAdvanced}
+            advanced={advanced}
+            versesToRender={versesToRender}
+            searchInputRef={searchInputRef}
+          />
+        )}
 
         {/* Sync Progress Bar — Premium Feedback */}
         <AnimatePresence>
@@ -425,49 +378,21 @@ export default function BibleReader({
       </div>
 
       <div className="relative flex-grow overflow-hidden bg-surface shadow-inner">
-        <AnimatePresence>
-          {showBookSelector && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute inset-0 z-30 bg-background/98 backdrop-blur-xl overflow-y-auto custom-scrollbar p-4">
-              <div className="grid grid-cols-2 gap-1">
-                {BIBLE_BOOKS.map(book => (
-                  <button key={book.id} onClick={() => { setSelectedBook(book); setSelectedChapter(1); setShowBookSelector(false); }} className={`text-left px-3 py-2 rounded-lg text-xs transition-all ${selectedBook.id === book.id ? "bg-accent/15 text-accent" : "hover:bg-surface-hover text-foreground/60"}`}>
-                    {book.namePt}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <BookSelector
+          isOpen={showBookSelector}
+          onClose={() => setShowBookSelector(false)}
+          onSelect={(book) => {
+            setBibleReference(book.namePt, 1);
+          }}
+        />
 
-        <AnimatePresence>
-          {showChapterSelector && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 z-30 bg-background/98 backdrop-blur-xl overflow-y-auto custom-scrollbar p-4"
-            >
-              <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest mb-3 px-1">
-                {selectedBook.namePt} — {selectedBook.chapters} capítulos
-              </p>
-              <div className="grid grid-cols-6 gap-1.5">
-                {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map(ch => (
-                  <button
-                    key={ch}
-                    onClick={() => { setSelectedChapter(ch); setShowChapterSelector(false); }}
-                    className={`py-2.5 rounded-lg text-xs font-bold transition-all ${
-                      selectedChapter === ch
-                        ? "bg-accent/20 text-accent border border-accent/30 shadow-lg shadow-accent/10"
-                        : "hover:bg-surface-hover text-foreground/60 hover:text-foreground"
-                    }`}
-                  >
-                    {ch}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <ChapterSelector
+          isOpen={showChapterSelector}
+          onClose={() => setShowChapterSelector(false)}
+          onSelect={(ch) => {
+            setBibleReference(activeBook, ch);
+          }}
+        />
 
         <AnimatePresence>
           {showTranslationSelector && (
@@ -702,7 +627,7 @@ export default function BibleReader({
                         <VerseRow
                           verse={vPrimary.verse}
                           text={vPrimary.text}
-                          secondaryText={vSecondary?.text}
+                          secondaryText={translatedVerse?.verse === vPrimary.verse ? translatedVerse.text : vSecondary?.text}
                           selected={selectedVerses.has(vPrimary.verse)}
                           onClick={() => toggleVerseSelection(vPrimary.verse)}
                           highlightQuery={searchMode ? searchQuery : undefined}
@@ -787,6 +712,21 @@ export default function BibleReader({
                   <MapPin className="w-4 h-4 text-foreground/20 group-hover:text-emerald-400" />
                   Localizar no Atlas4D
                 </Button>
+
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    const v = versesToRender.find(vs => vs.verse === amplifyAnchor.verse);
+                    if (v) handleTranslate(v.verse, v.text);
+                    setAmplifyAnchor(null);
+                  }}
+                  disabled={translating}
+                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-blue-400"
+                >
+                  {translating ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Languages className="w-4 h-4 text-foreground/20 group-hover:text-blue-400" />}
+                  Tradução IA (Inglês)
+                </Button>
                 
                 <div className="h-px bg-border-subtle my-1 mx-2" />
                 
@@ -813,6 +753,8 @@ export default function BibleReader({
           grammar={hoverData.grammar}
           occurrences={hoverData.occurrences}
           bookOccurrences={hoverData.bookOccurrences}
+          transliteration={hoverData.transliteration}
+          pronunciation={hoverData.pronunciation}
           position={hoverData.pos}
           onClose={() => setHoverData(null)}
           onOpenWordStudy={onOpenWordStudy}
@@ -835,9 +777,12 @@ export default function BibleReader({
               // Marca o versículo destino para destaque/scroll.
               setActiveVerse(`${targetBook.nameEn} ${chapter}:${verse}`);
             }
+            setCrossRefAnchor(null);
           }}
         />
       )}
+
+      <AIInsights />
     </div>
   );
 }

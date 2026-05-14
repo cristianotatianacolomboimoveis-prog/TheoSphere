@@ -45,7 +45,6 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // ─── Security headers ───────────────────────────────────────────────────
   // Explicit CSP (DT-7). This is an API — no HTML responses — so the policy

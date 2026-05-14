@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit, Literata } from "next/font/google";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 import ClientProviders from "@/components/ClientProviders";
@@ -7,6 +7,19 @@ import ClientProviders from "@/components/ClientProviders";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const outfit = Outfit({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const literata = Literata({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -45,7 +58,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${inter.variable} antialiased min-h-full flex flex-col bg-background`}>
+      <body className={`${inter.variable} ${outfit.variable} ${literata.variable} antialiased min-h-full flex flex-col bg-background font-sans text-foreground`}>
         <a href="#main" className="skip-link">Pular para o conteúdo</a>
         <ClientProviders>
           <ErrorBoundary>

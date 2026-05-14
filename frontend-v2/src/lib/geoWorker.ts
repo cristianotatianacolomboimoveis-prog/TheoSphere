@@ -104,39 +104,6 @@ async function initDB() {
       `);
     }
   }
-
-  // ── Seed Lexicon from static data ────────────────────────────────────────
-  const lexCheck = await conn.query(`SELECT count(*) as count FROM lexicon`);
-  if (Number(lexCheck.toArray()[0].count) === 0) {
-    const lexStmt = await conn.prepare(`
-      INSERT INTO lexicon (strong_id, lemma, transliteration, definition, part_of_speech, morphology)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT (strong_id) DO NOTHING
-    `);
-    
-    // Seed Greek
-    for (const entry of Object.values(STRONGS_GREEK)) {
-      await lexStmt.query(
-        entry.number,
-        entry.lemma,
-        entry.transliteration,
-        entry.definitionPt || entry.definition,
-        entry.partOfSpeech,
-        JSON.stringify({})
-      );
-    }
-    // Seed Hebrew (if available in current imports)
-    for (const entry of Object.values(STRONGS_HEBREW)) {
-      await lexStmt.query(
-        entry.number,
-        entry.lemma,
-        entry.transliteration,
-        entry.definitionPt || entry.definition,
-        entry.partOfSpeech,
-        JSON.stringify({})
-      );
-    }
-  }
 }
 
 let dbPromise: Promise<void>;
@@ -493,9 +460,13 @@ self.addEventListener("message", async (event) => {
     // --- SLOW PATH: GIS & INTERLINEAR (DB or Heavy Logic) ---
     if (type === "FETCH_INTERLINEAR_CHAPTER") {
       const { book, chapter } = payload;
-      const bookId = BIBLE_BOOK_TO_ID[book];
-      const originalTrans = getOriginalLanguageTranslation(book);
-      const isNT = bookId >= 40;
+      // Normalização PhD: garantir que o nome do livro bata com o mapa mesmo com espaços ou casing diferente
+      const normalizedBook = book.trim();
+      const bookId = BIBLE_BOOK_TO_ID[normalizedBook] || 
+                     BIBLE_BOOK_TO_ID[normalizedBook.charAt(0).toUpperCase() + normalizedBook.slice(1).toLowerCase()];
+      
+      const isNT = bookId ? bookId >= 40 : false;
+      const originalTrans = getOriginalLanguageTranslation(normalizedBook);
 
       try {
         // Helper: normaliza resposta do nosso backend OU do bolls.life
@@ -603,7 +574,43 @@ self.addEventListener("message", async (event) => {
         console.warn("[TheoWorker] DuckDB Lexicon query failed:", err);
       }
 
-      // Fallback to static data if DB fails or entry not found
+      // 2. Cache Miss: Try Backend API
+      try {
+        const res = await fetch(`${BACKEND_URL}/lexicon/${encodeURIComponent(strongId)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const entry = json.data;
+            const payload = {
+              strong_id: entry.strongId,
+              lemma: entry.word,
+              transliteration: entry.morphology?.transliteration || "",
+              definition: entry.definition,
+              part_of_speech: entry.morphology?.partOfSpeech || "",
+              occurrences: entry.morphology?.occurrences || 0,
+              bookOccurrences: 0 // Calculate if needed
+            };
+
+            // Save to DuckDB for future cache hits
+            if (dbReady) {
+              await conn.query(`
+                INSERT INTO lexicon (strong_id, lemma, transliteration, definition, part_of_speech)
+                VALUES ('${sanitizeStr(payload.strong_id)}', '${sanitizeStr(payload.lemma)}', 
+                        '${sanitizeStr(payload.transliteration)}', '${sanitizeStr(payload.definition)}', 
+                        '${sanitizeStr(payload.part_of_speech)}')
+                ON CONFLICT (strong_id) DO NOTHING
+              `);
+            }
+
+            self.postMessage({ type: "STRONGS_DATA", payload });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("[TheoWorker] Backend Lexicon API unreachable:", e);
+      }
+
+      // 3. Last Resort: Fallback to static data
       const isGreek = strongId.startsWith("G");
       const data = isGreek ? STRONGS_GREEK : STRONGS_HEBREW;
       const staticEntry = Object.values(data).find((e: any) => e.number === strongId);

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RagModule } from './rag/rag.module';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import Redis from 'ioredis';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
@@ -19,8 +19,11 @@ import { SearchModule } from './search/search.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { AuditModule } from './audit/audit.module';
+import { EnginesModule } from './engines/engines.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -84,6 +87,7 @@ import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
     PrismaModule,
     EventsModule,
     AuditModule,
+    EnginesModule,
     HealthModule,
     RagModule,
     AuthModule,
@@ -98,6 +102,14 @@ import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
     {
       provide: APP_GUARD,
       useClass: ThrottlerUserGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
     AppService,
     OrchestratorService,

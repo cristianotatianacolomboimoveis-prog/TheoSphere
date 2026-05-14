@@ -28,6 +28,32 @@ export class BibleIngestionService {
   }
 
   /**
+   * Retorna todos os livros cadastrados.
+   */
+  async getBooks() {
+    return this.prisma.book.findMany({
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  /**
+   * Resolve o ID de um livro pelo nome ou abreviação.
+   */
+  async resolveBookId(name: string): Promise<number> {
+    const lower = name.toLowerCase();
+    const book = await this.prisma.book.findFirst({
+      where: {
+        OR: [
+          { namePt: { mode: 'insensitive', equals: lower } },
+          { nameEn: { mode: 'insensitive', equals: lower } },
+          { abbreviation: { mode: 'insensitive', equals: lower } },
+        ],
+      },
+    });
+    return book?.id || 1;
+  }
+
+  /**
    * Tarefa automatizada: Sincroniza e atualiza versões bíblicas a cada 6 meses.
    * Expressão: 1º dia de cada semestre às 04:00 AM.
    */
@@ -305,6 +331,49 @@ export class BibleIngestionService {
     }
   }
 
+  /**
+   * 🚀 Geração em Massa de Embeddings (Silicon Valley Mode)
+   * Processa versículos em lotes de 100 para eficiência máxima.
+   */
+  async massGenerateEmbeddings(translation: string, limit: number = 5000) {
+    this.logger.log(`[RAG-Bible] Iniciando geração em massa para ${translation}...`);
+    
+    // Busca versículos sem embedding
+    const verses = await this.prisma.bibleVerse.findMany({
+      where: {
+        translation: translation.toUpperCase(),
+        embedding: null,
+      } as any,
+      take: limit,
+      select: { id: true, text: true }
+    });
+
+    this.logger.log(`[RAG-Bible] Encontrados ${verses.length} versículos para processar.`);
+
+    const batchSize = 10;
+    for (let i = 0; i < verses.length; i += batchSize) {
+      const batch = verses.slice(i, i + batchSize);
+      try {
+        const texts = batch.map(v => v.text);
+        const embeddings = await this.embeddingService.createBatchEmbeddings(texts);
+
+        for (let j = 0; j < batch.length; j++) {
+          const v = batch[j];
+          const emb = embeddings[j];
+          await this.prisma.$executeRaw`
+            UPDATE "BibleVerse"
+            SET embedding = ${emb}::vector
+            WHERE id = ${v.id}
+          `;
+        }
+        this.logger.log(`[RAG-Bible] Progresso: ${i + batch.length}/${verses.length}`);
+      } catch (err) {
+        this.logger.error(`[RAG-Bible] Falha no lote em ${i}: ${err.message}`);
+      }
+    }
+    this.logger.log(`[RAG-Bible] Geração concluída para ${translation}.`);
+  }
+
   private async createVerseEmbedding(id: string, text: string) {
     try {
       const embedding = await this.embeddingService.createEmbedding(text);
@@ -506,5 +575,11 @@ export class BibleIngestionService {
       66: 'REV',
     };
     return map[bookId] || 'GEN';
+  }
+
+  async getLexicon(strongId: string) {
+    return this.prisma.lexicalEntry.findUnique({
+      where: { strongId: strongId.toUpperCase() },
+    });
   }
 }

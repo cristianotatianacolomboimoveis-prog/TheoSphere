@@ -82,7 +82,7 @@ export default function ResourceGuide() {
                 <Sparkles className="w-3 h-3" /> AI Insight
               </h3>
               <p className="text-xs text-white/70 leading-relaxed font-serif italic">
-                Esta passagem conecta a teologia da aliança do Antigo Testamento com a revelação da graça no Novo Testamento. O termo "mundo" (cosmos) sugere uma abrangência universal da redenção.
+                {visibleVerseId ? `Gerando análise profunda para ${visibleVerseId}...` : "Selecione um versículo para obter insights exegéticos PhD via TheoAI."}
               </p>
             </div>
 

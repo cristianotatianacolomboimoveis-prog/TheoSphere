@@ -28,7 +28,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
     async function fetchGraph() {
       setLoading(true);
       try {
-        const result = await api.get<any>(`rag/graph?q=${encodeURIComponent(currentRef)}`);
+        const result = await api.get<any>(`enterprise/graph?q=${encodeURIComponent(currentRef)}`);
         if (result.success) {
           setData(result.data);
         }
@@ -43,10 +43,11 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
 
   const nodeColor = (node: any) => {
     switch (node.type) {
-      case 'verse': return '#2196f3'; // Azul
-      case 'concept': return '#ffc107'; // Dourado
-      case 'document': return '#4caf50'; // Verde
-      case 'query': return '#ff5722'; // Laranja (Centro)
+      case 'person': return '#f472b6'; // Rosa (Pessoas)
+      case 'place': return '#60a5fa'; // Azul (Lugares)
+      case 'event': return '#fbbf24'; // Âmbar (Eventos)
+      case 'doctrine': return '#a78bfa'; // Roxo (Doutrinas)
+      case 'verse': return '#2dd4bf'; // Teal (Versículos)
       default: return '#ffffff';
     }
   };

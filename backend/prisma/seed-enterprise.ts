@@ -3,152 +3,220 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🏛️ Starting Enterprise-Grade Theological Seeding...');
+  console.log('🌱 Seeding Enterprise Data...');
 
-  // 1. Lexical Entries (PhD Level - BDAG/HALOT)
-  const lexicalData = [
-    {
-      strongId: 'G26',
-      word: 'ἀγάπη (agapē)',
-      language: 'GK',
-      definition: 'Sacrificial, unconditional love. Distinct from philia (friendship) or eros (romantic). In the NT, it describes God’s benevolent concern for mankind and the appropriate response of believers.',
-      academicRef: 'BDAG p.6-7; TDNT 1:21-55',
-      morphology: { case: 'nominative', gender: 'feminine', number: 'singular' }
-    },
-    {
-      strongId: 'G3056',
-      word: 'λόγος (logos)',
-      language: 'GK',
-      definition: 'Word, reason, discourse. In Johannine theology, the pre-existent and incarnate Second Person of the Trinity. Contextually signifies the ultimate self-revelation of God.',
-      academicRef: 'BDAG p.600-603; TDNT 4:69-143',
-      morphology: { case: 'nominative', gender: 'masculine', number: 'singular' }
-    },
-    {
-      strongId: 'G1343',
-      word: 'δικαιοσύνη (dikaiosynē)',
-      language: 'GK',
-      definition: 'Righteousness, justice, judicial standing. In Paul, often refers to "God’s righteousness" (dikaiosynē theou) as both His attribute and His gift of standing to the believer.',
-      academicRef: 'BDAG p.247-249; Cranfield, Romans 1:17',
-      morphology: { case: 'nominative', gender: 'feminine', number: 'singular' }
-    },
-    {
-      strongId: 'G4151',
-      word: 'πνεῦμα (pneuma)',
-      language: 'GK',
-      definition: 'Spirit, wind, breath. The Holy Spirit, the third person of the Trinity, or the human spirit/disposition. Fundamental for pneumatology.',
-      academicRef: 'BDAG p.832-835',
-      morphology: { case: 'nominative', gender: 'neuter', number: 'singular' }
-    },
-    {
-      strongId: 'G5485',
-      word: 'χάρις (charis)',
-      language: 'GK',
-      definition: 'Grace, favor, gift. God’s unmerited favor toward sinners. Central to the theology of salvation by grace through faith.',
-      academicRef: 'BDAG p.1077-1081',
-      morphology: { case: 'nominative', gender: 'feminine', number: 'singular' }
-    },
-    {
-      strongId: 'H7225',
-      word: 'רֵאשִׁית (reshith)',
-      language: 'HB',
-      definition: 'Beginning, firstfruits, chief part. In Gen 1:1, denotes the temporal and ontic starting point of the created order.',
-      academicRef: 'HALOT p.1165-1166',
-      morphology: { type: 'noun', state: 'construct' }
-    },
-    {
-      strongId: 'H430',
-      word: 'אֱלֹהִים (elohim)',
-      language: 'HB',
-      definition: 'God, gods, judges. Plural of majesty for the one true God of Israel. In Gen 1:1, the subject of creation.',
-      academicRef: 'HALOT p.52-53',
-      morphology: { type: 'noun', number: 'plural' }
+  // Limpar dados anteriores para evitar duplicatas
+  await prisma.model3D.deleteMany();
+  await prisma.theologicalContent.deleteMany();
+  await prisma.waypoint.deleteMany();
+  await prisma.graphEdge.deleteMany();
+  await prisma.graphNode.deleteMany();
+
+  // 1. Criar Rota do Êxodo
+  const exodo = await prisma.route.upsert({
+    where: { slug: 'exodo' },
+    update: {},
+    create: {
+      title: 'A Rota da Redenção (Êxodo)',
+      slug: 'exodo',
+      description: 'Uma jornada épica do cativeiro no Egito até a entrega da Lei no Monte Sinai.',
+      era: 'Bronze Tardio',
+      coverImage: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
     }
-  ];
+  });
 
-  console.log('  - Seeding Lexical Entries...');
-  for (const entry of lexicalData) {
-    await prisma.lexicalEntry.upsert({
-      where: { strongId: entry.strongId },
-      update: entry,
-      create: entry,
-    });
-  }
-
-  // 2. Technical Commentaries
-  const commentaries = [
-    {
-      bookId: 43, // John
-      chapter: 1,
-      verse: 1,
-      author: 'D.A. Carson',
-      source: 'The Gospel According to John (PNTC)',
-      content: 'The Word was with God (pros ton theon). The preposition pros indicates not just proximity but relationship and face-to-face communion. The Word is distinct from the Father yet in eternal fellowship with Him.',
-      tags: ['Trinity', 'John 1:1', 'Logos']
-    },
-    {
-      bookId: 43, // John
-      chapter: 1,
-      verse: 1,
-      author: 'Leon Morris',
-      source: 'The Gospel According to John (NICNT)',
-      content: 'And the Word was God (theos ēn ho logos). The lack of the article before theos emphasizes the nature or essence of the Word. He was not "the" God (which would identify Him with the Father) but was in essence God.',
-      tags: ['Deity of Christ', 'Greek Grammar']
-    },
-    {
-      bookId: 45, // Romans
-      chapter: 1,
-      verse: 17,
-      author: 'Douglas Moo',
-      source: 'The Epistle to the Romans (NICNT)',
-      content: 'The "righteousness of God" is God’s judicial verdict by which He declares the sinner righteous based on the work of Christ. It is an alien righteousness (iustitia aliena) imputed to the believer.',
-      tags: ['Justification', 'Imputation']
-    },
-    {
-      bookId: 45, // Romans
-      chapter: 3,
-      verse: 25,
-      author: 'Thomas Schreiner',
-      source: 'Romans (BECNT)',
-      content: 'Propitiation (hilastērion) involves the satisfaction of God’s wrath. Christ’s sacrifice was necessary to uphold God’s justice while justifying the ungodly.',
-      tags: ['Atonement', 'Propitiation']
+  // 2. Criar Waypoints
+  const w1 = await prisma.waypoint.create({
+    data: {
+      routeId: exodo.id,
+      stepOrder: 1,
+      title: 'Pi-Ramessés',
+      description: 'A capital do Delta onde os israelitas foram escravizados.',
+      latitude: 30.7963,
+      longitude: 31.8347,
+      period: '1446 a.C.',
+      imageUrl: 'https://images.unsplash.com/photo-1503177119275-0aa32b3a7447?auto=format&fit=crop&w=800&q=80',
+      contents: {
+        create: [
+          {
+            type: 'bible',
+            language: 'pt-BR',
+            title: 'O Clamor em Ramessés',
+            content: 'E os filhos de Israel gemiam debaixo da servidão, e clamaram; e o seu clamor subiu a Deus.',
+            references: ['Êxodo 2:23', 'Êxodo 12:37']
+          },
+          {
+            type: 'history',
+            language: 'pt-BR',
+            title: 'Arqueologia de Qantir',
+            content: 'Identificada como a antiga Pi-Ramessés, capital de Ramsés II.',
+            references: ['Manfred Bietak Research']
+          }
+        ]
+      },
+      models3d: {
+        create: {
+          modelName: 'Altar de Tijolos',
+          modelUrl: 'internal://altar',
+          metadata: { type: 'altar' }
+        }
+      }
     }
-  ];
+  });
 
-  console.log('  - Seeding Technical Commentaries...');
-  for (const comm of commentaries) {
-    await prisma.technicalCommentary.create({
-      data: comm
-    });
-  }
-
-  // 3. Theology Embeddings (Dummy Vectors for Demo)
-  // We need a vector literal like '[0.1, 0.2, ...]'
-  const dummyVector = `[${new Array(768).fill(0).map(() => Math.random().toFixed(4)).join(',')}]`;
-
-  const theologyKnowledge = [
-    {
-      content: 'The doctrine of the Trinity states that God is one in essence and three in person: Father, Son, and Holy Spirit. This is not tritheism (three gods) nor modalism (one god in three roles).',
-      tradition: 'Ecumenical'
-    },
-    {
-      content: 'Sola Fide (Faith Alone) is the Reformational principle that justification is received by faith apart from any human works or merit.',
-      tradition: 'Protestant'
-    },
-    {
-      content: 'Prevenient Grace is the Arminian concept that God’s grace precedes human decision, enabling the fallen will to respond to the Gospel.',
-      tradition: 'Arminian'
+  const w2 = await prisma.waypoint.create({
+    data: {
+      routeId: exodo.id,
+      stepOrder: 2,
+      title: 'Travessia do Mar Vermelho',
+      description: 'Onde as águas se abriram para o povo passar.',
+      latitude: 28.8500,
+      longitude: 32.8500,
+      period: '1446 a.C.',
+      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+      contents: {
+        create: [
+          {
+            type: 'bible',
+            language: 'pt-BR',
+            title: 'A Divisão das Águas',
+            content: 'E Moisés estendeu a sua mão sobre o mar, e o Senhor fez retirar o mar por um forte vento oriental.',
+            references: ['Êxodo 14:21']
+          }
+        ]
+      },
+      models3d: {
+        create: {
+          modelName: 'Coluna de Nuvem',
+          modelUrl: 'internal://pillar',
+          metadata: { type: 'pillar' }
+        }
+      }
     }
-  ];
+  });
 
-  console.log('  - Seeding Theology Knowledge (Vectorized)...');
-  for (const item of theologyKnowledge) {
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "TheologyEmbedding" (content, tradition, embedding)
-      VALUES ($1, $2, $3::vector)
-    `, item.content, item.tradition, dummyVector);
-  }
+  const w3 = await prisma.waypoint.create({
+    data: {
+      routeId: exodo.id,
+      stepOrder: 3,
+      title: 'Monte Sinai',
+      description: 'O local da Aliança e da entrega dos Dez Mandamentos.',
+      latitude: 28.5385,
+      longitude: 33.9753,
+      period: '1445 a.C.',
+      imageUrl: 'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=800&q=80',
+      contents: {
+        create: [
+          {
+            type: 'bible',
+            language: 'pt-BR',
+            title: 'A Lei no Sinai',
+            content: 'E todo o monte Sinai fumegava, porque o Senhor descera sobre ele em fogo.',
+            references: ['Êxodo 19:18', 'Êxodo 20']
+          }
+        ]
+      },
+      models3d: {
+        createMany: {
+          data: [
+            {
+              modelName: 'A Arca da Aliança',
+              modelUrl: 'internal://ark',
+              metadata: { type: 'ark' }
+            },
+            {
+              modelName: 'O Tabernáculo',
+              modelUrl: 'internal://tabernacle',
+              metadata: { type: 'tabernacle' }
+            },
+            {
+              modelName: 'Tábuas da Lei',
+              modelUrl: 'internal://scroll',
+              metadata: { type: 'scroll' }
+            }
+          ]
+        }
+      }
+    }
+  });
 
-  console.log('✅ Seeding Completed Successfully.');
+  // 4. Criar Rota do Reino de Davi/Salomão
+  const reino = await prisma.route.upsert({
+    where: { slug: 'reino-unificado' },
+    update: {},
+    create: {
+      title: 'O Reino Unificado (Davi e Salomão)',
+      slug: 'reino-unificado',
+      description: 'A era de ouro de Israel, da conquista de Jerusalém à construção do Templo.',
+      era: 'Ferro II',
+      coverImage: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
+    }
+  });
+
+  await prisma.waypoint.create({
+    data: {
+      routeId: reino.id,
+      stepOrder: 1,
+      title: 'Jerusalém (Cidade de Davi)',
+      description: 'O centro político e espiritual de Israel.',
+      latitude: 31.7767,
+      longitude: 35.2345,
+      period: '1000 a.C.',
+      contents: {
+        create: [
+          {
+            type: 'history',
+            language: 'pt-BR',
+            title: 'A Conquista de Jebus',
+            content: 'Davi conquistou a fortaleza de Sião, que agora é a Cidade de Davi.',
+            references: ['2 Samuel 5:7']
+          }
+        ]
+      },
+      models3d: {
+        create: {
+          modelName: 'O Templo de Salomão',
+          modelUrl: 'internal://temple',
+          metadata: { type: 'temple' }
+        }
+      }
+    }
+  });
+
+  // 5. Criar Nós do Grafo
+  const n1 = await prisma.graphNode.create({
+    data: {
+      type: 'person',
+      label: 'Moisés',
+      metadata: { importance: 'High' }
+    }
+  });
+
+  const n2 = await prisma.graphNode.create({
+    data: {
+      type: 'event',
+      label: 'Êxodo',
+      metadata: { era: 'Bronze' }
+    }
+  });
+
+  const n3 = await prisma.graphNode.create({
+    data: {
+      type: 'doctrine',
+      label: 'Aliança',
+      metadata: { theme: 'Soteriology' }
+    }
+  });
+
+  await prisma.graphEdge.createMany({
+    data: [
+      { sourceId: n1.id, targetId: n2.id, relationType: 'Líder de', weight: 1.0 },
+      { sourceId: n2.id, targetId: n3.id, relationType: 'Resulta em', weight: 0.8 },
+      { sourceId: n1.id, targetId: n3.id, relationType: 'Mediador da', weight: 0.9 }
+    ]
+  });
+
+  console.log('✅ Enterprise Seeding Completed!');
 }
 
 main()

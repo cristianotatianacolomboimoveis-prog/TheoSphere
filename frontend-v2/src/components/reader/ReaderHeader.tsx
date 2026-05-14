@@ -20,17 +20,17 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({
   onExpand,
   onClose,
 }) => (
-  <div className="px-6 pt-6 pb-4 border-b border-border-subtle flex-shrink-0 bg-gradient-to-b from-background to-transparent relative z-20">
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-3.5">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-          <Zap className="w-5 h-5 text-white" />
+  <div className="px-8 pt-8 pb-6 border-b border-border-subtle flex-shrink-0 bg-gradient-to-b from-surface to-transparent relative z-20">
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shadow-xl shadow-blue-500/10 border border-white/10">
+          <Zap className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-lg font-black tracking-tight text-foreground flex items-center gap-2">
-            <span className="text-gradient">THEOSPHERE EXEGETE</span>
+          <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2 font-display italic">
+            <span className="text-gradient uppercase">TheoSphere Exegete</span>
           </h2>
-          <p className="text-[10px] text-foreground/30 font-bold tracking-[0.2em] uppercase">PhD Old/New Testament Specialization</p>
+          <p className="text-[10px] text-white/30 font-black tracking-[0.3em] uppercase">PhD Old/New Testament Specialization</p>
         </div>
       </div>
       <div className="flex items-center gap-2">

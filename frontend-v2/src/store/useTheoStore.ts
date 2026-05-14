@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { api } from '@/lib/api';
 
-export type ToolId = "exegesis" | "guide" | "word" | "factbook" | "sermon" | "study" | "notes" | "library" | "manuscripts" | "atlas" | "ai" | "console" | "graph" | null;
+export type ToolId = "exegesis" | "guide" | "word" | "factbook" | "sermon" | "study" | "notes" | "library" | "manuscripts" | "atlas" | "ai" | "console" | "graph" | "study_mode" | null;
 
 interface UserPin {
   id: string;
@@ -9,6 +10,17 @@ interface UserPin {
   description: string;
   coordinates: [number, number, number];
   year: number;
+}
+
+export interface BibleBook {
+  id: number;
+  namePt: string;
+  nameEn: string;
+  abbreviation: string;
+  chapters: number;
+  testament: string;
+  yearStart?: number;
+  author?: string;
 }
 
 interface TheoState {
@@ -26,6 +38,7 @@ interface TheoState {
   
   // Data / Persistence
   userPins: UserPin[];
+  books: BibleBook[];
   _hasHydrated: boolean;
   
   // Actions
@@ -38,6 +51,7 @@ interface TheoState {
   setOfflineStatus: (status: boolean) => void;
   addUserPin: (pin: Omit<UserPin, 'id'>) => void;
   setHasHydrated: (state: boolean) => void;
+  fetchBooks: () => Promise<void>;
 }
 
 export const useTheoStore = create<TheoState>()(
@@ -52,6 +66,7 @@ export const useTheoStore = create<TheoState>()(
       currentTime: -2100,
       isOffline: false,
       userPins: [],
+      books: [],
       _hasHydrated: false,
 
       setActiveTool: (tool) => set({ activeTool: tool }),
@@ -65,6 +80,16 @@ export const useTheoStore = create<TheoState>()(
         userPins: [...state.userPins, { ...pin, id: crypto.randomUUID() }]
       })),
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+      fetchBooks: async () => {
+        try {
+          const res = await api.get<any>('bible/books');
+          if (res.success && res.data) {
+            set({ books: res.data });
+          }
+        } catch (err) {
+          console.warn('[Store] API offline, using cached or empty books:', err);
+        }
+      },
     }),
     {
       name: 'theosphere-context',

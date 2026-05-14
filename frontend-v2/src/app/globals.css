@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Literata:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Noto+Sans+Hebrew:wght@300;400;700&family=Noto+Serif+Greek:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Literata:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Noto+Sans+Hebrew:wght@300;400;700&family=Noto+Serif+Greek:wght@300;400;700&display=swap');
 @import "tailwindcss";
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
@@ -38,16 +38,17 @@
 
 /* ─── Dark Theme (default) ───────────────────────────────────────────── */
 :root {
-  --bg: #0F172A;
-  --fg: #F1F5F9;
-  --c-primary: #F59E0B;
-  --c-primary-fg: #0F172A;
-  --c-accent: #3B82F6;
-  --c-surface: #1E293B;
-  --c-surface-hover: #334155;
-  --c-border-subtle: rgba(148, 163, 184, 0.12);
-  --c-border-strong: rgba(148, 163, 184, 0.25);
-  --c-muted: #94A3B8;
+  --bg: #05080F;
+  --fg: #FFFFF0;
+  --c-primary: #D4AF37;
+  --c-primary-fg: #05080F;
+  --c-accent: #1E3A8A;
+  --c-surface: #0F172A;
+  --c-surface-hover: #1E293B;
+  --c-border-subtle: rgba(212, 175, 55, 0.15);
+  --c-border-strong: rgba(212, 175, 55, 0.3);
+  --c-muted: #8E8E8E;
+  --c-bronze: #CD7F32;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
@@ -145,13 +146,28 @@ body {
 /* ─── Text Gradient ──────────────────────────────────────────────────── */
 
 .text-gradient {
-  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFD700 50%, #B8860B 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.text-gold {
+  color: var(--c-gold);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────── */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow-spread {
+  0%, 100% { opacity: 0.5; filter: blur(40px); }
+  50% { opacity: 0.8; filter: blur(60px); }
+}
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 10px rgba(217, 119, 6, 0.15); }

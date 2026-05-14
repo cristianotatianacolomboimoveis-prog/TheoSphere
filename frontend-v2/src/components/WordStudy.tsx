@@ -250,7 +250,7 @@ export default function WordStudy({
 
               {/* Word header */}
               <div className="text-center mb-6">
-                <p className="text-4xl font-serif mb-2 text-white">{selectedEntry.lemma}</p>
+                <p className="text-4xl font-serif mb-2 text-white" dir="auto">{selectedEntry.lemma}</p>
                 <p className="text-lg text-blue-400 font-mono font-bold">{selectedEntry.transliteration}</p>
                 <p className="text-xs text-white/30 mt-1">/{selectedEntry.pronunciation}/</p>
                 <div className="flex items-center justify-center gap-2 mt-2">

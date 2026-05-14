@@ -40,6 +40,8 @@ interface StrongOverlayProps {
   bookOccurrences?: number;
   position: { x: number; y: number };
   onClose: () => void;
+  transliteration?: string;
+  pronunciation?: string;
   /** Abre o estudo completo da palavra no painel WordStudy. */
   onOpenWordStudy?: (strongId: string) => void;
 }
@@ -72,6 +74,8 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
   bookOccurrences,
   position,
   onClose,
+  transliteration,
+  pronunciation,
   onOpenWordStudy,
 }) => {
   const [libraryHits, setLibraryHits] = useState<LibraryHit[]>([]);
@@ -179,6 +183,11 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
                 <Hash className="w-2.5 h-2.5 text-blue-500" /> {strongId}
               </span>
             </div>
+            {transliteration && (
+              <p className="text-xs text-white/60 italic mt-1 font-serif">
+                {transliteration} {pronunciation && <span className="text-[10px] opacity-50 not-italic ml-1">[{pronunciation}]</span>}
+              </p>
+            )}
           </div>
           <div className="bg-blue-500/20 text-blue-300 text-[9px] font-black px-2 py-0.5 rounded-md border border-blue-500/30 uppercase tracking-tighter">
             Análise PhD

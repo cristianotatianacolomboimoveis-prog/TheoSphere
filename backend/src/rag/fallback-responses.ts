@@ -11,7 +11,7 @@ export function generateFallbackResponse(
   const lower = query.toLowerCase();
 
   const isNT =
-    /mateus|marcos|lucas|joao|joão|atos|romanos|corintios|coríntios|galatas|gálatas|efesios|efésios|filipenses|colossenses|tessalonicenses|timoteo|timóteo|tito|filemon|filemom|hebreus|tiago|pedro|judas|apocalipse|mt|mc|lc|jo|at|rm|co|gl|ef|fp|cl|ts|tm|tt|fm|hb|tg|pe|jd|ap/i.test(
+    /\b(mateus|marcos|lucas|joao|joão|atos|romanos|corintios|coríntios|galatas|gálatas|efesios|efésios|filipenses|colossenses|tessalonicenses|timoteo|timóteo|tito|filemon|filemom|hebreus|tiago|pedro|judas|apocalipse|mt|mc|lc|jo|at|rm|co|gl|ef|fp|cl|ts|tm|tt|fm|hb|tg|pe|jd|ap)\b/i.test(
       lower,
     );
 

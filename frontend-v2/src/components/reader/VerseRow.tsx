@@ -53,18 +53,18 @@ export const VerseRow: React.FC<VerseRowProps> = ({
     {/* Primary Version */}
     <div
       onClick={onClick}
-      className={`group relative transition-all duration-300 py-4 px-4 rounded-2xl border border-transparent ${
+      className={`group relative transition-all duration-500 py-6 px-6 rounded-[24px] border border-transparent ${
         selected
-          ? "bg-accent/20 border-accent/30 shadow-lg"
-          : "hover:bg-surface-hover"
+          ? "bg-primary/5 border-primary/20 shadow-[0_0_40px_rgba(255,215,0,0.08)]"
+          : "hover:bg-white/5"
       }`}
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-1 min-w-[20px]">
-          <span className="text-[11px] font-black text-accent/50 mt-1.5 tabular-nums">
+          <span className="text-[11px] font-black text-accent mt-1.5 tabular-nums drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">
             {verse}
           </span>
-          {crossRefCount && crossRefCount > 0 && (
+          {crossRefCount !== undefined && crossRefCount > 0 && (
             <button
               type="button"
               onClick={(e) => {
@@ -80,7 +80,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
             </button>
           )}
         </div>
-        <span className="text-[17px] leading-[1.8] font-serif text-foreground/90">
+        <span className="text-[19px] leading-[1.85] font-serif text-white/90 tracking-tight">
           {highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
         </span>
       </div>
@@ -88,12 +88,12 @@ export const VerseRow: React.FC<VerseRowProps> = ({
 
     {/* Secondary Version (Parallel) */}
     {secondaryText && (
-      <div className="py-4 px-4 rounded-2xl border border-transparent bg-primary/[0.04]">
+      <div className="py-6 px-6 rounded-[24px] border border-white/5 bg-white/[0.02]">
         <div className="flex gap-4">
-          <span className="text-[11px] font-black text-primary/30 mt-1.5 min-w-[20px] tabular-nums">
+          <span className="text-[11px] font-black text-white/40 mt-1.5 min-w-[20px] tabular-nums">
             {verse}
           </span>
-          <span className="text-[17px] leading-[1.8] font-serif text-foreground/60 italic">
+          <span className="text-[19px] leading-[1.85] font-serif text-white/40 italic font-light tracking-tight">
             {secondaryText}
           </span>
         </div>

@@ -17,6 +17,8 @@ import {
   Search,
   Library,
   Map,
+  Compass,
+  Book,
   Bot,
   ShieldCheck,
   Sparkles,
@@ -25,10 +27,12 @@ import {
   MessageSquare,
   Globe,
   Share2,
+  X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheoStore } from "@/store/useTheoStore";
+import { useTheoStore, type ToolId } from "@/store/useTheoStore";
+import { ToolOverlay, FullScreenOverlay } from "@/components/ui/Overlay";
 
 // ─── Heavy components: lazy-loaded, no SSR ─────────────────────────────────
 const BibleReader = dynamic(() => import("@/components/BibleReader"), {
@@ -43,32 +47,20 @@ const WordStudy = dynamic(() => import("@/components/WordStudy"), { ssr: false }
 const TheologicalLibrary = dynamic(() => import("@/components/TheologicalLibrary"), { ssr: false });
 const PassageGuide = dynamic(() => import("@/components/PassageGuide"), { ssr: false });
 const AIAssistant = dynamic(() => import("@/components/AIAssistant"), { ssr: false });
-const Atlas4D = dynamic(() => import("@/components/Atlas4D"), { ssr: false });
-const AgenticConsole = dynamic(() => import("@/components/AgenticConsole"), { ssr: false });
-const AuthModal = dynamic(() => import("@/components/AuthModal"), { ssr: false });
-const ManuscriptViewer = dynamic(() => import("@/components/ManuscriptViewer"), { ssr: false });
+const TheoSphere3D = dynamic(() => import("@/components/visualizer/TheoSphere3D"), { ssr: false });
+const StudyMode = dynamic(() => import("@/components/StudyMode"), { ssr: false });
 const NoteEditor = dynamic(() => import("@/components/NoteEditor"), { ssr: false });
+const ManuscriptViewer = dynamic(() => import("@/components/ManuscriptViewer"), { ssr: false });
 const TheoSGraph = dynamic(() => import("@/components/TheoSGraph"), { ssr: false });
+const AgenticConsole = dynamic(() => import("@/components/AgenticConsole"), { ssr: false });
+
+import AuthModal from "@/components/AuthModal";
 
 // ─── Tool registry ──────────────────────────────────────────────────────────
-type ToolKey =
-  | "exegesis"
-  | "sermon"
-  | "study"
-  | "factbook"
-  | "word"
-  | "library"
-  | "guide"
-  | "ai"
-  | "atlas"
-  | "console"
-  | "manuscripts"
-  | "notes"
-  | "graph"
-  | null;
+// ToolId importado do store
 
 interface ToolDefinition {
-  key: Exclude<ToolKey, null>;
+  key: ToolId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
@@ -88,10 +80,10 @@ const CREATIVE_TOOLS: ToolDefinition[] = [
 ];
 
 const EXPLORATION_TOOLS: ToolDefinition[] = [
-  { key: "atlas", label: "Atlas 4D", icon: Map, color: "text-cyan-400" },
-  { key: "manuscripts", label: "Manuscritos Digitais", icon: ImageIcon, color: "text-rose-400" },
-  { key: "graph", label: "Topologia Teológica", icon: Share2, color: "text-amber-500" },
-  { key: "library", label: "Biblioteca", icon: Library, color: "text-slate-400" },
+  { key: "study_mode", label: "Modo Estudo (Scholar)", icon: Book, color: "text-[#D4AF37]" },
+  { key: "atlas", label: "Atlas 3D", icon: Compass, color: "text-yellow-500" },
+  { key: "graph", label: "Grafo Bíblico", icon: Share2, color: "text-amber-500" },
+  { key: "library", label: "Biblioteca Enterprise", icon: Library, color: "text-slate-400" },
 ];
 
 const AI_TOOLS: ToolDefinition[] = [
@@ -145,23 +137,20 @@ export default function TheoSphereOS() {
     return (
       <button
         key={t.key}
-        onClick={() => setActiveTool(t.key)}
+        onClick={() => (isActive ? closeTool() : setActiveTool(t.key))}
         title={t.label}
         aria-label={t.label}
         className={
-          "group relative p-3 rounded-2xl transition-all duration-300 " +
+          "group relative p-3.5 rounded-2xl transition-all duration-500 " +
           (isActive
-            ? "bg-surface text-foreground shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            : "text-foreground/30 hover:text-foreground/60 hover:bg-surface-hover")
+            ? "bg-primary text-primary-fg shadow-[0_0_30px_rgba(255,215,0,0.2)] scale-105"
+            : "text-white/20 hover:text-white/60 hover:bg-white/5")
         }
       >
-        <Icon className={`w-6 h-6 ${isActive ? t.color : "group-hover:" + t.color}`} />
-        {isActive && (
-          <div className={`absolute -left-3 top-1/4 w-1 h-1/2 rounded-r-full bg-current ${t.color}`} />
-        )}
+        <Icon className={`w-6 h-6 transition-transform duration-500 ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
         
         {/* Tooltip on Hover (Sidebar Style) */}
-        <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-surface border border-border-strong text-[10px] font-black uppercase tracking-widest text-foreground opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
+        <div className="absolute left-16 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-surface/95 backdrop-blur-xl border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
           {t.label}
         </div>
       </button>
@@ -174,21 +163,17 @@ export default function TheoSphereOS() {
       {/* ─── Persistent Sidebar (The "OS" Shell) ──────────────────────── */}
       <aside
         aria-label="Navegação principal"
-        className="fixed bottom-0 left-0 w-full h-16 md:relative md:h-full md:w-20 flex md:flex-col flex-row items-center justify-around md:justify-start py-2 md:py-6 border-t md:border-t-0 md:border-r border-border-subtle bg-background/80 backdrop-blur-xl z-40"
+        className="fixed bottom-0 left-0 w-full h-20 md:relative md:h-full md:w-24 flex md:flex-col flex-row items-center justify-around md:justify-start py-4 md:py-8 border-t md:border-t-0 md:border-r border-white/5 bg-surface/80 backdrop-blur-3xl z-40"
       >
         {/* Brand Mark — Gold Globe (system identity) */}
         <button
           type="button"
           onClick={() => setActiveTool(null)}
           aria-label="Início — TheoSphere"
-          title="TheoSphere"
-          className="hidden md:flex mb-8 relative w-12 h-12 rounded-[18px] bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 items-center justify-center shadow-[0_0_24px_rgba(245,158,11,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.15)] hover:shadow-[0_0_32px_rgba(245,158,11,0.6),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all hover:scale-[1.04] active:scale-95 group flex-shrink-0"
+          className="hidden md:flex mb-10 relative w-12 h-12 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 items-center justify-center border border-white/10 hover:border-primary/50 transition-all hover:scale-110 active:scale-95 group flex-shrink-0"
         >
-          <Globe className="w-[24px] h-[24px] text-slate-950 drop-shadow-sm" strokeWidth={2.25} />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 rounded-[18px] bg-gradient-to-br from-white/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-          />
+          <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Globe className="w-6 h-6 text-primary drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
         </button>
 
         <div className="flex md:flex-col flex-row gap-2 md:gap-4 overflow-x-auto md:overflow-y-auto no-scrollbar md:pb-10 flex-grow justify-around md:justify-start px-4 md:px-0">
@@ -230,58 +215,83 @@ export default function TheoSphereOS() {
       {/* ─── Main Content Surface ────────────────────────────────────────── */}
       <main id="main" className="flex-grow relative overflow-hidden bg-background pb-16 md:pb-0">
         {/* BibleReader is the primary desktop background */}
-        <BibleReader onClose={() => {}} onOpenWordStudy={openWordStudyWithStrong} />
+        <div className={`flex w-full h-full transition-all duration-700 ease-in-out ${activeTool === "exegesis" ? "gap-4 p-4" : ""}`}>
+          {/* BibleReader is the primary desktop background or part of split */}
+          <div className={`transition-all duration-700 ease-in-out h-full overflow-hidden ${activeTool === "exegesis" ? "w-1/2 rounded-[32px] border border-white/10 shadow-2xl" : "w-full"}`}>
+            <BibleReader onClose={() => {}} onOpenWordStudy={openWordStudyWithStrong} />
+          </div>
 
-        {/* Floating Tool Overlays */}
+          {/* Integrated Split Tools (Exegesis / Interlinear) */}
+          <AnimatePresence>
+            {activeTool === "exegesis" && (
+              <motion.div 
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 100 }}
+                className="w-1/2 h-full glass-heavy rounded-[32px] border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+              >
+                <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <h3 className="text-sm font-black text-white/90 uppercase tracking-[0.2em]">Análise Exegética (Interlinear)</h3>
+                  </div>
+                  <button onClick={closeTool} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex-grow overflow-y-auto custom-scrollbar">
+                  <ExegesisPanel verse={currentReference} onClose={closeTool} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Immersive Full Screen Overlays for Research Tools */}
         <AnimatePresence mode="wait">
-          {activeTool === "exegesis" && (
-            <ToolOverlay key="exegesis" onClose={closeTool} label="Análise Exegética">
-              <ExegesisPanel verse={currentReference} onClose={closeTool} />
-            </ToolOverlay>
-          )}
           {activeTool === "guide" && (
-            <ToolOverlay key="guide" onClose={closeTool} label="Guia de Passagem">
+            <FullScreenOverlay onClose={closeTool}>
               <PassageGuide onClose={closeTool} initialRef={currentReference} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "word" && (
-             <ToolOverlay key="word" onClose={closeTool} label="Estudo de Palavras">
+             <FullScreenOverlay onClose={closeTool}>
                <WordStudy onClose={closeTool} initialStrongId={pendingStrongId} />
-             </ToolOverlay>
+             </FullScreenOverlay>
           )}
           {activeTool === "factbook" && (
-            <ToolOverlay key="factbook" onClose={closeTool} label="Enciclopédia Bíblica">
+            <FullScreenOverlay onClose={closeTool}>
               <Factbook onClose={closeTool} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "sermon" && (
-             <ToolOverlay key="sermon" onClose={closeTool} label="Criador de Sermões">
+             <FullScreenOverlay onClose={closeTool}>
                <SermonBuilder onClose={closeTool} />
-             </ToolOverlay>
+             </FullScreenOverlay>
           )}
           {activeTool === "study" && (
-            <ToolOverlay key="study" onClose={closeTool} label="Criador de Estudos">
+            <FullScreenOverlay onClose={closeTool}>
               <StudyBuilder onClose={closeTool} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "notes" && (
-            <ToolOverlay key="notes" onClose={closeTool} label="Minhas Notas">
+            <FullScreenOverlay onClose={closeTool}>
               <NoteEditor reference={currentReference} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "library" && (
-            <ToolOverlay key="library" onClose={closeTool} label="Biblioteca Teológica">
+            <FullScreenOverlay onClose={closeTool}>
               <TheologicalLibrary onClose={closeTool} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "manuscripts" && (
-            <ToolOverlay key="manuscripts" onClose={closeTool} label="Manuscritos Digitais">
+            <FullScreenOverlay onClose={closeTool}>
               <ManuscriptViewer reference={currentReference} />
-            </ToolOverlay>
+            </FullScreenOverlay>
           )}
           {activeTool === "atlas" && (
             <FullScreenOverlay onClose={closeTool}>
-              <Atlas4D />
+              <TheoSphere3D onClose={closeTool} />
             </FullScreenOverlay>
           )}
           {activeTool === "ai" && (
@@ -299,6 +309,11 @@ export default function TheoSphereOS() {
               <TheoSGraph onClose={closeTool} />
             </FullScreenOverlay>
           )}
+          {activeTool === "study_mode" && (
+            <FullScreenOverlay onClose={closeTool}>
+              <StudyMode onClose={closeTool} />
+            </FullScreenOverlay>
+          )}
         </AnimatePresence>
       </main>
 
@@ -308,56 +323,7 @@ export default function TheoSphereOS() {
   );
 }
 
-/**
- * Standardized overlay for most tools. 
- * Allows the tool to feel like a window over the Bible text.
- */
-function ToolOverlay({ 
-  children, 
-  onClose,
-  label
-}: { 
-  children: React.ReactNode; 
-  onClose: () => void;
-  label: string;
-}) {
-  return (
-    <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-8 animate-in animate-fade-in animate-zoom-in duration-300">
-      <div className="w-full h-full max-w-7xl bg-background rounded-[32px] border border-border-strong shadow-2xl overflow-hidden flex flex-col relative">
-        {/* Integrated Window Header */}
-        <div className="h-12 flex-shrink-0 flex items-center justify-between px-6 border-b border-border-subtle bg-surface/50">
-          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">{label}</span>
-          <button onClick={onClose} className="p-1 hover:bg-surface-hover rounded-lg text-foreground/30 hover:text-foreground transition-all">
-             <span className="text-xs font-bold px-2 uppercase">Fechar [Esc]</span>
-          </button>
-        </div>
-        <div className="flex-grow overflow-hidden">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FullScreenOverlay({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 bg-background animate-in animate-fade-in duration-500">
-      <button
-        onClick={onClose}
-        className="absolute top-6 right-6 z-[60] px-4 py-2 rounded-xl bg-surface hover:bg-surface-hover text-foreground/70 hover:text-foreground text-[10px] font-black uppercase tracking-widest border border-border-strong backdrop-blur-xl transition-all"
-      >
-        Voltar para o Texto
-      </button>
-      {children}
-    </div>
-  );
-}
+// Overlays modularizados em @/components/ui/Overlay
 
 function BootingFallback({ label }: { label: string }) {
   return (

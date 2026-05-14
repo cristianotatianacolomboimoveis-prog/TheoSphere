@@ -109,20 +109,24 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
       setError(null);
       setMarkdownFallback(null);
 
+      const isNT = /\b(Mateus|Marcos|Lucas|João|Atos|Romanos|Coríntios|Gálatas|Efésios|Filipenses|Colossenses|Tessalonicenses|Timóteo|Tito|Filemom|Hebreus|Tiago|Pedro|Judas|Apocalipse)\b/i.test(verse);
+      const language = isNT ? "Grego" : "Hebraico";
+
       // Inclui o schema explícito no prompt — Gemini's `responseMimeType:
       // application/json` honra melhor quando o schema está visível.
-      const prompt = `Realize uma análise exegética PhD profunda para ${verse}.
+      const prompt = `Realize uma análise exegética PhD profunda para ${verse}. 
+O idioma original desta passagem é ${language}.
 
 REGRAS CRÍTICAS:
 1. NUNCA use '...' ou espaços reservados.
-2. Forneça o texto original, transliteração, código Strong e morfologia.
+2. Forneça o texto original em ${language}, transliteração, código Strong (começando com ${isNT ? 'G' : 'H'}) e morfologia acadêmica específica de ${language}.
 3. Retorne APENAS um objeto JSON válido seguindo EXATAMENTE este schema:
 
 {
   "verse": "${verse}",
-  "original_language": "Hebraico" | "Grego" | "Aramaico",
+  "original_language": "${language}",
   "interlinear": [
-    { "word": "<palavra original>", "transliteration": "<...>", "strong": "<G/H####>", "morphology": "<...>", "translation": "<português>" }
+    { "word": "<palavra original>", "transliteration": "<...>", "strong": "<${isNT ? 'G' : 'H'}####>", "morphology": "<...>", "translation": "<português>" }
   ],
   "lexical_analysis": [
     { "word": "<palavra>", "bdag_halot_sense": "<sentido lexicográfico>", "academic_discussion": "<discussão>" }

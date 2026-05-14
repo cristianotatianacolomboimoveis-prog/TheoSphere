@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { THEOLOGICAL_ROUTES } from './geospatial-routes.registry';
 
 @Injectable()
 export class GeospatialService {
@@ -10,16 +11,24 @@ export class GeospatialService {
   /**
    * Busca locais convertendo tipos espaciais do PostGIS (geom) para tipos JSON (lat/lng).
    */
-  async getAllLocations() {
+  async getAllLocations(era?: number) {
     try {
-      this.logger.debug('Fetching all locations with PostGIS conversion');
+      this.logger.debug(`Fetching locations ${era ? `for era ${era}` : 'all eras'}`);
 
-      const locations = await this.prisma.$queryRaw`
-        SELECT id, name, era, category, description,
-               ST_X(geom::geometry) as lng,
-               ST_Y(geom::geometry) as lat
-        FROM "Location";
-      `;
+      const locations = era !== undefined
+        ? await this.prisma.$queryRaw`
+            SELECT id, name, era, category, description,
+                   ST_X(geom::geometry) as lng,
+                   ST_Y(geom::geometry) as lat
+            FROM "Location"
+            WHERE era BETWEEN ${era - 50} AND ${era + 50};
+          `
+        : await this.prisma.$queryRaw`
+            SELECT id, name, era, category, description,
+                   ST_X(geom::geometry) as lng,
+                   ST_Y(geom::geometry) as lat
+            FROM "Location";
+          `;
 
       return locations;
     } catch (error) {
@@ -45,5 +54,26 @@ export class GeospatialService {
       this.logger.error(`Failed to fetch nearby locations: ${error.message}`);
       return [];
     }
+  }
+
+  /**
+   * Retorna todas as rotas teológicas disponíveis.
+   */
+  async getRoutes() {
+    return Object.values(THEOLOGICAL_ROUTES).map(r => ({
+      id: r.id,
+      title: r.title,
+      description: r.description,
+      waypointCount: r.waypoints.length
+    }));
+  }
+
+  /**
+   * Retorna os detalhes de uma rota específica.
+   */
+  async getRouteById(id: string) {
+    const route = THEOLOGICAL_ROUTES[id];
+    if (!route) return null;
+    return route;
   }
 }
