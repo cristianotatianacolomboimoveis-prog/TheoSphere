@@ -196,6 +196,20 @@ model Argument {
 // ─────────────────────────────────────────────────────────────────────────────
 // Bible text + lexicons
 // ─────────────────────────────────────────────────────────────────────────────
+model Book {
+  id           Int          @id // ID canônico (1-66)
+  namePt       String
+  nameEn       String
+  abbreviation String
+  chapters     Int
+  testament    String       // 'OT' | 'NT'
+  yearStart    Int?         // Para timeline geospacial
+  author       String?
+  verses       BibleVerse[]
+
+  @@index([testament])
+}
+
 model BibleVerse {
   id            String                      @id @default(uuid())
   book          String
@@ -208,6 +222,8 @@ model BibleVerse {
   copyright     String?
   textDirection String                      @default("ltr") // 'ltr' or 'rtl'
   embedding     Unsupported("vector(768)")?
+
+  bookRef       Book                        @relation(fields: [bookId], references: [id])
 
   @@unique([translation, bookId, chapter, verse])
   @@index([translation])
@@ -258,4 +274,90 @@ model CrossReference {
 
   @@unique([sourceRef, targetRef])
   @@index([sourceRef])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enterprise Engines (Geo, Theo, Graph, 3D)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Route {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String
+  era         String?
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  waypoints   Waypoint[]
+}
+
+model Waypoint {
+  id          String   @id @default(uuid())
+  routeId     String
+  stepOrder   Int
+  title       String
+  description String
+  latitude    Float
+  longitude   Float
+  period      String?
+  imageUrl    String?
+  
+  route       Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  contents    TheologicalContent[]
+  models3d    Model3D[]
+
+  @@index([routeId])
+}
+
+model TheologicalContent {
+  id         String   @id @default(uuid())
+  waypointId String
+  type       String // 'bible' | 'exegesis' | 'history' | 'geography' | 'application'
+  language   String   @default("pt-BR")
+  title      String
+  content    String
+  references String[]
+
+  waypoint   Waypoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+
+  @@index([waypointId])
+}
+
+model GraphNode {
+  id       String @id @default(uuid())
+  type     String // 'person' | 'event' | 'place' | 'doctrine' | 'manuscript'
+  label    String
+  metadata Json?
+
+  outgoing GraphEdge[] @relation("source")
+  incoming GraphEdge[] @relation("target")
+}
+
+model GraphEdge {
+  id           String @id @default(uuid())
+  sourceId     String
+  targetId     String
+  relationType String
+  weight       Float  @default(1.0)
+
+  source       GraphNode @relation("source", fields: [sourceId], references: [id], onDelete: Cascade)
+  target       GraphNode @relation("target", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+model Model3D {
+  id         String   @id @default(uuid())
+  waypointId String?
+  modelName  String
+  modelUrl   String
+  textures   Json?
+  metadata   Json?
+
+  waypoint   Waypoint? @relation(fields: [waypointId], references: [id], onDelete: SetNull)
+
+  @@index([waypointId])
 }
