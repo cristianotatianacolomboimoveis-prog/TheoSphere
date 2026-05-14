@@ -27,6 +27,11 @@ import { VerseRow } from "./reader/VerseRow";
 import { Button, Card, CardHeader } from "./ui";
 import { CrossRefsPopover } from "./CrossRefsPopover";
 import { useChapterCrossRefs } from "@/hooks/useCrossRefs";
+import {
+  useAdvancedSearch,
+  isAdvancedSyntax,
+} from "@/hooks/useAdvancedSearch";
+import { QueryChips } from "./reader/QueryChips";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -144,6 +149,28 @@ export default function BibleReader({
   // Search state
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Advanced search (Logos-style boolean/morphological). Só dispara quando
+  // a query contém operadores (AND/OR/"..."/field:val/-word) — caso contrário
+  // o filtro client-side existente continua sendo usado e é mais barato.
+  const advanced = useAdvancedSearch();
+  const isAdvanced = searchMode && isAdvancedSyntax(searchQuery);
+
+  useEffect(() => {
+    if (!isAdvanced) {
+      advanced.reset();
+      return;
+    }
+    // Debounce 350ms: usuário ainda digitando não dispara request a cada
+    // tecla. Cancela na próxima edição via cleanup.
+    const t = setTimeout(() => {
+      void advanced.search(searchQuery, {
+        translation: primaryTranslation.toUpperCase(),
+      });
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, isAdvanced, primaryTranslation]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // PhD Timeline Sync: Sincroniza o tempo do mapa com o livro bíblico
@@ -258,29 +285,41 @@ export default function BibleReader({
       <div className="px-6 pb-4 border-b border-border-subtle flex-shrink-0 relative z-20">
         <div className="flex gap-2 relative mt-4">
           {searchMode ? (
-            /* Search input bar */
-            <div className="flex-grow flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-hover border border-accent/30">
-              <Search className="w-4 h-4 text-accent flex-shrink-0" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === "Escape") setSearchMode(false); }}
-                placeholder="Buscar versículos..."
-                className="flex-grow bg-transparent text-sm text-foreground/90 placeholder-foreground/30 outline-none"
-              />
-              {searchQuery && (
-                <span className="text-[10px] text-accent/60 font-mono flex-shrink-0">
-                  {versesToRender.length} resultado{versesToRender.length !== 1 ? "s" : ""}
-                </span>
+            /* Search input bar — sintaxe Logos-style ativa pelo placeholder */
+            <div className="flex-grow flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-hover border border-accent/30">
+                <Search className="w-4 h-4 text-accent flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Escape") setSearchMode(false); }}
+                  placeholder='Buscar… (ex: book:John "in the beginning")'
+                  className="flex-grow bg-transparent text-sm text-foreground/90 placeholder-foreground/30 outline-none"
+                  title='Sintaxe avançada: AND, OR, "frase exata", book:Nome, chapter:1-3, -excluir'
+                />
+                {searchQuery && (
+                  <span className="text-[10px] text-accent/60 font-mono flex-shrink-0">
+                    {isAdvanced
+                      ? `${advanced.hits.length} hit${advanced.hits.length !== 1 ? "s" : ""}`
+                      : `${versesToRender.length} resultado${versesToRender.length !== 1 ? "s" : ""}`}
+                  </span>
+                )}
+                <button
+                  onClick={() => setSearchMode(false)}
+                  className="p-1 rounded-md hover:bg-red-500/10 text-foreground/30 hover:text-red-400 transition-all flex-shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {/* Chips indicando o que o parser interpretou — Logos-style preview */}
+              {isAdvanced && advanced.parsed && (
+                <QueryChips parsed={advanced.parsed} hitsCount={advanced.hits.length} />
               )}
-              <button
-                onClick={() => setSearchMode(false)}
-                className="p-1 rounded-md hover:bg-red-500/10 text-foreground/30 hover:text-red-400 transition-all flex-shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              {isAdvanced && advanced.error && (
+                <p className="text-[10px] text-red-400 px-1">{advanced.error}</p>
+              )}
             </div>
           ) : (
             <>
@@ -575,6 +614,61 @@ export default function BibleReader({
                       </div>
                     );
                   })}
+                </div>
+              ) : isAdvanced ? (
+                /* Pesquisa avançada — resultados podem cruzar livros/capítulos.
+                   Substitui o reader pelo painel de hits clicáveis enquanto
+                   a sintaxe avançada está ativa. Sair do searchMode (Esc)
+                   restaura o reader normal. */
+                <div className="pb-32 space-y-1.5">
+                  {advanced.loading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-6 h-6 animate-spin text-accent" />
+                    </div>
+                  ) : advanced.hits.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-foreground/30">
+                      <Search className="w-8 h-8 mb-3 opacity-30" />
+                      <p className="text-sm">
+                        Nenhum versículo bate com a busca avançada.
+                      </p>
+                      <p className="text-[10px] text-foreground/30 mt-2 max-w-md text-center">
+                        Operadores aceitos: AND, OR, "frase exata",
+                        book:Nome, chapter:1-3, -excluir
+                      </p>
+                    </div>
+                  ) : (
+                    advanced.hits.map((h) => {
+                      const book = BIBLE_BOOKS.find((b) => b.id === h.bookId);
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => {
+                            if (!book) return;
+                            setBibleReference(book.namePt, h.chapter);
+                            setActiveVerse(
+                              `${book.nameEn} ${h.chapter}:${h.verse}`,
+                            );
+                            // Volta ao reader (sai do search mode).
+                            setSearchMode(false);
+                          }}
+                          className="w-full text-left rounded-2xl border border-border-subtle bg-surface hover:border-accent/30 transition-colors p-4 group"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-accent">
+                              {book ? `${book.namePt} ${h.chapter}:${h.verse}` : `${h.bookId}.${h.chapter}.${h.verse}`}
+                            </span>
+                            <span className="text-[9px] font-mono text-foreground/30">
+                              {h.translation} · score {h.score.toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="text-sm font-serif text-foreground/80 leading-relaxed">
+                            {h.text}
+                          </p>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               ) : (
                 /* Unified Virtualized Reader (handles Reading and Search) */
