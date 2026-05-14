@@ -7,6 +7,8 @@ const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { generateCitation } from "@/lib/citationGenerator";
 import { logger } from "@/lib/logger";
+import { api, ApiError } from "@/lib/api";
+import { Library as LibraryIcon, FileText, ExternalLink } from "lucide-react";
 
 interface InterlinearWord {
   word: string;
@@ -51,6 +53,29 @@ interface ExegesisPanelProps {
   onClose: () => void;
 }
 
+/* ─── Library lookup types (mirror backend LibraryExcerpt) ──────────── */
+
+interface LibraryExcerpt {
+  content: string;
+  fileName: string;
+  fileId?: string;
+  tradition?: string;
+  chunkIndex?: number;
+  lemma?: string;
+  strongId?: string;
+  similarity?: number;
+  source: "vector" | "fulltext" | "hybrid";
+}
+
+interface LibraryLookupResponse {
+  success: boolean;
+  data: {
+    term: string;
+    count: number;
+    excerpts: LibraryExcerpt[];
+  };
+}
+
 export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +84,16 @@ export default function ExegesisPanel({ verse, onClose }: ExegesisPanelProps) {
   // we still want to show the user *something* useful instead of throwing.
   const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"interlinear" | "lexical" | "syntax" | "commentary" | "systematic">("interlinear");
+  const [activeTab, setActiveTab] = useState<
+    "interlinear" | "lexical" | "syntax" | "commentary" | "systematic" | "library"
+  >("interlinear");
+
+  // Library lookup state (Fase B): trechos vindos dos PDFs/DOCX do Drive
+  // do usuário. Disparado quando o verso muda — não custa chamadas de IA.
+  const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+
   const { chat } = useRAG();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -184,6 +218,45 @@ Não inclua texto antes ou depois do JSON.`;
     };
   }, [verse, retryCount, chat]);
 
+  /**
+   * Library lookup (Fase B). Independente do fluxo de exegese da IA —
+   * sempre dispara quando o verso muda. Falha em silêncio: a aba só
+   * mostra "sem resultados" quando há erro de auth/backend.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setLoadingLibrary(true);
+      setLibraryError(null);
+      setLibraryExcerpts([]);
+      try {
+        const qs = new URLSearchParams({ term: verse, limit: "10" });
+        const res = await api.get<LibraryLookupResponse>(
+          `library/lookup?${qs.toString()}`,
+          { timeoutMs: 15_000 },
+        );
+        if (!cancelled && res.success) {
+          setLibraryExcerpts(res.data.excerpts);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          setLibraryError("Faça login para consultar sua biblioteca");
+        } else if (err instanceof ApiError && err.status === 404) {
+          setLibraryError("Endpoint indisponível — atualize o backend");
+        } else {
+          setLibraryError("Não foi possível consultar sua biblioteca agora");
+        }
+      } finally {
+        if (!cancelled) setLoadingLibrary(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [verse]);
+
   return (
     <div className="flex flex-col h-full bg-background/40 backdrop-blur-2xl text-foreground overflow-hidden font-sans">
       {/* Table Header Versículo */}
@@ -214,15 +287,20 @@ Não inclua texto antes ou depois do JSON.`;
       </div>
 
       {/* Tabs Navigation */}
-      {!loading && data && (
-        <div className="flex px-8 border-b border-border-subtle bg-surface">
+      {/* Renderizadas quando há ALGUMA fonte (dados estruturados OU
+          biblioteca pessoal). As 5 primeiras dependem de `data` e ficam
+          inativas se a IA falhou; a aba "Sua Biblioteca" funciona
+          independentemente. */}
+      {!loading && (data || libraryExcerpts.length > 0 || loadingLibrary) && (
+        <div className="flex px-8 border-b border-border-subtle bg-surface overflow-x-auto no-scrollbar">
           {[
-            { id: "interlinear", label: "Interlinear", icon: BookOpen },
-            { id: "lexical", label: "Léxico", icon: Sparkles },
-            { id: "syntax", label: "Sintaxe (Grafo)", icon: ChevronRight },
-            { id: "commentary", label: "Crítica", icon: Info },
-            { id: "systematic", label: "Sistemática", icon: ChevronRight },
-          ].map((tab) => (
+            { id: "interlinear", label: "Interlinear", icon: BookOpen, requiresData: true },
+            { id: "lexical", label: "Léxico", icon: Sparkles, requiresData: true },
+            { id: "syntax", label: "Sintaxe (Grafo)", icon: ChevronRight, requiresData: true },
+            { id: "commentary", label: "Crítica", icon: Info, requiresData: true },
+            { id: "systematic", label: "Sistemática", icon: ChevronRight, requiresData: true },
+            { id: "library", label: "Sua Biblioteca", icon: LibraryIcon, requiresData: false },
+          ].filter((tab) => !tab.requiresData || data).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
@@ -462,8 +540,26 @@ Não inclua texto antes ou depois do JSON.`;
                   </div>
                 </motion.div>
               )}
+
+              {activeTab === "library" && (
+                <LibraryExcerptsView
+                  verse={verse}
+                  excerpts={libraryExcerpts}
+                  loading={loadingLibrary}
+                  error={libraryError}
+                />
+              )}
             </AnimatePresence>
           </div>
+        ) : activeTab === "library" ? (
+          /* Renderiza a Biblioteca também quando a IA falhou (data === null).
+             Independente: só depende do estado libraryExcerpts. */
+          <LibraryExcerptsView
+            verse={verse}
+            excerpts={libraryExcerpts}
+            loading={loadingLibrary}
+            error={libraryError}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center h-full py-20">
             <motion.div
@@ -490,5 +586,160 @@ Não inclua texto antes ou depois do JSON.`;
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── LibraryExcerptsView ─────────────────────────────────────────────── */
+
+interface LibraryExcerptsViewProps {
+  verse: string;
+  excerpts: LibraryExcerpt[];
+  loading: boolean;
+  error: string | null;
+}
+
+/**
+ * Aba "Sua Biblioteca" do ExegesisPanel.
+ *
+ * Mostra o que as obras importadas do usuário (BDAG, comentários
+ * técnicos, monografias) dizem sobre o versículo aberto. Disparado por
+ * GET /api/v1/library/lookup?term=<verse>. O componente é tolerante a:
+ *   • Estado vazio (biblioteca não sincronizada / sem hits)
+ *   • Erro de auth (sessão expirada)
+ *   • Loading (mostra skeleton)
+ */
+function LibraryExcerptsView({
+  verse,
+  excerpts,
+  loading,
+  error,
+}: LibraryExcerptsViewProps) {
+  return (
+    <motion.div
+      key="library"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="max-w-4xl"
+    >
+      <header className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center">
+            <LibraryIcon className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-serif text-white">Sua Biblioteca</h3>
+            <p className="text-[11px] text-foreground/40 font-medium tracking-wide">
+              Trechos das suas obras sobre{" "}
+              <span className="text-amber-400 font-bold">{verse}</span>
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-24 rounded-xl bg-white/5 border border-border-subtle animate-pulse"
+            />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="p-6 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-start gap-3">
+          <Info className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-200/80 leading-relaxed">{error}</p>
+        </div>
+      ) : excerpts.length === 0 ? (
+        <div className="p-8 rounded-xl border border-border-subtle bg-surface text-center">
+          <LibraryIcon className="w-10 h-10 text-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-foreground/60 mb-2">
+            Nenhum trecho encontrado nas suas obras para{" "}
+            <span className="text-amber-400 font-bold">{verse}</span>
+          </p>
+          <p className="text-[11px] text-foreground/30 max-w-md mx-auto leading-relaxed">
+            Sincronize sua pasta do Google Drive para indexar seus comentários e
+            léxicos. Depois, este painel mostrará exatamente o que essas obras
+            dizem sobre o versículo aberto.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {excerpts.map((ex, i) => (
+            <article
+              key={`${ex.fileId ?? ex.fileName}-${ex.chunkIndex ?? i}`}
+              className="group p-5 rounded-2xl border border-border-subtle bg-surface hover:border-amber-500/30 transition-colors"
+            >
+              <header className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-4 h-4 text-amber-400/60 flex-shrink-0" />
+                  <h4 className="text-sm font-bold text-white truncate">
+                    {ex.fileName}
+                  </h4>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {typeof ex.similarity === "number" && (
+                    <span className="text-[10px] font-mono text-emerald-400/80 px-2 py-0.5 rounded-full bg-emerald-500/10">
+                      {(ex.similarity * 100).toFixed(0)}%
+                    </span>
+                  )}
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      ex.source === "hybrid"
+                        ? "bg-amber-500/20 text-amber-300"
+                        : ex.source === "vector"
+                        ? "bg-blue-500/10 text-blue-300/70"
+                        : "bg-slate-500/10 text-slate-300/70"
+                    }`}
+                    title={
+                      ex.source === "hybrid"
+                        ? "Match em similaridade + texto literal"
+                        : ex.source === "vector"
+                        ? "Similaridade semântica"
+                        : "Texto literal"
+                    }
+                  >
+                    {ex.source === "hybrid"
+                      ? "★ híbrido"
+                      : ex.source === "vector"
+                      ? "≈ semântico"
+                      : "== literal"}
+                  </span>
+                  {ex.fileId && (
+                    <a
+                      href={`https://drive.google.com/file/d/${ex.fileId}/view`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-400/60 hover:text-amber-300"
+                      title="Abrir no Drive"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </header>
+              <p className="text-sm text-white/75 leading-relaxed font-serif whitespace-pre-line">
+                {ex.content}
+              </p>
+              {(ex.lemma || ex.tradition) && (
+                <footer className="flex gap-2 mt-3 pt-3 border-t border-border-subtle">
+                  {ex.lemma && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-serif italic">
+                      {ex.lemma}
+                    </span>
+                  )}
+                  {ex.tradition && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300">
+                      {ex.tradition}
+                    </span>
+                  )}
+                </footer>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </motion.div>
   );
 }
