@@ -279,8 +279,17 @@ export class RagService {
               },
             });
 
-            const result = await chat.sendMessage(sanitizedQuery);
-            const response = await result.response;
+            // 5s Timeout + Race for resilience (DT-9)
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Gemini latency exceeded 5s')), 5000),
+            );
+
+            const result = await Promise.race([
+              chat.sendMessage(sanitizedQuery),
+              timeoutPromise,
+            ]);
+            
+            const response = await (result as any).response;
             return response.text();
           },
         );
@@ -435,7 +444,7 @@ export class RagService {
           FROM "TheologyEmbedding"
           WHERE tradition = ${tradition}
           ORDER BY embedding <=> ${queryEmbedding}::vector
-          LIMIT 3;
+          LIMIT 12;
         `;
       } else {
         docs = await this.prisma.$queryRaw`
@@ -443,11 +452,14 @@ export class RagService {
                  1 - (embedding <=> ${queryEmbedding}::vector) as similarity
           FROM "TheologyEmbedding"
           ORDER BY embedding <=> ${queryEmbedding}::vector
-          LIMIT 5;
+          LIMIT 15;
         `;
       }
 
-      if (!docs || docs.length === 0) {
+      // Aplica Semantic Reranking (Cross-Check)
+      const topDocs = this.rerankContext(query, docs, 4);
+
+      if (!topDocs || topDocs.length === 0) {
         this.logger.debug(
           '[RAG] Vector search returned empty — using classic commentary fallback',
         );
@@ -456,7 +468,7 @@ export class RagService {
 
       return [
         '=== BASE DE CONHECIMENTO TEOLÓGICO ===',
-        ...docs.map(
+        ...topDocs.map(
           (d: any) =>
             `[${d.tradition}] (relevância: ${(d.similarity * 100).toFixed(0)}%)\n${d.content}`,
         ),
@@ -475,12 +487,14 @@ export class RagService {
    */
   private async getBibleContext(query: string): Promise<string> {
     try {
-      const hits = await this.search.hybridSearchVerses(query, { limit: 5 });
-      if (hits.length === 0) return '';
+      const hits = await this.search.hybridSearchVerses(query, { limit: 10 });
+      const topHits = this.rerankContext(query, hits, 4);
+
+      if (topHits.length === 0) return '';
 
       return [
         '=== VERSÍCULOS BÍBLICOS RELEVANTES ===',
-        ...hits.map((h) => {
+        ...topHits.map((h) => {
           const ranks: string[] = [];
           if (h.vectorRank !== null) ranks.push(`vec#${h.vectorRank}`);
           if (h.keywordRank !== null) ranks.push(`kw#${h.keywordRank}`);
@@ -601,6 +615,37 @@ export class RagService {
     ].join('\n\n');
   }
 
+  /**
+   * Refina a relevância do contexto recuperado (Semantic Reranking).
+   * 
+   * Por que rerank?
+   *   A busca vetorial inicial (Bi-Encoder) é rápida mas pode perder nuances.
+   *   Este passo re-avalia o Top-N candidatos usando um cálculo de similaridade
+   *   mais agressivo ou frequência de termos-chave para garantir que o contexto
+   *   enviado à IA seja o de maior qualidade.
+   */
+  private rerankContext(query: string, documents: any[], limit: number): any[] {
+    if (!documents || documents.length === 0) return [];
+    
+    const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    
+    const scored = documents.map(doc => {
+      const content = (doc.content || doc.text || '').toLowerCase();
+      // Bônus por overlap de palavras-chave (ajuda com terminologia técnica)
+      const overlap = queryWords.reduce((acc, word) => acc + (content.includes(word) ? 1 : 0), 0);
+      
+      // Combina a similaridade original (vector) com o overlap de termos
+      const originalSimilarity = doc.similarity || (1 - (doc.distance || 0));
+      const rerankScore = originalSimilarity + (overlap * 0.05);
+      
+      return { ...doc, rerankScore };
+    });
+
+    return scored
+      .sort((a, b) => b.rerankScore - a.rerankScore)
+      .slice(0, limit);
+  }
+
   /** Estimativa simples de tokens (1 token ≈ 4 chars para português) */
   private estimateTokens(text: string): number {
     return Math.ceil(text.length / 3);
@@ -711,6 +756,29 @@ export class RagService {
       } catch (e) {
         this.logger.error(`Graph: User context search failed: ${e.message}`);
       }
+    }
+
+    // 5. Buscar Dados Léxicos (Lexicon Deep-Link) - SEC-011
+    try {
+      const strongMatch = query.match(/[GH]\d{1,5}/i);
+      if (strongMatch) {
+        const strongId = strongMatch[0].toUpperCase();
+        const lexicon = await this.prisma.lexicalEntry.findUnique({
+          where: { strongId },
+        });
+        if (lexicon) {
+          addNode(
+            `lex-${strongId}`,
+            `${strongId}: ${lexicon.word}`,
+            'lexicon',
+            '#e91e63',
+            20,
+          );
+          addLink(centralId, `lex-${strongId}`, 'definicão léxica', 2);
+        }
+      }
+    } catch (e) {
+      this.logger.debug(`Graph: Lexicon search failed: ${e.message}`);
     }
 
     return { nodes, links };

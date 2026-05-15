@@ -26,6 +26,7 @@ const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
+import { useTheoStore } from "@/store/useTheoStore";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -80,6 +81,8 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { currentContext } = useTheoStore();
+
   // Hook RAG
   const {
     chat,
@@ -125,8 +128,14 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
     }));
 
     try {
+      // Adiciona contexto da página ao prompt
+      let contextualQuery = content;
+      if (currentContext) {
+        contextualQuery = `[CONTEXTO: ${currentContext.title} | ${currentContext.metadata.contentSummary}] ${content}`;
+      }
+
       // Usa o hook RAG (tenta backend, fallback local)
-      const response = await chat(content, history);
+      const response = await chat(contextualQuery, history);
 
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,

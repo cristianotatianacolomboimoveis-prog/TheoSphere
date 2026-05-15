@@ -15,7 +15,7 @@ function getOrCreateWorker(): Worker | null {
   if (typeof window === 'undefined') return null;
   if (!globalWorker) {
     try {
-      globalWorker = new Worker(new URL('../lib/geoWorker.ts', import.meta.url));
+      globalWorker = new Worker(new URL('../lib/geoWorker.ts?v=' + Date.now(), import.meta.url));
       globalWorker.onmessage = (event) => {
         const { type, payload } = event.data;
         messageListeners.forEach(listener => {
@@ -26,11 +26,13 @@ function getOrCreateWorker(): Worker | null {
           }
         });
       };
-      globalWorker.onerror = (err) => {
-        console.error("[useTheoWorker] Global worker error:", err);
+      globalWorker.onerror = (err: any) => {
+        const errorDetails = `Msg: ${err.message} | File: ${err.filename} | Line: ${err.lineno}`;
+        console.error("[useTheoWorker] Global worker error:", errorDetails);
+        if (err.error) console.error("[useTheoWorker] Underlying error:", err.error);
       };
-    } catch (e) {
-      console.error("[useTheoWorker] Failed to create worker:", e);
+    } catch (e: any) {
+      console.error("[useTheoWorker] Failed to create worker:", e.message || e);
     }
   }
   return globalWorker;

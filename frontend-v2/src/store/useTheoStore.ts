@@ -2,7 +2,18 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { api } from '@/lib/api';
 
-export type ToolId = "exegesis" | "guide" | "word" | "factbook" | "sermon" | "study" | "notes" | "library" | "manuscripts" | "atlas" | "ai" | "console" | "graph" | "study_mode" | null;
+export type ToolId = "dashboard" | "exegesis" | "guide" | "word" | "factbook" | "encyclopedia" | "sermon" | "study" | "notes" | "library" | "manuscripts" | "atlas" | "ai" | "console" | "graph" | "study_mode" | "progress" | "community" | "settings" | null;
+
+export interface PageContext {
+  pageId: string;
+  title: string;
+  metadata: {
+    courseId?: string;
+    chapterId?: string;
+    contentSummary?: string;
+    recentActivity?: string[];
+  };
+}
 
 interface UserPin {
   id: string;
@@ -32,6 +43,7 @@ interface TheoState {
   
   // App Context
   activeTool: ToolId;
+  currentContext: PageContext | null;
   viewMode: "reading" | "exegesis";
   currentTime: number;
   isOffline: boolean;
@@ -43,6 +55,7 @@ interface TheoState {
   
   // Actions
   setActiveTool: (tool: ToolId) => void;
+  setCurrentContext: (context: PageContext | null) => void;
   setBibleReference: (book: string, chapter: number) => void;
   setActiveVerse: (verseId: string | null) => void;
   setVisibleVerse: (verseId: string | null) => void;
@@ -61,7 +74,8 @@ export const useTheoStore = create<TheoState>()(
       activeChapter: 1,
       activeVerseId: null,
       visibleVerseId: null,
-      activeTool: null,
+      activeTool: "dashboard",
+      currentContext: null,
       viewMode: "reading",
       currentTime: -2100,
       isOffline: false,
@@ -70,6 +84,7 @@ export const useTheoStore = create<TheoState>()(
       _hasHydrated: false,
 
       setActiveTool: (tool) => set({ activeTool: tool }),
+      setCurrentContext: (context) => set({ currentContext: context }),
       setBibleReference: (book, chapter) => set({ activeBook: book, activeChapter: chapter }),
       setActiveVerse: (verseId) => set({ activeVerseId: verseId }),
       setVisibleVerse: (verseId) => set({ visibleVerseId: verseId }),

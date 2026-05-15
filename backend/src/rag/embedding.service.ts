@@ -205,7 +205,7 @@ export class EmbeddingService implements OnModuleDestroy {
     if (this.genAI) {
       try {
         const model = this.genAI.getGenerativeModel({
-          model: 'gemini-embedding-001',
+          model: 'text-embedding-004',
         });
         const result = await model.embedContent({
           content: { role: 'user', parts: [{ text: normalized }] },
@@ -264,7 +264,7 @@ export class EmbeddingService implements OnModuleDestroy {
 
     try {
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-embedding-001',
+        model: 'text-embedding-004',
       });
       const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
 

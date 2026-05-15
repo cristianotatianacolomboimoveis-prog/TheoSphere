@@ -8,20 +8,16 @@ import {
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTheoStore } from "@/store/useTheoStore";
-import { semanticSearch } from "@/lib/semanticSearch";
 import { StrongOverlay } from "./StrongOverlay";
-import { getBooksByTestament, BIBLE_BOOKS } from "@/data/bibleBooks";
+import { BIBLE_BOOKS } from "@/data/bibleBooks";
 import { type BibleBook } from "@/store/useTheoStore";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useTheoWorker } from "@/hooks/useTheoWorker";
 import AgenticConsole from "./AgenticConsole";
 import { InterlinearTable } from "./InterlinearTable";
-import { BIBLE_BOOK_TO_ID, isNewTestament } from "@/lib/bibleUtils";
-import ResourceGuide from "./ResourceGuide";
 import { useBible } from "@/hooks/useBible";
 import { useVoice } from "@/hooks/useVoice";
-import ErrorBoundary from "./ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { ReaderHeader } from "./reader/ReaderHeader";
 import { ReaderToolbar } from "./reader/ReaderToolbar";
@@ -33,40 +29,22 @@ import { VerseRow } from "./reader/VerseRow";
 import { Button, Card, CardHeader } from "./ui";
 import { CrossRefsPopover } from "./CrossRefsPopover";
 import { useChapterCrossRefs } from "@/hooks/useCrossRefs";
-import {
-  useAdvancedSearch,
-  isAdvancedSyntax,
-} from "@/hooks/useAdvancedSearch";
-import { QueryChips } from "./reader/QueryChips";
-
-/* ─── Types ──────────────────────────────────────────────── */
+import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
 
 export const TRANSLATIONS = [
   { id: "ara", name: "Almeida Revista e Atualizada (ARA)", lang: "PT", type: "Equivalência Formal" },
   { id: "nvipt", name: "Nova Versão Internacional (NVI)", lang: "PT", type: "Equivalência Dinâmica" },
-  { id: "almeida", name: "Almeida Corrigida Fiel (ACF)", lang: "PT", type: "Equivalência Formal" },
-  { id: "naa", name: "Nova Almeida Atualizada (NAA)", lang: "PT", type: "Equivalência Formal" },
-  { id: "nvt", name: "Nova Versão Transformadora (NVT)", lang: "PT", type: "Dinâmica Contemporânea" },
-  { id: "sefaria", name: "Sefaria (Hebraico e Comentários)", lang: "HE/EN", type: "Acadêmico/Original" },
   { id: "kjv", name: "King James Version (KJV)", lang: "EN", type: "Equivalência Formal" },
-  { id: "asv", name: "American Standard Version (ASV)", lang: "EN", type: "Equivalência Formal" },
-  { id: "web", name: "World English Bible (WEB)", lang: "EN", type: "Equivalência Dinâmica" },
-  { id: "ylt", name: "Young's Literal Translation (YLT)", lang: "EN", type: "Literal" },
 ];
-
-/* ─── Component ──────────────────────────────────────────── */
 
 export default function BibleReader({
   onClose,
   onOpenWordStudy,
+  hideHeader = false,
 }: {
   onClose: () => void;
-  /**
-   * Chamado quando o usuário clica em "Estudo Completo" no StrongOverlay.
-   * page.tsx usa isso para mudar activeTool → 'word' e pré-selecionar a
-   * entrada Strong's no WordStudy.
-   */
   onOpenWordStudy?: (strongId: string) => void;
+  hideHeader?: boolean;
 }) {
   const router = useRouter();
   const { 
@@ -79,116 +57,36 @@ export default function BibleReader({
 
   const handleWorkerMessage = useCallback((type: string, payload: any) => {
     if (type === "STRONGS_DATA") {
-      setHoverData(prev => prev ? { 
-        ...prev, 
-        definition: payload.definition, 
-        occurrences: payload.occurrences,
-        bookOccurrences: payload.bookOccurrences,
-        transliteration: payload.transliteration,
-        pronunciation: payload.pronunciation
-      } : null);
-    }
-    if (type === "SYNC_PROGRESS") {
-      setSyncProgress(payload.progress);
-      setCurrentSyncBook(payload.currentBook);
-      setIsSyncing(true);
-    }
-    if (type === "SYNC_COMPLETE") {
-      setIsSyncing(false);
-      setSyncProgress(100);
-      setTimeout(() => setSyncProgress(0), 3000); // Esconde após 3s
+      setHoverData(prev => prev ? { ...prev, ...payload } : null);
     }
   }, []);
 
   const { postMessage: workerPost } = useTheoWorker(handleWorkerMessage);
-
   const { chaptersData, secondaryData, interlinearMap, loading } = useBible(primaryTranslation, storeViewMode === "exegesis" ? "interlinear" : "text", secondaryTranslation || undefined);
   
-  const selectedBook = BIBLE_BOOKS.find(b => b.namePt === activeBook || b.nameEn === activeBook) || BIBLE_BOOKS[0] || {} as BibleBook;
-  const selectedChapter = activeChapter;
-
+  const selectedBook = BIBLE_BOOKS.find(b => b.namePt === activeBook || b.nameEn === activeBook) || BIBLE_BOOKS[0];
   const [showBookSelector, setShowBookSelector] = useState(false);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showTranslationSelector, setShowTranslationSelector] = useState(false);
   const [showSecondarySelector, setShowSecondarySelector] = useState(false);
-  const [showResourceGuide, setShowResourceGuide] = useState(true);
+  const [showResourceGuide, setShowResourceGuide] = useState(false);
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const [amplifyAnchor, setAmplifyAnchor] = useState<{ x: number, y: number, verse: number } | null>(null);
+  const [crossRefAnchor, setCrossRefAnchor] = useState<{ x: number; y: number; sourceRef: string; } | null>(null);
+  const [hoverData, setHoverData] = useState<any | null>(null);
 
-  // Cross-refs popover anchor — { x, y, sourceRef }. Null = fechado.
-  const [crossRefAnchor, setCrossRefAnchor] = useState<{
-    x: number;
-    y: number;
-    sourceRef: string;
-  } | null>(null);
-  const [translatedVerse, setTranslatedVerse] = useState<{ verse: number, text: string } | null>(null);
-  const [translating, setTranslating] = useState(false);
-  const [hoverData, setHoverData] = useState<{ 
-    word: string; 
-    strongId: string; 
-    definition: string; 
-    grammar?: string;
-    lemma?: string;
-    occurrences?: number;
-    bookOccurrences?: number;
-    pos: { x: number; y: number };
-    transliteration?: string;
-    pronunciation?: string;
-  } | null>(null);
-
-  // Sync state
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [currentSyncBook, setCurrentSyncBook] = useState("");
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Audio Reading state
   const { speak, stopSpeaking } = useVoice();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const toggleReading = () => {
-    if (isPlaying) {
-      stopSpeaking();
-      setIsPlaying(false);
-    } else {
-      const fullText = versesToRender.map(v => `${v.verse}. ${v.text}`).join(" ");
-      speak(fullText);
-      setIsPlaying(true);
-    }
+    if (isPlaying) { stopSpeaking(); setIsPlaying(false); }
+    else { speak(versesToRender.map(v => `${v.verse}. ${v.text}`).join(" ")); setIsPlaying(true); }
   };
 
-  // Search state
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Advanced search (Logos-style boolean/morphological). Só dispara quando
-  // a query contém operadores (AND/OR/"..."/field:val/-word) — caso contrário
-  // o filtro client-side existente continua sendo usado e é mais barato.
   const advanced = useAdvancedSearch();
   const isAdvanced = searchMode && isAdvancedSyntax(searchQuery);
-
-  useEffect(() => {
-    if (!isAdvanced) {
-      advanced.reset();
-      return;
-    }
-    // Debounce 350ms: usuário ainda digitando não dispara request a cada
-    // tecla. Cancela na próxima edição via cleanup.
-    const t = setTimeout(() => {
-      void advanced.search(searchQuery, {
-        translation: primaryTranslation.toUpperCase(),
-      });
-    }, 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, isAdvanced, primaryTranslation]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // PhD Timeline Sync: Sincroniza o tempo do mapa com o livro bíblico
-  useEffect(() => {
-    if (selectedBook.yearStart) {
-      setCurrentTime(selectedBook.yearStart);
-    }
-  }, [selectedBook.id, setCurrentTime]);
 
   const toggleVerseSelection = (verseNum: number) => {
     setSelectedVerses(prev => {
@@ -197,61 +95,15 @@ export default function BibleReader({
       else next.add(verseNum);
       return next;
     });
-    setActiveVerse(`${selectedBook.namePt} ${selectedChapter}:${verseNum}`);
+    setActiveVerse(`${selectedBook.namePt} ${activeChapter}:${verseNum}`);
   };
 
-  const setSelectedBook = (book: BibleBook) => setBibleReference(book.namePt, 1);
-  const setSelectedChapter = (chapter: number) => setBibleReference(activeBook, chapter);
-
-  const handleAmplify = (e: React.MouseEvent, verseNum: number) => {
-    e.preventDefault();
-    setAmplifyAnchor({ x: e.clientX, y: e.clientY, verse: verseNum });
-  };
-
-  // Task 3: Strong's hover handler – dispatches FETCH_STRONGS to the worker
   const handleWordHover = useCallback((word: any, event: React.MouseEvent) => {
     if (word.strong) {
-      setHoverData({
-        word: word.original,
-        strongId: word.strong,
-        definition: "Carregando exegese...",
-        pos: { x: event.clientX, y: event.clientY }
-      });
-      workerPost("FETCH_STRONGS", { 
-        strongId: word.strong,
-        book: activeBook
-      });
+      setHoverData({ word: word.original, strongId: word.strong, definition: "...", pos: { x: event.clientX, y: event.clientY } });
+      workerPost("FETCH_STRONGS", { strongId: word.strong, book: activeBook });
     }
   }, [workerPost, activeBook]);
-
-  const handleTranslate = async (verseNum: number, text: string) => {
-    setTranslating(true);
-    try {
-      const response = await fetch('/api/v1/enterprise/ai/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, targetLang: 'Inglês' }) // Exemplo: traduzir para inglês
-      });
-      const result = await response.json();
-      if (result.success) {
-        setTranslatedVerse({ verse: verseNum, text: result.data });
-      }
-    } catch (error) {
-      console.error("Translation error:", error);
-      // Aqui poderíamos disparar um toast real se houvesse um hook global de toast
-    } finally {
-      setTranslating(false);
-    }
-  };
-
-  // Search: focus input when entering search mode
-  useEffect(() => {
-    if (searchMode) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    } else {
-      setSearchQuery("");
-    }
-  }, [searchMode]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const allVerses = chaptersData.length > 0 ? chaptersData[0].verses : [];
@@ -259,60 +111,32 @@ export default function BibleReader({
     ? allVerses.filter(v => v.text.toLowerCase().includes(searchQuery.toLowerCase()))
     : allVerses;
 
-  // Cross-refs: monta lista de refs canônicas do capítulo aberto e carrega
-  // o counter via /cross-refs/counts. Re-roda só quando o capítulo muda.
-  const chapterRefs = React.useMemo(
-    () =>
-      versesToRender.map(
-        (v) => `${selectedBook.nameEn} ${selectedChapter}:${v.verse}`,
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedBook.nameEn, selectedChapter, versesToRender.length],
-  );
-  const { counts: crossRefCounts, list: listCrossRefs } =
-    useChapterCrossRefs(chapterRefs);
+  const chapterRefs = React.useMemo(() => versesToRender.map((v) => `${selectedBook.nameEn} ${activeChapter}:${v.verse}`), [selectedBook.nameEn, activeChapter, versesToRender.length]);
+  const { counts: crossRefCounts, list: listCrossRefs } = useChapterCrossRefs(chapterRefs);
   
   const rowVirtualizer = useVirtualizer({
     count: versesToRender.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 100, // Estimativa maior para evitar saltos
-    overscan: 10,
+    estimateSize: () => 120,
+    overscan: 5,
   });
 
-  // PhD Scroll Sync: Intersection Observer para versículo visível
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries.find(e => e.isIntersecting);
-        if (visibleEntry) {
-          const index = parseInt(visibleEntry.target.getAttribute('data-index') || "0");
-          const verseNum = versesToRender[index]?.verse;
-          if (verseNum) {
-            setVisibleVerse(`${activeBook} ${activeChapter}:${verseNum}`);
-          }
-        }
-      },
-      { root: parentRef.current, threshold: 0.5 }
-    );
-
-    const elements = parentRef.current?.querySelectorAll('[data-verse-index]');
-    elements?.forEach(el => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [versesToRender, activeBook, activeChapter, setVisibleVerse]);
-
   return (
-    <div className="flex flex-col h-full bg-background/95 backdrop-blur-3xl border-l border-border-subtle text-foreground overflow-hidden transition-all duration-500 ease-in-out shadow-2xl w-full">
-      <ReaderHeader
-        viewMode={storeViewMode}
-        showResourceGuide={showResourceGuide}
-        onToggleViewMode={() => setStoreViewMode(storeViewMode === "reading" ? "exegesis" : "reading")}
-        onToggleResourceGuide={() => setShowResourceGuide(!showResourceGuide)}
-        onExpand={() => router.push("/exegete")}
-        onClose={onClose}
-      />
+    <div className="flex flex-col h-full bg-[#FCFBF7] dark:bg-[#0A0D14] text-gray-900 dark:text-gray-100 overflow-hidden shadow-2xl w-full border-l border-gray-200 dark:border-white/10">
+      
+      {!hideHeader && (
+        <ReaderHeader
+          viewMode={storeViewMode}
+          showResourceGuide={showResourceGuide}
+          onToggleViewMode={() => setStoreViewMode(storeViewMode === "reading" ? "exegesis" : "reading")}
+          onToggleResourceGuide={() => setShowResourceGuide(!showResourceGuide)}
+          onExpand={() => router.push("/exegete")}
+          onClose={onClose}
+        />
+      )}
 
-      <div className="px-6 pb-4 border-b border-border-subtle flex-shrink-0 relative z-20">
+      {/* Logos Style Academic Toolbar */}
+      <div className="px-10 pb-4 border-b border-gray-200 dark:border-white/10 flex-shrink-0 bg-white/50 dark:bg-black/20 backdrop-blur-md">
         <ReaderToolbar
           primaryTranslation={primaryTranslation}
           setPrimaryTranslation={setPrimaryTranslation}
@@ -332,430 +156,94 @@ export default function BibleReader({
           isPlaying={isPlaying}
           toggleReading={toggleReading}
         />
-
-        {searchMode && (
-          <ReaderSearch
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            setSearchMode={setSearchMode}
-            isAdvanced={isAdvanced}
-            advanced={advanced}
-            versesToRender={versesToRender}
-            searchInputRef={searchInputRef}
-          />
-        )}
-
-        {/* Sync Progress Bar — Premium Feedback */}
-        <AnimatePresence>
-          {syncProgress > 0 && syncProgress < 100 && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-1.5 px-0.5">
-                <div className="flex items-center gap-2">
-                  <div className="flex space-x-1">
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 2 }} className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 2, delay: 0.3 }} className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  </div>
-                  <span className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest">Sincronizando Offline: {currentSyncBook}</span>
-                </div>
-                <span className="text-[10px] font-black text-blue-400/80 tabular-nums">{syncProgress}%</span>
-              </div>
-              <div className="h-1 w-full bg-border-subtle rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${syncProgress}%` }}
-                  transition={{ type: "spring", stiffness: 50, damping: 20 }}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      <div className="relative flex-grow overflow-hidden bg-surface shadow-inner">
-        <BookSelector
-          isOpen={showBookSelector}
-          onClose={() => setShowBookSelector(false)}
-          onSelect={(book) => {
-            setBibleReference(book.namePt, 1);
-          }}
-        />
-
-        <ChapterSelector
-          isOpen={showChapterSelector}
-          onClose={() => setShowChapterSelector(false)}
-          onSelect={(ch) => {
-            setBibleReference(activeBook, ch);
-          }}
-        />
-
-        <AnimatePresence>
-          {showTranslationSelector && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 z-30 bg-background/98 backdrop-blur-xl overflow-y-auto custom-scrollbar p-4"
-            >
-              <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest mb-4 px-1">
-                Selecione a Versão Bíblica
-              </p>
-              <div className="space-y-1">
-                {TRANSLATIONS.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => { setPrimaryTranslation(t.id); setShowTranslationSelector(false); }}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
-                      primaryTranslation === t.id
-                        ? "bg-accent/10 border-accent/30 text-accent shadow-lg shadow-accent/5"
-                        : "hover:bg-surface-hover border-transparent text-foreground/60 hover:text-foreground"
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold">{t.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-hover font-mono">{t.id.toUpperCase()}</span>
+      <div className="relative flex-grow overflow-hidden flex flex-col">
+        {/* Academic Page Container */}
+        <div ref={parentRef} className="flex-grow overflow-y-auto custom-scrollbar-academic py-12">
+            <div className="max-w-4xl mx-auto px-8 md:px-16">
+                
+                {/* Chapter Heading */}
+                {!loading && !searchMode && (
+                    <div className="text-center mb-16 space-y-4">
+                        <div className="flex items-center justify-center gap-4 mb-2">
+                            <div className="h-px w-12 bg-blue-600/20" />
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em]">Capítulo</span>
+                            <div className="h-px w-12 bg-blue-600/20" />
+                        </div>
+                        <h1 className="text-6xl font-serif font-bold text-gray-900 dark:text-white">{activeChapter}</h1>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{activeBook}</p>
                     </div>
-                    <p className="text-[10px] opacity-40 mt-1">{t.type} • {t.lang}</p>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                )}
 
-        <AnimatePresence>
-          {showSecondarySelector && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 z-30 bg-background/98 backdrop-blur-xl overflow-y-auto custom-scrollbar p-4"
-            >
-              <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-4 px-1">
-                Segunda Versão (Comparação Paralela)
-              </p>
-              <div className="space-y-1">
-                {/* Opção "Sem comparação" no topo — desliga a coluna paralela.
-                    Antes não havia jeito de voltar pra uma única coluna depois
-                    de selecionar uma tradução secundária. */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSecondaryTranslation("");
-                    setShowSecondarySelector(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
-                    !secondaryTranslation
-                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/5"
-                      : "hover:bg-surface-hover border-transparent text-foreground/40 hover:text-foreground/80"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold">Sem comparação</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 font-mono">
-                      —
-                    </span>
-                  </div>
-                </button>
-
-                {/* Filtra a tradução primária da lista — comparar com ela
-                    mesma seria sempre idêntico. */}
-                {TRANSLATIONS.filter((t) => t.id !== primaryTranslation).map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => { setSecondaryTranslation(t.id); setShowSecondarySelector(false); }}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
-                      secondaryTranslation === t.id
-                        ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/5"
-                        : "hover:bg-surface-hover border-transparent text-foreground/60 hover:text-foreground"
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold">{t.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 font-mono">{t.id.toUpperCase()}</span>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sincronizando Texto Sagrado...</p>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                ) : (
+                    <div
+                        style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
+                    >
+                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const vPrimary = versesToRender[virtualRow.index];
+                            const vSecondary = secondaryData?.verses[virtualRow.index];
+                            if (!vPrimary) return null;
 
-        <div className="flex h-full overflow-hidden">
-          {/* Main Reader Area */}
-          <div className="flex-grow h-full relative overflow-hidden">
-            <div ref={parentRef} className="h-full overflow-y-auto custom-scrollbar px-6 py-8 relative z-10">
-              {/* Header de colunas em modo sinótico — só aparece quando há
-                  tradução secundária. Sticky para acompanhar o scroll e
-                  identificar visualmente qual coluna é qual sem precisar
-                  voltar ao topo. */}
-              {secondaryTranslation && !loading && storeViewMode !== "exegesis" && (
-                <div className="sticky top-0 z-20 -mt-8 -mx-6 mb-4 px-8 py-2.5 grid grid-cols-2 gap-8 bg-background/85 backdrop-blur-xl border-b border-border-subtle">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
-                      {primaryTranslation.toUpperCase()}
-                    </span>
-                    <span className="text-[10px] text-foreground/40 truncate">
-                      {TRANSLATIONS.find((t) => t.id === primaryTranslation)?.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/20">
-                      {secondaryTranslation.toUpperCase()}
-                    </span>
-                    <span className="text-[10px] text-foreground/40 truncate">
-                      {TRANSLATIONS.find((t) => t.id === secondaryTranslation)?.name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
-                  <p className="text-[10px] font-bold text-blue-500/60 uppercase tracking-widest">Iniciando Exegese PhD...</p>
-                </div>
-              ) : storeViewMode === "exegesis" ? (
-                <div className="space-y-12 pb-32">
-                  <AgenticConsole />
-                  {versesToRender.map((v) => {
-                    const isNT = selectedBook.testament === "NT";
-                    const words = interlinearMap[v.verse] || [];
-                    return (
-                      <div key={v.verse} onContextMenu={(e) => handleAmplify(e, v.verse)}>
-                        <InterlinearTable
-                          verse={v.verse}
-                          selectedBook={selectedBook}
-                          selectedChapter={selectedChapter}
-                          isNT={isNT}
-                          words={words}
-                          onWordHover={handleWordHover}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : isAdvanced ? (
-                /* Pesquisa avançada — resultados podem cruzar livros/capítulos.
-                   Substitui o reader pelo painel de hits clicáveis enquanto
-                   a sintaxe avançada está ativa. Sair do searchMode (Esc)
-                   restaura o reader normal. */
-                <div className="pb-32 space-y-1.5">
-                  {advanced.loading ? (
-                    <div className="flex items-center justify-center py-20">
-                      <Loader2 className="w-6 h-6 animate-spin text-accent" />
-                    </div>
-                  ) : advanced.hits.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-foreground/30">
-                      <Search className="w-8 h-8 mb-3 opacity-30" />
-                      <p className="text-sm">
-                        Nenhum versículo bate com a busca avançada.
-                      </p>
-                      <p className="text-[10px] text-foreground/30 mt-2 max-w-md text-center">
-                        Operadores aceitos: AND, OR, "frase exata",
-                        book:Nome, chapter:1-3, -excluir
-                      </p>
-                    </div>
-                  ) : (
-                    advanced.hits.map((h) => {
-                      const book = BIBLE_BOOKS.find((b) => b.id === h.bookId);
-                      return (
-                        <button
-                          key={h.id}
-                          type="button"
-                          onClick={() => {
-                            if (!book) return;
-                            setBibleReference(book.namePt, h.chapter);
-                            setActiveVerse(
-                              `${book.nameEn} ${h.chapter}:${h.verse}`,
+                            return (
+                                <div
+                                    key={virtualRow.key}
+                                    className="absolute top-0 left-0 w-full"
+                                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                                >
+                                    <VerseRow
+                                        verse={vPrimary.verse}
+                                        text={vPrimary.text}
+                                        secondaryText={vSecondary?.text}
+                                        selected={selectedVerses.has(vPrimary.verse)}
+                                        onClick={() => toggleVerseSelection(vPrimary.verse)}
+                                        highlightQuery={searchMode ? searchQuery : undefined}
+                                        crossRefCount={crossRefCounts[`${selectedBook.nameEn} ${activeChapter}:${vPrimary.verse}`] || 0}
+                                        onCrossRefClick={(e) => {
+                                            const ref = `${selectedBook.nameEn} ${activeChapter}:${vPrimary.verse}`;
+                                            setCrossRefAnchor({ x: e.clientX, y: e.clientY, sourceRef: ref });
+                                        }}
+                                    />
+                                </div>
                             );
-                            // Volta ao reader (sai do search mode).
-                            setSearchMode(false);
-                          }}
-                          className="w-full text-left rounded-2xl border border-border-subtle bg-surface hover:border-accent/30 transition-colors p-4 group"
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[11px] font-bold text-accent">
-                              {book ? `${book.namePt} ${h.chapter}:${h.verse}` : `${h.bookId}.${h.chapter}.${h.verse}`}
-                            </span>
-                            <span className="text-[9px] font-mono text-foreground/30">
-                              {h.translation} · score {h.score.toFixed(2)}
-                            </span>
-                          </div>
-                          <p className="text-sm font-serif text-foreground/80 leading-relaxed">
-                            {h.text}
-                          </p>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              ) : (
-                /* Unified Virtualized Reader (handles Reading and Search) */
-                <div
-                  style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative'
-                  }}
-                >
-                  {versesToRender.length === 0 && searchMode && searchQuery.trim() ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-foreground/30 absolute inset-0">
-                      <Search className="w-8 h-8 mb-3 opacity-30" />
-                      <p className="text-sm">Nenhum versículo encontrado para &ldquo;{searchQuery}&rdquo;</p>
+                        })}
                     </div>
-                  ) : rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const vPrimary = versesToRender[virtualRow.index];
-                    const vSecondary = secondaryData?.verses[virtualRow.index];
-
-                    if (!vPrimary) return null;
-
-                    return (
-                      <div
-                        key={virtualRow.key}
-                        data-index={virtualRow.index}
-                        data-verse-index={vPrimary.verse}
-                        ref={rowVirtualizer.measureElement}
-                        className="absolute top-0 left-0 w-full px-2"
-                        style={{ transform: `translateY(${virtualRow.start}px)` }}
-                      >
-                        <VerseRow
-                          verse={vPrimary.verse}
-                          text={vPrimary.text}
-                          secondaryText={translatedVerse?.verse === vPrimary.verse ? translatedVerse.text : vSecondary?.text}
-                          selected={selectedVerses.has(vPrimary.verse)}
-                          onClick={() => toggleVerseSelection(vPrimary.verse)}
-                          highlightQuery={searchMode ? searchQuery : undefined}
-                          crossRefCount={
-                            crossRefCounts[
-                              `${selectedBook.nameEn} ${selectedChapter}:${vPrimary.verse}`
-                            ] || 0
-                          }
-                          onCrossRefClick={(e) => {
-                            const ref = `${selectedBook.nameEn} ${selectedChapter}:${vPrimary.verse}`;
-                            setCrossRefAnchor({
-                              x: e.clientX,
-                              y: e.clientY,
-                              sourceRef: ref,
-                            });
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                )}
             </div>
-          </div>
-
-          {/* Resource Guide Panel (Split Screen) */}
-          <AnimatePresence>
-            {showResourceGuide && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "380px", opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="flex-shrink-0 border-l border-border-subtle overflow-hidden"
-              >
-                <ResourceGuide />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+
+        {/* Global Component Overlays */}
+        <BookSelector isOpen={showBookSelector} onClose={() => setShowBookSelector(false)} onSelect={(book) => setBibleReference(book.namePt, 1)} />
+        <ChapterSelector isOpen={showChapterSelector} onClose={() => setShowChapterSelector(false)} onSelect={(ch) => setBibleReference(activeBook, ch)} />
+        
+        <AnimatePresence>
+            {showTranslationSelector && (
+                <div className="absolute inset-0 z-[100] bg-white/95 dark:bg-black/95 backdrop-blur-xl p-10 overflow-y-auto">
+                    <div className="max-w-xl mx-auto space-y-4">
+                        <h2 className="text-xl font-serif font-bold mb-8 text-center">Versão de Estudo Primária</h2>
+                        {TRANSLATIONS.map(t => (
+                            <button key={t.id} onClick={() => { setPrimaryTranslation(t.id); setShowTranslationSelector(false); }} className={`w-full p-6 rounded-xl border transition-all text-left ${primaryTranslation === t.id ? "bg-blue-600 border-blue-600 text-white shadow-xl" : "bg-gray-50 border-gray-200 hover:border-blue-500"}`}>
+                                <div className="font-bold">{t.name}</div>
+                                <div className="text-[10px] uppercase opacity-60 mt-1">{t.type}</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </AnimatePresence>
+
+        <AIInsights />
       </div>
 
-      {/* Amplify Context Menu */}
-      <AnimatePresence>
-        {amplifyAnchor && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            style={{ left: amplifyAnchor.x, top: amplifyAnchor.y }}
-            className="fixed z-[100] w-56"
-          >
-            <Card className="shadow-2xl p-1 bg-surface/95 backdrop-blur-2xl border-border-strong">
-              <CardHeader className="px-3 py-2 border-b border-border-subtle mb-1 bg-transparent">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Ampliar Referência</p>
-                <p className="text-[11px] text-foreground/60 font-mono mt-0.5">{selectedBook.namePt} {selectedChapter}:{amplifyAnchor.verse}</p>
-              </CardHeader>
-              
-              <div className="space-y-0.5 p-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-primary"
-                >
-                  <BookOpen className="w-4 h-4 text-foreground/20 group-hover:text-primary" />
-                  Estudo de Palavras
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-amber-400"
-                >
-                  <Users className="w-4 h-4 text-foreground/20 group-hover:text-amber-400" />
-                  Ver no Factbook
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-emerald-400"
-                >
-                  <MapPin className="w-4 h-4 text-foreground/20 group-hover:text-emerald-400" />
-                  Localizar no Atlas4D
-                </Button>
-
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    const v = versesToRender.find(vs => vs.verse === amplifyAnchor.verse);
-                    if (v) handleTranslate(v.verse, v.text);
-                    setAmplifyAnchor(null);
-                  }}
-                  disabled={translating}
-                  className="w-full justify-start gap-3 font-medium text-foreground/80 hover:text-blue-400"
-                >
-                  {translating ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Languages className="w-4 h-4 text-foreground/20 group-hover:text-blue-400" />}
-                  Tradução IA (Inglês)
-                </Button>
-                
-                <div className="h-px bg-border-subtle my-1 mx-2" />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setAmplifyAnchor(null)}
-                  className="w-full justify-center text-[10px] font-black text-red-500/60 hover:text-red-500 hover:bg-red-500/10 uppercase tracking-widest"
-                >
-                  Fechar
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
+      {/* Floating UI Elements */}
       {hoverData && (
         <StrongOverlay
-          word={hoverData.word}
-          lemma={hoverData.lemma}
-          strongId={hoverData.strongId}
-          definition={hoverData.definition}
-          grammar={hoverData.grammar}
-          occurrences={hoverData.occurrences}
-          bookOccurrences={hoverData.bookOccurrences}
-          transliteration={hoverData.transliteration}
-          pronunciation={hoverData.pronunciation}
-          position={hoverData.pos}
+          {...hoverData}
           onClose={() => setHoverData(null)}
           onOpenWordStudy={onOpenWordStudy}
         />
@@ -768,21 +256,23 @@ export default function BibleReader({
           loader={() => listCrossRefs(crossRefAnchor.sourceRef)}
           onClose={() => setCrossRefAnchor(null)}
           onJump={({ book, chapter, verse }) => {
-            // Encontra o livro no catálogo e troca a referência ativa do store.
-            const targetBook = BIBLE_BOOKS.find(
-              (b) => b.nameEn === book || b.namePt === book,
-            );
+            const targetBook = BIBLE_BOOKS.find((b) => b.nameEn === book || b.namePt === book);
             if (targetBook) {
               setBibleReference(targetBook.namePt, chapter);
-              // Marca o versículo destino para destaque/scroll.
               setActiveVerse(`${targetBook.nameEn} ${chapter}:${verse}`);
             }
             setCrossRefAnchor(null);
           }}
         />
       )}
+    </div>
+  );
+}
 
-      <AIInsights />
+function BootingFallback({ label }: { label: string }) {
+  return (
+    <div className="h-screen w-full bg-background flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
     </div>
   );
 }

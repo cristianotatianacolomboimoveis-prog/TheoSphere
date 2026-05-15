@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.73",
+    "@ai-sdk/openai": "^3.0.63",
+    "ai": "^6.0.182",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.22.0"
+  }
+}

@@ -46,8 +46,8 @@ export class UserContextService implements OnModuleInit {
   // Track de documentos já indexados por usuário
   private indexedDocIds = new Map<string, Set<string>>();
 
-  private readonly MAX_DOCS_PER_USER = 500;
-  private readonly MAX_CONTEXT_DOCS = 5; // Máximo de documentos para incluir no contexto
+  private readonly MAX_IN_MEMORY_DOCS_PER_USER = 50;
+  private readonly MAX_CONTEXT_DOCS = 6; 
 
   constructor(
     private prisma: PrismaService,
@@ -63,7 +63,6 @@ export class UserContextService implements OnModuleInit {
       });
 
       this.redis.on('error', (err) => {
-        // Solo logeamos una vez para evitar inundar los logs
         if (this.redis && !this.redis['hasLoggedError']) {
           this.logger.warn(
             `Redis connection failed (local cache persistence disabled): ${err.message}`,
@@ -76,12 +75,12 @@ export class UserContextService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Inicializando contexto do usuário...');
-    // Em um cenário real, carregaríamos o índice do Redis ou do DB aqui
   }
 
   /**
    * Indexa documentos do usuário (notas, sermões, etc.)
-   * Chamado quando o frontend sincroniza dados do localStorage.
+   * Implementa Memory Eviction: mantém apenas os últimos N no mapa local (Hot),
+   * enquanto o pgvector no banco de dados armazena o histórico total (Cold).
    */
   async indexUserDocuments(
     userId: string,
@@ -95,7 +94,6 @@ export class UserContextService implements OnModuleInit {
       this.indexedDocIds.set(userId, new Set<string>());
     }
     const userDocIds = this.indexedDocIds.get(userId)!;
-
     const newDocs = documents.filter((d) => !userDocIds.has(d.id));
 
     if (newDocs.length === 0) {
@@ -106,13 +104,9 @@ export class UserContextService implements OnModuleInit {
       };
     }
 
-    // Prepara textos para embedding em batch
     const texts = newDocs.map((doc) => this.buildDocumentText(doc));
-
-    // Gera embeddings em batch (mais eficiente e barato)
     const embeddings = await this.embeddingService.createBatchEmbeddings(texts);
 
-    // Indexa os documentos
     const existing = this.userIndex.get(userId) || [];
 
     for (let i = 0; i < newDocs.length; i++) {
@@ -124,23 +118,16 @@ export class UserContextService implements OnModuleInit {
       userDocIds.add(newDocs[i].id);
     }
 
-    // Aplica limite por usuário
-    if (existing.length > this.MAX_DOCS_PER_USER) {
-      // Remove os mais antigos
+    // Memory Eviction: mantém apenas os 50 mais recentes em RAM
+    if (existing.length > this.MAX_IN_MEMORY_DOCS_PER_USER) {
       existing.sort((a, b) => b.createdAt - a.createdAt);
-      const removed = existing.splice(this.MAX_DOCS_PER_USER);
-      removed.forEach((d) => userDocIds.delete(d.id));
+      existing.splice(this.MAX_IN_MEMORY_DOCS_PER_USER);
     }
 
     this.userIndex.set(userId, existing);
 
-    // Tenta persistir no banco (pgvector) se disponível
+    // Persiste TODOS no banco (Cold Storage / Scalable Search)
     await this.persistToDatabase(userId, newDocs, embeddings);
-
-    this.logger.log(
-      `[Index] Usuário ${userId}: ${newDocs.length} novos docs indexados, ` +
-        `${documents.length - newDocs.length} já existentes. Total: ${existing.length}`,
-    );
 
     return {
       indexed: newDocs.length,
@@ -151,23 +138,20 @@ export class UserContextService implements OnModuleInit {
 
   /**
    * Busca documentos do usuário semanticamente relevantes para uma query.
-   * Retorna os TOP-N documentos mais relevantes para usar como contexto.
+   * Implementa Tiered Storage (SEC-010):
+   * 1. Busca no Cache em Memória (Hot - documentos recém indexados)
+   * 2. Busca no Banco de Dados (Cold - pgvector para escala)
    */
   async searchUserContext(
     userId: string,
     query: string,
     maxResults: number = this.MAX_CONTEXT_DOCS,
   ): Promise<{ document: UserDocument; similarity: number }[]> {
-    const userDocs = this.userIndex.get(userId);
-
-    if (!userDocs || userDocs.length === 0) {
-      return [];
-    }
-
     const queryEmbedding = await this.embeddingService.createEmbedding(query);
-
-    // Calcula similaridade com todos os docs do usuário
-    const scored = userDocs.map((doc) => ({
+    
+    // 1. Busca em Memória (Tier 1 - Ultrarápido)
+    const userDocs = this.userIndex.get(userId) || [];
+    const memoryResults = userDocs.map((doc) => ({
       document: doc,
       similarity: this.embeddingService.cosineSimilarity(
         queryEmbedding,
@@ -175,22 +159,58 @@ export class UserContextService implements OnModuleInit {
       ),
     }));
 
-    // Ordena por similaridade e retorna os top resultados
-    scored.sort((a, b) => b.similarity - a.similarity);
+    // 2. Busca no Banco de Dados (Tier 2 - Escalonável)
+    let dbResults: { document: UserDocument; similarity: number }[] = [];
+    try {
+      // Usamos JSON.stringify para garantir que o array vire uma string compatível com o cast de ::vector
+      const rows = await this.prisma.$queryRaw<any[]>`
+        SELECT id, type, content, metadata, "createdAt",
+               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+        FROM "UserEmbedding"
+        WHERE "userId" = ${userId} AND type != 'library_book'
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+        LIMIT ${maxResults};
+      `;
+      
+      dbResults = rows.map(r => ({
+        document: {
+          id: r.id,
+          userId: userId,
+          type: r.type,
+          content: r.content,
+          metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata,
+          createdAt: new Date(r.createdAt).getTime()
+        },
+        similarity: r.similarity
+      }));
+    } catch (err) {
+      this.logger.debug(`Database context search failed: ${err.message}`);
+    }
 
-    // Filtra por threshold mínimo de relevância (0.3 é bem baixo, inclui contexto vagamente relevante)
-    const relevant = scored
+    // 3. Merge, Deduplicação e Ranking
+    const allResults = [...memoryResults, ...dbResults];
+    const uniqueResults = new Map<string, { document: UserDocument; similarity: number }>();
+    
+    for (const res of allResults) {
+      const existing = uniqueResults.get(res.document.id);
+      if (!existing || existing.similarity < res.similarity) {
+        uniqueResults.set(res.document.id, res);
+      }
+    }
+
+    const finalResults = Array.from(uniqueResults.values())
       .filter((s) => s.similarity > 0.3)
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, maxResults);
 
-    if (relevant.length > 0) {
+    if (finalResults.length > 0) {
       this.logger.debug(
-        `[Context Search] User ${userId} | Query: "${query.slice(0, 40)}..." | ` +
-          `${relevant.length} docs relevantes (melhor: ${relevant[0].similarity.toFixed(3)})`,
+        `[Tiered Search] User ${userId} | ${finalResults.length} hits | ` +
+        `Best: ${finalResults[0].similarity.toFixed(3)}`
       );
     }
 
-    return relevant;
+    return finalResults;
   }
 
   /**

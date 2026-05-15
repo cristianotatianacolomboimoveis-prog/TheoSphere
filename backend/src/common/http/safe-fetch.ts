@@ -15,6 +15,36 @@
  * If you need one, layer `opossum` or a Redis-state breaker on top.
  */
 
+import CircuitBreaker from 'opossum';
+
+const breakers = new Map<string, CircuitBreaker<[string, RequestInit], Response>>();
+
+/**
+ * Gets or creates a circuit breaker for the given URL's host.
+ * This ensures that if one service (e.g., Bolls) is down, we don't
+ * keep hammering it and potentially backing up our own event loop.
+ */
+function getBreaker(url: string): CircuitBreaker<[string, RequestInit], Response> {
+  try {
+    const host = new URL(url).host;
+    if (!breakers.has(host)) {
+      const breaker = new CircuitBreaker(
+        async (u: string, init: RequestInit) => fetch(u, init),
+        {
+          timeout: 15000,
+          errorThresholdPercentage: 50,
+          resetTimeout: 30000,
+        },
+      );
+      breakers.set(host, breaker);
+    }
+    return breakers.get(host)!;
+  } catch {
+    // If URL parsing fails, return a transient breaker
+    return new CircuitBreaker(async (u: string, init: RequestInit) => fetch(u, init));
+  }
+}
+
 export interface SafeFetchOptions extends Omit<RequestInit, 'signal'> {
   timeoutMs?: number;
   retries?: number;
@@ -53,13 +83,16 @@ export async function safeFetch(
     ...init
   } = opts;
 
+  const breaker = getBreaker(url);
   let lastErr: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(url, { ...init, signal: controller.signal });
+      // Use the circuit breaker to fire the request
+      const response = await breaker.fire(url, { ...init, signal: controller.signal });
+      
       if (retryOnStatus.includes(response.status) && attempt < retries) {
         lastErr = new SafeFetchError(
           `upstream ${response.status}`,
@@ -70,8 +103,14 @@ export async function safeFetch(
         continue;
       }
       return response;
-    } catch (err) {
+    } catch (err: any) {
       lastErr = err;
+      
+      // If the breaker is open, don't retry, just fail fast (SEC-009)
+      if (err.message === 'open' || err.message === 'half-open') {
+        throw new SafeFetchError('Circuit breaker is open', url, 503, err);
+      }
+
       if (attempt < retries) {
         await delay(retryDelayBaseMs, attempt);
         continue;
@@ -91,8 +130,6 @@ export async function safeFetch(
 }
 
 function delay(baseMs: number, attempt: number): Promise<void> {
-  // Exponential backoff with full jitter: between 0 and (base * 2^attempt) ms.
-  // Full jitter is the AWS-recommended pattern — minimizes thundering herd.
   const cap = baseMs * 2 ** attempt;
   const ms = Math.random() * cap;
   return new Promise((resolve) => setTimeout(resolve, ms));

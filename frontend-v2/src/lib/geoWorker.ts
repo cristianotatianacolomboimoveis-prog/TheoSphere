@@ -1,3 +1,4 @@
+console.log("[geoWorker] Script loading...");
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { SEED_LOCATIONS } from "../data/geoSeedData";
 import { serializeTrekToBinary } from "./geoBinary";
@@ -6,6 +7,13 @@ import { transliterateBiblical } from "./transliteration";
 import { STRONGS_GREEK } from "../data/strongsGreek";
 import { STRONGS_HEBREW } from "../data/strongsHebrew";
 import { OFFLINE_SEED_VERSES } from "../data/seedVerses";
+
+self.onerror = (message, source, lineno, colno, error) => {
+  self.postMessage({ 
+    type: "WORKER_ERROR", 
+    payload: { message: `Worker Global Error: ${message}`, source, lineno, error } 
+  });
+};
 
 // --- Input sanitization helpers (SQL injection defense for DuckDB WASM) ---
 function sanitizeStr(s: string): string {

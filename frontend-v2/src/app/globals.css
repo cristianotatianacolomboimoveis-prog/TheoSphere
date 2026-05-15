@@ -49,9 +49,16 @@
   --c-border-strong: rgba(212, 175, 55, 0.3);
   --c-muted: #8E8E8E;
   --c-bronze: #CD7F32;
+  
+  /* Logos-specific palette expansion */
+  --c-dashboard-bg: #0B1120;
+  --c-card-bg: rgba(15, 23, 42, 0.6);
+  --c-card-border: rgba(255, 255, 255, 0.05);
+  --c-command-bar: rgba(15, 23, 42, 0.8);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
+  --font-display: 'Outfit', sans-serif;
   --font-hebrew: 'Noto Sans Hebrew', sans-serif;
   --font-greek: 'Noto Serif Greek', serif;
   --radius: 14px;

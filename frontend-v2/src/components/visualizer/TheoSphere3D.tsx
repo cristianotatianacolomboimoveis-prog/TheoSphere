@@ -24,6 +24,8 @@ interface ViewState {
   transitionInterpolator?: any;
 }
 
+import { MapAdapter } from "@/lib/BibleMapAdapter";
+
 export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [viewState, setViewState] = useState<ViewState>({
     longitude: 35.2137,
@@ -37,6 +39,25 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [locations, setLocations] = useState<any[]>([]);
   const [time, setTime] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+
+  // ─── Integração com Adapter (Facade) ───────────────────────────────────
+  useEffect(() => {
+    if (MapAdapter) {
+      MapAdapter.registerMap({
+        flyTo: (lat: number, lng: number, zoom: number) => {
+          setViewState(prev => ({
+            ...prev,
+            latitude: lat,
+            longitude: lng,
+            zoom,
+            transitionDuration: 2000,
+            transitionInterpolator: new FlyToInterpolator(),
+          }));
+        },
+        setTime: (year: number) => setCurrentTime(year)
+      });
+    }
+  }, [setCurrentTime]);
 
   // 1. Carregar Locais do Banco (Enterprise API)
   useEffect(() => {
@@ -74,6 +95,11 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       getRadius: 100,
       radiusMinPixels: 6,
       pickable: true,
+      onClick: (info: any) => {
+        if (info.object && MapAdapter) {
+          MapAdapter.events.publish('onLocationSelected', info.object);
+        }
+      }
     }),
     new TextLayer({
       id: "labels",

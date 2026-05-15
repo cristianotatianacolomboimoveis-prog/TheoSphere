@@ -1,531 +1,411 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  X, Search, Users, MapPin, Calendar, Lightbulb, ChevronRight, ArrowLeft,
-  BookOpen, Clock, Link2, Globe2,
+  X, Search, Sparkles, BookOpen, MapPin, Users, Calendar, 
+  Image as ImageIcon, Link2, ExternalLink, Info, Loader2,
+  ChevronDown, ChevronRight, Share2, Printer, Copy, ScrollText,
+  Clock, Hash, Library, MoreHorizontal, ArrowLeft
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
-import { BIBLICAL_PEOPLE, searchPeople, type BiblicalPerson } from "@/data/biblicalPeople";
-import { BIBLICAL_EVENTS, searchEvents, type BiblicalEvent } from "@/data/biblicalEvents";
-import { SEED_LOCATIONS, type GeoLocation3D } from "@/data/geoSeedData";
-import { THEOLOGICAL_TOPICS, searchTopics, type TheologicalTopic } from "@/data/theologicalTopics";
 import { useRAG } from "@/hooks/useRAG";
-import { Loader2, Sparkles, Wand2 } from "lucide-react";
 
-/* ─── Types ──────────────────────────────────────────────── */
+interface FactbookSection {
+  id: string;
+  title: string;
+  icon: string;
+  content?: string;
+  items?: string[];
+  images?: string[];
+  verses?: string[];
+  tags?: string[];
+  links?: string[];
+}
 
-type Tab = "people" | "places" | "events" | "topics";
-type SelectedItem = { type: Tab; data: BiblicalPerson | BiblicalEvent | GeoLocation3D | TheologicalTopic };
-
-/* ─── Component ──────────────────────────────────────────── */
+interface FactbookData {
+  title: string;
+  subtitle: string;
+  headerImage?: string;
+  sections: FactbookSection[];
+}
 
 export default function Factbook({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<Tab>("people");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<SelectedItem | null>(null);
-  
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<FactbookData | null>(null);
+  const [activeSection, setActiveSection] = useState("overview");
+  const [history, setHistory] = useState<string[]>([]);
   const { chat } = useRAG();
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
+  
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  const TABS: { id: Tab; label: string; icon: React.ElementType; count: number }[] = [
-    { id: "people", label: "Pessoas", icon: Users, count: BIBLICAL_PEOPLE.length },
-    { id: "places", label: "Lugares", icon: MapPin, count: SEED_LOCATIONS.length },
-    { id: "events", label: "Eventos", icon: Calendar, count: BIBLICAL_EVENTS.length },
-    { id: "topics", label: "Tópicos", icon: Lightbulb, count: THEOLOGICAL_TOPICS.length },
-  ];
-
-  /* ── Search Indexing (Performance O(1)) ─────────── */
-  const searchIndices = useMemo(() => {
-    return {
-      people: new Map(BIBLICAL_PEOPLE.map(p => [p.id, p])),
-      places: new Map(SEED_LOCATIONS.map(l => [l.id, l])),
-      events: new Map(BIBLICAL_EVENTS.map(e => [e.id, e])),
-      topics: new Map(THEOLOGICAL_TOPICS.map(t => [t.id, t]))
-    };
-  }, []);
-
-  const results = useMemo(() => {
-    const q = query.toLowerCase();
-    if (!q) {
-      switch (activeTab) {
-        case "people": return BIBLICAL_PEOPLE;
-        case "places": return SEED_LOCATIONS;
-        case "events": return BIBLICAL_EVENTS;
-        case "topics": return THEOLOGICAL_TOPICS;
-      }
-    }
+  const handleSearch = async (term: string) => {
+    if (!term.trim()) return;
+    setLoading(true);
+    setQuery(term);
     
-    // Busca otimizada: Apenas filtra se houver query, usando campos específicos
-    switch (activeTab) {
-      case "people":
-        return BIBLICAL_PEOPLE.filter(p => p.namePt.toLowerCase().includes(q) || p.theologicalFunction.toLowerCase().includes(q));
-      case "places":
-        return SEED_LOCATIONS.filter(l => l.names.pt.toLowerCase().includes(q) || l.theologicalSignificance.toLowerCase().includes(q));
-      case "events":
-        return BIBLICAL_EVENTS.filter(e => e.namePt.toLowerCase().includes(q) || e.soteriologicalSignificance.toLowerCase().includes(q));
-      case "topics":
-        return THEOLOGICAL_TOPICS.filter(t => t.namePt.toLowerCase().includes(q));
-    }
-  }, [activeTab, query]);
+    // Improved Prompt for Logos-style data
+    const prompt = `Gere um dossiê Factbook acadêmico profissional (estilo Logos Bible Software) para o termo "${term}". 
+    O conteúdo deve ser profundo, exegético e histórico.
+    Retorne um JSON estritamente com a seguinte estrutura:
+    {
+      "title": "${term}",
+      "subtitle": "Categoria Acadêmica (Pessoa, Lugar, Evento, etc)",
+      "headerImage": "URL de placeholder realista (ex: unsplash)",
+      "sections": [
+        { "id": "overview", "title": "Visão Geral", "icon": "Info", "content": "Resumo enciclopédico profundo..." },
+        { "id": "key-articles", "title": "Artigos Principais", "icon": "BookOpen", "items": ["Artigo 1 de dicionário", "Artigo 2"] },
+        { "id": "media", "title": "Mídia & Arqueologia", "icon": "ImageIcon", "images": ["url1", "url2"] },
+        { "id": "passages", "title": "Passagens Chave", "icon": "ScrollText", "verses": ["Referência 1", "Referência 2"] },
+        { "id": "events", "title": "Eventos Relacionados", "icon": "Calendar", "items": ["Evento 1", "Evento 2"] },
+        { "id": "related", "title": "Tópicos Relacionados", "icon": "Link2", "tags": ["Tópico A", "Tópico B"] },
+        { "id": "further-reading", "title": "Leitura Adicional", "icon": "ExternalLink", "links": ["Referência Bibliográfica 1", "Referência 2"] }
+      ]
+    }`;
 
-  const selectItem = (type: Tab, data: any) => {
-    setSelected({ type, data });
-    setAiAnalysis(null);
-  };
-
-  const generateAiAnalysis = async (item: any) => {
-    setLoadingAi(true);
-    const itemName = item.namePt || item.names?.pt || item.name;
-    const itemType = selected?.type || "topic";
-    const prompt = `Forneça uma análise teológica profunda e acadêmica sobre ${itemName} (${itemType} bíblico). Inclua referências, significado histórico e implicações teológicas.`;
-    
     try {
-      const res = await chat(prompt);
-      setAiAnalysis(res.content);
-    } catch (error) {
-      setAiAnalysis("Erro ao gerar análise via RAG.");
-    } finally {
-      setLoadingAi(false);
+      const res = await chat(prompt, [], undefined, true);
+      let content = res.content;
+      
+      // Parse JSON from AI response
+      let parsedData: FactbookData | null = null;
+      if (typeof content === "object") {
+          parsedData = content as unknown as FactbookData;
+      } else {
+          const jsonMatch = (content as string).match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, content as string];
+          try { 
+              parsedData = JSON.parse(jsonMatch[1]!); 
+          } catch { 
+              parsedData = null; 
+          }
+      }
+
+      if (parsedData) {
+          setData(parsedData);
+          if (!history.includes(term)) setHistory([term, ...history.slice(0, 4)]);
+      }
+    } catch (e) { 
+        console.error("Factbook Error:", e); 
+    } finally { 
+        setLoading(false); 
     }
   };
 
-  /* ── Detail Render ────────────────────────────────────── */
-  const renderDetail = () => {
-    if (!selected) return null;
-    const { type, data } = selected;
-
-    if (type === "people") {
-      const p = data as BiblicalPerson;
-      return (
-        <div className="space-y-4">
-          <div className="text-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-3 border border-amber-500/10">
-              <Users className="w-7 h-7 text-amber-500/60" />
-            </div>
-            <h3 className="text-xl font-bold text-white font-serif">{p.namePt}</h3>
-            <p className="text-xs text-white/30 italic">{p.nameHe}</p>
-            <div className="flex justify-center gap-1.5 mt-2">
-              <span className="tag tag-amber">{p.role || p.theologicalFunction}</span>
-              <span className="tag tag-purple">{p.period}</span>
-            </div>
-          </div>
-          <div className="glass-amber rounded-xl p-4">
-            <p className="text-sm text-white/70 leading-relaxed font-serif">{p.description}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2 flex items-center gap-1.5">
-              <Clock className="w-3 h-3" /> Período
-            </h4>
-            <p className="text-sm text-white/60">{p.timeline || p.period}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
-              <BookOpen className="w-3 h-3" /> Referências
-            </h4>
-            <div className="space-y-1">
-              {p.keyVerses.map((v, i) => (
-                <p key={i} className="text-xs text-blue-400/70 font-mono">{v}</p>
-              ))}
-            </div>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-2 flex items-center gap-1.5">
-              <Link2 className="w-3 h-3" /> Pessoas Relacionadas
-            </h4>
-            <div className="flex flex-wrap gap-1.5">
-              {(p.relatedPeople || []).map((rp, i) => (
-                <span key={i} className="tag tag-purple text-[10px]">{rp}</span>
-              ))}
-            </div>
-          </div>
-          {(p.relatedLocations?.length ?? 0) > 0 && (
-            <div className="glass rounded-xl border border-border-subtle p-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
-                <MapPin className="w-3 h-3" /> Locais
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {(p.relatedLocations || []).map((loc, i) => (
-                  <span key={i} className="tag tag-blue text-[10px]">{loc}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-border-subtle pt-6">
-            {!aiAnalysis && !loadingAi ? (
-              <button 
-                onClick={() => generateAiAnalysis(p)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 hover:border-amber-500/50 transition-all group"
-              >
-                <Wand2 className="w-4 h-4 text-amber-500 group-hover:animate-pulse" />
-                <span className="text-xs font-bold text-amber-500">Gerar Análise IA Profunda (RAG)</span>
-              </button>
-            ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
-                <Loader2 className="w-6 h-6 text-amber-500 animate-spin mb-2" />
-                <span className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">Consultando Bibliotecas...</span>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-surface border border-blue-500/20 relative group">
-                <div className="absolute top-4 right-4">
-                  <Sparkles className="w-4 h-4 text-blue-400 opacity-30" />
-                </div>
-                <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Insight Teológico PhD
-                </h4>
-                <div className="prose prose-invert prose-xs max-w-none text-white/70 leading-relaxed font-serif whitespace-pre-wrap">
-                  {aiAnalysis}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (type === "places") {
-      const loc = data as GeoLocation3D;
-      return (
-        <div className="space-y-4">
-          <div className="text-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-3 border border-blue-500/10">
-              <MapPin className="w-7 h-7 text-blue-500/60" />
-            </div>
-            <h3 className="text-xl font-bold text-white font-serif">{loc.names.pt}</h3>
-            <p className="text-xs text-white/30 italic">{loc.names.canonical}</p>
-            <div className="flex justify-center gap-1.5 mt-2">
-              <span className="tag tag-blue">{loc.era}</span>
-              <span className="tag tag-emerald uppercase">{loc.type}</span>
-            </div>
-          </div>
-          <div className="glass-amber rounded-xl p-4">
-            <p className="text-sm text-white/70 leading-relaxed font-serif">
-              {(loc as any).description || (loc as any).theologicalSignificance}
-            </p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2 flex items-center gap-1.5">
-              <Globe2 className="w-3 h-3" /> Coordenadas
-            </h4>
-            <p className="text-xs text-white/40 font-mono">{loc.coordinates[1].toFixed(4)}, {loc.coordinates[0].toFixed(4)}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
-              <BookOpen className="w-3 h-3" /> Referências Bíblicas
-            </h4>
-            <div className="space-y-1">
-              {loc.references.map((ref: string, i: number) => (
-                <p key={i} className="text-xs text-blue-400/70 font-mono">{ref}</p>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-border-subtle pt-6">
-            {!aiAnalysis && !loadingAi ? (
-              <button 
-                onClick={() => generateAiAnalysis(loc)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:border-blue-500/50 transition-all group"
-              >
-                <Wand2 className="w-4 h-4 text-blue-400 group-hover:animate-pulse" />
-                <span className="text-xs font-bold text-blue-400">Gerar Análise Geográfica (RAG)</span>
-              </button>
-            ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
-                <Loader2 className="w-6 h-6 text-blue-500 animate-spin mb-2" />
-                <span className="text-[10px] font-bold text-blue-500/60 uppercase tracking-widest">Consultando Atlas...</span>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-surface border border-blue-500/20 relative group">
-                <div className="absolute top-4 right-4">
-                  <Sparkles className="w-4 h-4 text-blue-400 opacity-30" />
-                </div>
-                <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Contexto Geográfico PhD
-                </h4>
-                <div className="prose prose-invert prose-xs max-w-none text-white/70 leading-relaxed font-serif whitespace-pre-wrap">
-                  {aiAnalysis}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (type === "events") {
-      const e = data as BiblicalEvent;
-      return (
-        <div className="space-y-4">
-          <div className="text-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center mx-auto mb-3 border border-purple-500/10">
-              <Calendar className="w-7 h-7 text-purple-500/60" />
-            </div>
-            <h3 className="text-xl font-bold text-white font-serif">{e.namePt}</h3>
-            <p className="text-xs text-white/30 italic">{e.name}</p>
-            <div className="flex justify-center gap-1.5 mt-2">
-              <span className="tag tag-amber">{e.date || e.estimatedDate}</span>
-              <span className="tag tag-purple">{e.period || "Histórico"}</span>
-            </div>
-          </div>
-          <div className="glass-amber rounded-xl p-4">
-            <p className="text-sm text-white/70 leading-relaxed font-serif">{e.description}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2">Significado Teológico</h4>
-            <p className="text-sm text-emerald-400/70 leading-relaxed italic font-serif">{e.significance || e.soteriologicalSignificance}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2 flex items-center gap-1.5">
-              <BookOpen className="w-3 h-3" /> Referências
-            </h4>
-            <div className="space-y-1">
-              {(e.keyVerses || [e.scriptureBase]).map((v, i) => (
-                <p key={i} className="text-xs text-blue-400/70 font-mono">{v}</p>
-              ))}
-            </div>
-          </div>
-          {e.people.length > 0 && (
-            <div className="glass rounded-xl border border-border-subtle p-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-2">Pessoas Envolvidas</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {e.people.map((p, i) => <span key={i} className="tag tag-purple text-[10px]">{p}</span>)}
-              </div>
-            </div>
-          )}
-          {e.locations.length > 0 && (
-            <div className="glass rounded-xl border border-border-subtle p-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">Locais</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {e.locations.map((l, i) => <span key={i} className="tag tag-blue text-[10px]">{l}</span>)}
-              </div>
-            </div>
-          )}
-
-          {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-border-subtle pt-6">
-            {!aiAnalysis && !loadingAi ? (
-              <button 
-                onClick={() => generateAiAnalysis(e)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 hover:border-purple-500/50 transition-all group"
-              >
-                <Wand2 className="w-4 h-4 text-purple-400 group-hover:animate-pulse" />
-                <span className="text-xs font-bold text-purple-400">Reconstruir Evento via IA (RAG)</span>
-              </button>
-            ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
-                <Loader2 className="w-6 h-6 text-purple-500 animate-spin mb-2" />
-                <span className="text-[10px] font-bold text-purple-500/60 uppercase tracking-widest">Processando Cronologia...</span>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-surface border border-accent/20 relative group">
-                <div className="absolute top-4 right-4">
-                  <Sparkles className="w-4 h-4 text-purple-400 opacity-30" />
-                </div>
-                <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Reconstrução Histórica PhD
-                </h4>
-                <div className="prose prose-invert prose-xs max-w-none text-white/70 leading-relaxed font-serif whitespace-pre-wrap">
-                  {aiAnalysis}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (type === "topics") {
-      const t = data as TheologicalTopic;
-      return (
-        <div className="space-y-4">
-          <div className="text-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center mx-auto mb-3 border border-amber-500/10">
-              <Lightbulb className="w-7 h-7 text-amber-500/60" />
-            </div>
-            <h3 className="text-xl font-bold text-white font-serif">{t.namePt}</h3>
-            <p className="text-xs text-white/30 italic">{t.name}</p>
-            <span className="tag tag-amber mt-2 inline-block">{t.category}</span>
-          </div>
-          <div className="glass-amber rounded-xl p-4">
-            <p className="text-sm text-white/70 leading-relaxed font-serif">{t.definition}</p>
-          </div>
-          <div className="glass rounded-xl border border-border-subtle p-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-2">Referências Bíblicas</h4>
-            <div className="space-y-1">
-              {t.keyVerses.map((v, i) => (
-                <p key={i} className="text-xs text-blue-400/70 font-mono">{v}</p>
-              ))}
-            </div>
-          </div>
-          {t.perspectives.length > 0 && (
-            <div className="glass rounded-xl border border-border-subtle p-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-purple-400 mb-3">Perspectivas Teológicas</h4>
-              <div className="space-y-3">
-                {t.perspectives.map((p, i) => (
-                  <div key={i} className="pl-3 border-l-2 border-purple-500/20">
-                    <p className="text-xs font-bold text-purple-400/80">{p.tradition}</p>
-                    <p className="text-xs text-white/40 leading-relaxed mt-0.5">{p.view}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {t.relatedTopics.length > 0 && (
-            <div className="glass rounded-xl border border-border-subtle p-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-amber-400 mb-2">Tópicos Relacionados</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {t.relatedTopics.map((rt, i) => <span key={i} className="tag tag-amber text-[10px]">{rt}</span>)}
-              </div>
-            </div>
-          )}
-
-          {/* AI Analysis Section */}
-          <div className="mt-6 border-t border-border-subtle pt-6">
-            {!aiAnalysis && !loadingAi ? (
-              <button 
-                onClick={() => generateAiAnalysis(t)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/20 border border-amber-500/30 hover:border-amber-500/50 transition-all group"
-              >
-                <Wand2 className="w-4 h-4 text-amber-500 group-hover:animate-pulse" />
-                <span className="text-xs font-bold text-amber-500">Aprofundar Tópico via RAG</span>
-              </button>
-            ) : loadingAi ? (
-              <div className="flex flex-col items-center py-6 bg-white/[0.02] rounded-xl border border-dashed border-border-strong">
-                <Loader2 className="w-6 h-6 text-amber-500 animate-spin mb-2" />
-                <span className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">Consultando Teologia...</span>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-surface border border-accent/20 relative group">
-                <div className="absolute top-4 right-4">
-                  <Sparkles className="w-4 h-4 text-amber-500 opacity-30" />
-                </div>
-                <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Síntese Teológica PhD
-                </h4>
-                <div className="prose prose-invert prose-xs max-w-none text-white/70 leading-relaxed font-serif whitespace-pre-wrap">
-                  {aiAnalysis}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return null;
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  /* ── Render ───────────────────────────────────────────── */
+  // Scroll spy to update active section in sidebar
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!contentRef.current) return;
+      const scrollPosition = contentRef.current.scrollTop + 100;
+
+      for (const section of data?.sections || []) {
+        const element = sectionRefs.current[section.id];
+        if (element && element.offsetTop <= scrollPosition) {
+          setActiveSection(section.id);
+        }
+      }
+    };
+
+    const container = contentRef.current;
+    container?.addEventListener("scroll", handleScroll);
+    return () => container?.removeEventListener("scroll", handleScroll);
+  }, [data]);
+
+  const getIcon = (name: string) => {
+    switch (name) {
+      case "Info": return <Info className="w-3.5 h-3.5" />;
+      case "BookOpen": return <BookOpen className="w-3.5 h-3.5" />;
+      case "ImageIcon": return <ImageIcon className="w-3.5 h-3.5" />;
+      case "ScrollText": return <ScrollText className="w-3.5 h-3.5" />;
+      case "Calendar": return <Calendar className="w-3.5 h-3.5" />;
+      case "Link2": return <Link2 className="w-3.5 h-3.5" />;
+      case "ExternalLink": return <ExternalLink className="w-3.5 h-3.5" />;
+      default: return <Hash className="w-3.5 h-3.5" />;
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          {selected ? (
-            <button onClick={() => setSelected(null)} className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Voltar</span>
+    <div className="flex flex-col h-full bg-[#F0F2F5] dark:bg-[#0A0D14] text-gray-900 dark:text-gray-100 overflow-hidden border-l border-gray-300 dark:border-white/10 shadow-2xl">
+      
+      {/* Logos Style Top Bar */}
+      <div className="h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/30 flex items-center px-2 justify-between z-30 shrink-0">
+        <div className="flex items-center gap-1 overflow-hidden">
+            <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded shrink-0">
+                <Library className="w-3.5 h-3.5 text-gray-500" />
             </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <BookOpen className="w-4.5 h-4.5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold tracking-tight">Enciclopédia Bíblica</h2>
-                <p className="text-[10px] text-white/25 font-medium tracking-widest uppercase">Pessoas, Lugares e Eventos</p>
-              </div>
+            <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-1 shrink-0" />
+            <div className="flex items-center gap-1 overflow-hidden">
+                <Sparkles className="w-3 h-3 text-blue-600 shrink-0" />
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Factbook</span>
+                {data && (
+                    <>
+                        <ChevronRight className="w-3 h-3 text-gray-400 shrink-0" />
+                        <span className="text-[10px] font-bold text-blue-600 truncate">{data.title}</span>
+                    </>
+                )}
             </div>
-          )}
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg transition-all text-white/30 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
         </div>
-
-        {!selected && (
-          <>
-            {/* Search */}
-            <div className="relative mb-3">
-              <input
-                type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-                placeholder="Pesquisar pessoas, lugares, eventos, tópicos..."
-                className="input-glass w-full pl-10 text-sm"
-              />
-              <Search className="absolute left-3 top-3.5 w-4 h-4 text-white/25" />
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all border ${
-                      activeTab === tab.id
-                        ? "bg-amber-500 border-amber-500 text-slate-950"
-                        : "bg-white/[0.03] border-border-subtle text-white/40 hover:text-white/70"
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+            <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
+                <Share2 className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+            <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
+                <Printer className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+            <button onClick={onClose} className="p-1.5 hover:bg-red-500/10 group rounded ml-2">
+                <X className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+            </button>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-grow overflow-y-auto custom-scrollbar px-5 py-4">
-        <AnimatePresence mode="wait">
-          {selected ? (
-            <motion.div key="detail" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              {renderDetail()}
-            </motion.div>
-          ) : (
-            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-[10px] text-white/20 mb-3 font-bold uppercase tracking-widest">
-                {(results as any[]).length} resultados
-              </p>
-              <div className="space-y-1.5">
-                {(results as any[]).map((item: any, i: number) => (
-                  <button
-                    key={item.id || i}
-                    onClick={() => selectItem(activeTab, item)}
-                    className="w-full text-left p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] card-interactive flex items-center gap-3 group"
-                  >
-                    <div className="flex-grow min-w-0">
-                      <h4 className="text-[13px] font-semibold text-white/80 group-hover:text-amber-400 transition-colors truncate">
-                        {activeTab === "places" ? (item as GeoLocation3D).names.pt : (item.namePt || item.name)}
-                      </h4>
-                      <p className="text-[10px] text-white/25 truncate mt-0.5">
-                        {activeTab === "people" && (item as BiblicalPerson).role}
-                        {activeTab === "places" && (item as GeoLocation3D).era}
-                        {activeTab === "events" && (item as BiblicalEvent).date}
-                        {activeTab === "topics" && (item as TheologicalTopic).category}
-                      </p>
+      {/* Main Layout Area */}
+      <div className="flex flex-grow overflow-hidden">
+        
+        {/* Left Navigation Sidebar (Logos Style) */}
+        <aside className="w-56 bg-[#E8EBF0] dark:bg-[#15191F] border-r border-gray-300 dark:border-white/5 flex flex-col shrink-0 hidden md:flex">
+            <div className="p-3 border-b border-gray-300 dark:border-white/5">
+                <div className="relative group">
+                    <input 
+                        type="text" 
+                        placeholder="Pesquisar..."
+                        className="w-full pl-8 pr-2 py-1 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[11px] focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch((e.target as HTMLInputElement).value)}
+                    />
+                    <Search className="absolute left-2.5 top-1.5 w-3.5 h-3.5 text-gray-400" />
+                </div>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto py-2 px-1 space-y-0.5 custom-scrollbar">
+                {data ? (
+                    data.sections.map((section) => (
+                        <button
+                            key={section.id}
+                            onClick={() => scrollToSection(section.id)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] font-medium transition-all text-left ${
+                                activeSection === section.id 
+                                ? "bg-white dark:bg-white/10 text-blue-600 shadow-sm border-l-2 border-blue-600" 
+                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
+                            }`}
+                        >
+                            <span className={activeSection === section.id ? "text-blue-600" : "text-gray-400"}>
+                                {getIcon(section.icon)}
+                            </span>
+                            {section.title}
+                        </button>
+                    ))
+                ) : (
+                    <div className="p-4 text-center space-y-2 opacity-30">
+                        <Sparkles className="w-8 h-8 mx-auto text-gray-400" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum Dossiê Aberto</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white/5 group-hover:text-amber-500/60 flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                )}
 
-      <div className="px-5 py-2.5 border-t border-border-subtle flex-shrink-0">
-        <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
-          Enciclopédia · TheoSphere OS
-        </p>
+                {history.length > 0 && (
+                    <div className="pt-4 px-3">
+                        <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <Clock className="w-2.5 h-2.5" /> Recentes
+                        </h4>
+                        {history.map((h) => (
+                            <button 
+                                key={h} 
+                                onClick={() => handleSearch(h)}
+                                className="block w-full text-left py-1 text-[11px] text-gray-500 hover:text-blue-600 truncate"
+                            >
+                                {h}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </aside>
+
+        {/* Right Content Area */}
+        <main 
+            ref={contentRef}
+            className="flex-grow bg-white dark:bg-[#0D1117] overflow-y-auto custom-scrollbar relative"
+        >
+            <AnimatePresence mode="wait">
+                {loading ? (
+                    <motion.div 
+                        key="loader"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-[#0D1117]/80 z-20 backdrop-blur-sm"
+                    >
+                        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.3em]">Compilando Dossiê Acadêmico...</span>
+                        <div className="w-48 h-1 bg-gray-200 dark:bg-white/10 rounded-full mt-6 overflow-hidden">
+                            <motion.div 
+                                className="h-full bg-blue-600" 
+                                animate={{ x: [-200, 200] }} 
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} 
+                            />
+                        </div>
+                    </motion.div>
+                ) : null}
+
+                {data ? (
+                    <motion.div 
+                        key={data.title}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="max-w-4xl mx-auto p-12 space-y-12 pb-32"
+                    >
+                        {/* Report Header */}
+                        <header className="border-b-2 border-gray-100 dark:border-white/5 pb-10">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                <div className="space-y-3">
+                                    <h1 className="text-5xl font-serif font-bold text-gray-900 dark:text-white leading-tight">{data.title}</h1>
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest">{data.subtitle}</span>
+                                        <div className="w-1 h-1 rounded-full bg-gray-300" />
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                            <BookOpen className="w-3 h-3" /> TheoSphere OS Library
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button className="px-3 py-1.5 border border-gray-200 dark:border-white/10 rounded text-[11px] font-bold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                        <Copy className="w-3.5 h-3.5 text-gray-400" /> Copiar
+                                    </button>
+                                    <button className="px-3 py-1.5 bg-blue-600 text-white rounded text-[11px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all">
+                                        <Sparkles className="w-3.5 h-3.5" /> Ferramentas
+                                    </button>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Sections Grid/List */}
+                        <div className="space-y-16">
+                            {data.sections.map((section) => (
+                                <section 
+                                    key={section.id} 
+                                    ref={(el) => (sectionRefs.current[section.id] = el)}
+                                    className="scroll-mt-10 group"
+                                >
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                            {getIcon(section.icon)}
+                                        </div>
+                                        <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{section.title}</h2>
+                                        <div className="flex-grow h-px bg-gray-100 dark:bg-white/5" />
+                                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                                        </button>
+                                    </div>
+
+                                    <div className="pl-11">
+                                        {section.content && (
+                                            <p className="text-lg font-serif text-gray-800 dark:text-gray-200 leading-relaxed text-justify first-letter:text-4xl first-letter:font-bold first-letter:mr-1 first-letter:float-left">
+                                                {section.content}
+                                            </p>
+                                        )}
+
+                                        {section.items && (
+                                            <ul className="space-y-2">
+                                                {section.items.map((item, i) => (
+                                                    <li key={i} className="flex items-start gap-3 group/item cursor-pointer">
+                                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 group-hover/item:bg-blue-600 transition-colors" />
+                                                        <span className="text-[13px] text-gray-600 dark:text-gray-400 group-hover/item:text-blue-600 transition-colors">{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+
+                                        {section.verses && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {section.verses.map((v) => (
+                                                    <button key={v} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all text-left group/verse">
+                                                        <div className="flex items-center gap-3">
+                                                            <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
+                                                            <span className="text-sm font-bold text-blue-600">{v}</span>
+                                                        </div>
+                                                        <ArrowLeft className="w-3.5 h-3.5 text-gray-300 rotate-180 opacity-0 group-hover/verse:opacity-100 transition-all" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {section.images && (
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {section.images.map((img, i) => (
+                                                    <div key={i} className="aspect-square bg-gray-100 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 flex items-center justify-center group/img overflow-hidden relative">
+                                                        <ImageIcon className="w-6 h-6 text-gray-300 group-hover/img:scale-125 transition-transform" />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                                            <span className="text-[10px] text-white font-bold truncate">Mídia Arqueológica</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {section.tags && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {section.tags.map((tag) => (
+                                                    <button key={tag} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all">
+                                                        {tag}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {section.links && (
+                                            <div className="space-y-1.5">
+                                                {section.links.map((link, i) => (
+                                                    <div key={i} className="flex items-center gap-2 text-[11px] text-gray-400 hover:text-blue-600 cursor-pointer">
+                                                        <ExternalLink className="w-3 h-3" />
+                                                        <span>{link}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+                            ))}
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div 
+                        key="empty"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto space-y-8 p-12"
+                    >
+                        <div className="relative">
+                            <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full" />
+                            <Sparkles className="w-20 h-20 text-blue-600 relative z-10" />
+                        </div>
+                        <div className="space-y-4">
+                            <h2 className="text-4xl font-serif font-bold text-gray-900 dark:text-white leading-tight">Sua Biblioteca, Organizada.</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                                O Factbook é o centro nevrálgico do seu estudo. Ele compila automaticamente dados de todas as suas fontes para gerar dossiês acadêmicos sobre Pessoas, Lugares, Eventos e Conceitos Teológicos.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 w-full">
+                            <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-left space-y-2">
+                                <Users className="w-5 h-5 text-blue-600" />
+                                <h4 className="text-xs font-bold uppercase tracking-widest">Pessoas</h4>
+                                <p className="text-[10px] text-gray-400">Genealogias, biografia e conexões.</p>
+                            </div>
+                            <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-left space-y-2">
+                                <MapPin className="w-5 h-5 text-green-600" />
+                                <h4 className="text-xs font-bold uppercase tracking-widest">Lugares</h4>
+                                <p className="text-[10px] text-gray-400">Contexto geográfico e arqueológico.</p>
+                            </div>
+                        </div>
+                        <div className="pt-8">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Comece pesquisando no painel à esquerda</p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </main>
       </div>
     </div>
   );
