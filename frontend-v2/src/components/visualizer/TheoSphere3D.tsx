@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import Map, { NavigationControl } from "@vis.gl/react-maplibre";
-import DeckGL from "@deck.gl/react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Map, { NavigationControl, useControl } from "@vis.gl/react-maplibre";
+import maplibregl from "maplibre-gl";
+import { MapboxOverlay } from "@deck.gl/mapbox";
 import { ScatterplotLayer, TextLayer } from "@deck.gl/layers";
-import { TripsLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator } from "@deck.gl/core";
-import { Layers, MapPin, Box, Clock, Minimize2, Maximize2, X } from "lucide-react";
+import { Box, Minimize2, Maximize2, X } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
-import { TimeController, TIMELINE_EVENTS, CATEGORY_COLORS } from "../atlas/TimeController";
+import { TimeController } from "../atlas/TimeController";
 
-// Estilo de mapa premium
+// CartoDB Voyager — free, no API key needed
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
 interface ViewState {
@@ -26,6 +26,13 @@ interface ViewState {
 
 import { MapAdapter } from "@/lib/BibleMapAdapter";
 
+// ─── Deck.gl Overlay component (vis.gl recommended pattern for React 19) ───
+function DeckGLOverlay(props: any) {
+  const overlay = useControl(() => new MapboxOverlay(props));
+  overlay.setProps(props);
+  return null;
+}
+
 export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [viewState, setViewState] = useState<ViewState>({
     longitude: 35.2137,
@@ -35,9 +42,8 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     bearing: 0,
   });
 
-  const { currentTime, setCurrentTime, activeVerseId } = useTheoStore();
+  const { currentTime, setCurrentTime } = useTheoStore();
   const [locations, setLocations] = useState<any[]>([]);
-  const [time, setTime] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
 
   // ─── Integração com Adapter (Facade) ───────────────────────────────────
@@ -77,15 +83,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     fetchLocs();
   }, [currentTime]);
 
-  // 2. Loop de Animação para rotas
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(t => (t + 1) % 1000);
-    }, 50);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 3. Camadas Deck.gl Unificadas
+  // 2. Camadas Deck.gl Unificadas
   const layers = useMemo(() => [
     new ScatterplotLayer({
       id: "points",
@@ -141,18 +139,19 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      {/* Main Render Area */}
-      <div className="flex-grow relative">
-        <DeckGL
-            viewState={viewState}
-            controller={true}
-            layers={layers}
-            onViewStateChange={(e) => setViewState(e.viewState as any)}
+      {/* Main Render Area — Map is now the primary container */}
+      <div className="flex-grow relative w-full" style={{ minHeight: "500px", height: "100%" }}>
+        <Map 
+          mapLib={maplibregl}
+          mapStyle={MAP_STYLE}
+          {...viewState}
+          onMove={(evt) => setViewState(evt.viewState as any)}
+          style={{ width: "100%", height: "100%" }}
+          reuseMaps
         >
-            <Map mapStyle={MAP_STYLE} reuseMaps>
-                <NavigationControl position="bottom-right" />
-            </Map>
-        </DeckGL>
+          <DeckGLOverlay layers={layers} />
+          <NavigationControl position="bottom-right" />
+        </Map>
       </div>
 
       {/* Unified Time Controller */}

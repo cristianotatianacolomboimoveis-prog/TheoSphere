@@ -46,7 +46,7 @@ export const AIInsights: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-6 right-24 z-50 flex flex-col items-end gap-3">
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -68,12 +68,41 @@ export const AIInsights: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                <div className="bg-white/5 rounded-xl p-3 border border-white/10 max-h-64 overflow-y-auto custom-scrollbar">
                   <div className="flex items-start gap-2">
-                    <Quote className="w-3 h-3 text-accent/50 mt-0.5" />
-                    <p className="text-[11px] text-white/80 leading-relaxed font-serif italic">
-                      {insight || "O que deseja investigar nesta passagem?"}
-                    </p>
+                    <Quote className="w-3 h-3 text-accent/50 mt-1 flex-shrink-0" />
+                    <div className="flex-grow font-serif italic">
+                      {insight ? (
+                        insight.split("\n").map((line, i) => {
+                          const trimmed = line.trim();
+                          if (trimmed.startsWith("#")) {
+                            const cleanLine = trimmed.replace(/^#+\s*/, "");
+                            return (
+                              <span key={i} className="block text-[10px] font-black text-accent mt-3 mb-1 uppercase tracking-widest font-sans not-italic">
+                                {cleanLine}
+                              </span>
+                            );
+                          }
+                          if (trimmed.startsWith("- ")) {
+                            return (
+                              <span key={i} className="block text-[11px] text-white/70 ml-2 mt-1 font-sans not-italic">
+                                • {trimmed.replace(/^- \s*/, "")}
+                              </span>
+                            );
+                          }
+                          if (trimmed === "") return <span key={i} className="block h-1.5" />;
+                          return (
+                            <p key={i} className="text-[11px] text-white/80 leading-relaxed mt-1">
+                              {trimmed}
+                            </p>
+                          );
+                        })
+                      ) : (
+                        <p className="text-[11px] text-white/80 leading-relaxed">
+                          O que deseja investigar nesta passagem?
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

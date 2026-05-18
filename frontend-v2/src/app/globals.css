@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Literata:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Noto+Sans+Hebrew:wght@300;400;700&family=Noto+Serif+Greek:wght@300;400;700&display=swap');
 @import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 /* Dark = default. Light = opt-in via data-theme="light" on <html>.         */
@@ -16,6 +17,92 @@
   --color-border-subtle: var(--c-border-subtle);
   --color-border-strong: var(--c-border-strong);
   --color-muted: var(--c-muted);
+
+  /* Overriding standard gray/neutral to match Kenlo's custom charcoal/slate scale */
+  --color-gray-50: #F5F7FA;
+  --color-gray-100: #E4E7EB;
+  --color-gray-200: #CBD2D9;
+  --color-gray-300: #9AA5B1;
+  --color-gray-400: #7B8794;
+  --color-gray-500: #616E7C;
+  --color-gray-600: #525F7A;
+  --color-gray-700: #3E4C59;
+  --color-gray-800: #323F4B;
+  --color-gray-900: #1F2933;
+  --color-gray-950: #070709;
+
+  /* Overriding standard green to match Kenlo's success teal */
+  --color-green-50: #E6FAF8;
+  --color-green-100: #C2F3ED;
+  --color-green-200: #94EAE0;
+  --color-green-300: #5DDFCE;
+  --color-green-400: #29D0BB;
+  --color-green-500: #00B887;
+  --color-green-600: #009E73;
+  --color-green-700: #007D5B;
+  --color-green-800: #005E44;
+  --color-green-900: #004230;
+
+  /* Overriding standard emerald to match Kenlo's success teal */
+  --color-emerald-50: #E6FAF8;
+  --color-emerald-100: #C2F3ED;
+  --color-emerald-200: #94EAE0;
+  --color-emerald-300: #5DDFCE;
+  --color-emerald-400: #29D0BB;
+  --color-emerald-500: #00B887;
+  --color-emerald-600: #009E73;
+  --color-emerald-700: #007D5B;
+  --color-emerald-800: #005E44;
+  --color-emerald-900: #004230;
+
+  /* Overriding standard blue to map to Kenlo Red */
+  --color-blue-50: #FFF0F2;
+  --color-blue-100: #FFE0E4;
+  --color-blue-200: #FFC2CB;
+  --color-blue-300: #FFA3B2;
+  --color-blue-400: #FF6680;
+  --color-blue-500: #F82E52;
+  --color-blue-600: #F82E52;
+  --color-blue-700: #BD1434;
+  --color-blue-800: #990D28;
+  --color-blue-900: #7A081D;
+  --color-blue-950: #4D000E;
+
+  /* Overriding standard cyan to map to Kenlo Red */
+  --color-cyan-50: #FFF0F2;
+  --color-cyan-100: #FFE0E4;
+  --color-cyan-200: #FFC2CB;
+  --color-cyan-300: #FFA3B2;
+  --color-cyan-400: #FF6680;
+  --color-cyan-500: #F82E52;
+  --color-cyan-600: #F82E52;
+  --color-cyan-700: #BD1434;
+  --color-cyan-800: #990D28;
+  --color-cyan-900: #7A081D;
+
+  /* Overriding standard orange to map to Kenlo Cyan */
+  --color-orange-50: #F0FBFF;
+  --color-orange-100: #E0F7FF;
+  --color-orange-200: #BDECFF;
+  --color-orange-300: #8ADEFF;
+  --color-orange-400: #33C7FF;
+  --color-orange-500: #00C2FF;
+  --color-orange-600: #00C2FF;
+  --color-orange-700: #0082AB;
+  --color-orange-800: #006280;
+  --color-orange-900: #00455B;
+
+  /* Overriding standard indigo to map to Kenlo Cyan */
+  --color-indigo-50: #F0FBFF;
+  --color-indigo-100: #E0F7FF;
+  --color-indigo-200: #BDECFF;
+  --color-indigo-300: #8ADEFF;
+  --color-indigo-400: #33C7FF;
+  --color-indigo-500: #00C2FF;
+  --color-indigo-600: #00C2FF;
+  --color-indigo-700: #0082AB;
+  --color-indigo-800: #006280;
+  --color-indigo-900: #00455B;
 
   /* Custom UI Animations */
   --animate-in: in 0.3s ease-out;
@@ -36,25 +123,24 @@
   }
 }
 
-/* ─── Dark Theme (default) ───────────────────────────────────────────── */
 :root {
-  --bg: #05080F;
-  --fg: #FFFFF0;
-  --c-primary: #D4AF37;
-  --c-primary-fg: #05080F;
-  --c-accent: #1E3A8A;
-  --c-surface: #0F172A;
-  --c-surface-hover: #1E293B;
-  --c-border-subtle: rgba(212, 175, 55, 0.15);
-  --c-border-strong: rgba(212, 175, 55, 0.3);
+  --bg: #070709;
+  --fg: #F5F7FA;
+  --c-primary: #F82E52;
+  --c-primary-fg: #FFFFFF;
+  --c-accent: #00C2FF;
+  --c-surface: #11131A;
+  --c-surface-hover: #1A1D26;
+  --c-border-subtle: rgba(248, 46, 82, 0.12);
+  --c-border-strong: rgba(0, 194, 255, 0.25);
   --c-muted: #8E8E8E;
   --c-bronze: #CD7F32;
   
   /* Logos-specific palette expansion */
-  --c-dashboard-bg: #0B1120;
-  --c-card-bg: rgba(15, 23, 42, 0.6);
-  --c-card-border: rgba(255, 255, 255, 0.05);
-  --c-command-bar: rgba(15, 23, 42, 0.8);
+  --c-dashboard-bg: #080A0F;
+  --c-card-bg: rgba(17, 19, 26, 0.65);
+  --c-card-border: rgba(248, 46, 82, 0.08);
+  --c-command-bar: rgba(17, 19, 26, 0.85);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
@@ -69,15 +155,15 @@
 
 /* ─── Light Theme ────────────────────────────────────────────────────── */
 :root[data-theme="light"] {
-  --bg: #F5F7FA;
-  --fg: #0F172A;
-  --c-primary: #D97706;
+  --bg: #FAFAFA;
+  --fg: #070709;
+  --c-primary: #F82E52;
   --c-primary-fg: #FFFFFF;
-  --c-accent: #2563EB;
+  --c-accent: #00A3D6;
   --c-surface: #FFFFFF;
-  --c-surface-hover: #F1F5F9;
-  --c-border-subtle: rgba(15, 23, 42, 0.08);
-  --c-border-strong: rgba(15, 23, 42, 0.16);
+  --c-surface-hover: #F1F3F5;
+  --c-border-subtle: rgba(7, 7, 9, 0.06);
+  --c-border-strong: rgba(7, 7, 9, 0.12);
   --c-muted: #64748B;
 }
 
@@ -153,7 +239,7 @@ body {
 /* ─── Text Gradient ──────────────────────────────────────────────────── */
 
 .text-gradient {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFD700 50%, #B8860B 100%);
+  background: linear-gradient(135deg, #FF6680 0%, #F82E52 50%, #00C2FF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -177,8 +263,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(217, 119, 6, 0.15); }
-  50% { box-shadow: 0 0 25px rgba(217, 119, 6, 0.3); }
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 194, 255, 0.15); }
+  50% { box-shadow: 0 0 25px rgba(248, 46, 82, 0.25); }
 }
 
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }

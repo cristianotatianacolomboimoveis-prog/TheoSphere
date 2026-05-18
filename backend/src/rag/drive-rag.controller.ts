@@ -28,7 +28,23 @@ class IngestDto {
   tradition?: string;
 }
 
-@Controller('drive-library')
+class IngestUrlDto {
+  @IsString()
+  url: string;
+
+  @IsString()
+  fileName: string;
+
+  @IsString()
+  mimeType: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  tradition?: string;
+}
+
+@Controller('api/v1/drive-library')
 export class DriveRagController {
   constructor(private readonly driveRagService: DriveRagService) {}
 
@@ -44,6 +60,23 @@ export class DriveRagController {
     }
     return this.driveRagService.ingestFolder(
       body.folderId,
+      userId,
+      body.tradition,
+    );
+  }
+
+  @Post('ingest-url')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 3_600_000, limit: 10 } })
+  async ingestFromUrl(@Body() body: IngestUrlDto, @Req() req: Request) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Usuário não autenticado via JWT.');
+    }
+    return this.driveRagService.ingestFromUrl(
+      body.url,
+      body.fileName,
+      body.mimeType,
       userId,
       body.tradition,
     );

@@ -39,7 +39,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
   const { chat } = useRAG();
   
   const contentRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
   const handleSearch = async (term: string) => {
     if (!term.trim()) return;
@@ -286,7 +286,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                             {data.sections.map((section) => (
                                 <section 
                                     key={section.id} 
-                                    ref={(el) => (sectionRefs.current[section.id] = el)}
+                                    ref={(el) => { sectionRefs.current[section.id] = el; }}
                                     className="scroll-mt-10 group"
                                 >
                                     <div className="flex items-center gap-3 mb-6">

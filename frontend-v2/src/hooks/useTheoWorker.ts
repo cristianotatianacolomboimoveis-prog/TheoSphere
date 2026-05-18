@@ -15,7 +15,7 @@ function getOrCreateWorker(): Worker | null {
   if (typeof window === 'undefined') return null;
   if (!globalWorker) {
     try {
-      globalWorker = new Worker(new URL('../lib/geoWorker.ts?v=' + Date.now(), import.meta.url));
+      globalWorker = new Worker(new URL('../lib/geoWorker.ts', import.meta.url));
       globalWorker.onmessage = (event) => {
         const { type, payload } = event.data;
         messageListeners.forEach(listener => {

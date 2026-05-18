@@ -21,7 +21,7 @@ export function UnifiedAssistantOverlay() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30 z-[100] flex items-center justify-center border border-white/20"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-primary/30 z-[100] flex items-center justify-center border border-white/20"
       >
         <AnimatePresence mode="wait">
           {isOpen ? (

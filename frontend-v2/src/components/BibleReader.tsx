@@ -57,7 +57,7 @@ export default function BibleReader({
 
   const handleWorkerMessage = useCallback((type: string, payload: any) => {
     if (type === "STRONGS_DATA") {
-      setHoverData(prev => prev ? { ...prev, ...payload } : null);
+      setHoverData((prev: any) => prev ? { ...prev, ...payload } : null);
     }
   }, []);
 
@@ -193,6 +193,8 @@ export default function BibleReader({
                             return (
                                 <div
                                     key={virtualRow.key}
+                                    ref={rowVirtualizer.measureElement}
+                                    data-index={virtualRow.index}
                                     className="absolute top-0 left-0 w-full"
                                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                                 >

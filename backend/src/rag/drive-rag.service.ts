@@ -126,6 +126,24 @@ export class DriveRagService {
     tradition: string = 'Geral',
   ) {
     const targetUserId = userId || 'public-guest';
+
+    // Evita re-processar e duplicar arquivos na sincronização semanal automática
+    try {
+      const exists: any[] = await this.prisma.$queryRaw`
+        SELECT id FROM "UserEmbedding"
+        WHERE "userId" = ${targetUserId}
+          AND type = 'library_book'
+          AND metadata->>'fileId' = ${file.id}
+        LIMIT 1
+      `;
+      if (exists && exists.length > 0) {
+        this.logger.log(`[DriveRagService] Arquivo "${file.name}" já está indexado no banco de dados. Pulando...`);
+        return;
+      }
+    } catch (checkErr: any) {
+      this.logger.warn(`Erro ao checar se arquivo "${file.name}" já existe: ${checkErr.message}`);
+    }
+
     this.logger.log(`Baixando e processando: ${file.name}`);
     try {
       const response = await drive.files.get(
@@ -278,6 +296,104 @@ export class DriveRagService {
     this.logger.log(`[Reindex] Removidos ${count} chunks. Re-ingerindo pasta…`);
     const result = await this.ingestFolder(folderId, userId, tradition);
     return { deleted: count, filesProcessed: result.filesProcessed };
+  }
+
+  /**
+   * Baixa um arquivo de teologia de domínio público a partir de uma URL direta
+   * (ex: CCEL ou Gutenberg) e o ingere na memória RAG do usuário.
+   */
+  async ingestFromUrl(
+    url: string,
+    fileName: string,
+    mimeType: string,
+    userId: string,
+    tradition: string = 'Geral',
+  ): Promise<{ success: boolean; chunksIndexed?: number; fileName: string; message?: string }> {
+    const targetUserId = userId || 'public-guest';
+    this.logger.log(`[Ingest URL] Processando download teológico: ${url} (${fileName})`);
+
+    // Evita duplicações na biblioteca da IA
+    try {
+      const exists: any[] = await this.prisma.$queryRaw`
+        SELECT id FROM "UserEmbedding"
+        WHERE "userId" = ${targetUserId}
+          AND type = 'library_book'
+          AND metadata->>'fileName' = ${fileName}
+        LIMIT 1
+      `;
+      if (exists && exists.length > 0) {
+        this.logger.log(`[DriveRagService] "${fileName}" já está indexado. Pulando download.`);
+        return { success: true, fileName, message: 'Obra já se encontra indexada no seu RAG.' };
+      }
+    } catch (checkErr: any) {
+      this.logger.warn(`Erro de duplicado no ingest-url para "${fileName}": ${checkErr.message}`);
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha de conexão com a URL externa (HTTP status ${response.status})`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const extractor = findExtractor(mimeType);
+      if (!extractor) {
+        throw new Error(`Formato de mídia não suportado: ${mimeType}`);
+      }
+
+      let text = '';
+      let fileMeta: Record<string, unknown> = {};
+      const result = await extractor.extract(buffer);
+      text = result.text;
+      fileMeta = result.meta ?? {};
+
+      if (!text || text.trim().length === 0) {
+        throw new Error(`O extrator não obteve texto legível do arquivo "${fileName}"`);
+      }
+
+      const chunks = this.chunkText(text, 1000);
+      this.logger.log(`[Ingest URL] Livro "${fileName}" fatiado em ${chunks.length} partes.`);
+
+      const batchSize = 10;
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        const batch = chunks.slice(i, i + batchSize);
+        const embeddings = await this.embeddingService.createBatchEmbeddings(batch);
+
+        for (let j = 0; j < batch.length; j++) {
+          const chunkText = batch[j];
+          const embeddingVector = embeddings[j];
+          const enriched = this.extractLemmaAndStrong(chunkText);
+          const metadata = {
+            fileName,
+            sourceUrl: url,
+            tradition,
+            chunkIndex: i + j,
+            ...fileMeta,
+            ...enriched,
+          };
+
+          await this.prisma.$executeRaw`
+            INSERT INTO "UserEmbedding" (id, "userId", type, content, metadata, embedding, "createdAt")
+            VALUES (
+              ${uuidv4()},
+              ${targetUserId},
+              'library_book',
+              ${chunkText},
+              ${metadata}::jsonb,
+              ${JSON.stringify(embeddingVector)}::vector,
+              NOW()
+            )
+          `;
+        }
+      }
+
+      this.logger.log(`[Ingest URL] Sincronização concluída com sucesso: ${fileName}`);
+      return { success: true, chunksIndexed: chunks.length, fileName };
+    } catch (error: any) {
+      this.logger.error(`Falha ao indexar livro via URL (${fileName}): ${error.message}`);
+      throw error;
+    }
   }
 
   /**
