@@ -1,7 +1,4 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "env": {
-    "NEXT_PUBLIC_BACKEND_URL": "@backend_url"
-  }
+  "buildCommand": "npm run build"
 }
