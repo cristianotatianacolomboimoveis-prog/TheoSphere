@@ -1,9 +1,17 @@
 {
+  "scripts": {
+    "prepare": "husky"
+  },
   "dependencies": {
     "@ai-sdk/google": "^3.0.73",
     "@ai-sdk/openai": "^3.0.63",
     "ai": "^6.0.182",
     "dotenv": "^17.4.2",
     "tsx": "^4.22.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.8.3"
   }
 }

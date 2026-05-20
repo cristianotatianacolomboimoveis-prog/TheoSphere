@@ -1,0 +1,20 @@
+echo "🧪 Running tests before push..."
+
+# Run tests in backend
+cd backend
+npm run test
+
+if [ $? -ne 0 ]; then
+  echo "❌ Backend tests failed. Push aborted."
+  exit 1
+fi
+
+cd ../frontend-v2
+npm run test
+
+if [ $? -ne 0 ]; then
+  echo "❌ Frontend tests failed. Push aborted."
+  exit 1
+fi
+
+echo "✅ All tests passed! Ready to push."

@@ -1,0 +1,11 @@
+echo "🔍 Running pre-commit checks..."
+
+# Lint staged files
+npx lint-staged
+
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed. Commit aborted."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
