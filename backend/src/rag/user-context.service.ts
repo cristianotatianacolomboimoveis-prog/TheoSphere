@@ -187,7 +187,9 @@ export class UserContextService implements OnModuleInit {
         similarity: r.similarity,
       }));
     } catch (err) {
-      this.logger.debug(`Database context search failed: ${err.message}`);
+      this.logger.debug(
+        `Database context search failed: ${(err as Error).message}`,
+      );
     }
 
     // 3. Merge, Deduplicação e Ranking
@@ -273,7 +275,7 @@ export class UserContextService implements OnModuleInit {
         });
     } catch (err) {
       this.logger.error(
-        `Erro ao buscar na biblioteca do drive do usuário: ${err.message}`,
+        `Erro ao buscar na biblioteca do drive do usuário: ${(err as Error).message}`,
       );
     }
 
@@ -350,7 +352,7 @@ export class UserContextService implements OnModuleInit {
     } catch (error) {
       // Falha silenciosa — o índice em memória já funciona
       this.logger.debug(
-        `Persistência no banco falhou (esperado em dev): ${error.message}`,
+        `Persistência no banco falhou (esperado em dev): ${(error as Error).message}`,
       );
     }
   }

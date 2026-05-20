@@ -26,13 +26,13 @@ class IngestDto {
 
 class IngestUrlDto {
   @IsString()
-  url: string;
+  url!: string;
 
   @IsString()
-  fileName: string;
+  fileName!: string;
 
   @IsString()
-  mimeType: string;
+  mimeType!: string;
 
   @IsOptional()
   @IsString()

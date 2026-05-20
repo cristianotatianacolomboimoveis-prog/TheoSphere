@@ -65,7 +65,7 @@ export class DriveRagService {
         );
       } catch (error) {
         this.logger.error(
-          `--- [AUTO] Erro na sincronização semanal: ${error.message}`,
+          `--- [AUTO] Erro na sincronização semanal: ${(error as Error).message}`,
         );
       }
     } else {
@@ -114,7 +114,9 @@ export class DriveRagService {
 
       return { success: true, filesProcessed: files.length };
     } catch (error) {
-      this.logger.error(`Erro ao ler pasta do Drive: ${error.message}`);
+      this.logger.error(
+        `Erro ao ler pasta do Drive: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -235,7 +237,7 @@ export class DriveRagService {
       this.logger.log(`Finalizado o processamento de: ${file.name}`);
     } catch (error) {
       this.logger.error(
-        `Erro ao processar arquivo ${file.name}: ${error.message}`,
+        `Erro ao processar arquivo ${file.name}: ${(error as Error).message}`,
       );
     }
   }
@@ -420,7 +422,7 @@ export class DriveRagService {
       return { success: true, chunksIndexed: chunks.length, fileName };
     } catch (error: any) {
       this.logger.error(
-        `Falha ao indexar livro via URL (${fileName}): ${error.message}`,
+        `Falha ao indexar livro via URL (${fileName}): ${(error as Error).message}`,
       );
       throw error;
     }

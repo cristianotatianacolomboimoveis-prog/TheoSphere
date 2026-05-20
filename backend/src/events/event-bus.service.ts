@@ -169,10 +169,16 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
-    handlers.add(handler);
+    // TS 6 enforça contravariância em function-param types. O Set é
+    // tipado como `(payload: unknown) => void` (mais genérico); o handler
+    // do caller é `(payload: T) => void` (mais específico). Funções são
+    // contravariantes em parâmetros, então o cast é seguro — o publisher
+    // passa o payload via JSON.parse e o caller é o único que conhece o T.
+    const erasedHandler = handler as unknown as (payload: unknown) => void;
+    handlers.add(erasedHandler);
 
     return async () => {
-      handlers?.delete(handler);
+      handlers?.delete(erasedHandler);
       if (handlers && handlers.size === 0) {
         this.handlers.delete(channel);
         try {

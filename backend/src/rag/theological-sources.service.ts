@@ -23,7 +23,7 @@ export class TheologicalSourcesService {
       const sefariaResult = await this.fetchSefaria(query);
       if (sefariaResult) results.push(sefariaResult);
     } catch (e) {
-      this.logger.debug(`Sefaria search failed: ${e.message}`);
+      this.logger.debug(`Sefaria search failed: ${(e as Error).message}`);
     }
 
     // 2. Bible-API (eBible.org sources)
@@ -31,7 +31,7 @@ export class TheologicalSourcesService {
       const bibleApiResult = await this.fetchBibleApi(query);
       if (bibleApiResult) results.push(bibleApiResult);
     } catch (e) {
-      this.logger.debug(`Bible-API search failed: ${e.message}`);
+      this.logger.debug(`Bible-API search failed: ${(e as Error).message}`);
     }
 
     // Ordenar por prioridade (menor número = maior prioridade)

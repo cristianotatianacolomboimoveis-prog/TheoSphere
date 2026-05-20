@@ -74,7 +74,9 @@ export class EmbeddingService implements OnModuleDestroy {
         }
       });
       this.redis.connect().catch((err) => {
-        this.logger.warn(`Redis L2 cache init failed: ${err.message}`);
+        this.logger.warn(
+          `Redis L2 cache init failed: ${(err as Error).message}`,
+        );
         this.redis = null;
       });
     }
@@ -216,7 +218,7 @@ export class EmbeddingService implements OnModuleDestroy {
         await this.writeCache(normalized, embedding);
         return embedding;
       } catch (error) {
-        this.logger.error(`Erro Gemini embedding: ${error.message}`);
+        this.logger.error(`Erro Gemini embedding: ${(error as Error).message}`);
       }
     }
 
@@ -231,7 +233,7 @@ export class EmbeddingService implements OnModuleDestroy {
         await this.writeCache(normalized, embedding);
         return embedding;
       } catch (error) {
-        this.logger.error(`Erro OpenAI embedding: ${error.message}`);
+        this.logger.error(`Erro OpenAI embedding: ${(error as Error).message}`);
       }
     }
 
@@ -286,7 +288,7 @@ export class EmbeddingService implements OnModuleDestroy {
 
       return results as number[][];
     } catch (error) {
-      this.logger.error(`Erro Gemini embedding: ${error.message}`);
+      this.logger.error(`Erro Gemini embedding: ${(error as Error).message}`);
       return texts.map((t) =>
         this.generateLocalFallbackEmbedding(this.normalizeText(t)),
       );

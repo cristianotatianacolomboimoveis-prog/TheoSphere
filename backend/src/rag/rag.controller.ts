@@ -80,23 +80,23 @@ class SyncContextDto {
 
   @IsArray()
   @IsOptional()
-  notes: any[];
+  notes?: any[];
 
   @IsArray()
   @IsOptional()
-  sermons: any[];
+  sermons?: any[];
 
   @IsArray()
   @IsOptional()
-  highlights: any[];
+  highlights?: any[];
 
   @IsArray()
   @IsOptional()
-  studies: any[];
+  studies?: any[];
 
   @IsArray()
   @IsOptional()
-  bookmarks: any[];
+  bookmarks?: any[];
 }
 
 class DictateDto {

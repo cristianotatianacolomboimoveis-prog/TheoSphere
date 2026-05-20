@@ -41,7 +41,9 @@ export class AuditInterceptor implements NestInterceptor {
             });
             this.logger.debug(`Audit log created for ${method} ${url}`);
           } catch (e) {
-            this.logger.warn(`Failed to create audit log: ${e.message}`);
+            this.logger.warn(
+              `Failed to create audit log: ${(e as Error).message}`,
+            );
           }
         }
       }),

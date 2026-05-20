@@ -55,7 +55,7 @@ export class OrchestratorService {
         data: { xp: { increment: xp } },
       });
     } catch (e) {
-      this.logger.debug(`Falha ao adicionar XP: ${e.message}`);
+      this.logger.debug(`Falha ao adicionar XP: ${(e as Error).message}`);
     }
   }
 }

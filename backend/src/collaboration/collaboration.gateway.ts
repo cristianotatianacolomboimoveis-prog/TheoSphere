@@ -22,7 +22,7 @@ export class CollaborationGateway
   private readonly logger = new Logger(CollaborationGateway.name);
 
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   // Track users in rooms for presence
   private roomUsers: Map<string, Set<string>> = new Map();

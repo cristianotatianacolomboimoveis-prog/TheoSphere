@@ -35,7 +35,9 @@ export class GeospatialService {
 
       return locations;
     } catch (error) {
-      this.logger.error(`Failed to fetch locations: ${error.message}`);
+      this.logger.error(
+        `Failed to fetch locations: ${(error as Error).message}`,
+      );
       return [];
     }
   }
@@ -54,7 +56,9 @@ export class GeospatialService {
       `;
       return locations;
     } catch (error) {
-      this.logger.error(`Failed to fetch nearby locations: ${error.message}`);
+      this.logger.error(
+        `Failed to fetch nearby locations: ${(error as Error).message}`,
+      );
       return [];
     }
   }

@@ -12,7 +12,7 @@ export class SearchQueryDto {
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(200)
-  q: string;
+  q!: string;
 
   @IsOptional()
   @IsUUID()

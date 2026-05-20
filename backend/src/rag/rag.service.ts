@@ -218,7 +218,7 @@ export class RagService {
         }
       }
     } catch (e) {
-      this.logger.debug(`Hybrid search failed: ${e.message}`);
+      this.logger.debug(`Hybrid search failed: ${(e as Error).message}`);
     }
 
     // ═══ ETAPA 2: Contexto do Usuário (Busca Direta) ═══
@@ -256,7 +256,7 @@ export class RagService {
       if (commentaryContext) theologicalContext += `\n\n${commentaryContext}`;
     } catch (error) {
       this.logger.debug(
-        `Bases de conhecimento indisponíveis: ${error.message}`,
+        `Bases de conhecimento indisponíveis: ${(error as Error).message}`,
       );
     }
 
@@ -337,7 +337,7 @@ export class RagService {
           },
         );
       } catch (error: any) {
-        this.logger.error(`[RAG Erro Gemini]: ${error.message}`);
+        this.logger.error(`[RAG Erro Gemini]: ${(error as Error).message}`);
       }
     }
 
@@ -373,7 +373,7 @@ export class RagService {
           },
         );
       } catch (error: any) {
-        this.logger.error(`[RAG Erro OpenAI]: ${error.message}`);
+        this.logger.error(`[RAG Erro OpenAI]: ${(error as Error).message}`);
       }
     }
 
@@ -796,7 +796,7 @@ export class RagService {
         addLink(centralId, vId, 'menciona', 2);
       }
     } catch (e) {
-      this.logger.error(`Graph: Bible search failed: ${e.message}`);
+      this.logger.error(`Graph: Bible search failed: ${(e as Error).message}`);
     }
 
     // 3. Buscar Conceitos Teológicos (Embeddings)
@@ -821,7 +821,9 @@ export class RagService {
         addLink(centralId, tId, 'temático', 1.5);
       }
     } catch (e) {
-      this.logger.error(`Graph: Theology search failed: ${e.message}`);
+      this.logger.error(
+        `Graph: Theology search failed: ${(e as Error).message}`,
+      );
     }
 
     // 4. Buscar Documentos do Usuário (Drive/Notas)
@@ -845,7 +847,9 @@ export class RagService {
           addLink(centralId, dId, 'personalizado', 1.8);
         }
       } catch (e) {
-        this.logger.error(`Graph: User context search failed: ${e.message}`);
+        this.logger.error(
+          `Graph: User context search failed: ${(e as Error).message}`,
+        );
       }
     }
 
@@ -869,7 +873,9 @@ export class RagService {
         }
       }
     } catch (e) {
-      this.logger.debug(`Graph: Lexicon search failed: ${e.message}`);
+      this.logger.debug(
+        `Graph: Lexicon search failed: ${(e as Error).message}`,
+      );
     }
 
     return { nodes, links };

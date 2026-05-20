@@ -4,10 +4,10 @@ export class TranslateRequestDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
-  text: string;
+  text!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  targetLang: string;
+  targetLang!: string;
 }

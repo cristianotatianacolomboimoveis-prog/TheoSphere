@@ -141,7 +141,7 @@ export class BibleController {
         },
       };
     } catch (err) {
-      this.logger.warn(`[sefaria] upstream failure: ${err.message}`);
+      this.logger.warn(`[sefaria] upstream failure: ${(err as Error).message}`);
       return { success: false, error: 'sefaria unavailable' };
     }
   }
