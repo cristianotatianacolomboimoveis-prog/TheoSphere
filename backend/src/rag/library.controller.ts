@@ -26,7 +26,9 @@ class LookupQuery {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[GH]\d+$/, { message: 'strongId deve ser no formato G123 ou H456' })
+  @Matches(/^[GH]\d+$/, {
+    message: 'strongId deve ser no formato G123 ou H456',
+  })
   strongId?: string;
 
   @IsOptional()

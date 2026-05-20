@@ -34,7 +34,7 @@ describe('Auth contract (e2e)', () => {
   // This helper asserts the header exists and returns a non-empty array,
   // so the rest of the test body can index without optional chaining.
   const cookiesOf = (res: request.Response): string[] => {
-    const cookies = res.get('Set-Cookie') as string[] | undefined;
+    const cookies = res.get('Set-Cookie');
     expect(cookies).toBeDefined();
     expect(Array.isArray(cookies) && cookies.length).toBeGreaterThan(0);
     return cookies as string[];
@@ -47,7 +47,9 @@ describe('Auth contract (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -64,30 +66,37 @@ describe('Auth contract (e2e)', () => {
   });
 
   it('POST /api/v1/auth/register → 201 with userId', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Record<string, unknown>,
+    )
       .post('/api/v1/auth/register')
       .send(testUser)
       .expect(201);
 
-    expect(response.body).toHaveProperty('userId');
-    expect(response.body.userId).toMatch(
+    const body = response.body as Record<string, unknown>;
+    expect(body).toHaveProperty('userId');
+    expect(body.userId as string).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
   });
 
   it('POST /api/v1/auth/login → 200 with accessToken + httpOnly refresh cookie', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Record<string, unknown>,
+    )
       .post('/api/v1/auth/login')
       .send(testUser)
       .expect(200);
 
-    expect(response.body).toHaveProperty('accessToken');
-    expect(typeof response.body.accessToken).toBe('string');
-    expect(response.body).toHaveProperty('user');
-    expect(response.body.user).toHaveProperty('email', testUser.email);
-    expect(response.body.user).toHaveProperty('id');
+    const body = response.body as Record<string, unknown>;
+    expect(body).toHaveProperty('accessToken');
+    expect(typeof body.accessToken).toBe('string');
+    expect(body).toHaveProperty('user');
+    const user = body.user as Record<string, unknown>;
+    expect(user).toHaveProperty('email', testUser.email);
+    expect(user).toHaveProperty('id');
     // The refresh token must NEVER come back in the body — only via cookie.
-    expect(response.body).not.toHaveProperty('refreshToken');
+    expect(body).not.toHaveProperty('refreshToken');
 
     const cookies = cookiesOf(response);
     const refreshCookie = cookies.find((c) => c.startsWith('refreshToken='));
@@ -97,14 +106,16 @@ describe('Auth contract (e2e)', () => {
   });
 
   it('POST /api/v1/auth/login → 401 on wrong password', async () => {
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Record<string, unknown>)
       .post('/api/v1/auth/login')
       .send({ email: testUser.email, password: 'WrongPassword999' })
       .expect(401);
   });
 
   it('POST /api/v1/auth/refresh → 200 and rotates the cookie', async () => {
-    const loginRes = await request(app.getHttpServer())
+    const loginRes = await request(
+      app.getHttpServer() as Record<string, unknown>,
+    )
       .post('/api/v1/auth/login')
       .send(testUser);
 
@@ -114,7 +125,9 @@ describe('Auth contract (e2e)', () => {
     );
     expect(initialRefresh).toBeDefined();
 
-    const refreshRes = await request(app.getHttpServer())
+    const refreshRes = await request(
+      app.getHttpServer() as Record<string, unknown>,
+    )
       .post('/api/v1/auth/refresh')
       .set('Cookie', loginCookies)
       .expect(200);
@@ -131,13 +144,15 @@ describe('Auth contract (e2e)', () => {
   });
 
   it('POST /api/v1/auth/refresh → 401 without cookie', async () => {
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as Record<string, unknown>)
       .post('/api/v1/auth/refresh')
       .expect(401);
   });
 
   it('POST /api/v1/auth/logout → 200 and clears the cookie', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Record<string, unknown>,
+    )
       .post('/api/v1/auth/logout')
       .expect(200);
 

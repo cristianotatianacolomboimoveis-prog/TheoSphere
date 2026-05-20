@@ -7,11 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import {
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { Throttle } from '@nestjs/throttler';
 import { DriveRagService } from './drive-rag.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -99,10 +95,6 @@ export class DriveRagController {
     if (!userId) {
       throw new UnauthorizedException('Usuário não autenticado via JWT.');
     }
-    return this.driveRagService.reindex(
-      body.folderId,
-      userId,
-      body.tradition,
-    );
+    return this.driveRagService.reindex(body.folderId, userId, body.tradition);
   }
 }

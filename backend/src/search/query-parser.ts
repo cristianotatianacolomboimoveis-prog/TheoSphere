@@ -149,7 +149,11 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
 
   // Re-emit plain text (for vector retriever fallback): all must-terms +
   // phrases joined with spaces, without operator noise.
-  result.plain = [...result.phrases, ...result.must, ...result.shouldGroups.flat()]
+  result.plain = [
+    ...result.phrases,
+    ...result.must,
+    ...result.shouldGroups.flat(),
+  ]
     .join(' ')
     .trim();
 
@@ -166,7 +170,10 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
 export function toTsQuery(p: ParsedQuery): string | null {
   const escape = (term: string) =>
     // Strip tsquery special chars; the lexer handles letters/digits/unicode.
-    term.replace(/[&|!():'<>*]/g, ' ').trim().replace(/\s+/g, ' ');
+    term
+      .replace(/[&|!():'<>*]/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
 
   const phrasePart = (phrase: string) => {
     const words = escape(phrase).split(' ').filter(Boolean);

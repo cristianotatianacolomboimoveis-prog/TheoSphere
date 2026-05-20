@@ -19,8 +19,9 @@ export function generateFallbackResponse(
     if (!isNT) {
       return JSON.stringify({
         verse:
-          query.match(/\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i)?.[0] ||
-          'Gênesis 1:1',
+          query.match(
+            /\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i,
+          )?.[0] || 'Gênesis 1:1',
         original_language: 'HB',
         interlinear: [
           {
@@ -62,7 +63,8 @@ export function generateFallbackResponse(
         lexical_analysis: [
           {
             word: 'בָּרָא (bara)',
-            bdag_halot_sense: 'Criar, produzir, transformar. Usado exclusivamente para a atividade criativa de Deus a partir do nada (ex nihilo).',
+            bdag_halot_sense:
+              'Criar, produzir, transformar. Usado exclusivamente para a atividade criativa de Deus a partir do nada (ex nihilo).',
             academic_discussion:
               'O termo sugere uma novidade absoluta na existência, distinguindo o Criador da criação.',
           },
@@ -88,15 +90,17 @@ export function generateFallbackResponse(
         ],
         systematic_connection: {
           locus: 'Teologia Própria / Protologia',
-          explanation: 'Afirma a soberania e a preexistência de Deus sobre toda a matéria.',
+          explanation:
+            'Afirma a soberania e a preexistência de Deus sobre toda a matéria.',
         },
       });
     }
 
     return JSON.stringify({
       verse:
-        query.match(/\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i)?.[0] ||
-        'João 3:16',
+        query.match(
+          /\b([1-3]?\s?[a-zA-Záàâãéèêíïóôõöúç]+)\s(\d+):(\d+)\b/i,
+        )?.[0] || 'João 3:16',
       original_language: 'GK',
       interlinear: [
         {
@@ -139,10 +143,12 @@ export function generateFallbackResponse(
         {
           word: 'ἀγάπη (agapē)',
           bdag_halot_sense: 'Amor sacrificial, incondicional e volitivo.',
-          academic_discussion: 'Distinto de eros ou philia, agape foca no bem do objeto amado.',
+          academic_discussion:
+            'Distinto de eros ou philia, agape foca no bem do objeto amado.',
         },
       ],
-      syntactic_notes: 'O uso do tempo Aoristo indica uma ação completa e histórica: o amor de Deus manifestado na vinda de Cristo.',
+      syntactic_notes:
+        'O uso do tempo Aoristo indica uma ação completa e histórica: o amor de Deus manifestado na vinda de Cristo.',
       syntactic_graph: {
         nodes: [
           { id: '1', label: 'amou', type: 'verb' },
@@ -172,20 +178,39 @@ export function generateFallbackResponse(
     // Se não for uma das passagens "Gold" acima, gera um template dinâmico básico
     // para evitar que o frontend quebre ao receber texto puro.
     return JSON.stringify({
-      verse: query.replace(/exegese|análise|phd/gi, '').trim() || 'Referência Bíblica',
+      verse:
+        query.replace(/exegese|análise|phd/gi, '').trim() ||
+        'Referência Bíblica',
       original_language: 'HB/GK',
       interlinear: [
-        { word: '...', transliteration: '...', strong: '...', morphology: '...', translation: 'Dados indisponíveis no modo offline' }
+        {
+          word: '...',
+          transliteration: '...',
+          strong: '...',
+          morphology: '...',
+          translation: 'Dados indisponíveis no modo offline',
+        },
       ],
       lexical_analysis: [
-        { word: '...', bdag_halot_sense: 'Conexão limitada ou modo de segurança ativo.', academic_discussion: 'O sistema de fallback foi acionado para preservar a estabilidade da interface.' }
+        {
+          word: '...',
+          bdag_halot_sense: 'Conexão limitada ou modo de segurança ativo.',
+          academic_discussion:
+            'O sistema de fallback foi acionado para preservar a estabilidade da interface.',
+        },
       ],
       syntactic_notes: 'Análise sintática suspensa temporariamente.',
       syntactic_graph: { nodes: [], edges: [] },
       technical_commentary: [
-        { source: 'Sistema de Recuperação', view: 'A IA principal não pôde processar esta requisição no formato solicitado. Por favor, tente novamente em alguns instantes.' }
+        {
+          source: 'Sistema de Recuperação',
+          view: 'A IA principal não pôde processar esta requisição no formato solicitado. Por favor, tente novamente em alguns instantes.',
+        },
       ],
-      systematic_connection: { locus: 'Geral', explanation: 'Conexão teológica em processamento.' }
+      systematic_connection: {
+        locus: 'Geral',
+        explanation: 'Conexão teológica em processamento.',
+      },
     });
   }
 

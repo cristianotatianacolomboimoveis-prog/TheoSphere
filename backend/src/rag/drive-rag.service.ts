@@ -137,11 +137,15 @@ export class DriveRagService {
         LIMIT 1
       `;
       if (exists && exists.length > 0) {
-        this.logger.log(`[DriveRagService] Arquivo "${file.name}" já está indexado no banco de dados. Pulando...`);
+        this.logger.log(
+          `[DriveRagService] Arquivo "${file.name}" já está indexado no banco de dados. Pulando...`,
+        );
         return;
       }
     } catch (checkErr: any) {
-      this.logger.warn(`Erro ao checar se arquivo "${file.name}" já existe: ${checkErr.message}`);
+      this.logger.warn(
+        `Erro ao checar se arquivo "${file.name}" já existe: ${checkErr.message}`,
+      );
     }
 
     this.logger.log(`Baixando e processando: ${file.name}`);
@@ -308,9 +312,16 @@ export class DriveRagService {
     mimeType: string,
     userId: string,
     tradition: string = 'Geral',
-  ): Promise<{ success: boolean; chunksIndexed?: number; fileName: string; message?: string }> {
+  ): Promise<{
+    success: boolean;
+    chunksIndexed?: number;
+    fileName: string;
+    message?: string;
+  }> {
     const targetUserId = userId || 'public-guest';
-    this.logger.log(`[Ingest URL] Processando download teológico: ${url} (${fileName})`);
+    this.logger.log(
+      `[Ingest URL] Processando download teológico: ${url} (${fileName})`,
+    );
 
     // Evita duplicações na biblioteca da IA
     try {
@@ -322,17 +333,27 @@ export class DriveRagService {
         LIMIT 1
       `;
       if (exists && exists.length > 0) {
-        this.logger.log(`[DriveRagService] "${fileName}" já está indexado. Pulando download.`);
-        return { success: true, fileName, message: 'Obra já se encontra indexada no seu RAG.' };
+        this.logger.log(
+          `[DriveRagService] "${fileName}" já está indexado. Pulando download.`,
+        );
+        return {
+          success: true,
+          fileName,
+          message: 'Obra já se encontra indexada no seu RAG.',
+        };
       }
     } catch (checkErr: any) {
-      this.logger.warn(`Erro de duplicado no ingest-url para "${fileName}": ${checkErr.message}`);
+      this.logger.warn(
+        `Erro de duplicado no ingest-url para "${fileName}": ${checkErr.message}`,
+      );
     }
 
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Falha de conexão com a URL externa (HTTP status ${response.status})`);
+        throw new Error(
+          `Falha de conexão com a URL externa (HTTP status ${response.status})`,
+        );
       }
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
@@ -349,16 +370,21 @@ export class DriveRagService {
       fileMeta = result.meta ?? {};
 
       if (!text || text.trim().length === 0) {
-        throw new Error(`O extrator não obteve texto legível do arquivo "${fileName}"`);
+        throw new Error(
+          `O extrator não obteve texto legível do arquivo "${fileName}"`,
+        );
       }
 
       const chunks = this.chunkText(text, 1000);
-      this.logger.log(`[Ingest URL] Livro "${fileName}" fatiado em ${chunks.length} partes.`);
+      this.logger.log(
+        `[Ingest URL] Livro "${fileName}" fatiado em ${chunks.length} partes.`,
+      );
 
       const batchSize = 10;
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batch = chunks.slice(i, i + batchSize);
-        const embeddings = await this.embeddingService.createBatchEmbeddings(batch);
+        const embeddings =
+          await this.embeddingService.createBatchEmbeddings(batch);
 
         for (let j = 0; j < batch.length; j++) {
           const chunkText = batch[j];
@@ -388,10 +414,14 @@ export class DriveRagService {
         }
       }
 
-      this.logger.log(`[Ingest URL] Sincronização concluída com sucesso: ${fileName}`);
+      this.logger.log(
+        `[Ingest URL] Sincronização concluída com sucesso: ${fileName}`,
+      );
       return { success: true, chunksIndexed: chunks.length, fileName };
     } catch (error: any) {
-      this.logger.error(`Falha ao indexar livro via URL (${fileName}): ${error.message}`);
+      this.logger.error(
+        `Falha ao indexar livro via URL (${fileName}): ${error.message}`,
+      );
       throw error;
     }
   }
@@ -412,17 +442,16 @@ export class DriveRagService {
    * Heurística simples e barata (regex). Se falhar, retorna `{}` e o
    * LibraryService cai pra busca por similaridade pura.
    */
-  private extractLemmaAndStrong(
-    chunk: string,
-  ): { lemma?: string; strongId?: string } {
+  private extractLemmaAndStrong(chunk: string): {
+    lemma?: string;
+    strongId?: string;
+  } {
     const out: { lemma?: string; strongId?: string } = {};
     const head = chunk.slice(0, 200);
 
     // Lema: 1ª palavra grega (U+0370–U+03FF, U+1F00–U+1FFF) ou hebraica
     // (U+0590–U+05FF) no início do chunk, ignorando whitespace inicial.
-    const lemmaMatch = head.match(
-      /^\s*([Ͱ-Ͽἀ-῿]+|[֐-׿]+)/,
-    );
+    const lemmaMatch = head.match(/^\s*([Ͱ-Ͽἀ-῿]+|[֐-׿]+)/);
     if (lemmaMatch && lemmaMatch[1].length >= 2) {
       out.lemma = lemmaMatch[1];
     }

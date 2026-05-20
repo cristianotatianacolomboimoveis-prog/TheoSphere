@@ -113,16 +113,24 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!refreshToken || refreshToken.revokedAt || refreshToken.expiresAt < new Date()) {
+    if (
+      !refreshToken ||
+      refreshToken.revokedAt ||
+      refreshToken.expiresAt < new Date()
+    ) {
       // Security: if token is reused/invalid, revoke all tokens for this user
       if (refreshToken && refreshToken.revokedAt) {
         await this.prisma.refreshToken.updateMany({
           where: { userId: refreshToken.userId },
           data: { revokedAt: new Date() },
         });
-        throw new UnauthorizedException('Token de atualização reutilizado detectado. Todas as sessões revogadas.');
+        throw new UnauthorizedException(
+          'Token de atualização reutilizado detectado. Todas as sessões revogadas.',
+        );
       }
-      throw new UnauthorizedException('Token de atualização inválido ou expirado.');
+      throw new UnauthorizedException(
+        'Token de atualização inválido ou expirado.',
+      );
     }
 
     // Rotate token: revoke old one and create new one
@@ -146,7 +154,10 @@ export class AuthService {
       },
     });
 
-    const payload = { sub: refreshToken.user.id, email: refreshToken.user.email };
+    const payload = {
+      sub: refreshToken.user.id,
+      email: refreshToken.user.email,
+    };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: newToken,

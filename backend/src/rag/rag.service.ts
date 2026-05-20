@@ -79,34 +79,46 @@ export class RagService {
   ): Promise<RagResponse> {
     // Force high-quality fallback for key demonstration verses
     const lowerQuery = query.toLowerCase().trim();
-    const isGenesis = lowerQuery.includes('genesis 1:1') || lowerQuery.includes('gênesis 1:1');
-    const isJohn = lowerQuery.includes('john 3:16') || lowerQuery.includes('joão 3:16');
+    const isGenesis =
+      lowerQuery.includes('genesis 1:1') || lowerQuery.includes('gênesis 1:1');
+    const isJohn =
+      lowerQuery.includes('john 3:16') || lowerQuery.includes('joão 3:16');
 
     if (jsonMode && (isGenesis || isJohn)) {
-        this.logger.log(`[RAG] Ativando fallback de alta fidelidade para: ${lowerQuery}`);
-        const fallback = generateFallbackResponse(query, true);
-        
-        // Validação extra: garante que é uma string JSON válida
-        try {
-            JSON.parse(fallback);
-        } catch (e) {
-            this.logger.error(`[RAG] Erro crítico: Fallback gerou JSON inválido para ${query}`);
-        }
+      this.logger.log(
+        `[RAG] Ativando fallback de alta fidelidade para: ${lowerQuery}`,
+      );
+      const fallback = generateFallbackResponse(query, true);
 
-        return {
-            content: fallback,
-            cached: false,
-            contextUsed: true,
-            contextDocCount: 1,
-            tokensEstimated: 0,
-            costEstimated: 0,
-            sources: [{ title: 'TheoS Library (High-Fidelity Internal)', url: '#', snippet: 'Análise exegética pré-validada de alta fidelidade.' }],
-            meta: {
-                model: 'theos-internal-gold',
-                tokens: 0,
-                processingTime: 5,
-            }
-        } as any; // Cast for meta compatibility
+      // Validação extra: garante que é uma string JSON válida
+      try {
+        JSON.parse(fallback);
+      } catch (e) {
+        this.logger.error(
+          `[RAG] Erro crítico: Fallback gerou JSON inválido para ${query}`,
+        );
+      }
+
+      return {
+        content: fallback,
+        cached: false,
+        contextUsed: true,
+        contextDocCount: 1,
+        tokensEstimated: 0,
+        costEstimated: 0,
+        sources: [
+          {
+            title: 'TheoS Library (High-Fidelity Internal)',
+            url: '#',
+            snippet: 'Análise exegética pré-validada de alta fidelidade.',
+          },
+        ],
+        meta: {
+          model: 'theos-internal-gold',
+          tokens: 0,
+          processingTime: 5,
+        },
+      } as any; // Cast for meta compatibility
     }
 
     const startTime = Date.now();
@@ -125,7 +137,7 @@ export class RagService {
     }
 
     // ═══ ETAPA 1: Semantic Cache ═══
-    // Importante: No modo JSON (Exegese), ignoramos o cache semântico para evitar 
+    // Importante: No modo JSON (Exegese), ignoramos o cache semântico para evitar
     // retornar respostas textuais antigas que quebrariam o frontend.
     if (!jsonMode) {
       const cached = await this.semanticCache.findSimilarResponse(
@@ -135,7 +147,9 @@ export class RagService {
       );
 
       if (cached) {
-        this.logger.log(`[RAG] Cache HIT (${cached.source}) — Economia: ~$0.015`);
+        this.logger.log(
+          `[RAG] Cache HIT (${cached.source}) — Economia: ~$0.015`,
+        );
         await this.addUserXP(userId, 5);
         return {
           content: cached.response,
@@ -149,17 +163,20 @@ export class RagService {
         };
       }
     } else {
-      this.logger.log(`[RAG] Modo JSON Ativo: Forçando busca em tempo real para exegese.`);
+      this.logger.log(
+        `[RAG] Modo JSON Ativo: Forçando busca em tempo real para exegese.`,
+      );
     }
 
     // ═══ ETAPA 1.5: Hard-Override para Exegese PhD (Passagens Base) ═══
     // Garante que passagens fundamentais sempre retornem dados reais, mesmo se a IA falhar ou for lenta.
-    if (jsonMode && (
-        sanitizedQuery.toLowerCase().includes('gênesis 1:1') || 
+    if (
+      jsonMode &&
+      (sanitizedQuery.toLowerCase().includes('gênesis 1:1') ||
         sanitizedQuery.toLowerCase().includes('genesis 1:1') ||
         sanitizedQuery.toLowerCase().includes('joão 3:16') ||
-        sanitizedQuery.toLowerCase().includes('john 3:16')
-    )) {
+        sanitizedQuery.toLowerCase().includes('john 3:16'))
+    ) {
       this.logger.log('[RAG] Aplicando Hard-Override para passagem base.');
       return {
         content: generateFallbackResponse(sanitizedQuery, true),
@@ -174,22 +191,30 @@ export class RagService {
     // ═══ ETAPA 1.6: Busca Híbrida (Open Source + Cross-Reference no Drive) ═══
     let openSourceContext = '';
     let hybridUserContext = '';
-    
+
     try {
-      const osResults = await this.theologicalSources.searchAllSources(sanitizedQuery);
+      const osResults =
+        await this.theologicalSources.searchAllSources(sanitizedQuery);
       if (osResults.length > 0) {
         openSourceContext = [
           '=== BIBLIOTECAS OPEN SOURCE (ACADÊMICO) ===',
-          ...osResults.map(r => `[${r.source}] ${r.reference}:\n${r.content}`),
-          '=== FIM DAS BIBLIOTECAS ==='
+          ...osResults.map(
+            (r) => `[${r.source}] ${r.reference}:\n${r.content}`,
+          ),
+          '=== FIM DAS BIBLIOTECAS ===',
         ].join('\n\n');
 
         // Cruzamento Inteligente: Buscar no Drive sobre as referências encontradas no Open Source
         if (userId) {
-          const topRefs = osResults.slice(0, 2).map(r => r.reference);
+          const topRefs = osResults.slice(0, 2).map((r) => r.reference);
           const crossRefQuery = `O que eu escrevi sobre ${topRefs.join(' e ')}?`;
-          hybridUserContext = await this.userContext.buildUserContext(userId, crossRefQuery);
-          this.logger.log(`[Híbrido] Cruzando dados externos com notas pessoais sobre ${topRefs.join(', ')}`);
+          hybridUserContext = await this.userContext.buildUserContext(
+            userId,
+            crossRefQuery,
+          );
+          this.logger.log(
+            `[Híbrido] Cruzando dados externos com notas pessoais sobre ${topRefs.join(', ')}`,
+          );
         }
       }
     } catch (e) {
@@ -199,9 +224,12 @@ export class RagService {
     // ═══ ETAPA 2: Contexto do Usuário (Busca Direta) ═══
     let directUserContext = '';
     if (userId) {
-      directUserContext = await this.userContext.buildUserContext(userId, sanitizedQuery);
+      directUserContext = await this.userContext.buildUserContext(
+        userId,
+        sanitizedQuery,
+      );
     }
-    
+
     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
     const contextDocCount = (
       userContextText.match(/--- 📝|--- 📖|--- 🖍️|--- 📚|--- 🔖/g) || []
@@ -255,10 +283,22 @@ export class RagService {
                 responseMimeType: jsonMode ? 'application/json' : 'text/plain',
               },
               safetySettings: [
-                { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
-                { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
-                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
-                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
+                {
+                  category: 'HARM_CATEGORY_HARASSMENT' as any,
+                  threshold: 'BLOCK_NONE' as any,
+                },
+                {
+                  category: 'HARM_CATEGORY_HATE_SPEECH' as any,
+                  threshold: 'BLOCK_NONE' as any,
+                },
+                {
+                  category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
+                  threshold: 'BLOCK_NONE' as any,
+                },
+                {
+                  category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
+                  threshold: 'BLOCK_NONE' as any,
+                },
               ],
             });
 
@@ -267,7 +307,7 @@ export class RagService {
               parts: [{ text: m.content }],
             }));
 
-            const systemMessage = jsonMode 
+            const systemMessage = jsonMode
               ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${theologicalContext}\n${bibleContext}\n${userContextText}`
               : `${THEO_AI_SYSTEM_PROMPT}\n\nCONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
 
@@ -281,14 +321,17 @@ export class RagService {
 
             // 5s Timeout + Race for resilience (DT-9)
             const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Gemini latency exceeded 5s')), 5000),
+              setTimeout(
+                () => reject(new Error('Gemini latency exceeded 5s')),
+                5000,
+              ),
             );
 
             const result = await Promise.race([
               chat.sendMessage(sanitizedQuery),
               timeoutPromise,
             ]);
-            
+
             const response = await (result as any).response;
             return response.text();
           },
@@ -309,12 +352,12 @@ export class RagService {
             userId,
           },
           async () => {
-            const systemMsg = jsonMode 
-              ? "Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado."
+            const systemMsg = jsonMode
+              ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
               : THEO_AI_SYSTEM_PROMPT;
 
             const fullPrompt = `CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
-            
+
             const res = await this.openai!.chat.completions.create({
               model: 'gpt-4o-mini',
               messages: [
@@ -323,7 +366,7 @@ export class RagService {
                 { role: 'user', content: fullPrompt },
               ],
               temperature: jsonMode ? 0.1 : 0.7,
-              response_format: jsonMode ? { type: "json_object" } : undefined,
+              response_format: jsonMode ? { type: 'json_object' } : undefined,
             });
             outputTokens = res.usage?.completion_tokens || 0;
             return res.choices[0].message.content || '';
@@ -344,18 +387,24 @@ export class RagService {
         // Tenta parsear para validar. Se falhar, tenta extrair.
         JSON.parse(responseContent);
       } catch (e) {
-        this.logger.warn(`[RAG] Resposta não-JSON detectada em modo exegese. Tentando extração...`);
+        this.logger.warn(
+          `[RAG] Resposta não-JSON detectada em modo exegese. Tentando extração...`,
+        );
         const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           responseContent = jsonMatch[0];
           try {
             JSON.parse(responseContent);
           } catch (e2) {
-            this.logger.error(`[RAG] Falha crítica na extração JSON. Usando fallback estruturado.`);
+            this.logger.error(
+              `[RAG] Falha crítica na extração JSON. Usando fallback estruturado.`,
+            );
             responseContent = generateFallbackResponse(query, true);
           }
         } else {
-          this.logger.error(`[RAG] Nenhum bloco JSON encontrado na resposta. Usando fallback.`);
+          this.logger.error(
+            `[RAG] Nenhum bloco JSON encontrado na resposta. Usando fallback.`,
+          );
           responseContent = generateFallbackResponse(query, true);
         }
       }
@@ -587,9 +636,15 @@ export class RagService {
       );
 
       // Melhoria: Busca por inclusão de referência de forma robusta
-      const normalizedQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const normalizedRef = c.reference.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      
+      const normalizedQuery = query
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      const normalizedRef = c.reference
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
       if (normalizedQuery.includes(normalizedRef)) {
         score += 15; // Aumento no peso para match de referência direta
       }
@@ -617,7 +672,7 @@ export class RagService {
 
   /**
    * Refina a relevância do contexto recuperado (Semantic Reranking).
-   * 
+   *
    * Por que rerank?
    *   A busca vetorial inicial (Bi-Encoder) é rápida mas pode perder nuances.
    *   Este passo re-avalia o Top-N candidatos usando um cálculo de similaridade
@@ -626,24 +681,28 @@ export class RagService {
    */
   private rerankContext(query: string, documents: any[], limit: number): any[] {
     if (!documents || documents.length === 0) return [];
-    
-    const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-    
-    const scored = documents.map(doc => {
+
+    const queryWords = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+
+    const scored = documents.map((doc) => {
       const content = (doc.content || doc.text || '').toLowerCase();
       // Bônus por overlap de palavras-chave (ajuda com terminologia técnica)
-      const overlap = queryWords.reduce((acc, word) => acc + (content.includes(word) ? 1 : 0), 0);
-      
+      const overlap = queryWords.reduce(
+        (acc, word) => acc + (content.includes(word) ? 1 : 0),
+        0,
+      );
+
       // Combina a similaridade original (vector) com o overlap de termos
-      const originalSimilarity = doc.similarity || (1 - (doc.distance || 0));
-      const rerankScore = originalSimilarity + (overlap * 0.05);
-      
+      const originalSimilarity = doc.similarity || 1 - (doc.distance || 0);
+      const rerankScore = originalSimilarity + overlap * 0.05;
+
       return { ...doc, rerankScore };
     });
 
-    return scored
-      .sort((a, b) => b.rerankScore - a.rerankScore)
-      .slice(0, limit);
+    return scored.sort((a, b) => b.rerankScore - a.rerankScore).slice(0, limit);
   }
 
   /** Estimativa simples de tokens (1 token ≈ 4 chars para português) */
@@ -694,7 +753,13 @@ export class RagService {
     const links: any[] = [];
     const seenNodes = new Set<string>();
 
-    const addNode = (id: string, label: string, type: string, color: string, val: number = 10) => {
+    const addNode = (
+      id: string,
+      label: string,
+      type: string,
+      color: string,
+      val: number = 10,
+    ) => {
       if (!seenNodes.has(id)) {
         nodes.push({ id, label, type, color, val });
         seenNodes.add(id);
@@ -703,7 +768,12 @@ export class RagService {
       return false;
     };
 
-    const addLink = (source: string, target: string, label: string = '', value: number = 1) => {
+    const addLink = (
+      source: string,
+      target: string,
+      label: string = '',
+      value: number = 1,
+    ) => {
       links.push({ source, target, label, value });
     };
 
@@ -713,7 +783,9 @@ export class RagService {
 
     // 2. Buscar Versículos Relacionados
     try {
-      const bibleHits = await this.search.hybridSearchVerses(query, { limit: 8 });
+      const bibleHits = await this.search.hybridSearchVerses(query, {
+        limit: 8,
+      });
       for (const h of bibleHits) {
         const vId = `verse-${h.bookId}-${h.chapter}-${h.verse}`;
         const vLabel = `${h.bookId}:${h.chapter}:${h.verse}`;
@@ -736,7 +808,13 @@ export class RagService {
       `;
       for (const t of theologyDocs) {
         const tId = `theo-${t.id}`;
-        addNode(tId, `${t.tradition}: ${t.preview}...`, 'concept', '#ffc107', 12);
+        addNode(
+          tId,
+          `${t.tradition}: ${t.preview}...`,
+          'concept',
+          '#ffc107',
+          12,
+        );
         addLink(centralId, tId, 'temático', 1.5);
       }
     } catch (e) {
@@ -746,11 +824,21 @@ export class RagService {
     // 4. Buscar Documentos do Usuário (Drive/Notas)
     if (userId) {
       try {
-        const userResults = await this.userContext.searchUserContext(userId, query, 5);
+        const userResults = await this.userContext.searchUserContext(
+          userId,
+          query,
+          5,
+        );
         for (const res of userResults) {
           const doc = res.document;
           const dId = `doc-${doc.id}`;
-          addNode(dId, `${doc.type.toUpperCase()}: ${doc.content.slice(0, 30)}...`, 'document', '#4caf50', 14);
+          addNode(
+            dId,
+            `${doc.type.toUpperCase()}: ${doc.content.slice(0, 30)}...`,
+            'document',
+            '#4caf50',
+            14,
+          );
           addLink(centralId, dId, 'personalizado', 1.8);
         }
       } catch (e) {

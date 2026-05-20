@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Query, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { GeoEngineService } from './geo/geo-engine.service';
 import { TheologyEngineService } from './theo/theo-engine.service';
 import { GraphEngineService } from './graph/graph-engine.service';
@@ -49,8 +57,14 @@ export class EnterpriseController {
   }
 
   @Post('ai/exegesis')
-  async performExegesis(@Body() body: { book: string; chapter: number; userId?: string }) {
-    const data = await this.ai.performExegesis(body.book, body.chapter, body.userId);
+  async performExegesis(
+    @Body() body: { book: string; chapter: number; userId?: string },
+  ) {
+    const data = await this.ai.performExegesis(
+      body.book,
+      body.chapter,
+      body.userId,
+    );
     return { success: true, data };
   }
 
@@ -61,7 +75,10 @@ export class EnterpriseController {
   }
 
   @Post('ai/tts')
-  async generateSpeech(@Body('text') text: string, @Body('voice') voice?: string) {
+  async generateSpeech(
+    @Body('text') text: string,
+    @Body('voice') voice?: string,
+  ) {
     const data = await this.ai.generateSpeech(text, voice);
     return { success: true, data };
   }

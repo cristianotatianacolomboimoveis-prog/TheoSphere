@@ -41,16 +41,23 @@ export class TheologicalSourcesService {
   /**
    * Integração com Sefaria API
    */
-  private async fetchSefaria(ref: string): Promise<TheologicalSourceResult | null> {
+  private async fetchSefaria(
+    ref: string,
+  ): Promise<TheologicalSourceResult | null> {
     try {
       // Tenta converter query em referência compatível (Ex: "Genesis 1:1")
-      const response = await axios.get(`https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}?context=0`, { timeout: 3000 });
+      const response = await axios.get(
+        `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}?context=0`,
+        { timeout: 3000 },
+      );
       if (response.data && response.data.text) {
         return {
           source: 'Sefaria (Hebrew/Commentary)',
-          content: Array.isArray(response.data.text) ? response.data.text.join(' ') : response.data.text,
+          content: Array.isArray(response.data.text)
+            ? response.data.text.join(' ')
+            : response.data.text,
           reference: response.data.ref,
-          priority: 1
+          priority: 1,
         };
       }
     } catch {
@@ -62,15 +69,20 @@ export class TheologicalSourcesService {
   /**
    * Integração com Bible-API (WEB, KJV, etc - eBible.org)
    */
-  private async fetchBibleApi(query: string): Promise<TheologicalSourceResult | null> {
+  private async fetchBibleApi(
+    query: string,
+  ): Promise<TheologicalSourceResult | null> {
     try {
-      const response = await axios.get(`https://bible-api.com/${encodeURIComponent(query)}`, { timeout: 3000 });
+      const response = await axios.get(
+        `https://bible-api.com/${encodeURIComponent(query)}`,
+        { timeout: 3000 },
+      );
       if (response.data && response.data.text) {
         return {
           source: `Bible-API (${response.data.translation_name})`,
           content: response.data.text,
           reference: response.data.reference,
-          priority: 2
+          priority: 2,
         };
       }
     } catch {
@@ -83,7 +95,10 @@ export class TheologicalSourcesService {
    * Mock para integração SWORD (ZText local)
    * No futuro, usará node-sword-interface para ler arquivos .zip ou .sz de Bibletime/Sword
    */
-  async getSwordModuleContent(moduleName: string, ref: string): Promise<string> {
+  async getSwordModuleContent(
+    moduleName: string,
+    ref: string,
+  ): Promise<string> {
     this.logger.log(`[SWORD] Buscando ${ref} no módulo ${moduleName}`);
     return `[SWORD Fallback] Conteúdo do módulo ${moduleName} para ${ref}`;
   }

@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 // ─── Singleton Pattern ──────────────────────────────────────────────────────
 // Em desenvolvimento, o NestJS realiza hot-reloads frequentes. Se criarmos uma
-// nova instância do PrismaClient a cada reload, esgotaremos o pool de 
+// nova instância do PrismaClient a cada reload, esgotaremos o pool de
 // conexões do PostgreSQL rapidamente. O objeto global persiste entre reloads.
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -32,16 +32,17 @@ export const THEOLOGICAL_ROUTES: Record<string, TheologicalRoute> = {
         img: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=800&q=80',
         verse: 'Êxodo 12:37',
         quote: 'Assim partiram os filhos de Israel de Ramessés para Sucote...',
-        bible: 'O ponto de partida do êxodo marca o fim de 430 anos de permanência no Egito.',
+        bible:
+          'O ponto de partida do êxodo marca o fim de 430 anos de permanência no Egito.',
         geo: 'Localizada no fértil Delta do Nilo (a terra de Gósen).',
         arch: 'Identificada historicamente com a cidade de Pi-Ramessés.',
         modelType: 'altar',
-        modelName: 'Altar de Tijolos (Egito)'
+        modelName: 'Altar de Tijolos (Egito)',
       },
       {
         title: 'Travessia do Mar Vermelho',
         step: 'Passo 2',
-        coords: [28.8500, 32.8500],
+        coords: [28.85, 32.85],
         img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
         verse: 'Êxodo 14:21-22',
         quote: 'Moisés estendeu a mão sobre o mar... e as águas se dividiram.',
@@ -49,7 +50,7 @@ export const THEOLOGICAL_ROUTES: Record<string, TheologicalRoute> = {
         geo: 'Provavelmente no Golfo de Suez ou no Golfo de Aqaba.',
         arch: 'Debates intensos sobre a tradução Yam Suph (Mar de Juncos).',
         modelType: 'pillar',
-        modelName: 'Coluna de Fogo / Nuvem'
+        modelName: 'Coluna de Fogo / Nuvem',
       },
       {
         title: 'Monte Sinai (Horebe)',
@@ -62,9 +63,9 @@ export const THEOLOGICAL_ROUTES: Record<string, TheologicalRoute> = {
         geo: 'Tradicionalmente associado a Jebel Musa no sul do Sinai.',
         arch: 'No sopé deste monte fica o Mosteiro de Santa Catarina.',
         modelType: 'ark',
-        modelName: 'A Arca da Aliança'
-      }
-    ]
+        modelName: 'A Arca da Aliança',
+      },
+    ],
   },
   paulo: {
     id: 'paulo',
@@ -82,8 +83,8 @@ export const THEOLOGICAL_ROUTES: Record<string, TheologicalRoute> = {
         geo: 'Terceira maior cidade do Império Romano.',
         arch: 'Ponto crucial de rotas comerciais.',
         modelType: 'scroll',
-        modelName: 'Pergaminhos das Epístolas'
-      }
-    ]
-  }
+        modelName: 'Pergaminhos das Epístolas',
+      },
+    ],
+  },
 };

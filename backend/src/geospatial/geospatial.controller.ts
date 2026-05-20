@@ -1,4 +1,10 @@
-import { Controller, Get, Query, Param, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Param,
+  NotFoundException,
+} from '@nestjs/common';
 import { GeospatialService } from './geospatial.service';
 
 @Controller('api/v1/geo')
@@ -7,7 +13,9 @@ export class GeospatialController {
 
   @Get('locations')
   async list(@Query('era') era?: string) {
-    const data = await this.geospatial.getAllLocations(era ? parseInt(era) : undefined);
+    const data = await this.geospatial.getAllLocations(
+      era ? parseInt(era) : undefined,
+    );
     return { success: true, data };
   }
 

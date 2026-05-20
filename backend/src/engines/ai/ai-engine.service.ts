@@ -8,7 +8,7 @@ export class AIEngineService {
 
   constructor(
     private readonly rag: RagService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -24,20 +24,22 @@ export class AIEngineService {
   async performExegesis(book: string, chapter: number, userId?: string) {
     const verses = await this.prisma.bibleVerse.findMany({
       where: { book, chapter, translation: 'ARA' },
-      take: 20
+      take: 20,
     });
 
-    const textSample = verses.map(v => v.text).join(' ');
-    const strongIds = [...textSample.matchAll(/<([GH]\d+)>/g)].map(m => m[1]);
-    
+    const textSample = verses.map((v) => v.text).join(' ');
+    const strongIds = [...textSample.matchAll(/<([GH]\d+)>/g)].map((m) => m[1]);
+
     const lexicons = await this.prisma.lexicalEntry.findMany({
-      where: { strongId: { in: strongIds } }
+      where: { strongId: { in: strongIds } },
     });
 
     const contextData = {
       passage: `${book} ${chapter}`,
-      verses: verses.map(v => `${v.verse}: ${v.text}`),
-      lexicon: lexicons.map(l => `${l.strongId} (${l.word}): ${l.definition}`)
+      verses: verses.map((v) => `${v.verse}: ${v.text}`),
+      lexicon: lexicons.map(
+        (l) => `${l.strongId} (${l.word}): ${l.definition}`,
+      ),
     };
 
     const prompt = `Realize uma exegese técnica e teológica de ${contextData.passage}. 
@@ -68,7 +70,10 @@ export class AIEngineService {
     // Para o MVP, poderíamos integrar com OpenAI TTS API
     this.logger.log(`[TTS] Gerando áudio para: "${text.slice(0, 30)}..."`);
     // Placeholder: retornaria uma URL ou buffer
-    return { success: true, audioUrl: `https://api.theosphere.com/v1/tts/sample.mp3` };
+    return {
+      success: true,
+      audioUrl: `https://api.theosphere.com/v1/tts/sample.mp3`,
+    };
   }
 
   /**

@@ -122,8 +122,11 @@ export class RagController {
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async chat(@Body() body: ChatDto, @Req() req: Request) {
-    const userId = req.user?.userId || (req.headers['x-user-id'] as string) || 'public-guest';
-    
+    const userId =
+      req.user?.userId ||
+      (req.headers['x-user-id'] as string) ||
+      'public-guest';
+
     this.logger.log(
       `[Chat] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,
     );
@@ -156,10 +159,17 @@ export class RagController {
   @Post('dictate')
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   async dictate(@Body() body: DictateDto, @Req() req: Request) {
-    const userId = req.user?.userId || (req.headers['x-user-id'] as string) || 'public-guest';
-    this.logger.log(`[Dictate] User: ${userId} | Length: ${body.transcript.length}`);
+    const userId =
+      req.user?.userId ||
+      (req.headers['x-user-id'] as string) ||
+      'public-guest';
+    this.logger.log(
+      `[Dictate] User: ${userId} | Length: ${body.transcript.length}`,
+    );
 
-    const response = await this.ragService.processSermonDictation(body.transcript);
+    const response = await this.ragService.processSermonDictation(
+      body.transcript,
+    );
 
     return {
       success: true,

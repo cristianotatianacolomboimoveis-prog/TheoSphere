@@ -25,8 +25,12 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(12, { message: 'A senha deve ter pelo menos 12 caracteres.' })
   @MaxLength(128)
-  @Matches(/[A-Z]/, { message: 'A senha deve conter pelo menos uma letra maiúscula.' })
-  @Matches(/[a-z]/, { message: 'A senha deve conter pelo menos uma letra minúscula.' })
+  @Matches(/[A-Z]/, {
+    message: 'A senha deve conter pelo menos uma letra maiúscula.',
+  })
+  @Matches(/[a-z]/, {
+    message: 'A senha deve conter pelo menos uma letra minúscula.',
+  })
   @Matches(/[0-9]/, { message: 'A senha deve conter pelo menos um número.' })
   password!: string;
 }

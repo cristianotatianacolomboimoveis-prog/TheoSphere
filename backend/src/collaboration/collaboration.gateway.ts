@@ -16,7 +16,9 @@ import { Logger } from '@nestjs/common';
   },
   namespace: 'collaboration',
 })
-export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class CollaborationGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(CollaborationGateway.name);
 
   @WebSocketServer()
@@ -47,17 +49,19 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
   ) {
     const { roomId, user } = payload;
     client.join(roomId);
-    
+
     if (!this.roomUsers.has(roomId)) {
       this.roomUsers.set(roomId, new Set());
     }
     this.roomUsers.get(roomId)!.add(client.id);
 
     this.logger.log(`User ${client.id} joined room ${roomId}`);
-    
+
     // Notify room about new user
-    this.server.to(roomId).emit('presence_update', Array.from(this.roomUsers.get(roomId) || []));
-    
+    this.server
+      .to(roomId)
+      .emit('presence_update', Array.from(this.roomUsers.get(roomId) || []));
+
     return { event: 'joined', data: roomId };
   }
 
@@ -77,7 +81,9 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     @MessageBody() payload: { roomId: string; suggestion: any },
   ) {
     // Shared AI suggestions for everyone in the room
-    this.server.to(payload.roomId).emit('ai_suggestion_received', payload.suggestion);
+    this.server
+      .to(payload.roomId)
+      .emit('ai_suggestion_received', payload.suggestion);
   }
 
   @SubscribeMessage('cursor_move')
@@ -88,7 +94,7 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     // Real-time cursor presence
     client.to(payload.roomId).emit('cursor_moved', {
       userId: client.id,
-      ...payload
+      ...payload,
     });
   }
 }

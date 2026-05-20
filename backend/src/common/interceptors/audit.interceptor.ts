@@ -24,8 +24,12 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(async () => {
         const duration = Date.now() - startTime;
-        
-        if (['POST', 'PUT', 'DELETE'].includes(method) || url.includes('/ai/') || url.includes('/enterprise/')) {
+
+        if (
+          ['POST', 'PUT', 'DELETE'].includes(method) ||
+          url.includes('/ai/') ||
+          url.includes('/enterprise/')
+        ) {
           try {
             await this.prisma.auditLog.create({
               data: {

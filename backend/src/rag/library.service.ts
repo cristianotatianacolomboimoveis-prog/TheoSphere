@@ -130,7 +130,9 @@ export class LibraryService {
       LIMIT ${limit};
     `;
 
-    return rows.map((r) => this.toExcerpt(r.content, r.metadata, 'vector', 1 - Number(r.distance)));
+    return rows.map((r) =>
+      this.toExcerpt(r.content, r.metadata, 'vector', 1 - Number(r.distance)),
+    );
   }
 
   /* ─── Full-text branch ───────────────────────────────────────────── */
@@ -215,7 +217,8 @@ export class LibraryService {
     const m = metadata ?? {};
     return {
       content,
-      fileName: typeof m.fileName === 'string' ? m.fileName : 'Documento sem título',
+      fileName:
+        typeof m.fileName === 'string' ? m.fileName : 'Documento sem título',
       fileId: typeof m.fileId === 'string' ? m.fileId : undefined,
       tradition: typeof m.tradition === 'string' ? m.tradition : undefined,
       chunkIndex: typeof m.chunkIndex === 'number' ? m.chunkIndex : undefined,

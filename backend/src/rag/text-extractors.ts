@@ -76,10 +76,7 @@ const docxExtractor: Extractor = {
  * canonical type — Drive sometimes uses `application/epub+zip` (IANA)
  * and sometimes `application/octet-stream` for legacy uploads.
  */
-const EPUB_MIMES = new Set([
-  'application/epub+zip',
-  'application/epub',
-]);
+const EPUB_MIMES = new Set(['application/epub+zip', 'application/epub']);
 
 /**
  * Strip a parsed XHTML chapter to plain text. We deliberately avoid pulling
@@ -88,29 +85,31 @@ const EPUB_MIMES = new Set([
  * fine for embedding — chunking will absorb the boundaries.
  */
 function htmlToPlain(html: string): string {
-  return html
-    // Remove script/style blocks entirely
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
-    // Convert <br> and block tags into newlines for paragraph boundaries
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|h[1-6]|li|tr|td|section|article|blockquote)>/gi, '\n')
-    // Drop everything else
-    .replace(/<[^>]+>/g, '')
-    // Decode the handful of named entities that show up in real EPUBs
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) =>
-      String.fromCharCode(parseInt(n, 16)),
-    )
-    // Collapse runs of whitespace
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
+  return (
+    html
+      // Remove script/style blocks entirely
+      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+      // Convert <br> and block tags into newlines for paragraph boundaries
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|li|tr|td|section|article|blockquote)>/gi, '\n')
+      // Drop everything else
+      .replace(/<[^>]+>/g, '')
+      // Decode the handful of named entities that show up in real EPUBs
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, n) =>
+        String.fromCharCode(parseInt(n, 16)),
+      )
+      // Collapse runs of whitespace
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim()
+  );
 }
 
 const epubExtractor: Extractor = {
@@ -129,10 +128,8 @@ const epubExtractor: Extractor = {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const EPub = require('epub2').default ?? require('epub2');
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const book: any = await new Promise((resolve, reject) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const epub = new (EPub as any)(tmpPath);
+        const epub = new EPub(tmpPath);
         epub.on('error', reject);
         epub.on('end', () => resolve(epub));
         epub.parse();
@@ -141,16 +138,15 @@ const epubExtractor: Extractor = {
       const chapters: string[] = [];
       // book.flow is the linear reading order; book.spine.contents is similar.
       // Some EPUBs only populate one of the two — fall through.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const order: Array<{ id: string }> =
-        book.flow?.length ? book.flow : book.spine?.contents ?? [];
+
+      const order: Array<{ id: string }> = book.flow?.length
+        ? book.flow
+        : (book.spine?.contents ?? []);
 
       for (const item of order) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const html: string = await new Promise((res, rej) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (book as any).getChapter(item.id, (err: Error | null, txt: string) => {
+            book.getChapter(item.id, (err: Error | null, txt: string) => {
               if (err) rej(err);
               else res(txt);
             });
@@ -166,15 +162,18 @@ const epubExtractor: Extractor = {
       return {
         text,
         meta: {
-          title: typeof book.metadata?.title === 'string'
-            ? book.metadata.title
-            : undefined,
-          author: typeof book.metadata?.creator === 'string'
-            ? book.metadata.creator
-            : undefined,
-          language: typeof book.metadata?.language === 'string'
-            ? book.metadata.language
-            : undefined,
+          title:
+            typeof book.metadata?.title === 'string'
+              ? book.metadata.title
+              : undefined,
+          author:
+            typeof book.metadata?.creator === 'string'
+              ? book.metadata.creator
+              : undefined,
+          language:
+            typeof book.metadata?.language === 'string'
+              ? book.metadata.language
+              : undefined,
         },
       };
     } finally {

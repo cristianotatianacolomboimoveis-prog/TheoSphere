@@ -57,7 +57,12 @@ export class BibleController {
     );
     return {
       success: true,
-      data: { verses, translation: translation || 'KJV', bookId: resolvedBookId, chapter },
+      data: {
+        verses,
+        translation: translation || 'KJV',
+        bookId: resolvedBookId,
+        chapter,
+      },
     };
   }
 
@@ -105,7 +110,9 @@ export class BibleController {
       const data = await response.json();
       return { success: true, data };
     } catch (err) {
-      this.logger.warn(`[fallback] upstream failure: ${err instanceof SafeFetchError ? err.message : String(err)}`);
+      this.logger.warn(
+        `[fallback] upstream failure: ${err instanceof SafeFetchError ? err.message : String(err)}`,
+      );
       return { success: false, error: 'upstream unavailable' };
     }
   }
@@ -117,21 +124,21 @@ export class BibleController {
       const response = await safeFetch(url, { timeoutMs: 8_000, retries: 2 });
       if (!response.ok) return { success: false, data: [] };
       const data = await response.json();
-      
+
       // Normalize Sefaria response to our standard format
-      const verses = Array.isArray(data.text) 
+      const verses = Array.isArray(data.text)
         ? data.text.map((t: string, i: number) => ({ verse: i + 1, text: t }))
         : [];
 
-      return { 
-        success: true, 
-        data: { 
-          verses, 
-          translation: 'Sefaria', 
+      return {
+        success: true,
+        data: {
+          verses,
+          translation: 'Sefaria',
           book: data.book,
           ref: data.ref,
-          hebrew: data.he()
-        } 
+          hebrew: data.he(),
+        },
       };
     } catch (err) {
       this.logger.warn(`[sefaria] upstream failure: ${err.message}`);
@@ -154,8 +161,11 @@ export class BibleController {
     // Fire and forget em produção, ou await para testes
     void this.ingestionService.massGenerateEmbeddings(
       translation || 'ARA',
-      parseInt(limit) || 1000
+      parseInt(limit) || 1000,
     );
-    return { success: true, message: `Iniciada geração de embeddings para ${translation}` };
+    return {
+      success: true,
+      message: `Iniciada geração de embeddings para ${translation}`,
+    };
   }
 }

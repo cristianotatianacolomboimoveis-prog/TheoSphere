@@ -13,17 +13,20 @@ export class GeospatialService {
    */
   async getAllLocations(era?: number) {
     try {
-      this.logger.debug(`Fetching locations ${era ? `for era ${era}` : 'all eras'}`);
+      this.logger.debug(
+        `Fetching locations ${era ? `for era ${era}` : 'all eras'}`,
+      );
 
-      const locations = era !== undefined
-        ? await this.prisma.$queryRaw`
+      const locations =
+        era !== undefined
+          ? await this.prisma.$queryRaw`
             SELECT id, name, era, category, description,
                    ST_X(geom::geometry) as lng,
                    ST_Y(geom::geometry) as lat
             FROM "Location"
             WHERE era BETWEEN ${era - 50} AND ${era + 50};
           `
-        : await this.prisma.$queryRaw`
+          : await this.prisma.$queryRaw`
             SELECT id, name, era, category, description,
                    ST_X(geom::geometry) as lng,
                    ST_Y(geom::geometry) as lat
@@ -60,11 +63,11 @@ export class GeospatialService {
    * Retorna todas as rotas teológicas disponíveis.
    */
   async getRoutes() {
-    return Object.values(THEOLOGICAL_ROUTES).map(r => ({
+    return Object.values(THEOLOGICAL_ROUTES).map((r) => ({
       id: r.id,
       title: r.title,
       description: r.description,
-      waypointCount: r.waypoints.length
+      waypointCount: r.waypoints.length,
     }));
   }
 

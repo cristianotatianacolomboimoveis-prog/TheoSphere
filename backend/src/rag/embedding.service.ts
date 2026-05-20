@@ -281,7 +281,7 @@ export class EmbeddingService implements OnModuleDestroy {
           const embedding = result.embedding.values;
           results[originalIndex] = embedding;
           await this.writeCache(normalized[originalIndex], embedding);
-        })
+        }),
       );
 
       return results as number[][];

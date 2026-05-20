@@ -10,7 +10,7 @@ export class ThreeEngineService {
   async getModelById(id: string) {
     this.logger.debug(`Buscando modelo 3D: ${id}`);
     return this.prisma.model3D.findUnique({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -24,12 +24,12 @@ export class ThreeEngineService {
    */
   async getModelManifest(modelName: string) {
     return this.prisma.model3D.findFirst({
-      where: { 
+      where: {
         OR: [
           { modelName: { contains: modelName, mode: 'insensitive' } },
-          { modelUrl: modelName }
-        ]
-      }
+          { modelUrl: modelName },
+        ],
+      },
     });
   }
 }

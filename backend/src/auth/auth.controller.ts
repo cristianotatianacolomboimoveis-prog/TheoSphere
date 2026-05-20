@@ -83,7 +83,8 @@ export class AuthController {
       });
 
       // Remove refreshToken from response body for extra safety
-      const { refreshToken, ...responseBody } = result;
+      const responseBody = { ...result };
+      delete (responseBody as { refreshToken?: string }).refreshToken;
       return responseBody;
     } catch (err) {
       // Audit failed attempts (no password — DTO param is not persisted).
@@ -106,9 +107,11 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.['refreshToken'];
-    if (!refreshToken) {
-      throw new UnauthorizedException('Nenhum token de atualização encontrado.');
+    const refreshToken = req.cookies?.['refreshToken'] as unknown;
+    if (typeof refreshToken !== 'string') {
+      throw new UnauthorizedException(
+        'Nenhum token de atualização encontrado.',
+      );
     }
 
     try {
@@ -131,7 +134,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: true }) res: Response) {
+  logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refreshToken', { path: '/api/v1/auth/refresh' });
     return { message: 'Sessão encerrada com sucesso.' };
   }

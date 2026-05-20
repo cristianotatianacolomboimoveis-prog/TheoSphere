@@ -14,9 +14,9 @@ export class GeoEngineService {
     return this.prisma.route.findMany({
       include: {
         _count: {
-          select: { waypoints: true }
-        }
-      }
+          select: { waypoints: true },
+        },
+      },
     });
   }
 
@@ -31,10 +31,10 @@ export class GeoEngineService {
           orderBy: { stepOrder: 'asc' },
           include: {
             contents: true,
-            models3d: true
-          }
-        }
-      }
+            models3d: true,
+          },
+        },
+      },
     });
   }
 

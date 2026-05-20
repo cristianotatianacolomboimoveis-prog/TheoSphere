@@ -96,16 +96,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private normalize(raw: unknown): { error: string; message: unknown } {
     const errorMap: Record<string, string> = {
-      'Unauthorized': 'Acesso não autorizado ou sessão expirada',
-      'Forbidden': 'Você não tem permissão para realizar esta ação',
+      Unauthorized: 'Acesso não autorizado ou sessão expirada',
+      Forbidden: 'Você não tem permissão para realizar esta ação',
       'Not Found': 'O recurso solicitado não foi encontrado',
       'Bad Request': 'Dados da requisição inválidos',
-      'Conflict': 'Conflito de dados (já existe um registro similar)',
+      Conflict: 'Conflito de dados (já existe um registro similar)',
       'Internal Server Error': 'Ocorreu um erro interno em nossos sistemas',
-      'Payload Too Large': 'Arquivo ou conteúdo muito grande para ser processado',
+      'Payload Too Large':
+        'Arquivo ou conteúdo muito grande para ser processado',
       'Unsupported Media Type': 'Formato de arquivo não suportado',
       'Too Many Requests': 'Muitas requisições. Por favor, aguarde um pouco.',
-      'Gateway Timeout': 'O servidor demorou muito para responder. Tente novamente.',
+      'Gateway Timeout':
+        'O servidor demorou muito para responder. Tente novamente.',
     };
 
     if (typeof raw === 'string') {

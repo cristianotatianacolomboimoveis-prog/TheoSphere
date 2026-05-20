@@ -12,7 +12,7 @@ export class TheologyEngineService {
    */
   async getWaypointContent(waypointId: string, language: string = 'pt-BR') {
     return this.prisma.theologicalContent.findMany({
-      where: { waypointId, language }
+      where: { waypointId, language },
     });
   }
 
@@ -23,11 +23,11 @@ export class TheologyEngineService {
   async getAdvancedExegesis(bookId: number, chapter: number, verse: number) {
     const [verseData, commentary] = await Promise.all([
       this.prisma.bibleVerse.findMany({
-        where: { bookId, chapter, verse }
+        where: { bookId, chapter, verse },
       }),
       this.prisma.technicalCommentary.findMany({
-        where: { bookId, chapter, verse }
-      })
+        where: { bookId, chapter, verse },
+      }),
     ]);
 
     return {

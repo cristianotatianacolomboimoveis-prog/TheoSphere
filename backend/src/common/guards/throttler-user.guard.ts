@@ -9,7 +9,7 @@ export class ThrottlerUserGuard extends ThrottlerGuard {
     if (req.user && req.user.id) {
       return `user:${req.user.id}`;
     }
-    
+
     // Fallback to IP address for anonymous users.
     return req.ip;
   }

@@ -28,7 +28,7 @@ async function bootstrap() {
     'http://localhost:3001',
     'http://localhost:3002',
   ];
-  
+
   app.use(cookieParser());
 
   app.enableCors({
@@ -44,7 +44,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
 
   // ─── Security headers ───────────────────────────────────────────────────
   // Explicit CSP (DT-7). This is an API — no HTML responses — so the policy

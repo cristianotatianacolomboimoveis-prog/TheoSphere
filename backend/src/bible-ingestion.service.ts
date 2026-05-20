@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { EmbeddingService } from './rag/embedding.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { ApiClient, BibleClient } from '@youversion/platform-core';
 import { EventBusService, EVENT_CHANNELS } from './events/event-bus.service';
 import { safeFetch } from './common/http/safe-fetch';
@@ -58,7 +58,7 @@ export class BibleIngestionService {
    * Expressão: 1º dia de cada semestre às 04:00 AM.
    */
   @Cron('0 4 1 */6 *')
-  async handleBibleSyncAuto() {
+  handleBibleSyncAuto() {
     this.logger.log(
       '[Auto-Sync] Iniciando atualização semestral de bibliotecas bíblicas...',
     );
@@ -116,10 +116,9 @@ export class BibleIngestionService {
     });
 
     try {
-      let data: any[] = [];
+      let data: unknown[] = [];
       let copyright: string | null = null;
       let textDirection = 'ltr';
-      const verses: { verse: number; text: string }[] = [];
 
       // 1. Tentar Bolls.life (Primário e Aberto)
       this.logger.log(
@@ -130,7 +129,7 @@ export class BibleIngestionService {
       // not block ingestion or saturate the event loop on this pod.
       const response = await safeFetch(url, { timeoutMs: 5_000, retries: 2 });
       if (response.ok) {
-        data = await response.json();
+        data = (await response.json()) as unknown[];
         // Bolls.life não fornece copyright direto no endpoint de capítulo,
         // mas podemos adicionar via metadados estáticos se necessário.
       }
@@ -162,10 +161,11 @@ export class BibleIngestionService {
       // Fallback de direção para versões conhecidas
       if (transUpper === 'WLC') textDirection = 'rtl';
 
-      const versesToSave = data.map((v: any) => {
-        const rawText = v.text || v.content || '';
+      const versesToSave = data.map((item) => {
+        const v = item as Record<string, unknown>;
+        const rawText = (v.text || v.content || '') as string;
         const text = this.stripHtml(rawText);
-        const vNum = v.verse || v.number || 1;
+        const vNum = (v.verse || v.number || 1) as number;
 
         return {
           book: this.getBookName(bookId),
@@ -190,7 +190,7 @@ export class BibleIngestionService {
 
       // Trigger embeddings em background de forma eficiente
       if (shouldEmbed) {
-        this.triggerBatchEmbeddings(transUpper, bookId, chapter);
+        void this.triggerBatchEmbeddings(transUpper, bookId, chapter);
       }
 
       this.events.publishIngestion(EVENT_CHANNELS.INGESTION_BIBLE, {
@@ -202,11 +202,12 @@ export class BibleIngestionService {
 
       return versesToSave.map((v) => ({ verse: v.verse, text: v.text }));
     } catch (error) {
-      this.logger.error(`Ingestion failed: ${error.message}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Ingestion failed: ${errMsg}`);
       this.events.publishIngestion(EVENT_CHANNELS.INGESTION_BIBLE, {
         kind: 'chapter.failed',
         ref: `${transUpper}/${bookId}/${chapter}`,
-        error: error.message,
+        error: errMsg,
         durationMs: Date.now() - __startedAt,
       });
       return [];
@@ -226,7 +227,17 @@ export class BibleIngestionService {
     let currentChapter = 0;
     let currentBookId = 0;
 
-    const versesToSave: any[] = [];
+    const versesToSave: Array<{
+      book: string;
+      bookId: number;
+      chapter: number;
+      verse: number;
+      text: string;
+      translation: string;
+      testament: string;
+      copyright: string | null;
+      textDirection: string;
+    }> = [];
     for (const line of lines) {
       if (line.startsWith('\\id')) {
         currentBook = line.split(' ')[1];
@@ -247,6 +258,7 @@ export class BibleIngestionService {
             text,
             translation: transUpper,
             testament: currentBookId >= 40 ? 'NT' : 'AT',
+            copyright: null,
             textDirection: transUpper === 'WLC' ? 'rtl' : 'ltr',
           });
         }
@@ -255,7 +267,9 @@ export class BibleIngestionService {
 
     if (versesToSave.length > 0) {
       await this.bulkUpsertVerses(versesToSave);
-      this.logger.log(`[Modular Ingestion] Bulk saved ${versesToSave.length} verses.`);
+      this.logger.log(
+        `[Modular Ingestion] Bulk saved ${versesToSave.length} verses.`,
+      );
     }
 
     this.logger.log(
@@ -336,26 +350,31 @@ export class BibleIngestionService {
    * Processa versículos em lotes de 100 para eficiência máxima.
    */
   async massGenerateEmbeddings(translation: string, limit: number = 5000) {
-    this.logger.log(`[RAG-Bible] Iniciando geração em massa para ${translation}...`);
-    
+    this.logger.log(
+      `[RAG-Bible] Iniciando geração em massa para ${translation}...`,
+    );
+
     // Busca versículos sem embedding
     const verses = await this.prisma.bibleVerse.findMany({
       where: {
         translation: translation.toUpperCase(),
         embedding: null,
-      } as any,
+      } as unknown as import('@prisma/client').Prisma.BibleVerseWhereInput,
       take: limit,
-      select: { id: true, text: true }
+      select: { id: true, text: true },
     });
 
-    this.logger.log(`[RAG-Bible] Encontrados ${verses.length} versículos para processar.`);
+    this.logger.log(
+      `[RAG-Bible] Encontrados ${verses.length} versículos para processar.`,
+    );
 
     const batchSize = 10;
     for (let i = 0; i < verses.length; i += batchSize) {
       const batch = verses.slice(i, i + batchSize);
       try {
-        const texts = batch.map(v => v.text);
-        const embeddings = await this.embeddingService.createBatchEmbeddings(texts);
+        const texts = batch.map((v) => v.text);
+        const embeddings =
+          await this.embeddingService.createBatchEmbeddings(texts);
 
         for (let j = 0; j < batch.length; j++) {
           const v = batch[j];
@@ -366,9 +385,12 @@ export class BibleIngestionService {
             WHERE id = ${v.id}
           `;
         }
-        this.logger.log(`[RAG-Bible] Progresso: ${i + batch.length}/${verses.length}`);
+        this.logger.log(
+          `[RAG-Bible] Progresso: ${i + batch.length}/${verses.length}`,
+        );
       } catch (err) {
-        this.logger.error(`[RAG-Bible] Falha no lote em ${i}: ${err.message}`);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`[RAG-Bible] Falha no lote em ${i}: ${errMsg}`);
       }
     }
     this.logger.log(`[RAG-Bible] Geração concluída para ${translation}.`);
@@ -383,26 +405,79 @@ export class BibleIngestionService {
         WHERE id = ${id}
       `;
     } catch (err) {
-      this.logger.error(`Embedding background process failed: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Embedding background process failed: ${errMsg}`);
     }
   }
 
   private getBookName(id: number): string {
     const map: Record<number, string> = {
-      1: "Gênesis", 2: "Êxodo", 3: "Levítico", 4: "Números", 5: "Deuteronômio",
-      6: "Josué", 7: "Juízes", 8: "Rute", 9: "1 Samuel", 10: "2 Samuel",
-      11: "1 Reis", 12: "2 Reis", 13: "1 Crônicas", 14: "2 Crônicas", 15: "Esdras",
-      16: "Neemias", 17: "Ester", 18: "Jó", 19: "Salmos", 20: "Provérbios",
-      21: "Eclesiastes", 22: "Cantares", 23: "Isaías", 24: "Jeremias", 25: "Lamentações",
-      26: "Ezequiel", 27: "Daniel", 28: "Oséias", 29: "Joel", 30: "Amós",
-      31: "Obadias", 32: "Jonas", 33: "Miquéias", 34: "Naum", 35: "Habacuque",
-      36: "Sofonias", 37: "Ageu", 38: "Zacarias", 39: "Malaquias",
-      40: "Mateus", 41: "Marcos", 42: "Lucas", 43: "João", 44: "Atos",
-      45: "Romanos", 46: "1 Coríntios", 47: "2 Coríntios", 48: "Gálatas", 49: "Efésios",
-      50: "Filipenses", 51: "Colossenses", 52: "1 Tessalonicenses", 53: "2 Tessalonicenses", 54: "1 Timóteo",
-      55: "2 Timóteo", 56: "Tito", 57: "Filemom", 58: "Hebreus", 59: "Tiago",
-      60: "1 Pedro", 61: "2 Pedro", 62: "1 João", 63: "2 João", 64: "3 João",
-      65: "Judas", 66: "Apocalipse"
+      1: 'Gênesis',
+      2: 'Êxodo',
+      3: 'Levítico',
+      4: 'Números',
+      5: 'Deuteronômio',
+      6: 'Josué',
+      7: 'Juízes',
+      8: 'Rute',
+      9: '1 Samuel',
+      10: '2 Samuel',
+      11: '1 Reis',
+      12: '2 Reis',
+      13: '1 Crônicas',
+      14: '2 Crônicas',
+      15: 'Esdras',
+      16: 'Neemias',
+      17: 'Ester',
+      18: 'Jó',
+      19: 'Salmos',
+      20: 'Provérbios',
+      21: 'Eclesiastes',
+      22: 'Cantares',
+      23: 'Isaías',
+      24: 'Jeremias',
+      25: 'Lamentações',
+      26: 'Ezequiel',
+      27: 'Daniel',
+      28: 'Oséias',
+      29: 'Joel',
+      30: 'Amós',
+      31: 'Obadias',
+      32: 'Jonas',
+      33: 'Miquéias',
+      34: 'Naum',
+      35: 'Habacuque',
+      36: 'Sofonias',
+      37: 'Ageu',
+      38: 'Zacarias',
+      39: 'Malaquias',
+      40: 'Mateus',
+      41: 'Marcos',
+      42: 'Lucas',
+      43: 'João',
+      44: 'Atos',
+      45: 'Romanos',
+      46: '1 Coríntios',
+      47: '2 Coríntios',
+      48: 'Gálatas',
+      49: 'Efésios',
+      50: 'Filipenses',
+      51: 'Colossenses',
+      52: '1 Tessalonicenses',
+      53: '2 Tessalonicenses',
+      54: '1 Timóteo',
+      55: '2 Timóteo',
+      56: 'Tito',
+      57: 'Filemom',
+      58: 'Hebreus',
+      59: 'Tiago',
+      60: '1 Pedro',
+      61: '2 Pedro',
+      62: '1 João',
+      63: '2 João',
+      64: '3 João',
+      65: 'Judas',
+      66: 'Apocalipse',
     };
     return map[id] || `Book_${id}`;
   }
@@ -505,18 +580,25 @@ export class BibleIngestionService {
         this.youversionClient.getVersion(bibleId),
       ]);
 
-      const copyright = (version as any)?.copyright || null;
-      const textDirection = (version as any)?.text_direction || 'ltr';
+      const versionObj = version as Record<string, unknown>;
+      const copyright =
+        typeof versionObj?.copyright === 'string' ? versionObj.copyright : null;
+      const textDirection =
+        typeof versionObj?.text_direction === 'string'
+          ? versionObj.text_direction
+          : 'ltr';
 
-      const passageAny = passage as any;
-      if (!passageAny || !passageAny.content)
+      const passageObj = passage as Record<string, unknown> | null;
+      if (!passageObj || typeof passageObj.content !== 'string') {
         return { verses: [], copyright, textDirection };
+      }
 
-      if (passageAny.verses) {
+      if (Array.isArray(passageObj.verses)) {
+        const versesList = passageObj.verses as Array<Record<string, unknown>>;
         return {
-          verses: passageAny.verses.map((v: any) => ({
-            number: v.number,
-            content: v.content,
+          verses: versesList.map((v) => ({
+            number: typeof v.number === 'number' ? v.number : 1,
+            content: typeof v.content === 'string' ? v.content : '',
           })),
           copyright,
           textDirection,
@@ -524,12 +606,13 @@ export class BibleIngestionService {
       }
 
       return {
-        verses: [{ number: 1, content: passageAny.content }],
+        verses: [{ number: 1, content: passageObj.content }],
         copyright,
         textDirection,
       };
     } catch (err) {
-      this.logger.error(`YouVersion SDK Error: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`YouVersion SDK Error: ${errMsg}`);
       return { verses: [], copyright: null, textDirection: 'ltr' };
     }
   }

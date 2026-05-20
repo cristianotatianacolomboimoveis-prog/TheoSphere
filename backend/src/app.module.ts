@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RagModule } from './rag/rag.module';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import Redis from 'ioredis';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
@@ -24,6 +24,12 @@ import { CollaborationModule } from './collaboration/collaboration.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+
+interface EnvShape {
+  NODE_ENV: string;
+  OPENAI_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+}
 
 @Module({
   imports: [
@@ -50,18 +56,19 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
         SENTRY_DSN: Joi.string().uri().optional().allow(''),
         SENTRY_RELEASE: Joi.string().optional().allow(''),
         SENTRY_TRACES_SAMPLE_RATE: Joi.number().min(0).max(1).optional(),
-      }).custom((env, helpers) => {
+      }).custom((env: unknown, helpers) => {
+        const typedEnv = env as EnvShape;
         if (
-          env.NODE_ENV === 'production' &&
-          !env.OPENAI_API_KEY &&
-          !env.GEMINI_API_KEY
+          typedEnv.NODE_ENV === 'production' &&
+          !typedEnv.OPENAI_API_KEY &&
+          !typedEnv.GEMINI_API_KEY
         ) {
           return helpers.error('any.invalid', {
             message:
               'OPENAI_API_KEY or GEMINI_API_KEY is required in production',
           });
         }
-        return env;
+        return typedEnv;
       }),
       validationOptions: { abortEarly: false, allowUnknown: true },
     }),
@@ -73,11 +80,11 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     // If REDIS_URL is unset, we transparently fall back to the in-memory
     // bucket (dev / single-pod). Production MUST set REDIS_URL.
     ThrottlerModule.forRootAsync({
-      useFactory: () => {
+      useFactory: (): ThrottlerModuleOptions => {
         const redisUrl = process.env.REDIS_URL;
-        const base = {
+        const base: ThrottlerModuleOptions = {
           throttlers: [{ ttl: 60_000, limit: 100 }], // Increased to 100/min
-        } as any;
+        };
         if (redisUrl) {
           base.storage = new ThrottlerStorageRedisService(new Redis(redisUrl));
         }

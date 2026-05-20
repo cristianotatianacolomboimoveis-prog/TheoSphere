@@ -17,14 +17,19 @@
 
 import CircuitBreaker from 'opossum';
 
-const breakers = new Map<string, CircuitBreaker<[string, RequestInit], Response>>();
+const breakers = new Map<
+  string,
+  CircuitBreaker<[string, RequestInit], Response>
+>();
 
 /**
  * Gets or creates a circuit breaker for the given URL's host.
  * This ensures that if one service (e.g., Bolls) is down, we don't
  * keep hammering it and potentially backing up our own event loop.
  */
-function getBreaker(url: string): CircuitBreaker<[string, RequestInit], Response> {
+function getBreaker(
+  url: string,
+): CircuitBreaker<[string, RequestInit], Response> {
   try {
     const host = new URL(url).host;
     if (!breakers.has(host)) {
@@ -41,7 +46,9 @@ function getBreaker(url: string): CircuitBreaker<[string, RequestInit], Response
     return breakers.get(host)!;
   } catch {
     // If URL parsing fails, return a transient breaker
-    return new CircuitBreaker(async (u: string, init: RequestInit) => fetch(u, init));
+    return new CircuitBreaker(async (u: string, init: RequestInit) =>
+      fetch(u, init),
+    );
   }
 }
 
@@ -91,8 +98,11 @@ export async function safeFetch(
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       // Use the circuit breaker to fire the request
-      const response = await breaker.fire(url, { ...init, signal: controller.signal });
-      
+      const response = await breaker.fire(url, {
+        ...init,
+        signal: controller.signal,
+      });
+
       if (retryOnStatus.includes(response.status) && attempt < retries) {
         lastErr = new SafeFetchError(
           `upstream ${response.status}`,
@@ -105,7 +115,7 @@ export async function safeFetch(
       return response;
     } catch (err: any) {
       lastErr = err;
-      
+
       // If the breaker is open, don't retry, just fail fast (SEC-009)
       if (err.message === 'open' || err.message === 'half-open') {
         throw new SafeFetchError('Circuit breaker is open', url, 503, err);

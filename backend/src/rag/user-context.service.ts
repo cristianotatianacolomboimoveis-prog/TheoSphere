@@ -47,7 +47,7 @@ export class UserContextService implements OnModuleInit {
   private indexedDocIds = new Map<string, Set<string>>();
 
   private readonly MAX_IN_MEMORY_DOCS_PER_USER = 50;
-  private readonly MAX_CONTEXT_DOCS = 6; 
+  private readonly MAX_CONTEXT_DOCS = 6;
 
   constructor(
     private prisma: PrismaService,
@@ -148,7 +148,7 @@ export class UserContextService implements OnModuleInit {
     maxResults: number = this.MAX_CONTEXT_DOCS,
   ): Promise<{ document: UserDocument; similarity: number }[]> {
     const queryEmbedding = await this.embeddingService.createEmbedding(query);
-    
+
     // 1. Busca em Memória (Tier 1 - Ultrarápido)
     const userDocs = this.userIndex.get(userId) || [];
     const memoryResults = userDocs.map((doc) => ({
@@ -171,17 +171,20 @@ export class UserContextService implements OnModuleInit {
         ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
         LIMIT ${maxResults};
       `;
-      
-      dbResults = rows.map(r => ({
+
+      dbResults = rows.map((r) => ({
         document: {
           id: r.id,
           userId: userId,
           type: r.type,
           content: r.content,
-          metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata,
-          createdAt: new Date(r.createdAt).getTime()
+          metadata:
+            typeof r.metadata === 'string'
+              ? JSON.parse(r.metadata)
+              : r.metadata,
+          createdAt: new Date(r.createdAt).getTime(),
         },
-        similarity: r.similarity
+        similarity: r.similarity,
       }));
     } catch (err) {
       this.logger.debug(`Database context search failed: ${err.message}`);
@@ -189,8 +192,11 @@ export class UserContextService implements OnModuleInit {
 
     // 3. Merge, Deduplicação e Ranking
     const allResults = [...memoryResults, ...dbResults];
-    const uniqueResults = new Map<string, { document: UserDocument; similarity: number }>();
-    
+    const uniqueResults = new Map<
+      string,
+      { document: UserDocument; similarity: number }
+    >();
+
     for (const res of allResults) {
       const existing = uniqueResults.get(res.document.id);
       if (!existing || existing.similarity < res.similarity) {
@@ -206,7 +212,7 @@ export class UserContextService implements OnModuleInit {
     if (finalResults.length > 0) {
       this.logger.debug(
         `[Tiered Search] User ${userId} | ${finalResults.length} hits | ` +
-        `Best: ${finalResults[0].similarity.toFixed(3)}`
+          `Best: ${finalResults[0].similarity.toFixed(3)}`,
       );
     }
 
