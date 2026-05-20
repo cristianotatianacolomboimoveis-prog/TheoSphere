@@ -10,10 +10,10 @@ export function useTrackContext(context: PageContext | null) {
   useEffect(() => {
     // Evita loop infinito se o contexto for o mesmo (baseado no pageId)
     if (context?.pageId === currentContextRef.current) return;
-    
+
     currentContextRef.current = context?.pageId || null;
     setCurrentContext(context);
-    
+
     return () => {
       // Opcional: Limpar apenas se estiver saindo do sistema ou mudando radicalmente
       // setCurrentContext(null);

@@ -73,8 +73,15 @@ function getUserId(): string {
 }
 
 function loadLocalStorageData() {
-  if (typeof window === "undefined") return { notes: [], sermons: [], highlights: [], studies: [], bookmarks: [] };
-  
+  if (typeof window === "undefined")
+    return {
+      notes: [],
+      sermons: [],
+      highlights: [],
+      studies: [],
+      bookmarks: [],
+    };
+
   const parse = (key: string) => {
     try {
       const data = localStorage.getItem(key);
@@ -100,7 +107,9 @@ function getAIWorker() {
   if (typeof window === "undefined") return null;
   if (!globalAIWorker) {
     try {
-      globalAIWorker = new Worker(new URL("../lib/transformersWorker.ts", import.meta.url));
+      globalAIWorker = new Worker(
+        new URL("../lib/transformersWorker.ts", import.meta.url),
+      );
     } catch (err) {
       logger.error("Failed to create AI Worker:", err);
       return null;
@@ -118,7 +127,10 @@ export function useRAG() {
   const [isBackendAvailable, setIsBackendAvailable] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [totalSaved, setTotalSaved] = useState(0);
-  const [edgeAIStatus, setEdgeAIStatus] = useState<{ progress: number; text: string } | null>(null);
+  const [edgeAIStatus, setEdgeAIStatus] = useState<{
+    progress: number;
+    text: string;
+  } | null>(null);
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [userId] = useState(() => getUserId());
 
@@ -152,10 +164,13 @@ export function useRAG() {
   }, []);
 
   /* ── IA Local via Transformers.js (Singleton Worker) ───── */
-  async function generateLocalAIResponse(query: string, jsonMode: boolean = false): Promise<string> {
+  async function generateLocalAIResponse(
+    query: string,
+    jsonMode: boolean = false,
+  ): Promise<string> {
     return new Promise((resolve) => {
       const aiWorker = getAIWorker();
-      
+
       if (!aiWorker) {
         resolve(generateLocalResponse(query, jsonMode));
         return;
@@ -165,11 +180,13 @@ export function useRAG() {
         if (e.data.type === "EMBEDDING_GENERATED") {
           aiWorker.removeEventListener("message", messageHandler);
           aiWorker.removeEventListener("error", errorHandler);
-          
+
           if (jsonMode) {
-             resolve(generateLocalResponse(query, true));
+            resolve(generateLocalResponse(query, true));
           } else {
-             resolve(`[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`);
+            resolve(
+              `[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`,
+            );
           }
         }
       };
@@ -183,8 +200,11 @@ export function useRAG() {
 
       aiWorker.addEventListener("message", messageHandler);
       aiWorker.addEventListener("error", errorHandler);
-      
-      aiWorker.postMessage({ type: "GENERATE_EMBEDDING", payload: { text: query } });
+
+      aiWorker.postMessage({
+        type: "GENERATE_EMBEDDING",
+        payload: { text: query },
+      });
 
       // Timeout de segurança
       setTimeout(() => {
@@ -196,66 +216,85 @@ export function useRAG() {
   }
 
   /* ── Chat com RAG ─────────────────────────────────────── */
-  const chat = useCallback(async (
-    query: string,
-    history: ChatMessage[] = [],
-    tradition?: string,
-    jsonMode: boolean = false,
-  ): Promise<RagResponse> => {
-    // Tenta o backend primeiro (se online)
-    if (typeof navigator !== "undefined" && navigator.onLine) {
-      try {
-        const data = await api.post<{ success: boolean; data: RagResponse }>(
-          "rag/chat",
-          // userId removido — backend pega do JWT (SEC-002).
-          { query, tradition, history: history.slice(-6), jsonMode },
-          { timeoutMs: 20_000 },
-        );
-        if (data.success && data.data) {
-          if (data.data.meta.cached) {
-            setTotalSaved((prev) => prev + 0.015);
-          }
-          return data.data;
-        }
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-          // Sessão expirou e o auto-refresh também falhou — useAuth já foi
-          // notificado pelo evento global. Cai pra Edge AI silenciosamente.
-        } else {
-          logger.warn(
-            "[RAG] Backend lento ou indisponível, tentando Edge AI…",
+  const chat = useCallback(
+    async (
+      query: string,
+      history: ChatMessage[] = [],
+      tradition?: string,
+      jsonMode: boolean = false,
+    ): Promise<RagResponse> => {
+      // Tenta o backend primeiro (se online)
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const data = await api.post<{ success: boolean; data: RagResponse }>(
+            "rag/chat",
+            // userId removido — backend pega do JWT (SEC-002).
+            { query, tradition, history: history.slice(-6), jsonMode },
+            { timeoutMs: 20_000 },
           );
+          if (data.success && data.data) {
+            if (data.data.meta.cached) {
+              setTotalSaved((prev) => prev + 0.015);
+            }
+            return data.data;
+          }
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) {
+            // Sessão expirou e o auto-refresh também falhou — useAuth já foi
+            // notificado pelo evento global. Cai pra Edge AI silenciosamente.
+          } else {
+            logger.warn(
+              "[RAG] Backend lento ou indisponível, tentando Edge AI…",
+            );
+          }
         }
       }
-    }
 
-    // Fallback: IA de Borda (WebGPU) se estiver pronta
-    if (edgeAI.isReady()) {
-      const systemPrompt = `Você é o TheoAI, assistente PhD em teologia. Analise a passagem bíblica ou questão fornecida. Responda em Português. Tradição: ${tradition || 'Geral'}. ${jsonMode ? 'Responda APENAS em JSON seguindo o esquema acadêmico.' : ''}`;
-      const content = await edgeAI.generate(query, systemPrompt);
+      // Fallback: IA de Borda (WebGPU) se estiver pronta
+      if (edgeAI.isReady()) {
+        const systemPrompt = `Você é o TheoAI, assistente PhD em teologia. Analise a passagem bíblica ou questão fornecida. Responda em Português. Tradição: ${tradition || "Geral"}. ${jsonMode ? "Responda APENAS em JSON seguindo o esquema acadêmico." : ""}`;
+        const content = await edgeAI.generate(query, systemPrompt);
+        return {
+          content,
+          meta: {
+            cached: false,
+            contextUsed: false,
+            contextDocCount: 0,
+            tokensEstimated: 0,
+            costEstimated: 0,
+            cacheSource: "user",
+          },
+        };
+      }
+
+      // Fallback Final: IA Local Básica (Transformers.js) ou Estática
+      const content = await generateLocalAIResponse(query, jsonMode);
       return {
         content,
-        meta: { cached: false, contextUsed: false, contextDocCount: 0, tokensEstimated: 0, costEstimated: 0, cacheSource: "user" }
+        meta: {
+          cached: false,
+          contextUsed: true,
+          contextDocCount: 1,
+          tokensEstimated: 0,
+          costEstimated: 0,
+          cacheSource: "user",
+        },
       };
-    }
-
-    // Fallback Final: IA Local Básica (Transformers.js) ou Estática
-    const content = await generateLocalAIResponse(query, jsonMode);
-    return {
-      content,
-      meta: { cached: false, contextUsed: true, contextDocCount: 1, tokensEstimated: 0, costEstimated: 0, cacheSource: "user" },
-    };
-  }, []);
-
-
+    },
+    [],
+  );
 
   /* ── Sincroniza conteúdo do usuário ───────────────────── */
   const syncUserContent = useCallback(async (): Promise<SyncResult | null> => {
     try {
       const data = loadLocalStorageData();
-      const totalDocs = data.notes.length + data.sermons.length + 
-                        data.highlights.length + data.studies.length + data.bookmarks.length;
-      
+      const totalDocs =
+        data.notes.length +
+        data.sermons.length +
+        data.highlights.length +
+        data.studies.length +
+        data.bookmarks.length;
+
       if (totalDocs === 0) return null;
 
       const result = await api.post<{ success: boolean; data: SyncResult }>(
@@ -347,26 +386,61 @@ export function useRAG() {
 
 /* ─── Fallback Local (quando backend está offline) ──────── */
 
-function generateLocalResponse(query: string, jsonMode: boolean = false): string {
+function generateLocalResponse(
+  query: string,
+  jsonMode: boolean = false,
+): string {
   const lower = query.toLowerCase();
 
   if (jsonMode) {
     const isNT = /joao|joão|john|3:16/i.test(lower);
-    
+
     if (!isNT) {
       return JSON.stringify({
         verse: "Gênesis 1:1",
         original_language: "HB",
         interlinear: [
-          { word: "בְּרֵאשִׁית", transliteration: "bereshit", strong: "H7225", morphology: "Prep + Substantivo", translation: "No princípio" },
-          { word: "בָּרָא", transliteration: "bara", strong: "H1254", morphology: "Verbo Qal Perf.", translation: "criou" },
-          { word: "אֱלֹהִים", transliteration: "elohim", strong: "H430", morphology: "Substantivo Pl.", translation: "Deus" }
+          {
+            word: "בְּרֵאשִׁית",
+            transliteration: "bereshit",
+            strong: "H7225",
+            morphology: "Prep + Substantivo",
+            translation: "No princípio",
+          },
+          {
+            word: "בָּרָא",
+            transliteration: "bara",
+            strong: "H1254",
+            morphology: "Verbo Qal Perf.",
+            translation: "criou",
+          },
+          {
+            word: "אֱלֹהִים",
+            transliteration: "elohim",
+            strong: "H430",
+            morphology: "Substantivo Pl.",
+            translation: "Deus",
+          },
         ],
-        lexical_analysis: [{ word: "bara", bdag_halot_sense: "Criar ex-nihilo", academic_discussion: "Ato criativo soberano" }],
+        lexical_analysis: [
+          {
+            word: "bara",
+            bdag_halot_sense: "Criar ex-nihilo",
+            academic_discussion: "Ato criativo soberano",
+          },
+        ],
         syntactic_notes: "Estrutura V-S típica de ênfase narrativa.",
-        syntactic_graph: { nodes: [{id: "1", label: "bara", type: "verb"}], edges: [] },
-        technical_commentary: [{ source: "TheoLocal", view: "Afirmação da transcendência divina." }],
-        systematic_connection: { locus: "Protologia", explanation: "Deus como causa primária." }
+        syntactic_graph: {
+          nodes: [{ id: "1", label: "bara", type: "verb" }],
+          edges: [],
+        },
+        technical_commentary: [
+          { source: "TheoLocal", view: "Afirmação da transcendência divina." },
+        ],
+        systematic_connection: {
+          locus: "Protologia",
+          explanation: "Deus como causa primária.",
+        },
       });
     }
 
@@ -374,19 +448,55 @@ function generateLocalResponse(query: string, jsonMode: boolean = false): string
       verse: "João 3:16",
       original_language: "GK",
       interlinear: [
-        { word: "Οὕτως", transliteration: "Houtōs", strong: "G3779", morphology: "Advérbio", translation: "De tal maneira" },
-        { word: "γὰρ", transliteration: "gar", strong: "G1063", morphology: "Conjunção", translation: "porque" },
-        { word: "ἠγάπησεν", transliteration: "ēgapēsen", strong: "G25", morphology: "Verbo Aoristo", translation: "amou" }
+        {
+          word: "Οὕτως",
+          transliteration: "Houtōs",
+          strong: "G3779",
+          morphology: "Advérbio",
+          translation: "De tal maneira",
+        },
+        {
+          word: "γὰρ",
+          transliteration: "gar",
+          strong: "G1063",
+          morphology: "Conjunção",
+          translation: "porque",
+        },
+        {
+          word: "ἠγάπησεν",
+          transliteration: "ēgapēsen",
+          strong: "G25",
+          morphology: "Verbo Aoristo",
+          translation: "amou",
+        },
       ],
-      lexical_analysis: [{ word: "agape", bdag_halot_sense: "Amor sacrificial", academic_discussion: "Foco no objeto amado" }],
+      lexical_analysis: [
+        {
+          word: "agape",
+          bdag_halot_sense: "Amor sacrificial",
+          academic_discussion: "Foco no objeto amado",
+        },
+      ],
       syntactic_notes: "Aoristo indicando ação histórica definitiva.",
-      syntactic_graph: { nodes: [{id: "1", label: "amou", type: "verb"}], edges: [] },
-      technical_commentary: [{ source: "TheoLocal", view: "O ápice da revelação do amor divino." }],
-      systematic_connection: { locus: "Soteriologia", explanation: "A salvação centrada na fé em Cristo." }
+      syntactic_graph: {
+        nodes: [{ id: "1", label: "amou", type: "verb" }],
+        edges: [],
+      },
+      technical_commentary: [
+        { source: "TheoLocal", view: "O ápice da revelação do amor divino." },
+      ],
+      systematic_connection: {
+        locus: "Soteriologia",
+        explanation: "A salvação centrada na fé em Cristo.",
+      },
     });
   }
 
-  if (lower.includes("predestinação") || lower.includes("livre-arbítrio") || lower.includes("calvinism")) {
+  if (
+    lower.includes("predestinação") ||
+    lower.includes("livre-arbítrio") ||
+    lower.includes("calvinism")
+  ) {
     return `## Predestinação vs Livre-Arbítrio
 
 ### 📖 Perspectiva Calvinista (Reformada)

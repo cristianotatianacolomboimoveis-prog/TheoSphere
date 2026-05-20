@@ -14,8 +14,18 @@ interface CitationParams {
   author?: string;
 }
 
-export function generateCitation(params: CitationParams, style: CitationStyle = "ABNT"): string {
-  const { book, chapter, verse, translation, insight, author = "TheoSphere Engine" } = params;
+export function generateCitation(
+  params: CitationParams,
+  style: CitationStyle = "ABNT",
+): string {
+  const {
+    book,
+    chapter,
+    verse,
+    translation,
+    insight,
+    author = "TheoSphere Engine",
+  } = params;
   const versePart = verse ? `:${verse}` : "";
   const reference = `${book} ${chapter}${versePart}`;
   const date = new Date().toLocaleDateString("pt-BR", { year: "numeric" });

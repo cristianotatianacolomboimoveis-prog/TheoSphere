@@ -34,7 +34,11 @@ export function LoadingState({
 }: LoadingStateProps) {
   if (variant === "skeleton") {
     return (
-      <div className={`space-y-3 animate-pulse ${className}`} aria-label={label} role="status">
+      <div
+        className={`space-y-3 animate-pulse ${className}`}
+        aria-label={label}
+        role="status"
+      >
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}
@@ -54,7 +58,9 @@ export function LoadingState({
         role="status"
         aria-live="polite"
       >
-        <Loader2 className={`w-3.5 h-3.5 animate-spin ${accentClass[accent]}`} />
+        <Loader2
+          className={`w-3.5 h-3.5 animate-spin ${accentClass[accent]}`}
+        />
         <span>{label}</span>
       </span>
     );
@@ -82,7 +88,9 @@ export function LoadingState({
       aria-live="polite"
     >
       <Loader2 className={`w-10 h-10 animate-spin ${accentClass[accent]}`} />
-      <p className="text-xs text-muted font-medium tracking-wider uppercase">{label}</p>
+      <p className="text-xs text-muted font-medium tracking-wider uppercase">
+        {label}
+      </p>
     </div>
   );
 }

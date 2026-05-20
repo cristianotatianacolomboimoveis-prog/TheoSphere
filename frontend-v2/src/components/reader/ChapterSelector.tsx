@@ -10,10 +10,16 @@ interface ChapterSelectorProps {
   onSelect: (chapter: number) => void;
 }
 
-export const ChapterSelector: React.FC<ChapterSelectorProps> = ({ isOpen, onClose, onSelect }) => {
+export const ChapterSelector: React.FC<ChapterSelectorProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+}) => {
   const { books, activeBook, activeChapter } = useTheoStore();
 
-  const selectedBook = books.find(b => b.namePt === activeBook || b.nameEn === activeBook);
+  const selectedBook = books.find(
+    (b) => b.namePt === activeBook || b.nameEn === activeBook,
+  );
   const chapterCount = selectedBook?.chapters || 0;
 
   return (
@@ -29,10 +35,13 @@ export const ChapterSelector: React.FC<ChapterSelectorProps> = ({ isOpen, onClos
             {selectedBook?.namePt || activeBook} — {chapterCount} capítulos
           </p>
           <div className="grid grid-cols-6 gap-1.5">
-            {Array.from({ length: chapterCount }, (_, i) => i + 1).map(ch => (
+            {Array.from({ length: chapterCount }, (_, i) => i + 1).map((ch) => (
               <button
                 key={ch}
-                onClick={() => { onSelect(ch); onClose(); }}
+                onClick={() => {
+                  onSelect(ch);
+                  onClose();
+                }}
                 className={`py-2.5 rounded-lg text-xs font-bold transition-all ${
                   activeChapter === ch
                     ? "bg-accent/20 text-accent border border-accent/30 shadow-lg shadow-accent/10"

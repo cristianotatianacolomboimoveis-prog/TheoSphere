@@ -16,15 +16,19 @@ interface VerseRowProps {
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>;
-  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+  const parts = text.split(
+    new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"),
+  );
   return (
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-blue-600/20 text-blue-600 rounded px-0.5">{part}</mark>
+          <mark key={i} className="bg-blue-600/20 text-blue-600 rounded px-0.5">
+            {part}
+          </mark>
         ) : (
           part
-        )
+        ),
       )}
     </>
   );
@@ -40,7 +44,9 @@ export const VerseRow: React.FC<VerseRowProps> = ({
   crossRefCount,
   onCrossRefClick,
 }) => (
-  <div className={`grid ${secondaryText ? "grid-cols-2 gap-12" : "grid-cols-1"} w-full max-w-4xl mx-auto`}>
+  <div
+    className={`grid ${secondaryText ? "grid-cols-2 gap-12" : "grid-cols-1"} w-full max-w-4xl mx-auto`}
+  >
     {/* Primary Version - Academic Book Page Style */}
     <div
       onClick={onClick}
@@ -72,7 +78,11 @@ export const VerseRow: React.FC<VerseRowProps> = ({
 
         {/* Biblical Text - Serif Focus */}
         <span className="text-[20px] leading-[1.8] font-serif text-gray-800 dark:text-gray-200 tracking-normal text-justify hyphens-auto">
-          {highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
+          {highlightQuery ? (
+            <HighlightedText text={text} query={highlightQuery} />
+          ) : (
+            text
+          )}
         </span>
       </div>
     </div>

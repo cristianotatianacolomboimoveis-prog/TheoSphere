@@ -10,53 +10,65 @@ export const DICTIONARIES: DictionaryEntry[] = [
     id: "isbe-justification",
     word: "Justification",
     source: "International Standard Bible Encyclopedia (ISBE)",
-    definition: "O ato forense ou declarativo de Deus pelo qual Ele declara justo o pecador que crê em Cristo, não com base no caráter do pecador, mas com base na justiça perfeita de Cristo imputada ao crente. Diferente da santificação, que é um processo moral interior.",
+    definition:
+      "O ato forense ou declarativo de Deus pelo qual Ele declara justo o pecador que crê em Cristo, não com base no caráter do pecador, mas com base na justiça perfeita de Cristo imputada ao crente. Diferente da santificação, que é um processo moral interior.",
   },
   {
     id: "easton-grace",
     word: "Grace",
     source: "Easton's Bible Dictionary",
-    definition: "O favor imerecido de Deus para com a humanidade. No Novo Testamento, refere-se ao amor de Deus manifestado no perdão e na salvação através de Jesus Cristo, apartados de qualquer mérito ou obras da lei.",
+    definition:
+      "O favor imerecido de Deus para com a humanidade. No Novo Testamento, refere-se ao amor de Deus manifestado no perdão e na salvação através de Jesus Cristo, apartados de qualquer mérito ou obras da lei.",
   },
   {
     id: "smith-baptize",
     word: "Baptism",
     source: "Smith's Bible Dictionary",
-    definition: "Ato de iniciação ou profissão de fé. A palavra deriva do grego baptizo, que originalmente significa 'mergulhar' ou 'imergir'. Era usado para prosélitos judeus antes de ser ordenado por Cristo como o rito de entrada na comunidade cristã.",
+    definition:
+      "Ato de iniciação ou profissão de fé. A palavra deriva do grego baptizo, que originalmente significa 'mergulhar' ou 'imergir'. Era usado para prosélitos judeus antes de ser ordenado por Cristo como o rito de entrada na comunidade cristã.",
   },
   {
     id: "isbe-sanctification",
     word: "Sanctification",
     source: "ISBE",
-    definition: "O processo contínuo pelo qual o Espírito Santo transforma o caráter do crente à imagem de Cristo. Envolve a separação do pecado e a dedicação a Deus. É progressivo nesta vida e será concluído apenas na glorificação.",
+    definition:
+      "O processo contínuo pelo qual o Espírito Santo transforma o caráter do crente à imagem de Cristo. Envolve a separação do pecado e a dedicação a Deus. É progressivo nesta vida e será concluído apenas na glorificação.",
   },
   {
     id: "gen-principio",
     word: "Princípio (Bereshit)",
     source: "Teologia Bíblica",
-    definition: "O ponto inicial da criação e do tempo. No contexto de Gênesis 1:1, aponta para a origem absoluta do universo por decreto divino. João 1:1 ecoa este termo ligando-o à preexistência do Logos.",
+    definition:
+      "O ponto inicial da criação e do tempo. No contexto de Gênesis 1:1, aponta para a origem absoluta do universo por decreto divino. João 1:1 ecoa este termo ligando-o à preexistência do Logos.",
   },
   {
     id: "gen-deus",
     word: "Deus (Elohim)",
     source: "Teologia Própria",
-    definition: "O nome plural de Deus usado na criação, indicando plenitude de poder e majestade. Sugere, na perspectiva cristã, a pluralidade de pessoas na unidade da essência (Trindade).",
+    definition:
+      "O nome plural de Deus usado na criação, indicando plenitude de poder e majestade. Sugere, na perspectiva cristã, a pluralidade de pessoas na unidade da essência (Trindade).",
   },
   {
     id: "gen-criar",
     word: "Criar (Bara)",
     source: "Léxico Hebraico",
-    definition: "Termo usado exclusivamente para a atividade criadora de Deus. Em Gênesis 1:1, indica a criação 'ex nihilo' (a partir do nada), sem o uso de matéria preexistente.",
+    definition:
+      "Termo usado exclusivamente para a atividade criadora de Deus. Em Gênesis 1:1, indica a criação 'ex nihilo' (a partir do nada), sem o uso de matéria preexistente.",
   },
   {
     id: "gen-ceus-terra",
     word: "Céus e Terra",
     source: "Cosmologia Bíblica",
-    definition: "Merismo hebraico que designa a totalidade do universo — tudo o que existe no domínio espiritual e material.",
-  }
+    definition:
+      "Merismo hebraico que designa a totalidade do universo — tudo o que existe no domínio espiritual e material.",
+  },
 ];
 
 export function searchDictionaries(query: string): DictionaryEntry[] {
   const lowerQuery = query.toLowerCase();
-  return DICTIONARIES.filter(d => d.word.toLowerCase().includes(lowerQuery) || d.definition.toLowerCase().includes(lowerQuery));
+  return DICTIONARIES.filter(
+    (d) =>
+      d.word.toLowerCase().includes(lowerQuery) ||
+      d.definition.toLowerCase().includes(lowerQuery),
+  );
 }

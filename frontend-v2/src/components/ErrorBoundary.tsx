@@ -36,8 +36,8 @@ export class ErrorBoundary extends Component<Props, State> {
             Interrupção de Sistema
           </h1>
           <p className="text-sm text-slate-400 max-w-md mb-8 leading-relaxed">
-            Ocorreu uma falha crítica no núcleo do TheoSphere OS. 
-            Nossos agentes de recuperação foram notificados.
+            Ocorreu uma falha crítica no núcleo do TheoSphere OS. Nossos agentes
+            de recuperação foram notificados.
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -46,11 +46,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <RefreshCw className="w-4 h-4" />
             Reiniciar Núcleo
           </button>
-          
+
           <div className="mt-12 p-4 bg-black/40 rounded-xl border border-border-subtle text-left max-w-2xl overflow-auto max-h-40">
-             <pre className="text-[10px] font-mono text-red-400/60 leading-tight">
-               {this.state.error?.stack}
-             </pre>
+            <pre className="text-[10px] font-mono text-red-400/60 leading-tight">
+              {this.state.error?.stack}
+            </pre>
           </div>
         </div>
       );

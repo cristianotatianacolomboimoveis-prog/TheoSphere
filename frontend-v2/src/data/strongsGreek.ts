@@ -19,7 +19,8 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     transliteration: "agapē",
     pronunciation: "ah-GAH-pay",
     definition: "Love, affection, benevolence; love-feast",
-    definitionPt: "Amor incondicional, afeição divina, benevolência sacrificial; ágape",
+    definitionPt:
+      "Amor incondicional, afeição divina, benevolência sacrificial; ágape",
     partOfSpeech: "Noun, Feminine",
     occurrences: 116,
     kjvTranslations: [
@@ -30,7 +31,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "feast of charity", count: 1 },
     ],
     relatedWords: ["G25 (agapaō)", "G27 (agapētos)"],
-    keyVerses: ["1 Corinthians 13:4-8", "John 3:16", "Romans 5:8", "1 John 4:8"],
+    keyVerses: [
+      "1 Corinthians 13:4-8",
+      "John 3:16",
+      "Romans 5:8",
+      "1 John 4:8",
+    ],
   },
   G4102: {
     number: "G4102",
@@ -49,7 +55,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "fidelity", count: 1 },
     ],
     relatedWords: ["G4100 (pisteuō)", "G4103 (pistos)"],
-    keyVerses: ["Hebrews 11:1", "Romans 1:17", "Ephesians 2:8", "Galatians 2:20"],
+    keyVerses: [
+      "Hebrews 11:1",
+      "Romans 1:17",
+      "Ephesians 2:8",
+      "Galatians 2:20",
+    ],
   },
   G3056: {
     number: "G3056",
@@ -57,7 +68,8 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     transliteration: "logos",
     pronunciation: "LO-gos",
     definition: "Word, speech, discourse; reason, account; the divine Word",
-    definitionPt: "Palavra, discurso, razão; o Verbo divino; expressão do pensamento",
+    definitionPt:
+      "Palavra, discurso, razão; o Verbo divino; expressão do pensamento",
     partOfSpeech: "Noun, Masculine",
     occurrences: 330,
     kjvTranslations: [
@@ -87,7 +99,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "saving", count: 1 },
     ],
     relatedWords: ["G4982 (sōzō)", "G4990 (sōtēr)"],
-    keyVerses: ["Acts 4:12", "Ephesians 2:8", "Romans 1:16", "Philippians 2:12"],
+    keyVerses: [
+      "Acts 4:12",
+      "Ephesians 2:8",
+      "Romans 1:16",
+      "Philippians 2:12",
+    ],
   },
   G5485: {
     number: "G5485",
@@ -95,7 +112,8 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     transliteration: "charis",
     pronunciation: "KHA-ris",
     definition: "Grace, favor, thanks; the divine influence upon the heart",
-    definitionPt: "Graça, favor imerecido, gratidão; influência divina no coração",
+    definitionPt:
+      "Graça, favor imerecido, gratidão; influência divina no coração",
     partOfSpeech: "Noun, Feminine",
     occurrences: 156,
     kjvTranslations: [
@@ -106,7 +124,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "pleasure", count: 2 },
     ],
     relatedWords: ["G5463 (chairō)", "G5486 (charisma)"],
-    keyVerses: ["Ephesians 2:8-9", "Romans 3:24", "2 Corinthians 12:9", "Titus 2:11"],
+    keyVerses: [
+      "Ephesians 2:8-9",
+      "Romans 3:24",
+      "2 Corinthians 12:9",
+      "Titus 2:11",
+    ],
   },
   G1343: {
     number: "G1343",
@@ -117,11 +140,14 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Justiça, retidão; estado de ser justo diante de Deus",
     partOfSpeech: "Noun, Feminine",
     occurrences: 92,
-    kjvTranslations: [
-      { word: "righteousness", count: 92 },
-    ],
+    kjvTranslations: [{ word: "righteousness", count: 92 }],
     relatedWords: ["G1342 (dikaios)", "G1344 (dikaioō)"],
-    keyVerses: ["Romans 3:21-22", "Matthew 6:33", "Philippians 3:9", "2 Corinthians 5:21"],
+    keyVerses: [
+      "Romans 3:21-22",
+      "Matthew 6:33",
+      "Philippians 3:9",
+      "2 Corinthians 5:21",
+    ],
   },
   G40: {
     number: "G40",
@@ -139,7 +165,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "holy thing", count: 3 },
     ],
     relatedWords: ["G37 (hagiazō)", "G38 (hagiasmos)"],
-    keyVerses: ["1 Peter 1:16", "Romans 1:7", "Revelation 4:8", "Hebrews 12:14"],
+    keyVerses: [
+      "1 Peter 1:16",
+      "Romans 1:7",
+      "Revelation 4:8",
+      "Hebrews 12:14",
+    ],
   },
   G932: {
     number: "G932",
@@ -150,9 +181,7 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Reino, reinado, poder real, domínio; o Reino de Deus",
     partOfSpeech: "Noun, Feminine",
     occurrences: 162,
-    kjvTranslations: [
-      { word: "kingdom", count: 162 },
-    ],
+    kjvTranslations: [{ word: "kingdom", count: 162 }],
     relatedWords: ["G935 (basileus)", "G936 (basileuō)"],
     keyVerses: ["Matthew 6:33", "Mark 1:15", "Luke 17:21", "Romans 14:17"],
   },
@@ -165,9 +194,7 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Lei, regulamento, princípio; a Lei Mosaica, Torá",
     partOfSpeech: "Noun, Masculine",
     occurrences: 197,
-    kjvTranslations: [
-      { word: "law", count: 197 },
-    ],
+    kjvTranslations: [{ word: "law", count: 197 }],
     relatedWords: ["G3544 (nomikos)", "G3548 (nomothesia)"],
     keyVerses: ["Romans 3:20", "Galatians 3:24", "Romans 7:7", "Matthew 5:17"],
   },
@@ -221,7 +248,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "Joshua", count: 2 },
     ],
     relatedWords: ["H3091 (Yehoshua)"],
-    keyVerses: ["Matthew 1:21", "Acts 4:12", "Philippians 2:10", "Hebrews 12:2"],
+    keyVerses: [
+      "Matthew 1:21",
+      "Acts 4:12",
+      "Philippians 2:10",
+      "Hebrews 12:2",
+    ],
   },
   G5547: {
     number: "G5547",
@@ -232,9 +264,7 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Cristo, o Ungido; o Messias prometido",
     partOfSpeech: "Noun, Masculine",
     occurrences: 569,
-    kjvTranslations: [
-      { word: "Christ", count: 569 },
-    ],
+    kjvTranslations: [{ word: "Christ", count: 569 }],
     relatedWords: ["G5548 (chriō)", "H4899 (mashiach)"],
     keyVerses: ["Matthew 16:16", "John 1:41", "Acts 2:36", "Romans 10:4"],
   },
@@ -285,7 +315,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "deadly", count: 2 },
     ],
     relatedWords: ["G2289 (thanatoō)", "G599 (apothnēskō)"],
-    keyVerses: ["Romans 6:23", "1 Corinthians 15:55", "Revelation 21:4", "Romans 5:12"],
+    keyVerses: [
+      "Romans 6:23",
+      "1 Corinthians 15:55",
+      "Revelation 21:4",
+      "Romans 5:12",
+    ],
   },
   G1577: {
     number: "G1577",
@@ -301,7 +336,12 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "assembly", count: 3 },
     ],
     relatedWords: ["G1537 (ek)", "G2564 (kaleō)"],
-    keyVerses: ["Matthew 16:18", "Ephesians 5:25", "1 Corinthians 12:27", "Colossians 1:18"],
+    keyVerses: [
+      "Matthew 16:18",
+      "Ephesians 5:25",
+      "1 Corinthians 12:27",
+      "Colossians 1:18",
+    ],
   },
   G3341: {
     number: "G3341",
@@ -312,9 +352,7 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Arrependimento, mudança de mente, conversão do pecado",
     partOfSpeech: "Noun, Feminine",
     occurrences: 24,
-    kjvTranslations: [
-      { word: "repentance", count: 24 },
-    ],
+    kjvTranslations: [{ word: "repentance", count: 24 }],
     relatedWords: ["G3340 (metanoeō)"],
     keyVerses: ["Acts 2:38", "2 Peter 3:9", "Luke 15:7", "Mark 1:15"],
   },
@@ -327,11 +365,14 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
     definitionPt: "Esperança, expectativa, confiança no futuro divino",
     partOfSpeech: "Noun, Feminine",
     occurrences: 53,
-    kjvTranslations: [
-      { word: "hope", count: 53 },
-    ],
+    kjvTranslations: [{ word: "hope", count: 53 }],
     relatedWords: ["G1679 (elpizō)"],
-    keyVerses: ["Romans 8:24", "1 Corinthians 13:13", "Hebrews 6:19", "1 Peter 1:3"],
+    keyVerses: [
+      "Romans 8:24",
+      "1 Corinthians 13:13",
+      "Hebrews 6:19",
+      "1 Peter 1:3",
+    ],
   },
   G1515: {
     number: "G1515",
@@ -349,18 +390,24 @@ export const STRONGS_GREEK: Record<string, StrongsEntry> = {
       { word: "quietness", count: 1 },
     ],
     relatedWords: ["G1514 (eirēneuō)", "G1516 (eirēnikos)", "H7965 (shalom)"],
-    keyVerses: ["John 14:27", "Philippians 4:7", "Romans 5:1", "Ephesians 2:14"],
+    keyVerses: [
+      "John 14:27",
+      "Philippians 4:7",
+      "Romans 5:1",
+      "Ephesians 2:14",
+    ],
   },
 };
 
 export function searchStrongs(query: string): StrongsEntry[] {
   const lower = query.toLowerCase();
-  return Object.values(STRONGS_GREEK).filter(entry =>
-    entry.number.toLowerCase().includes(lower) ||
-    entry.lemma.toLowerCase().includes(lower) ||
-    entry.transliteration.toLowerCase().includes(lower) ||
-    entry.definition.toLowerCase().includes(lower) ||
-    entry.definitionPt.toLowerCase().includes(lower)
+  return Object.values(STRONGS_GREEK).filter(
+    (entry) =>
+      entry.number.toLowerCase().includes(lower) ||
+      entry.lemma.toLowerCase().includes(lower) ||
+      entry.transliteration.toLowerCase().includes(lower) ||
+      entry.definition.toLowerCase().includes(lower) ||
+      entry.definitionPt.toLowerCase().includes(lower),
   );
 }
 

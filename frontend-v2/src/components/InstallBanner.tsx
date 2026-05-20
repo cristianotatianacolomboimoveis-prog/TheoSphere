@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { X, Download } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from "react";
+import { X, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function InstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -18,27 +18,30 @@ export default function InstallBanner() {
       setIsVisible(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-    window.addEventListener('appinstalled', () => {
+    window.addEventListener("appinstalled", () => {
       setIsVisible(false);
       setDeferredPrompt(null);
     });
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
     };
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    
+
     // Mostra o prompt do navegador
     deferredPrompt.prompt();
-    
+
     // Espera pela resposta do usuário
     const { outcome } = await deferredPrompt.userChoice;
-    
+
     // Limpa o prompt
     setDeferredPrompt(null);
     setIsVisible(false);
@@ -63,8 +66,12 @@ export default function InstallBanner() {
                 <Download className="w-5 h-5 text-black" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white leading-tight">Instalar TheoSphere</p>
-                <p className="text-[10px] text-zinc-400 font-medium">Acesse offline como um aplicativo nativo.</p>
+                <p className="text-sm font-bold text-white leading-tight">
+                  Instalar TheoSphere
+                </p>
+                <p className="text-[10px] text-zinc-400 font-medium">
+                  Acesse offline como um aplicativo nativo.
+                </p>
               </div>
             </div>
 
@@ -75,7 +82,7 @@ export default function InstallBanner() {
               >
                 Instalar
               </button>
-              <button 
+              <button
                 onClick={handleDismiss}
                 className="p-2 text-zinc-500 hover:text-white transition-colors"
               >

@@ -1,7 +1,14 @@
 // Tipos do Schema Local-First para a engine geoespacial 4D
 import * as turf from "@turf/turf";
 
-export type LocationType = "city" | "mountain" | "river" | "desert" | "border" | "region" | "body_of_water";
+export type LocationType =
+  | "city"
+  | "mountain"
+  | "river"
+  | "desert"
+  | "border"
+  | "region"
+  | "body_of_water";
 
 export interface BiblicalLocation {
   location_id: string;
@@ -40,7 +47,8 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: -500,
     type: "city",
     verse_refs: ["Genesis 11:28", "Genesis 11:31", "Nehemiah 9:7"],
-    description: "Antiga cidade da Mesopotâmia de onde Abrão iniciou sua jornada."
+    description:
+      "Antiga cidade da Mesopotâmia de onde Abrão iniciou sua jornada.",
   },
   {
     location_id: "loc_haran",
@@ -51,7 +59,8 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 1000,
     type: "city",
     verse_refs: ["Genesis 11:31", "Genesis 12:4", "Genesis 27:43"],
-    description: "Cidade estratégica onde Abrão permaneceu até a morte de seu pai."
+    description:
+      "Cidade estratégica onde Abrão permaneceu até a morte de seu pai.",
   },
   {
     location_id: "loc_canaan_shechem",
@@ -62,7 +71,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 100,
     type: "city",
     verse_refs: ["Genesis 12:6", "Genesis 33:18", "Joshua 24:1"],
-    description: "Primeiro local em Canaã onde Deus apareceu a Abrão."
+    description: "Primeiro local em Canaã onde Deus apareceu a Abrão.",
   },
   {
     location_id: "loc_bethel",
@@ -73,7 +82,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 100,
     type: "city",
     verse_refs: ["Genesis 12:8", "Genesis 28:19"],
-    description: "Local onde Abrão armou sua tenda e invocou o nome do Senhor."
+    description: "Local onde Abrão armou sua tenda e invocou o nome do Senhor.",
   },
   {
     location_id: "loc_egypt_negev",
@@ -84,7 +93,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 2000,
     type: "desert",
     verse_refs: ["Genesis 12:9", "Genesis 13:1"],
-    description: "Região desértica ao sul de Canaã no caminho para o Egito."
+    description: "Região desértica ao sul de Canaã no caminho para o Egito.",
   },
   {
     location_id: "loc_goshen",
@@ -95,7 +104,8 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: -1400,
     type: "region",
     verse_refs: ["Genesis 45:10", "Exodus 8:22"],
-    description: "Região fértil no Egito habitada pelos israelitas antes do Êxodo."
+    description:
+      "Região fértil no Egito habitada pelos israelitas antes do Êxodo.",
   },
   {
     location_id: "loc_succoth",
@@ -106,29 +116,29 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: -1000,
     type: "city",
     verse_refs: ["Exodus 12:37", "Exodus 13:20"],
-    description: "Primeiro ponto de acampamento após deixarem Ramessés."
+    description: "Primeiro ponto de acampamento após deixarem Ramessés.",
   },
   {
     location_id: "loc_sinai",
     canonical_name: "Mount Sinai",
     biblical_name: "Monte Sinai",
-    coordinates: [33.9750, 28.5391],
+    coordinates: [33.975, 28.5391],
     period_start: -2000,
     period_end: 2000,
     type: "mountain",
     verse_refs: ["Exodus 19:2", "Exodus 24:16"],
-    description: "Montanha onde Moisés recebeu a Lei."
+    description: "Montanha onde Moisés recebeu a Lei.",
   },
   {
     location_id: "loc_kadesh",
     canonical_name: "Kadesh Barnea",
     biblical_name: "Cades-Barneia",
-    coordinates: [35.4500, 30.3167],
+    coordinates: [35.45, 30.3167],
     period_start: -2000,
     period_end: -500,
     type: "desert",
     verse_refs: ["Numbers 13:26", "Deuteronomy 1:2"],
-    description: "Local de rebelião de onde os espias foram enviados."
+    description: "Local de rebelião de onde os espias foram enviados.",
   },
   {
     location_id: "loc_moab",
@@ -139,7 +149,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 100,
     type: "region",
     verse_refs: ["Numbers 22:1", "Deuteronomy 34:1"],
-    description: "Último acampamento antes de entrar na Terra Prometida."
+    description: "Último acampamento antes de entrar na Terra Prometida.",
   },
   {
     location_id: "antioquia",
@@ -150,7 +160,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 1500,
     type: "city",
     verse_refs: ["Acts 11:26", "Acts 13:4"],
-    description: "Base missionária de Paulo e Barnabé."
+    description: "Base missionária de Paulo e Barnabé.",
   },
   {
     location_id: "seleucia",
@@ -161,18 +171,18 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 600,
     type: "city",
     verse_refs: ["Acts 13:4"],
-    description: "Porto marítimo de Antioquia."
+    description: "Porto marítimo de Antioquia.",
   },
   {
     location_id: "salamis",
     canonical_name: "Salamis",
     biblical_name: "Salamina",
-    coordinates: [33.9333, 35.1500],
+    coordinates: [33.9333, 35.15],
     period_start: -1100,
     period_end: 700,
     type: "city",
     verse_refs: ["Acts 13:5"],
-    description: "Principal cidade e porto comercial na costa leste de Chipre."
+    description: "Principal cidade e porto comercial na costa leste de Chipre.",
   },
   {
     location_id: "paphos",
@@ -183,7 +193,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 2000,
     type: "city",
     verse_refs: ["Acts 13:6"],
-    description: "Sede do governo romano em Chipre."
+    description: "Sede do governo romano em Chipre.",
   },
   {
     location_id: "perga",
@@ -194,7 +204,7 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 1000,
     type: "city",
     verse_refs: ["Acts 13:13"],
-    description: "Onde João Marcos deixou a equipe."
+    description: "Onde João Marcos deixou a equipe.",
   },
   {
     location_id: "antioch_pisidia",
@@ -205,8 +215,8 @@ export const BIBLE_LOCATIONS: BiblicalLocation[] = [
     period_end: 800,
     type: "city",
     verse_refs: ["Acts 13:14"],
-    description: "Onde Paulo fez seu primeiro grande sermão registrado."
-  }
+    description: "Onde Paulo fez seu primeiro grande sermão registrado.",
+  },
 ];
 
 /* ─── Base de Dados "biblical_treks" ────────────────────── */
@@ -219,10 +229,14 @@ export const BIBLE_TREKS: BiblicalTrek[] = [
     points: [
       { order: 1, location_id: "loc_ur", verse_ref: "Genesis 11:31" },
       { order: 2, location_id: "loc_haran", verse_ref: "Genesis 11:31" },
-      { order: 3, location_id: "loc_canaan_shechem", verse_ref: "Genesis 12:6" },
+      {
+        order: 3,
+        location_id: "loc_canaan_shechem",
+        verse_ref: "Genesis 12:6",
+      },
       { order: 4, location_id: "loc_bethel", verse_ref: "Genesis 12:8" },
-      { order: 5, location_id: "loc_egypt_negev", verse_ref: "Genesis 12:9" }
-    ]
+      { order: 5, location_id: "loc_egypt_negev", verse_ref: "Genesis 12:9" },
+    ],
   },
   {
     trek_id: "exodo_israel",
@@ -234,8 +248,8 @@ export const BIBLE_TREKS: BiblicalTrek[] = [
       { order: 2, location_id: "loc_succoth", verse_ref: "Exodus 12:37" },
       { order: 3, location_id: "loc_sinai", verse_ref: "Exodus 19:1" },
       { order: 4, location_id: "loc_kadesh", verse_ref: "Numbers 13:26" },
-      { order: 5, location_id: "loc_moab", verse_ref: "Numbers 22:1" }
-    ]
+      { order: 5, location_id: "loc_moab", verse_ref: "Numbers 22:1" },
+    ],
   },
   {
     trek_id: "viagem_paulo_1",
@@ -248,33 +262,39 @@ export const BIBLE_TREKS: BiblicalTrek[] = [
       { order: 3, location_id: "salamis", verse_ref: "Acts 13:5" },
       { order: 4, location_id: "paphos", verse_ref: "Acts 13:6" },
       { order: 5, location_id: "perga", verse_ref: "Acts 13:13" },
-      { order: 6, location_id: "antioch_pisidia", verse_ref: "Acts 13:14" }
-    ]
-  }
+      { order: 6, location_id: "antioch_pisidia", verse_ref: "Acts 13:14" },
+    ],
+  },
 ];
 
-// Utilitário para o Web Worker construir a Linha em GeoJSON 
+// Utilitário para o Web Worker construir a Linha em GeoJSON
 // com base nos Treks e suas relações de ID com a tabela de Locations
-export function buildGeoJSONFromTrek(trek: BiblicalTrek, locationsDB: BiblicalLocation[]) {
+export function buildGeoJSONFromTrek(
+  trek: BiblicalTrek,
+  locationsDB: BiblicalLocation[],
+) {
   // Ordena os pontos pelo campo order
   const sortedPoints = [...trek.points].sort((a, b) => a.order - b.order);
-  
+
   const coordinates: [number, number][] = [];
-  
+
   for (const point of sortedPoints) {
-    const loc = locationsDB.find(l => l.location_id === point.location_id);
+    const loc = locationsDB.find((l) => l.location_id === point.location_id);
     if (loc) {
       coordinates.push(loc.coordinates);
     }
   }
 
   const lineString = turf.lineString(coordinates);
-  
+
   // Cria uma interpolação de curvas com Turf.js (Bezier Spline)
   // Isso dá aquele efeito "rota de navio/viagem realista" em vez de retas duras
   let curvedLine;
   try {
-    curvedLine = turf.bezierSpline(lineString, { resolution: 10000, sharpness: 0.85 });
+    curvedLine = turf.bezierSpline(lineString, {
+      resolution: 10000,
+      sharpness: 0.85,
+    });
   } catch (err) {
     // Se houverem apenas 2 pontos, bezier pode falhar, retornamos a linha reta
     curvedLine = lineString;
@@ -286,8 +306,8 @@ export function buildGeoJSONFromTrek(trek: BiblicalTrek, locationsDB: BiblicalLo
       {
         type: "Feature",
         properties: { name: trek.label, trek_id: trek.trek_id },
-        geometry: curvedLine.geometry
-      }
-    ]
+        geometry: curvedLine.geometry,
+      },
+    ],
   };
 }

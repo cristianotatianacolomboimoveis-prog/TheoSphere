@@ -1,17 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  X, PenTool, Sparkles, Layout, Save, Send, 
-  MessageSquare, BookOpen, Quote, Loader2, ChevronRight
+import {
+  X,
+  PenTool,
+  Sparkles,
+  Layout,
+  Save,
+  Send,
+  MessageSquare,
+  BookOpen,
+  Quote,
+  Loader2,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
-  const [outline, setOutline] = useState<string[]>(["Introdução", "Ponto 1", "Ponto 2", "Conclusão"]);
+  const [outline, setOutline] = useState<string[]>([
+    "Introdução",
+    "Ponto 1",
+    "Ponto 2",
+    "Conclusão",
+  ]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"write" | "ai" | "structure">("write");
+  const [activeTab, setActiveTab] = useState<"write" | "ai" | "structure">(
+    "write",
+  );
 
   const generateSermonAI = async () => {
     setIsGenerating(true);
@@ -21,7 +37,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         "I. O Contexto Histórico de Siquém (Arqueologia)",
         "II. A Semântica de Chesed no AT",
         "III. Aplicação Contemporânea: O Amor que Age",
-        "IV. Conclusão: O Convite da Aliança"
+        "IV. Conclusão: O Convite da Aliança",
       ]);
       setIsGenerating(false);
     }, 2000);
@@ -36,26 +52,39 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <PenTool className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight uppercase">Criador de Sermões IA</h2>
-            <p className="text-[10px] text-white/30 font-bold tracking-[0.2em]">Homilética Acadêmica & RAG</p>
+            <h2 className="text-lg font-black tracking-tight uppercase">
+              Criador de Sermões IA
+            </h2>
+            <p className="text-[10px] text-white/30 font-bold tracking-[0.2em]">
+              Homilética Acadêmica & RAG
+            </p>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/30 hover:text-white">
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/30 hover:text-white"
+        >
           <X className="w-5 h-5" />
         </button>
       </div>
 
       {/* Tabs */}
       <div className="flex px-6 border-b border-border-subtle bg-white/[0.02]">
-        {(["write", "ai", "structure"] as const).map(tab => (
+        {(["write", "ai", "structure"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${
-              activeTab === tab ? "border-amber-500 text-amber-500" : "border-transparent text-white/30 hover:text-white"
+              activeTab === tab
+                ? "border-amber-500 text-amber-500"
+                : "border-transparent text-white/30 hover:text-white"
             }`}
           >
-            {tab === "write" ? "Escrever" : tab === "ai" ? "Assistente IA" : "Estrutura"}
+            {tab === "write"
+              ? "Escrever"
+              : tab === "ai"
+                ? "Assistente IA"
+                : "Estrutura"}
           </button>
         ))}
       </div>
@@ -71,11 +100,13 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             placeholder="Título do Sermão..."
             className="w-full bg-transparent text-3xl font-serif font-bold placeholder:text-white/10 border-none outline-none mb-8"
           />
-          
+
           <div className="space-y-6">
             {outline.map((item, idx) => (
               <div key={idx} className="group flex gap-4">
-                <span className="text-amber-500/30 font-mono text-sm mt-1">{idx + 1}.</span>
+                <span className="text-amber-500/30 font-mono text-sm mt-1">
+                  {idx + 1}.
+                </span>
                 <div className="flex-grow">
                   <h3 className="text-lg font-semibold text-white/90 group-hover:text-amber-400 transition-colors cursor-pointer">
                     {item}
@@ -94,16 +125,22 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         <div className="w-80 border-l border-border-subtle bg-black/20 backdrop-blur-xl p-6 hidden lg:block">
           <div className="flex items-center gap-2 mb-6 text-amber-500">
             <Sparkles className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Sugestões de IA</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Sugestões de IA
+            </span>
           </div>
 
           <div className="space-y-4">
-            <button 
+            <button
               onClick={generateSermonAI}
               disabled={isGenerating}
               className="w-full p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 hover:bg-amber-500/20 transition-all text-xs font-bold flex items-center justify-center gap-3 group"
             >
-              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
               Gerar Esboço via RAG
             </button>
 
@@ -112,8 +149,13 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
                 <Quote className="w-3 h-3" /> Citações Recomendadas
               </h4>
               <div className="space-y-2">
-                <p className="text-[11px] text-white/60 italic leading-relaxed">"O amor não é um sentimento, é uma decisão de aliança." — Spurgeon</p>
-                <button className="text-[9px] text-amber-500/60 font-bold uppercase hover:text-amber-500 transition-colors">Inserir no Sermão</button>
+                <p className="text-[11px] text-white/60 italic leading-relaxed">
+                  "O amor não é um sentimento, é uma decisão de aliança." —
+                  Spurgeon
+                </p>
+                <button className="text-[9px] text-amber-500/60 font-bold uppercase hover:text-amber-500 transition-colors">
+                  Inserir no Sermão
+                </button>
               </div>
             </div>
           </div>
@@ -123,8 +165,12 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       {/* Footer Controls */}
       <div className="p-4 border-t border-border-subtle bg-background flex justify-between items-center px-8">
         <div className="flex items-center gap-4">
-          <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Palavras: 0</span>
-          <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Tempo est.: 0min</span>
+          <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">
+            Palavras: 0
+          </span>
+          <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">
+            Tempo est.: 0min
+          </span>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-xs font-bold text-white/60">

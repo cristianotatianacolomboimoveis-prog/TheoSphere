@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const BibleVerseSchema = z.object({
   verse: z.number(),
@@ -19,7 +19,7 @@ export const InterlinearWordSchema = z.object({
 
 export const InterlinearChapterSchema = z.record(
   z.string().or(z.number()),
-  z.array(InterlinearWordSchema)
+  z.array(InterlinearWordSchema),
 );
 
 export type BibleVerseType = z.infer<typeof BibleVerseSchema>;

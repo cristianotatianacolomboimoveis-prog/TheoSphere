@@ -10,16 +10,20 @@ interface BookSelectorProps {
   onSelect: (book: BibleBook) => void;
 }
 
-export const BookSelector: React.FC<BookSelectorProps> = ({ isOpen, onClose, onSelect }) => {
+export const BookSelector: React.FC<BookSelectorProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+}) => {
   const { books, activeBook } = useTheoStore();
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          exit={{ opacity: 0, y: -10 }} 
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           className="absolute inset-0 z-30 bg-background/98 backdrop-blur-xl overflow-y-auto custom-scrollbar p-4"
         >
           <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest mb-3 px-1">
@@ -27,13 +31,16 @@ export const BookSelector: React.FC<BookSelectorProps> = ({ isOpen, onClose, onS
           </p>
           <div className="grid grid-cols-2 gap-1">
             {books.length > 0 ? (
-              books.map(book => (
-                <button 
-                  key={book.id} 
-                  onClick={() => { onSelect(book); onClose(); }} 
+              books.map((book) => (
+                <button
+                  key={book.id}
+                  onClick={() => {
+                    onSelect(book);
+                    onClose();
+                  }}
                   className={`text-left px-3 py-2 rounded-lg text-xs transition-all ${
-                    activeBook === book.namePt || activeBook === book.nameEn 
-                      ? "bg-accent/15 text-accent font-bold" 
+                    activeBook === book.namePt || activeBook === book.nameEn
+                      ? "bg-accent/15 text-accent font-bold"
                       : "hover:bg-surface-hover text-foreground/60"
                   }`}
                 >

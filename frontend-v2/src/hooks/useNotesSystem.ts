@@ -104,7 +104,9 @@ function saveToStorage<T>(key: string, data: T): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
-  } catch { /* quota exceeded */ }
+  } catch {
+    /* quota exceeded */
+  }
 }
 
 /* ─── Hook ───────────────────────────────────────────────── */
@@ -132,70 +134,125 @@ export function useNotesSystem() {
 
   /* ── Highlights ───────────────────────────────────────── */
 
-  const addHighlight = useCallback((reference: string, verseNumber: number, text: string, color: HighlightColor) => {
-    setHighlights(prev => {
-      const updated = [...prev, { id: genId(), reference, verseNumber, text, color, timestamp: Date.now() }];
-      saveToStorage(KEYS.highlights, updated);
-      return updated;
-    });
-  }, []);
+  const addHighlight = useCallback(
+    (
+      reference: string,
+      verseNumber: number,
+      text: string,
+      color: HighlightColor,
+    ) => {
+      setHighlights((prev) => {
+        const updated = [
+          ...prev,
+          {
+            id: genId(),
+            reference,
+            verseNumber,
+            text,
+            color,
+            timestamp: Date.now(),
+          },
+        ];
+        saveToStorage(KEYS.highlights, updated);
+        return updated;
+      });
+    },
+    [],
+  );
 
   const removeHighlight = useCallback((id: string) => {
-    setHighlights(prev => {
-      const updated = prev.filter(h => h.id !== id);
+    setHighlights((prev) => {
+      const updated = prev.filter((h) => h.id !== id);
       saveToStorage(KEYS.highlights, updated);
       return updated;
     });
   }, []);
 
-  const getHighlightsForRef = useCallback((reference: string) => {
-    return highlights.filter(h => h.reference === reference);
-  }, [highlights]);
+  const getHighlightsForRef = useCallback(
+    (reference: string) => {
+      return highlights.filter((h) => h.reference === reference);
+    },
+    [highlights],
+  );
 
   /* ── Notes ────────────────────────────────────────────── */
 
-  const addNote = useCallback((reference: string, content: string, tags: string[] = [], notebookId: string | null = null) => {
-    setNotes(prev => {
-      const now = Date.now();
-      const updated = [...prev, { id: genId(), reference, content, tags, notebookId, timestamp: now, updatedAt: now }];
-      saveToStorage(KEYS.notes, updated);
-      return updated;
-    });
-  }, []);
+  const addNote = useCallback(
+    (
+      reference: string,
+      content: string,
+      tags: string[] = [],
+      notebookId: string | null = null,
+    ) => {
+      setNotes((prev) => {
+        const now = Date.now();
+        const updated = [
+          ...prev,
+          {
+            id: genId(),
+            reference,
+            content,
+            tags,
+            notebookId,
+            timestamp: now,
+            updatedAt: now,
+          },
+        ];
+        saveToStorage(KEYS.notes, updated);
+        return updated;
+      });
+    },
+    [],
+  );
 
   const updateNote = useCallback((id: string, content: string) => {
-    setNotes(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, content, updatedAt: Date.now() } : n);
+    setNotes((prev) => {
+      const updated = prev.map((n) =>
+        n.id === id ? { ...n, content, updatedAt: Date.now() } : n,
+      );
       saveToStorage(KEYS.notes, updated);
       return updated;
     });
   }, []);
 
   const deleteNote = useCallback((id: string) => {
-    setNotes(prev => {
-      const updated = prev.filter(n => n.id !== id);
+    setNotes((prev) => {
+      const updated = prev.filter((n) => n.id !== id);
       saveToStorage(KEYS.notes, updated);
       return updated;
     });
   }, []);
 
-  const getNotesForRef = useCallback((reference: string) => {
-    return notes.filter(n => n.reference === reference);
-  }, [notes]);
+  const getNotesForRef = useCallback(
+    (reference: string) => {
+      return notes.filter((n) => n.reference === reference);
+    },
+    [notes],
+  );
 
   /* ── Notebooks ────────────────────────────────────────── */
 
-  const addNotebook = useCallback((name: string, description: string = "", color: HighlightColor = "yellow") => {
-    setNotebooks(prev => {
-      const updated = [...prev, { id: genId(), name, description, color, createdAt: Date.now() }];
-      saveToStorage(KEYS.notebooks, updated);
-      return updated;
-    });
-  }, []);
+  const addNotebook = useCallback(
+    (
+      name: string,
+      description: string = "",
+      color: HighlightColor = "yellow",
+    ) => {
+      setNotebooks((prev) => {
+        const updated = [
+          ...prev,
+          { id: genId(), name, description, color, createdAt: Date.now() },
+        ];
+        saveToStorage(KEYS.notebooks, updated);
+        return updated;
+      });
+    },
+    [],
+  );
 
   const deleteNotebook = useCallback((id: string) => {
-    setNotebooks(prev => {
-      const updated = prev.filter(nb => nb.id !== id);
+    setNotebooks((prev) => {
+      const updated = prev.filter((nb) => nb.id !== id);
       saveToStorage(KEYS.notebooks, updated);
       return updated;
     });
@@ -204,36 +261,48 @@ export function useNotesSystem() {
   /* ── Bookmarks ────────────────────────────────────────── */
 
   const addBookmark = useCallback((reference: string, label: string = "") => {
-    setBookmarks(prev => {
-      const exists = prev.some(b => b.reference === reference);
+    setBookmarks((prev) => {
+      const exists = prev.some((b) => b.reference === reference);
       if (exists) return prev;
-      const updated = [...prev, { id: genId(), reference, label, timestamp: Date.now() }];
+      const updated = [
+        ...prev,
+        { id: genId(), reference, label, timestamp: Date.now() },
+      ];
       saveToStorage(KEYS.bookmarks, updated);
       return updated;
     });
   }, []);
 
   const removeBookmark = useCallback((reference: string) => {
-    setBookmarks(prev => {
-      const updated = prev.filter(b => b.reference !== reference);
+    setBookmarks((prev) => {
+      const updated = prev.filter((b) => b.reference !== reference);
       saveToStorage(KEYS.bookmarks, updated);
       return updated;
     });
   }, []);
 
-  const isBookmarked = useCallback((reference: string) => {
-    return bookmarks.some(b => b.reference === reference);
-  }, [bookmarks]);
+  const isBookmarked = useCallback(
+    (reference: string) => {
+      return bookmarks.some((b) => b.reference === reference);
+    },
+    [bookmarks],
+  );
 
   /* ── Sermons ──────────────────────────────────────────── */
 
   const addSermon = useCallback((title: string, passage: string) => {
     const now = Date.now();
     const sermon: Sermon = {
-      id: genId(), title, passage, date: new Date().toISOString().split("T")[0],
-      points: [], notes: "", createdAt: now, updatedAt: now,
+      id: genId(),
+      title,
+      passage,
+      date: new Date().toISOString().split("T")[0],
+      points: [],
+      notes: "",
+      createdAt: now,
+      updatedAt: now,
     };
-    setSermons(prev => {
+    setSermons((prev) => {
       const updated = [...prev, sermon];
       saveToStorage(KEYS.sermons, updated);
       return updated;
@@ -242,16 +311,18 @@ export function useNotesSystem() {
   }, []);
 
   const updateSermon = useCallback((id: string, updates: Partial<Sermon>) => {
-    setSermons(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s);
+    setSermons((prev) => {
+      const updated = prev.map((s) =>
+        s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s,
+      );
       saveToStorage(KEYS.sermons, updated);
       return updated;
     });
   }, []);
 
   const deleteSermon = useCallback((id: string) => {
-    setSermons(prev => {
-      const updated = prev.filter(s => s.id !== id);
+    setSermons((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
       saveToStorage(KEYS.sermons, updated);
       return updated;
     });
@@ -261,9 +332,15 @@ export function useNotesSystem() {
 
   const addStudy = useCallback((title: string, passage: string) => {
     const study: StudyPlan = {
-      id: genId(), title, passage, questions: [], leaderNotes: "", additionalRefs: [], createdAt: Date.now(),
+      id: genId(),
+      title,
+      passage,
+      questions: [],
+      leaderNotes: "",
+      additionalRefs: [],
+      createdAt: Date.now(),
     };
-    setStudies(prev => {
+    setStudies((prev) => {
       const updated = [...prev, study];
       saveToStorage(KEYS.studies, updated);
       return updated;
@@ -272,16 +349,16 @@ export function useNotesSystem() {
   }, []);
 
   const updateStudy = useCallback((id: string, updates: Partial<StudyPlan>) => {
-    setStudies(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, ...updates } : s);
+    setStudies((prev) => {
+      const updated = prev.map((s) => (s.id === id ? { ...s, ...updates } : s));
       saveToStorage(KEYS.studies, updated);
       return updated;
     });
   }, []);
 
   const deleteStudy = useCallback((id: string) => {
-    setStudies(prev => {
-      const updated = prev.filter(s => s.id !== id);
+    setStudies((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
       saveToStorage(KEYS.studies, updated);
       return updated;
     });
@@ -289,24 +366,78 @@ export function useNotesSystem() {
 
   return {
     // Highlights
-    highlights, addHighlight, removeHighlight, getHighlightsForRef,
+    highlights,
+    addHighlight,
+    removeHighlight,
+    getHighlightsForRef,
     // Notes
-    notes, addNote, updateNote, deleteNote, getNotesForRef,
+    notes,
+    addNote,
+    updateNote,
+    deleteNote,
+    getNotesForRef,
     // Notebooks
-    notebooks, addNotebook, deleteNotebook,
+    notebooks,
+    addNotebook,
+    deleteNotebook,
     // Bookmarks
-    bookmarks, addBookmark, removeBookmark, isBookmarked,
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+    isBookmarked,
     // Sermons
-    sermons, addSermon, updateSermon, deleteSermon,
+    sermons,
+    addSermon,
+    updateSermon,
+    deleteSermon,
     // Studies
-    studies, addStudy, updateStudy, deleteStudy,
+    studies,
+    addStudy,
+    updateStudy,
+    deleteStudy,
   };
 }
 
-export const HIGHLIGHT_COLORS: { id: HighlightColor; label: string; bg: string; text: string; border: string }[] = [
-  { id: "yellow", label: "Amarelo", bg: "rgba(250, 204, 21, 0.15)", text: "#facc15", border: "rgba(250, 204, 21, 0.3)" },
-  { id: "green", label: "Verde", bg: "rgba(34, 197, 94, 0.15)", text: "#22c55e", border: "rgba(34, 197, 94, 0.3)" },
-  { id: "blue", label: "Azul", bg: "rgba(59, 130, 246, 0.15)", text: "#3b82f6", border: "rgba(59, 130, 246, 0.3)" },
-  { id: "purple", label: "Roxo", bg: "rgba(168, 85, 247, 0.15)", text: "#a855f7", border: "rgba(168, 85, 247, 0.3)" },
-  { id: "pink", label: "Rosa", bg: "rgba(236, 72, 153, 0.15)", text: "#ec4899", border: "rgba(236, 72, 153, 0.3)" },
+export const HIGHLIGHT_COLORS: {
+  id: HighlightColor;
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+}[] = [
+  {
+    id: "yellow",
+    label: "Amarelo",
+    bg: "rgba(250, 204, 21, 0.15)",
+    text: "#facc15",
+    border: "rgba(250, 204, 21, 0.3)",
+  },
+  {
+    id: "green",
+    label: "Verde",
+    bg: "rgba(34, 197, 94, 0.15)",
+    text: "#22c55e",
+    border: "rgba(34, 197, 94, 0.3)",
+  },
+  {
+    id: "blue",
+    label: "Azul",
+    bg: "rgba(59, 130, 246, 0.15)",
+    text: "#3b82f6",
+    border: "rgba(59, 130, 246, 0.3)",
+  },
+  {
+    id: "purple",
+    label: "Roxo",
+    bg: "rgba(168, 85, 247, 0.15)",
+    text: "#a855f7",
+    border: "rgba(168, 85, 247, 0.3)",
+  },
+  {
+    id: "pink",
+    label: "Rosa",
+    bg: "rgba(236, 72, 153, 0.15)",
+    text: "#ec4899",
+    border: "rgba(236, 72, 153, 0.3)",
+  },
 ];

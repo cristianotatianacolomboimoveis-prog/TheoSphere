@@ -32,14 +32,16 @@ export function CommandBar() {
         <button className="p-2.5 rounded-xl hover:bg-white/5 text-white/60 hover:text-white transition-all">
           <Settings className="w-5 h-5" />
         </button>
-        
+
         <div className="h-8 w-px bg-white/5 mx-2" />
 
         <button className="flex items-center gap-3 pl-2 pr-4 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/80 to-amber-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg">
             AD
           </div>
-          <span className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">Alex D.</span>
+          <span className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">
+            Alex D.
+          </span>
         </button>
       </div>
     </header>

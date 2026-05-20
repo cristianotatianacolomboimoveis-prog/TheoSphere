@@ -1,4 +1,4 @@
-import { pipeline } from '@xenova/transformers';
+import { pipeline } from "@xenova/transformers";
 
 class SemanticSearchEngine {
   private static instance: SemanticSearchEngine;
@@ -21,8 +21,11 @@ class SemanticSearchEngine {
   public async init() {
     if (this.model || this.isInitializing) return;
     this.isInitializing = true;
-    
-    this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+
+    this.model = await pipeline(
+      "feature-extraction",
+      "Xenova/all-MiniLM-L6-v2",
+    );
     this.isInitializing = false;
   }
 
@@ -31,7 +34,7 @@ class SemanticSearchEngine {
    */
   public async getEmbedding(text: string) {
     if (!this.model) await this.init();
-    const output = await this.model(text, { pooling: 'mean', normalize: true });
+    const output = await this.model(text, { pooling: "mean", normalize: true });
     return Array.from(output.data as Float32Array);
   }
 

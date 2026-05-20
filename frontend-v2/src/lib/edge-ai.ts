@@ -22,22 +22,25 @@ class EdgeAIService {
   async init(onProgress?: ProgressCallback) {
     if (this.engine) return;
     if (this.isInitializing) return;
-    
+
     this.isInitializing = true;
     try {
       // Usamos CreateMLCEngine para inicialização mais robusta
       this.engine = await webllm.CreateMLCEngine(this.selectedModel, {
         initProgressCallback: (report) => {
           if (onProgress) {
-            onProgress({ 
-              progress: report.progress, 
-              text: report.text 
+            onProgress({
+              progress: report.progress,
+              text: report.text,
             });
           }
-        }
+        },
       });
     } catch (err) {
-      console.error("Erro ao inicializar Edge AI (WebGPU pode não estar disponível ou modelo não encontrado):", err);
+      console.error(
+        "Erro ao inicializar Edge AI (WebGPU pode não estar disponível ou modelo não encontrado):",
+        err,
+      );
       this.isInitializing = false;
       throw err;
     } finally {
@@ -55,7 +58,7 @@ class EdgeAIService {
 
     const messages: webllm.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
-      { role: "user", content: prompt }
+      { role: "user", content: prompt },
     ];
 
     const reply = await this.engine.chat.completions.create({

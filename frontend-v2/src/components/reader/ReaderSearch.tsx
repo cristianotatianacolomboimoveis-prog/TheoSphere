@@ -32,8 +32,10 @@ export const ReaderSearch: React.FC<ReaderSearchProps> = ({
             ref={searchInputRef}
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === "Escape") setSearchMode(false); }}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSearchMode(false);
+            }}
             placeholder='Buscar… (ex: book:John "in the beginning")'
             className="flex-grow bg-transparent text-sm text-foreground/90 placeholder-foreground/30 outline-none"
             title='Sintaxe avançada: AND, OR, "frase exata", book:Nome, chapter:1-3, -excluir'
@@ -52,10 +54,13 @@ export const ReaderSearch: React.FC<ReaderSearchProps> = ({
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        
+
         {/* Chips indicando o que o parser interpretou — Logos-style preview */}
         {isAdvanced && advanced.parsed && (
-          <QueryChips parsed={advanced.parsed} hitsCount={advanced.hits.length} />
+          <QueryChips
+            parsed={advanced.parsed}
+            hitsCount={advanced.hits.length}
+          />
         )}
         {isAdvanced && advanced.error && (
           <p className="text-[10px] text-red-400 px-1">{advanced.error}</p>

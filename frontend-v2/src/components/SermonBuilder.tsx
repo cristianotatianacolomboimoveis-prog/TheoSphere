@@ -2,9 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
-import { 
-  Type, List, Layout, Save, Download, 
-  Trash2, Wand2, ChevronDown, BookOpen, X, FileText, Plus 
+import {
+  Type,
+  List,
+  Layout,
+  Save,
+  Download,
+  Trash2,
+  Wand2,
+  ChevronDown,
+  BookOpen,
+  X,
+  FileText,
+  Plus,
 } from "lucide-react";
 import { useToast } from "./Toast";
 import { useCollaboration } from "@/hooks/useCollaboration";
@@ -30,19 +40,31 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   const { show } = useToast();
   const { chat } = useRAG();
 
-  const { 
-    isListening, transcript, startListening, stopListening, speak, stopSpeaking 
+  const {
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    speak,
+    stopSpeaking,
   } = useVoice();
 
   const roomId = activeId || "new-sermon";
-  const { users, cursors, updateContent, updateCursor } = useCollaboration(roomId, content, (remoteContent) => {
-    setContent(remoteContent);
-  });
+  const { users, cursors, updateContent, updateCursor } = useCollaboration(
+    roomId,
+    content,
+    (remoteContent) => {
+      setContent(remoteContent);
+    },
+  );
 
-  const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent);
-    updateContent(newContent);
-  }, [updateContent]);
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      setContent(newContent);
+      updateContent(newContent);
+    },
+    [updateContent],
+  );
 
   // Sync transcript to content
   useEffect(() => {
@@ -60,11 +82,10 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
     try {
       // lib/api injeta Authorization, gerencia timeout e faz auto-refresh
       // em 401. Nenhuma manipulação manual de localStorage aqui.
-      const json = await api.post<{ success: boolean; data: { content: string } }>(
-        "rag/dictate",
-        { transcript: content },
-        { timeoutMs: 30_000 },
-      );
+      const json = await api.post<{
+        success: boolean;
+        data: { content: string };
+      }>("rag/dictate", { transcript: content }, { timeoutMs: 30_000 });
       if (json.success) {
         handleContentChange(json.data.content);
         show("Esboço organizado pela IA!", "success");
@@ -86,7 +107,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const saved = localStorage.getItem('theosphere-sermons');
+      const saved = localStorage.getItem("theosphere-sermons");
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -112,9 +133,12 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   };
 
   const templates = {
-    expositivo: "# Esboço Expositivo\n\n## I. Introdução\n[Contexto histórico e gancho inicial]\n\n## II. Exposição do Texto\n[Explicação verso a verso]\n\n## III. Aplicação Prática\n[Como viver isso hoje]\n\n## IV. Conclusão\n[Chamado à ação]",
-    tematico: "# Esboço Temático\n\n## I. O Conceito de [Tema]\n\n## II. Evidências Bíblicas\n\n## III. O Impacto na Vida do Crente\n\n## IV. Conclusão",
-    textual: "# Esboço Textual\n\n## I. A Ideia Central do Texto\n\n## II. Divisões Naturais do Versículo\n\n## III. Conclusão"
+    expositivo:
+      "# Esboço Expositivo\n\n## I. Introdução\n[Contexto histórico e gancho inicial]\n\n## II. Exposição do Texto\n[Explicação verso a verso]\n\n## III. Aplicação Prática\n[Como viver isso hoje]\n\n## IV. Conclusão\n[Chamado à ação]",
+    tematico:
+      "# Esboço Temático\n\n## I. O Conceito de [Tema]\n\n## II. Evidências Bíblicas\n\n## III. O Impacto na Vida do Crente\n\n## IV. Conclusão",
+    textual:
+      "# Esboço Textual\n\n## I. A Ideia Central do Texto\n\n## II. Divisões Naturais do Versículo\n\n## III. Conclusão",
   };
 
   const applyTemplate = (type: string) => {
@@ -130,20 +154,20 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       id: activeId || Date.now().toString(),
       title,
       content,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     let updated: Sermon[];
     if (activeId) {
-      updated = sermons.map(s => s.id === activeId ? newSermon : s);
+      updated = sermons.map((s) => (s.id === activeId ? newSermon : s));
     } else {
       updated = [newSermon, ...sermons];
       setActiveId(newSermon.id);
     }
 
     setSermons(updated);
-    localStorage.setItem('theosphere-sermons', JSON.stringify(updated));
-    
+    localStorage.setItem("theosphere-sermons", JSON.stringify(updated));
+
     setTimeout(() => {
       setIsSaving(false);
       show("Sermão salvo com sucesso!", "success");
@@ -153,20 +177,20 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   const deleteSermon = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Excluir este sermão permanentemente?")) return;
-    const updated = sermons.filter(s => s.id !== id);
+    const updated = sermons.filter((s) => s.id !== id);
     setSermons(updated);
-    localStorage.setItem('theosphere-sermons', JSON.stringify(updated));
+    localStorage.setItem("theosphere-sermons", JSON.stringify(updated));
     if (activeId === id) createNew();
     show("Sermão excluído", "info");
   };
 
   const exportSermon = () => {
     const fullText = `${title}\n\n${content}\n\n---\nGerado pelo TheoSphere OS - Homilética Profissional`;
-    const blob = new Blob([fullText], { type: 'text/plain' });
+    const blob = new Blob([fullText], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${title.replace(/\s+/g, '_')}.txt`;
+    a.download = `${title.replace(/\s+/g, "_")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     show("Exportação concluída", "success");
@@ -176,7 +200,7 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
     <div className="flex h-full bg-background/40 text-foreground overflow-hidden">
       {/* Sidebar Histórico */}
       <div className="w-64 border-r border-border-subtle flex flex-col p-4 bg-black/20">
-        <button 
+        <button
           onClick={createNew}
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-bold mb-6"
         >
@@ -184,18 +208,24 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
         </button>
 
         <div className="flex-grow overflow-y-auto space-y-2 custom-scrollbar pr-2">
-          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-3">Histórico de Esboços</p>
-          {sermons.map(s => (
-            <div 
+          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-3">
+            Histórico de Esboços
+          </p>
+          {sermons.map((s) => (
+            <div
               key={s.id}
               onClick={() => loadSermon(s)}
               className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${
-                activeId === s.id ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-white/[0.02] border-transparent hover:border-border-strong text-white/50'
+                activeId === s.id
+                  ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                  : "bg-white/[0.02] border-transparent hover:border-border-strong text-white/50"
               }`}
             >
               <FileText className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-medium truncate flex-grow">{s.title}</span>
-              <button 
+              <span className="text-xs font-medium truncate flex-grow">
+                {s.title}
+              </span>
+              <button
                 onClick={(e) => deleteSermon(s.id, e)}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"
               >
@@ -206,7 +236,9 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
           {sermons.length === 0 && (
             <div className="text-center py-12">
               <BookOpen className="w-8 h-8 text-white/5 mx-auto mb-2" />
-              <p className="text-[10px] text-white/20 font-bold">Nenhum sermão salvo</p>
+              <p className="text-[10px] text-white/20 font-bold">
+                Nenhum sermão salvo
+              </p>
             </div>
           )}
         </div>
@@ -216,15 +248,19 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
       <div className="flex-grow flex flex-col p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">Criador de Sermões</h2>
-            <p className="text-[10px] text-blue-400 font-bold tracking-[0.1em]">MODO HOMILÉTICA</p>
+            <h2 className="text-sm font-black tracking-widest text-white/90 uppercase">
+              Criador de Sermões
+            </h2>
+            <p className="text-[10px] text-blue-400 font-bold tracking-[0.1em]">
+              MODO HOMILÉTICA
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {/* Multiplayer Avatars */}
             <div className="flex -space-x-2 mr-4">
               {users.map((u, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   title={`Usuário na sala: ${u}`}
                   className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-[#05080f] flex items-center justify-center text-[8px] font-black shadow-lg shadow-blue-500/10"
                 >
@@ -238,22 +274,28 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
-            <button 
+            <button
               onClick={exportSermon}
               title="Exportar como .txt"
               className="p-2 rounded-xl bg-white/5 border border-border-strong text-white/50 hover:bg-white/10 hover:text-white transition-all"
             >
               <Download className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={saveSermon}
               className={`p-2 rounded-xl border transition-all ${
-                isSaving ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
+                isSaving
+                  ? "bg-green-500/10 border-green-500/20 text-green-400"
+                  : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
               }`}
             >
-              {isSaving ? <span className="animate-spin text-xs">...</span> : <Save className="w-4 h-4" />}
+              {isSaving ? (
+                <span className="animate-spin text-xs">...</span>
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 rounded-xl hover:bg-white/5 text-white/30 hover:text-white transition-all"
             >
@@ -264,27 +306,41 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
 
         {/* Toolbar */}
         <div className="flex gap-2 mb-4 p-1.5 bg-white/5 rounded-2xl border border-border-subtle">
-          <select 
+          <select
             onChange={(e) => applyTemplate(e.target.value)}
             className="bg-transparent text-[10px] font-bold uppercase tracking-widest px-3 outline-none cursor-pointer text-white/50 hover:text-white"
           >
-            <option value="expositivo" className="bg-background">Template: Expositivo</option>
-            <option value="tematico" className="bg-background">Template: Temático</option>
-            <option value="textual" className="bg-background">Template: Textual</option>
+            <option value="expositivo" className="bg-background">
+              Template: Expositivo
+            </option>
+            <option value="tematico" className="bg-background">
+              Template: Temático
+            </option>
+            <option value="textual" className="bg-background">
+              Template: Textual
+            </option>
           </select>
           <div className="ml-auto flex gap-1 items-center">
             {/* Voice Controls */}
             <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-border-subtle mr-2">
-              <button 
+              <button
                 onClick={isListening ? processDictation : startListening}
                 className={`p-1.5 rounded-md transition-all ${
-                  isListening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'hover:bg-white/10 text-white/30'
+                  isListening
+                    ? "bg-red-500/20 text-red-400 animate-pulse"
+                    : "hover:bg-white/10 text-white/30"
                 }`}
                 title={isListening ? "Parar e Organizar" : "Iniciar Ditado"}
               >
-                {isProcessingVoice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />)}
+                {isProcessingVoice ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isListening ? (
+                  <MicOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Mic className="w-3.5 h-3.5" />
+                )}
               </button>
-              <button 
+              <button
                 onClick={() => speak(content)}
                 className="p-1.5 rounded-md hover:bg-white/10 text-white/30"
                 title="Ouvir Sermão"
@@ -293,30 +349,36 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
               </button>
             </div>
 
-            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><Type className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><List className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30"><Wand2 className="w-3.5 h-3.5" /></button>
+            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30">
+              <Type className="w-3.5 h-3.5" />
+            </button>
+            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30">
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/30">
+              <Wand2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
         {/* Editor Area */}
-        <div 
+        <div
           className="flex-grow flex flex-col bg-white/[0.02] border border-border-subtle rounded-3xl overflow-hidden focus-within:border-blue-500/20 transition-all shadow-inner relative"
           onMouseMove={handleMouseMove}
         >
           {/* Collaborative Cursors Overlay */}
           <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-            {Object.values(cursors).map(cursor => (
-              <div 
+            {Object.values(cursors).map((cursor) => (
+              <div
                 key={cursor.userId}
                 className="absolute transition-all duration-75 ease-out"
                 style={{ left: cursor.x, top: cursor.y }}
               >
-                <div 
+                <div
                   className="w-3 h-3 rounded-full shadow-lg border-2 border-[#05080f]"
                   style={{ backgroundColor: cursor.color }}
                 />
-                <div 
+                <div
                   className="ml-2 px-1.5 py-0.5 rounded bg-surface border border-border-strong text-[8px] font-black whitespace-nowrap shadow-xl"
                   style={{ color: cursor.color }}
                 >
@@ -326,13 +388,13 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             ))}
           </div>
 
-          <input 
+          <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="bg-transparent px-6 py-4 text-lg font-serif border-b border-border-subtle outline-none text-white/90"
             placeholder="Título do Sermão..."
           />
-          <textarea 
+          <textarea
             value={content}
             onChange={(e) => handleContentChange(e.target.value)}
             className="flex-grow bg-transparent p-6 outline-none text-sm font-serif leading-relaxed text-white/70 resize-none custom-scrollbar"
@@ -346,8 +408,12 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
             <Wand2 className="w-4 h-4 text-indigo-400 group-hover:animate-pulse" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold text-white/80">TheoAI Homilética</p>
-            <p className="text-[9px] text-white/40 truncate">Pedir para a IA sugerir ganchos ilustrativos para este sermão...</p>
+            <p className="text-[10px] font-bold text-white/80">
+              TheoAI Homilética
+            </p>
+            <p className="text-[9px] text-white/40 truncate">
+              Pedir para a IA sugerir ganchos ilustrativos para este sermão...
+            </p>
           </div>
         </div>
       </div>

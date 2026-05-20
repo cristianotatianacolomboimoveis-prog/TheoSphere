@@ -20,7 +20,7 @@ export default function AgenticConsole() {
     "Consultando Bases Léxicas BDAG/HALOT...",
     "Recuperando contexto da base pgvector...",
     "Aplicando pesos de tradição teológica...",
-    "Sintetizando resposta acadêmica..."
+    "Sintetizando resposta acadêmica...",
   ];
 
   const handleSend = async () => {
@@ -32,8 +32,8 @@ export default function AgenticConsole() {
 
     // Simulate agentic steps
     for (const step of predefinedSteps) {
-      setSteps(prev => [...prev, step]);
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+      setSteps((prev) => [...prev, step]);
+      await new Promise((r) => setTimeout(r, 600 + Math.random() * 800));
     }
 
     try {
@@ -61,27 +61,35 @@ export default function AgenticConsole() {
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-foreground tracking-tight uppercase">TheoAI Agentic Console</h3>
-            <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest opacity-70">Persona: Teólogo Sistemático PhD</p>
+            <h3 className="text-sm font-black text-foreground tracking-tight uppercase">
+              TheoAI Agentic Console
+            </h3>
+            <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest opacity-70">
+              Persona: Teólogo Sistemático PhD
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {edgeAIStatus ? (
-             <div className="flex flex-col items-end gap-1">
-               <div className="flex gap-2 items-center">
-                 <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{edgeAIStatus.text}</span>
-                 <span className="text-[8px] font-mono text-blue-400/50">{(edgeAIStatus.progress * 100).toFixed(0)}%</span>
-               </div>
-               <div className="w-24 h-1 bg-blue-500/10 rounded-full overflow-hidden">
-                 <motion.div 
-                   className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
-                   initial={{ width: 0 }}
-                   animate={{ width: `${edgeAIStatus.progress * 100}%` }}
-                 />
-               </div>
-             </div>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex gap-2 items-center">
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                  {edgeAIStatus.text}
+                </span>
+                <span className="text-[8px] font-mono text-blue-400/50">
+                  {(edgeAIStatus.progress * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="w-24 h-1 bg-blue-500/10 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${edgeAIStatus.progress * 100}%` }}
+                />
+              </div>
+            </div>
           ) : (
-            <button 
+            <button
               onClick={initEdgeAI}
               className="text-[8px] px-3 py-1.5 rounded-lg border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 font-black uppercase tracking-widest transition-all"
             >
@@ -97,27 +105,31 @@ export default function AgenticConsole() {
       </div>
 
       {/* Terminal Area */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-background"
       >
         {!steps.length && !result && (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30">
             <Terminal className="w-12 h-12 text-primary" />
-            <p className="text-xs font-medium tracking-widest uppercase">Aguardando comando...</p>
+            <p className="text-xs font-medium tracking-widest uppercase">
+              Aguardando comando...
+            </p>
           </div>
         )}
 
         <AnimatePresence>
           {steps.map((step, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               className="flex items-start gap-3"
             >
               <Check className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
-              <span className="text-[11px] text-foreground/70 font-mono leading-relaxed">{step}</span>
+              <span className="text-[11px] text-foreground/70 font-mono leading-relaxed">
+                {step}
+              </span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -125,19 +137,23 @@ export default function AgenticConsole() {
         {isProcessing && (
           <div className="flex items-center gap-3 animate-pulse">
             <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-            <span className="text-[11px] text-blue-400 font-mono uppercase tracking-widest">Processando requisição...</span>
+            <span className="text-[11px] text-blue-400 font-mono uppercase tracking-widest">
+              Processando requisição...
+            </span>
           </div>
         )}
 
         {result && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-6 p-6 rounded-2xl bg-surface-hover border border-border-subtle prose prose-invert prose-xs max-w-none shadow-inner"
           >
             <div className="flex items-center gap-2 mb-4 text-blue-400">
               <Sparkles className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Resultado da Análise</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                Resultado da Análise
+              </span>
             </div>
             <div className="text-foreground/80 leading-relaxed font-serif whitespace-pre-wrap">
               {result}
@@ -149,7 +165,7 @@ export default function AgenticConsole() {
       {/* Input Area */}
       <div className="p-4 bg-surface border-t border-border-subtle">
         <div className="relative group">
-          <input 
+          <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -157,22 +173,32 @@ export default function AgenticConsole() {
             placeholder="Pergunte ao TheoAI sobre uma exegese profunda ou dúvida teológica..."
             className="w-full bg-background/50 border border-border-subtle rounded-2xl py-4 pl-6 pr-14 text-sm text-foreground placeholder:text-foreground/50 focus:outline-none focus:border-primary/50 transition-all focus:ring-4 focus:ring-primary/5"
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={isProcessing || !query.trim()}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:hover:bg-blue-600 transition-all text-white shadow-lg shadow-blue-600/20"
           >
-            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {isProcessing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
           <div className="flex gap-4">
             <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">
-              {edgeAIStatus?.progress === 1 ? "Modelo: Edge AI (WebGPU Offline)" : "Modelo: Gemini 1.5 Flash"}
+              {edgeAIStatus?.progress === 1
+                ? "Modelo: Edge AI (WebGPU Offline)"
+                : "Modelo: Gemini 1.5 Flash"}
             </span>
-            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">Contexto: Hybrid RAG</span>
+            <span className="text-[9px] text-foreground/50 font-bold uppercase tracking-tighter">
+              Contexto: Hybrid RAG
+            </span>
           </div>
-          <span className="text-[9px] text-primary/50 font-bold uppercase tracking-tighter">Pronto para receber comando</span>
+          <span className="text-[9px] text-primary/50 font-bold uppercase tracking-tighter">
+            Pronto para receber comando
+          </span>
         </div>
       </div>
     </div>

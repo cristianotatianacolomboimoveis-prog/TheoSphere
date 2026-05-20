@@ -26,7 +26,14 @@ interface InterlinearTableProps {
   onWordHover?: (word: any, event: React.MouseEvent) => void;
 }
 
-export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, words, onWordHover }: InterlinearTableProps) {
+export function InterlinearTable({
+  verse,
+  selectedBook,
+  selectedChapter,
+  isNT,
+  words,
+  onWordHover,
+}: InterlinearTableProps) {
   const [hoveredWord, setHoveredWord] = React.useState<WordData | null>(null);
   const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
   const [deepMode, setDeepMode] = React.useState(false);
@@ -36,7 +43,7 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
   const handleDeepAnalysis = useCallback(async () => {
     if (deepMode) return;
     setDeepMode(true);
-    
+
     // Abre o novo painel de exegese premium na URL
     const params = new URLSearchParams(window.location.search);
     params.set("tool", "exegesis");
@@ -68,18 +75,20 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <div>
-              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1 block">Exegese Bíblica PhD</span>
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1 block">
+                Exegese Bíblica PhD
+              </span>
               <h2 className="text-3xl font-serif text-white font-bold tracking-tight">
                 {selectedBook.namePt} {selectedChapter}:{verse}
               </h2>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleDeepAnalysis}
             className={`flex items-center gap-3 px-6 py-2.5 rounded-2xl border transition-all text-[11px] font-black uppercase tracking-widest ${
-              deepMode 
-                ? "bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/30" 
+              deepMode
+                ? "bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/30"
                 : "bg-white/5 border-border-strong text-white/40 hover:bg-white/10"
             }`}
           >
@@ -91,75 +100,95 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
 
       {/* Exact Image-Matched Layout */}
       <div className="flex flex-col gap-4 w-full">
-        {words && words.length > 0 ? words.map((word, wi) => (
-          <div 
-            key={wi} 
-            className="group flex items-center bg-surface border border-border-subtle rounded-[2.5rem] p-6 hover:bg-surface-hover hover:border-primary/20 transition-all duration-300 shadow-xl"
-            onMouseEnter={(e) => { setHoveredWord(word); onWordHover?.(word, e); }}
-            onMouseLeave={() => setHoveredWord(null)}
-            onMouseMove={handleMouseMove}
-          >
-            {/* Left: Original Word (Fixed Width, centered) */}
-            <div className="w-32 flex-shrink-0 flex justify-center">
-              <span 
-                className="text-3xl font-serif text-foreground/40 group-hover:text-foreground transition-colors"
-                dir={!isNT ? "rtl" : "ltr"}
-              >
-                {word.original}
-              </span>
-            </div>
-
-            {/* Right: Textual Details (Translit over Definition) */}
-            <div className="flex flex-col gap-1 pr-8">
-              <div className="text-lg font-bold text-accent tracking-wide leading-none">
-                {word.translit}
+        {words && words.length > 0 ? (
+          words.map((word, wi) => (
+            <div
+              key={wi}
+              className="group flex items-center bg-surface border border-border-subtle rounded-[2.5rem] p-6 hover:bg-surface-hover hover:border-primary/20 transition-all duration-300 shadow-xl"
+              onMouseEnter={(e) => {
+                setHoveredWord(word);
+                onWordHover?.(word, e);
+              }}
+              onMouseLeave={() => setHoveredWord(null)}
+              onMouseMove={handleMouseMove}
+            >
+              {/* Left: Original Word (Fixed Width, centered) */}
+              <div className="w-32 flex-shrink-0 flex justify-center">
+                <span
+                  className="text-3xl font-serif text-foreground/40 group-hover:text-foreground transition-colors"
+                  dir={!isNT ? "rtl" : "ltr"}
+                >
+                  {word.original}
+                </span>
               </div>
-              <div className="text-[13px] text-foreground/30 leading-snug font-medium line-clamp-2">
-                {word.translations.join(", ")}
-              </div>
-              
-              {/* PhD Details - Visible only when Deep Analysis is ON */}
-              <AnimatePresence>
-                {deepMode && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-3 mt-3 border-t border-border-subtle flex flex-wrap gap-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[8px] font-black text-blue-400/40 uppercase tracking-widest">Morfologia (Exegese)</span>
-                        <span className="text-[10px] text-blue-300/80 font-medium">{translateMorphology(word.morphology, isNT)}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[8px] font-black text-amber-500/40 uppercase tracking-widest">Strong's</span>
-                        <span className="text-[10px] text-amber-400/60 font-mono">{word.strong}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[8px] font-black text-emerald-500/40 uppercase tracking-widest">Raiz Lexical</span>
-                        <span className="text-[10px] text-emerald-400/60 font-serif italic">{word.root}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
-            {/* Hover Action: Pronunciation */}
-            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity pr-4">
-              <button 
-                onClick={(e) => { e.stopPropagation(); speakWord(word.original, isNT, word.strong); }}
-                className="p-2.5 rounded-full bg-white/5 hover:bg-blue-500/20 text-white/20 hover:text-blue-400 transition-all"
-              >
-                <Volume2 className="w-4 h-4" />
-              </button>
+              {/* Right: Textual Details (Translit over Definition) */}
+              <div className="flex flex-col gap-1 pr-8">
+                <div className="text-lg font-bold text-accent tracking-wide leading-none">
+                  {word.translit}
+                </div>
+                <div className="text-[13px] text-foreground/30 leading-snug font-medium line-clamp-2">
+                  {word.translations.join(", ")}
+                </div>
+
+                {/* PhD Details - Visible only when Deep Analysis is ON */}
+                <AnimatePresence>
+                  {deepMode && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 mt-3 border-t border-border-subtle flex flex-wrap gap-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-blue-400/40 uppercase tracking-widest">
+                            Morfologia (Exegese)
+                          </span>
+                          <span className="text-[10px] text-blue-300/80 font-medium">
+                            {translateMorphology(word.morphology, isNT)}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-amber-500/40 uppercase tracking-widest">
+                            Strong's
+                          </span>
+                          <span className="text-[10px] text-amber-400/60 font-mono">
+                            {word.strong}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-emerald-500/40 uppercase tracking-widest">
+                            Raiz Lexical
+                          </span>
+                          <span className="text-[10px] text-emerald-400/60 font-serif italic">
+                            {word.root}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Hover Action: Pronunciation */}
+              <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity pr-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    speakWord(word.original, isNT, word.strong);
+                  }}
+                  className="p-2.5 rounded-full bg-white/5 hover:bg-blue-500/20 text-white/20 hover:text-blue-400 transition-all"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
-        )) : (
+          ))
+        ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-surface/40 border border-border-subtle rounded-3xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent animate-pulse" />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="relative z-10 flex flex-col items-center"
@@ -172,7 +201,8 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
                 TheoAI: Iniciando Escaneamento PhD
               </p>
               <p className="text-[10px] text-foreground/30 font-medium uppercase tracking-widest text-center max-w-xs">
-                Dados estáticos ausentes. Ativando Redes Neurais Teológicas para Gênesis...
+                Dados estáticos ausentes. Ativando Redes Neurais Teológicas para
+                Gênesis...
               </p>
             </motion.div>
           </div>
@@ -186,11 +216,11 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            style={{ 
-              position: 'fixed',
+            style={{
+              position: "fixed",
               left: Math.min(mousePos.x + 20, window.innerWidth - 320),
               top: mousePos.y - 140,
-              zIndex: 100
+              zIndex: 100,
             }}
             className="w-80 bg-surface/98 backdrop-blur-2xl border border-border-subtle rounded-2xl shadow-2xl overflow-hidden pointer-events-none p-6 shadow-primary/10"
           >
@@ -198,25 +228,35 @@ export function InterlinearTable({ verse, selectedBook, selectedChapter, isNT, w
               <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Lexicon PhD Analysis
               </span>
-              <span className="text-[10px] font-mono text-white/30 bg-white/5 px-2 py-1 rounded border border-border-strong">{hoveredWord.strong}</span>
+              <span className="text-[10px] font-mono text-white/30 bg-white/5 px-2 py-1 rounded border border-border-strong">
+                {hoveredWord.strong}
+              </span>
             </div>
-            
+
             <div className="mb-5">
-              <h4 className="text-4xl font-serif text-foreground mb-1.5 tracking-tight">{hoveredWord.original}</h4>
+              <h4 className="text-4xl font-serif text-foreground mb-1.5 tracking-tight">
+                {hoveredWord.original}
+              </h4>
               <p className="text-[11px] text-primary/60 italic font-mono font-bold tracking-tight">
-                {hoveredWord.translit} <span className="mx-2 opacity-30">•</span> {translateMorphology(hoveredWord.morphology, isNT)}
+                {hoveredWord.translit}{" "}
+                <span className="mx-2 opacity-30">•</span>{" "}
+                {translateMorphology(hoveredWord.morphology, isNT)}
               </p>
             </div>
 
             <div className="space-y-4 border-t border-border-subtle pt-5">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">Lexicon PhD Analysis</span>
+                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">
+                  Lexicon PhD Analysis
+                </span>
                 <p className="text-[12px] text-foreground/80 leading-relaxed font-medium">
                   {hoveredWord.translations.join(", ")}
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">Origem da Raiz Lexical</span>
+                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">
+                  Origem da Raiz Lexical
+                </span>
                 <p className="text-[12px] text-foreground/60 font-serif italic">
                   {hoveredWord.root} ({hoveredWord.rootTrans})
                 </p>

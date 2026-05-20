@@ -8,7 +8,7 @@ interface ThemeProviderProps {
 
 /**
  * TheoSphere Theme Provider (React 19 Optimized)
- * 
+ *
  * Bypasses next-themes script injection which crashes React 19/Next 16.
  * Manages 'data-theme' attribute manually on the document element.
  */

@@ -37,7 +37,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "TheoSphere OS | Plataforma de Exegese & Pesquisa Teológica",
-  description: "O sistema operacional definitivo para pesquisadores, pastores e estudantes de teologia. Análise exegética avançada, Atlas 4D e IA agêntica integrada.",
+  description:
+    "O sistema operacional definitivo para pesquisadores, pastores e estudantes de teologia. Análise exegética avançada, Atlas 4D e IA agêntica integrada.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -52,18 +53,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full" suppressHydrationWarning data-theme="dark">
+    <html
+      lang="pt-BR"
+      className="h-full"
+      suppressHydrationWarning
+      data-theme="dark"
+    >
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${inter.variable} ${outfit.variable} ${literata.variable} antialiased min-h-full flex flex-col bg-background font-sans text-foreground`}>
-        <a href="#main" className="skip-link">Pular para o conteúdo</a>
+      <body
+        className={`${inter.variable} ${outfit.variable} ${literata.variable} antialiased min-h-full flex flex-col bg-background font-sans text-foreground`}
+      >
+        <a href="#main" className="skip-link">
+          Pular para o conteúdo
+        </a>
         <ClientProviders>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+          <ErrorBoundary>{children}</ErrorBoundary>
         </ClientProviders>
       </body>
     </html>

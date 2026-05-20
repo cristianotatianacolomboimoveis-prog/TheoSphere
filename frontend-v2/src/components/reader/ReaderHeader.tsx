@@ -30,34 +30,43 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({
           <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2 font-display italic">
             <span className="text-gradient uppercase">TheoSphere Exegete</span>
           </h2>
-          <p className="text-[10px] text-white/30 font-black tracking-[0.3em] uppercase">PhD Old/New Testament Specialization</p>
+          <p className="text-[10px] text-white/30 font-black tracking-[0.3em] uppercase">
+            PhD Old/New Testament Specialization
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button 
-          onClick={onExpand} 
+        <button
+          onClick={onExpand}
           className="p-2.5 hover:bg-accent/10 rounded-xl transition-all text-foreground/30 hover:text-accent"
           title="Expandir para nova janela"
         >
           <Maximize2 className="w-4.5 h-4.5" />
         </button>
         <div className="w-[1px] h-4 bg-border-subtle mx-1" />
-        <button 
-          onClick={onToggleViewMode} 
+        <button
+          onClick={onToggleViewMode}
           className={`p-2.5 rounded-xl transition-all ${viewMode === "exegesis" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10" : "hover:bg-white/5 text-white/30 hover:text-white"}`}
         >
-          <Star className={`w-4.5 h-4.5 ${viewMode === "exegesis" ? "fill-blue-400" : ""}`} />
+          <Star
+            className={`w-4.5 h-4.5 ${viewMode === "exegesis" ? "fill-blue-400" : ""}`}
+          />
         </button>
         <div className="w-[1px] h-4 bg-white/5 mx-1" />
-        <button 
-          onClick={onToggleResourceGuide} 
+        <button
+          onClick={onToggleResourceGuide}
           className={`p-2.5 rounded-xl transition-all ${showResourceGuide ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10" : "hover:bg-white/5 text-white/30 hover:text-white"}`}
           title="Guia de Recursos (Olive Tree Style)"
         >
-          <Library className={`w-4.5 h-4.5 ${showResourceGuide ? "fill-emerald-400/20" : ""}`} />
+          <Library
+            className={`w-4.5 h-4.5 ${showResourceGuide ? "fill-emerald-400/20" : ""}`}
+          />
         </button>
         <div className="w-[1px] h-4 bg-white/5 mx-1" />
-        <button onClick={onClose} className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all text-foreground/30 hover:text-red-400">
+        <button
+          onClick={onClose}
+          className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all text-foreground/30 hover:text-red-400"
+        >
           <X className="w-4.5 h-4.5" />
         </button>
       </div>

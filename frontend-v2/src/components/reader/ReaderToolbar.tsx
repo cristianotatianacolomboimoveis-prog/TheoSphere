@@ -1,9 +1,15 @@
 "use client";
 
 import React from "react";
-import { 
-  ChevronDown, Search, SplitSquareHorizontal, 
-  BookOpen, ChevronRight, ChevronLeft, Volume2, Square 
+import {
+  ChevronDown,
+  Search,
+  SplitSquareHorizontal,
+  BookOpen,
+  ChevronRight,
+  ChevronLeft,
+  Volume2,
+  Square,
 } from "lucide-react";
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
 import { TRANSLATIONS } from "../BibleReader";
@@ -47,9 +53,13 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   isPlaying,
   toggleReading,
 }) => {
-  const { activeBook, activeChapter, setBibleReference, books } = useTheoStore();
+  const { activeBook, activeChapter, setBibleReference, books } =
+    useTheoStore();
 
-  const selectedBook = books.find(b => b.namePt === activeBook || b.nameEn === activeBook) || books[0] || {} as BibleBook;
+  const selectedBook =
+    books.find((b) => b.namePt === activeBook || b.nameEn === activeBook) ||
+    books[0] ||
+    ({} as BibleBook);
 
   const closeAllSelectors = () => {
     setShowBookSelector(false);
@@ -64,39 +74,65 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
         <>
           {/* Seletor de Livro */}
           <button
-            onClick={() => { closeAllSelectors(); setShowBookSelector(!showBookSelector); }}
+            onClick={() => {
+              closeAllSelectors();
+              setShowBookSelector(!showBookSelector);
+            }}
             className="flex-grow flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm"
           >
-            <span className="font-semibold text-foreground/90">{selectedBook.namePt}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-foreground/30 transition-transform ${showBookSelector ? "rotate-180" : ""}`} />
+            <span className="font-semibold text-foreground/90">
+              {selectedBook.namePt}
+            </span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-foreground/30 transition-transform ${showBookSelector ? "rotate-180" : ""}`}
+            />
           </button>
 
           {/* Seletor de Capítulo */}
           <button
-            onClick={() => { closeAllSelectors(); setShowChapterSelector(!showChapterSelector); }}
+            onClick={() => {
+              closeAllSelectors();
+              setShowChapterSelector(!showChapterSelector);
+            }}
             className="px-4 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm font-bold text-accent flex items-center gap-1"
           >
             {activeChapter}
-            <ChevronDown className={`w-3 h-3 text-foreground/30 transition-transform ${showChapterSelector ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`w-3 h-3 text-foreground/30 transition-transform ${showChapterSelector ? "rotate-180" : ""}`}
+            />
           </button>
 
           {/* Seletor de Tradução Primária */}
           <button
-            onClick={() => { closeAllSelectors(); setShowTranslationSelector(!showTranslationSelector); }}
+            onClick={() => {
+              closeAllSelectors();
+              setShowTranslationSelector(!showTranslationSelector);
+            }}
             className={`px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 border ${showTranslationSelector ? "bg-accent/20 border-accent/30 text-accent" : "bg-surface-hover/50 border-border-subtle text-foreground/60 hover:border-accent/20"}`}
           >
             {primaryTranslation.toUpperCase()}
-            <ChevronDown className={`w-3 h-3 transition-transform ${showTranslationSelector ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`w-3 h-3 transition-transform ${showTranslationSelector ? "rotate-180" : ""}`}
+            />
           </button>
 
           {/* Botão de Modo Comparativo (Lado a Lado) */}
           <button
-            onClick={() => { closeAllSelectors(); setShowSecondarySelector(!showSecondarySelector); }}
+            onClick={() => {
+              closeAllSelectors();
+              setShowSecondarySelector(!showSecondarySelector);
+            }}
             className={`px-3 py-2 rounded-lg transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border ${secondaryTranslation ? "border-primary/30 bg-primary/10 text-primary shadow-[0_0_15px_rgba(59,130,246,0.1)]" : "border-border-subtle bg-surface-hover/50 text-foreground/40 hover:text-foreground hover:border-primary/30"}`}
             title="Abrir outra tradução lado a lado"
           >
-            <SplitSquareHorizontal className={`w-3.5 h-3.5 ${secondaryTranslation ? "animate-pulse" : ""}`} />
-            <span>{secondaryTranslation ? `PARALELO: ${secondaryTranslation.toUpperCase()}` : "COMPARAR"}</span>
+            <SplitSquareHorizontal
+              className={`w-3.5 h-3.5 ${secondaryTranslation ? "animate-pulse" : ""}`}
+            />
+            <span>
+              {secondaryTranslation
+                ? `PARALELO: ${secondaryTranslation.toUpperCase()}`
+                : "COMPARAR"}
+            </span>
           </button>
 
           {/* Indicador de Fonte (API vs Cache) */}
@@ -107,7 +143,11 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
                   ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
                   : "bg-blue-500/10 border-blue-500/25 text-blue-400"
               }`}
-              title={chaptersData[0].source === "cache" ? "Servido do cache local" : "Servido da API remota"}
+              title={
+                chaptersData[0].source === "cache"
+                  ? "Servido do cache local"
+                  : "Servido da API remota"
+              }
             >
               {chaptersData[0].source === "cache" ? "💾 Local" : "🌐 API"}
             </span>
@@ -115,7 +155,10 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
 
           {/* Botão de Busca */}
           <button
-            onClick={() => { closeAllSelectors(); setSearchMode(true); }}
+            onClick={() => {
+              closeAllSelectors();
+              setSearchMode(true);
+            }}
             className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-foreground/30 hover:text-accent"
             title="Buscar no capítulo"
           >
@@ -126,11 +169,17 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
           <button
             onClick={toggleReading}
             className={`px-3 py-2 rounded-lg border transition-all ${
-              isPlaying ? "bg-accent/20 border-accent/30 text-accent animate-pulse" : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-accent"
+              isPlaying
+                ? "bg-accent/20 border-accent/30 text-accent animate-pulse"
+                : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-accent"
             }`}
             title={isPlaying ? "Parar Leitura" : "Ouvir Capítulo"}
           >
-            {isPlaying ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            {isPlaying ? (
+              <Square className="w-3.5 h-3.5" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5" />
+            )}
           </button>
         </>
       )}

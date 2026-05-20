@@ -79,7 +79,8 @@ export const MSG = {
   },
   ai: {
     thinking: "TheoAI está pensando…",
-    quotaExceeded: "Limite de consultas atingido. Tente novamente em instantes.",
+    quotaExceeded:
+      "Limite de consultas atingido. Tente novamente em instantes.",
     askPlaceholder: "Faça uma pergunta teológica…",
   },
 } as const;

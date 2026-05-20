@@ -475,9 +475,10 @@ export const COMMENTARIES: CommentaryEntry[] = [
 
 export function getCommentariesForReference(ref: string): CommentaryEntry[] {
   const lowerRef = ref.toLowerCase();
-  return COMMENTARIES.filter(c =>
-    lowerRef.includes(c.reference.toLowerCase()) ||
-    c.reference.toLowerCase().includes(lowerRef.split(':')[0])
+  return COMMENTARIES.filter(
+    (c) =>
+      lowerRef.includes(c.reference.toLowerCase()) ||
+      c.reference.toLowerCase().includes(lowerRef.split(":")[0]),
   );
 }
 
@@ -491,14 +492,15 @@ export function searchCommentariesByKeywords(
 ): CommentaryEntry[] {
   const queryWords = query
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
+    .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 3);
 
   if (queryWords.length === 0) return COMMENTARIES.slice(0, limit);
 
   const scored = COMMENTARIES.map((c) => {
-    const haystack = `${c.reference} ${c.author} ${c.text} ${c.tradition}`.toLowerCase();
+    const haystack =
+      `${c.reference} ${c.author} ${c.text} ${c.tradition}`.toLowerCase();
     const score = queryWords.reduce(
       (acc, word) => acc + (haystack.includes(word) ? 1 : 0),
       0,

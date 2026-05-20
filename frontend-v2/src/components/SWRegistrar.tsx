@@ -4,7 +4,8 @@ import { useEffect } from "react";
 
 export default function SWRegistrar() {
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof window === "undefined" || !("serviceWorker" in navigator))
+      return;
 
     // Em desenvolvimento, remover SWs antigos para evitar conflitos de cache
     if (process.env.NODE_ENV === "development") {
@@ -19,8 +20,7 @@ export default function SWRegistrar() {
     // Em produção, registrar normalmente
     navigator.serviceWorker
       .register("/sw.js")
-      .then((registration) => {
-      })
+      .then((registration) => {})
       .catch((error) => {
         console.error("TheoSphere: Falha no Service Worker", error);
       });

@@ -87,7 +87,10 @@ function tokenSubject(authHeader: string | null): string | null {
   }
 }
 
-async function translateChunk(text: string, targetLang: string): Promise<string> {
+async function translateChunk(
+  text: string,
+  targetLang: string,
+): Promise<string> {
   if (!text.trim()) return "";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);

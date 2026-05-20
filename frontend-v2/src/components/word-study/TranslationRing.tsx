@@ -14,7 +14,10 @@ interface TranslationRingProps {
   }>;
 }
 
-export const TranslationRing: React.FC<TranslationRingProps> = ({ occurrences, data }) => (
+export const TranslationRing: React.FC<TranslationRingProps> = ({
+  occurrences,
+  data,
+}) => (
   <div className="glass rounded-xl border border-border-subtle p-4 mb-4">
     <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-3 flex items-center gap-2">
       <BarChart3 className="w-3.5 h-3.5" />
@@ -31,7 +34,9 @@ export const TranslationRing: React.FC<TranslationRingProps> = ({ occurrences, d
             return (
               <circle
                 key={i}
-                cx="50" cy="50" r="40"
+                cx="50"
+                cy="50"
+                r="40"
                 fill="none"
                 stroke={item.color}
                 strokeWidth="8"
@@ -50,9 +55,14 @@ export const TranslationRing: React.FC<TranslationRingProps> = ({ occurrences, d
       <div className="flex-grow space-y-1">
         {data.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+            <span
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ background: item.color }}
+            />
             <span className="text-xs text-white/60 flex-grow">{item.word}</span>
-            <span className="text-[10px] text-white/30 font-mono">{item.count}x ({item.percent.toFixed(0)}%)</span>
+            <span className="text-[10px] text-white/30 font-mono">
+              {item.count}x ({item.percent.toFixed(0)}%)
+            </span>
           </div>
         ))}
       </div>

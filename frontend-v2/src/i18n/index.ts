@@ -19,11 +19,18 @@ function detectLocale(): Locale {
   return DEFAULT_LOCALE;
 }
 
-function lookup(dict: Record<string, unknown>, path: string): string | undefined {
+function lookup(
+  dict: Record<string, unknown>,
+  path: string,
+): string | undefined {
   const parts = path.split(".");
   let cur: unknown = dict;
   for (const p of parts) {
-    if (cur && typeof cur === "object" && p in (cur as Record<string, unknown>)) {
+    if (
+      cur &&
+      typeof cur === "object" &&
+      p in (cur as Record<string, unknown>)
+    ) {
       cur = (cur as Record<string, unknown>)[p];
     } else {
       return undefined;

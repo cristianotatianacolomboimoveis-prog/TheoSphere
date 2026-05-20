@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { 
-  LayoutDashboard, 
-  Library, 
+import {
+  LayoutDashboard,
+  Library,
   Settings,
   Sparkles,
   Map as MapIcon,
   BookOpen,
   ScrollText,
-  Search
+  Search,
 } from "lucide-react";
 import { ToolId } from "@/store/useTheoStore";
 
@@ -48,14 +48,14 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
               <button
                 onClick={() => onSelectTool(item.id as ToolId)}
                 className={`w-10 h-10 rounded flex items-center justify-center transition-all duration-200 relative ${
-                  isActive 
-                    ? "bg-blue-600 text-white shadow-sm" 
+                  isActive
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
                 }`}
                 title={item.label}
               >
                 <Icon className="w-5 h-5" />
-                
+
                 {/* Active Indicator Dot (Left) */}
                 {isActive && (
                   <div className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />

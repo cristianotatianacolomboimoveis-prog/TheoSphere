@@ -154,7 +154,10 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
       : position.x;
   const top =
     typeof window !== "undefined"
-      ? Math.min(position.y + 20, window.innerHeight - CARD_HEIGHT_ESTIMATE - 16)
+      ? Math.min(
+          position.y + 20,
+          window.innerHeight - CARD_HEIGHT_ESTIMATE - 16,
+        )
       : position.y + 20;
 
   return (
@@ -190,7 +193,12 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
             </div>
             {transliteration && (
               <p className="text-xs text-white/60 italic mt-1 font-serif">
-                {transliteration} {pronunciation && <span className="text-[10px] opacity-50 not-italic ml-1">[{pronunciation}]</span>}
+                {transliteration}{" "}
+                {pronunciation && (
+                  <span className="text-[10px] opacity-50 not-italic ml-1">
+                    [{pronunciation}]
+                  </span>
+                )}
               </p>
             )}
           </div>

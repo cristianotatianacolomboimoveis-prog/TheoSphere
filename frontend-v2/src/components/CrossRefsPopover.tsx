@@ -143,8 +143,8 @@ export function CrossRefsPopover({
             </p>
             <p className="text-[10px] text-white/30 mt-1">
               Rode <code className="text-amber-400">npm run db:seed:tsk</code>{" "}
-              ou <code className="text-amber-400">npm run tsk:import</code>{" "}
-              para popular o corpus.
+              ou <code className="text-amber-400">npm run tsk:import</code> para
+              popular o corpus.
             </p>
           </div>
         ) : (

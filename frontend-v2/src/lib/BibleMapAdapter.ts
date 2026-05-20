@@ -1,12 +1,16 @@
 /**
  * BIBLE MAP INTEGRATION ADAPTER (FACADE)
- * 
+ *
  * Este módulo atua como a única ponte entre o Motor 3D (Black Box)
  * e o Dashboard Logos. Implementa um padrão Mediator com Event Bus.
  */
 
-export type MapEventType = 'onLocationSelected' | 'onRegionChanged' | 'onMapReady' | 'onError';
-export type MapCommandType = 'flyTo' | 'updateTimeline' | 'filterLayers';
+export type MapEventType =
+  | "onLocationSelected"
+  | "onRegionChanged"
+  | "onMapReady"
+  | "onError";
+export type MapCommandType = "flyTo" | "updateTimeline" | "filterLayers";
 
 export interface MapEventData {
   type: MapEventType;
@@ -28,20 +32,26 @@ class BibleMapEventBus {
   public unsubscribe(event: MapEventType, callback: Function) {
     const funcs = this.listeners.get(event);
     if (funcs) {
-      this.listeners.set(event, funcs.filter(f => f !== callback));
+      this.listeners.set(
+        event,
+        funcs.filter((f) => f !== callback),
+      );
     }
   }
 
   public publish(event: MapEventType, payload: any) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.debug(`[BibleMap:Output] Event: ${event}`, payload);
     }
     const funcs = this.listeners.get(event);
-    funcs?.forEach(fn => {
+    funcs?.forEach((fn) => {
       try {
         fn(payload);
       } catch (err) {
-        console.error(`[BibleMap:EventBus] Error in subscriber for ${event}:`, err);
+        console.error(
+          `[BibleMap:EventBus] Error in subscriber for ${event}:`,
+          err,
+        );
       }
     });
   }
@@ -57,15 +67,15 @@ class BibleMapIntegrationFacade {
    */
   public registerMap(instance: any) {
     this.mapInstance = instance;
-    this.events.publish('onMapReady', { status: 'connected' });
+    this.events.publish("onMapReady", { status: "connected" });
   }
 
   /**
    * COMANDOS (Inputs para o Mapa)
    */
-  
+
   public flyTo(lat: number, lng: number, zoom: number = 10) {
-    this.executeSafe('flyTo', () => {
+    this.executeSafe("flyTo", () => {
       if (!this.mapInstance?.flyTo) {
         throw new Error("Motor 3D ainda não está pronto para navegação.");
       }
@@ -74,7 +84,7 @@ class BibleMapIntegrationFacade {
   }
 
   public updateTimeline(year: number) {
-    this.executeSafe('updateTimeline', () => {
+    this.executeSafe("updateTimeline", () => {
       this.mapInstance?.setTime(year);
     });
   }
@@ -84,13 +94,16 @@ class BibleMapIntegrationFacade {
    */
   private executeSafe(command: MapCommandType, action: Function) {
     try {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.debug(`[BibleMap:Input] Command: ${command}`);
       }
       action();
     } catch (err) {
-      console.error(`[BibleMap:Facade] Fallback ativado para comando ${command}:`, err);
-      this.events.publish('onError', { command, error: err });
+      console.error(
+        `[BibleMap:Facade] Fallback ativado para comando ${command}:`,
+        err,
+      );
+      this.events.publish("onError", { command, error: err });
     }
   }
 }
@@ -102,10 +115,11 @@ declare global {
   }
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   if (!window.BibleMapIntegration) {
     window.BibleMapIntegration = new BibleMapIntegrationFacade();
   }
 }
 
-export const MapAdapter = typeof window !== 'undefined' ? window.BibleMapIntegration : null;
+export const MapAdapter =
+  typeof window !== "undefined" ? window.BibleMapIntegration : null;

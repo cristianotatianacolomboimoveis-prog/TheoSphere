@@ -52,22 +52,26 @@ const SUGGESTED_PROMPTS = [
   {
     icon: Scale,
     label: "Predestinação vs Livre-Arbítrio",
-    prompt: "Compare as perspectivas Calvinista e Arminiana sobre predestinação e livre-arbítrio, incluindo os principais versículos usados por cada tradição.",
+    prompt:
+      "Compare as perspectivas Calvinista e Arminiana sobre predestinação e livre-arbítrio, incluindo os principais versículos usados por cada tradição.",
   },
   {
     icon: BookOpen,
     label: "Explique Romanos 9",
-    prompt: "Faça uma análise exegética de Romanos 9, abordando as diferentes interpretações teológicas do capítulo.",
+    prompt:
+      "Faça uma análise exegética de Romanos 9, abordando as diferentes interpretações teológicas do capítulo.",
   },
   {
     icon: Sparkles,
     label: "Dons do Espírito Hoje",
-    prompt: "Compare as visões Cessacionista e Continuacionista sobre os dons espirituais, com base bíblica e histórica.",
+    prompt:
+      "Compare as visões Cessacionista e Continuacionista sobre os dons espirituais, com base bíblica e histórica.",
   },
   {
     icon: MessageCircle,
     label: "Batismo: Aspersão vs Imersão",
-    prompt: "Apresente os argumentos bíblicos e históricos para batismo por aspersão e por imersão, incluindo as tradições que defendem cada prática.",
+    prompt:
+      "Apresente os argumentos bíblicos e históricos para batismo por aspersão e por imersão, incluindo as tradições que defendem cada prática.",
   },
 ];
 
@@ -82,7 +86,10 @@ function createUserMessage(content: string): Message {
   };
 }
 
-function createAssistantMessage(content: string, meta?: Message["meta"]): Message {
+function createAssistantMessage(
+  content: string,
+  meta?: Message["meta"],
+): Message {
   return {
     id: `ai-${Date.now()}`,
     role: "assistant",
@@ -133,12 +140,12 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
 
     const userMsg = createUserMessage(content);
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
 
     // Prepara histórico para contexto
-    const history = messages.map(m => ({
+    const history = messages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
@@ -155,15 +162,16 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
 
       const aiMsg = createAssistantMessage(response.content, response.meta);
 
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [...prev, aiMsg]);
 
       // Atualiza estatísticas da sessão
-      setSessionStats(prev => ({
+      setSessionStats((prev) => ({
         totalQueries: prev.totalQueries + 1,
         cacheHits: prev.cacheHits + (response.meta.cached ? 1 : 0),
         totalTokens: prev.totalTokens + response.meta.tokensEstimated,
         totalCost: prev.totalCost + response.meta.costEstimated,
-        totalSavedFromCache: prev.totalSavedFromCache + (response.meta.cached ? 0.015 : 0),
+        totalSavedFromCache:
+          prev.totalSavedFromCache + (response.meta.cached ? 0.015 : 0),
       }));
     } catch (error) {
       console.error("Erro no chat:", error);
@@ -180,13 +188,25 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
   const renderContent = (text: string) => {
     return text.split("\n").map((line, i) => {
       if (line.startsWith("## ")) {
-        return <h2 key={i} className="text-lg font-bold text-white mt-4 mb-2">{line.replace("## ", "")}</h2>;
+        return (
+          <h2 key={i} className="text-lg font-bold text-white mt-4 mb-2">
+            {line.replace("## ", "")}
+          </h2>
+        );
       }
       if (line.startsWith("### ")) {
-        return <h3 key={i} className="text-sm font-bold text-amber-400 mt-3 mb-1">{line.replace("### ", "")}</h3>;
+        return (
+          <h3 key={i} className="text-sm font-bold text-amber-400 mt-3 mb-1">
+            {line.replace("### ", "")}
+          </h3>
+        );
       }
       if (line.startsWith("**") && line.endsWith("**")) {
-        return <p key={i} className="text-sm font-bold text-white/80 mt-2">{line.replace(/\*\*/g, "")}</p>;
+        return (
+          <p key={i} className="text-sm font-bold text-white/80 mt-2">
+            {line.replace(/\*\*/g, "")}
+          </p>
+        );
       }
       if (line.startsWith("- **")) {
         const parts = line.replace("- **", "").split("**");
@@ -212,10 +232,18 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
         return <div key={i} className="divider my-3" />;
       }
       if (line.startsWith("*") && line.endsWith("*")) {
-        return <p key={i} className="text-[10px] text-white/20 italic mt-2">{line.replace(/\*/g, "")}</p>;
+        return (
+          <p key={i} className="text-[10px] text-white/20 italic mt-2">
+            {line.replace(/\*/g, "")}
+          </p>
+        );
       }
       if (line.trim() === "") return <div key={i} className="h-1" />;
-      return <p key={i} className="text-xs text-white/60 leading-relaxed">{line}</p>;
+      return (
+        <p key={i} className="text-xs text-white/60 leading-relaxed">
+          {line}
+        </p>
+      );
     });
   };
 
@@ -277,12 +305,16 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
               {isBackendAvailable ? (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                   <Wifi className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">RAG</span>
+                  <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                    RAG
+                  </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <WifiOff className="w-3 h-3 text-amber-400" />
-                  <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Local</span>
+                  <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">
+                    Local
+                  </span>
                 </div>
               )}
             </div>
@@ -291,8 +323,8 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             <button
               onClick={() => setShowStats(!showStats)}
               className={`p-2 rounded-lg transition-all ${
-                showStats 
-                  ? "bg-purple-500/15 text-purple-400" 
+                showStats
+                  ? "bg-purple-500/15 text-purple-400"
                   : "hover:bg-white/5 text-white/30 hover:text-white/60"
               }`}
             >
@@ -311,7 +343,9 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             {/* Google Drive Sync button */}
             <button
               onClick={() => {
-                const folderId = prompt("ID da Pasta do Google Drive (deixe em branco para o padrão):");
+                const folderId = prompt(
+                  "ID da Pasta do Google Drive (deixe em branco para o padrão):",
+                );
                 syncDrive(folderId || undefined, undefined);
               }}
               className="p-2 rounded-lg hover:bg-white/5 transition-all text-white/30 hover:text-white/60"
@@ -348,22 +382,35 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             >
               <div className="mt-3 p-3 rounded-xl bg-surface border border-border-subtle grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Consultas</p>
-                  <p className="text-sm font-bold text-white/70">{sessionStats.totalQueries}</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+                    Consultas
+                  </p>
+                  <p className="text-sm font-bold text-white/70">
+                    {sessionStats.totalQueries}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Acertos de Cache</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+                    Acertos de Cache
+                  </p>
                   <p className="text-sm font-bold text-emerald-400">
                     {sessionStats.cacheHits}
                     {sessionStats.totalQueries > 0 && (
                       <span className="text-[10px] text-white/20 ml-1">
-                        ({Math.round((sessionStats.cacheHits / sessionStats.totalQueries) * 100)}%)
+                        (
+                        {Math.round(
+                          (sessionStats.cacheHits / sessionStats.totalQueries) *
+                            100,
+                        )}
+                        %)
                       </span>
                     )}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Tokens Usados</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+                    Tokens Usados
+                  </p>
                   <p className="text-sm font-bold text-white/70">
                     {sessionStats.totalTokens > 1000
                       ? `${(sessionStats.totalTokens / 1000).toFixed(1)}K`
@@ -371,16 +418,22 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Economia</p>
+                  <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+                    Economia
+                  </p>
                   <p className="text-sm font-bold text-green-400">
-                    ${(sessionStats.totalSavedFromCache + totalSaved).toFixed(3)}
+                    $
+                    {(sessionStats.totalSavedFromCache + totalSaved).toFixed(3)}
                   </p>
                 </div>
                 {lastSyncResult && (
                   <div className="col-span-2">
-                    <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Docs Indexados</p>
+                    <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+                      Docs Indexados
+                    </p>
                     <p className="text-[10px] text-white/40">
-                      {lastSyncResult.total} documentos pessoais indexados para RAG
+                      {lastSyncResult.total} documentos pessoais indexados para
+                      RAG
                     </p>
                   </div>
                 )}
@@ -398,11 +451,13 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center mb-4 border border-purple-500/10">
               <Sparkles className="w-8 h-8 text-purple-400/60" />
             </div>
-            <h3 className="text-xl font-bold text-white/90 mb-1">TheoAI + RAG</h3>
+            <h3 className="text-xl font-bold text-white/90 mb-1">
+              TheoAI + RAG
+            </h3>
             <p className="text-sm text-amber-500/90 font-bold tracking-widest uppercase mb-4 text-center max-w-sm">
               Precisão Científica e Rigor Técnico
             </p>
-            
+
             <Card className="mb-6 max-w-md w-full bg-white/[0.02]">
               <CardContent className="p-4">
                 <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
@@ -410,12 +465,32 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                   Base de Dados RAG (Indexada)
                 </p>
                 <ul className="text-xs text-white/70 space-y-2.5">
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Quase 45 mil anotações exegéticas e comentários acadêmicos aprofundados</li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Centenas de reconstruções cartográficas e mapas históricos</li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Extenso material comparativo e infográficos temáticos</li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Ensaios e monografias sobre os desafios da teologia contemporânea</li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Prólogos estruturais e análises de contexto para todos os livros canônicos</li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Motor avançado de referências cruzadas e elucidação doutrinária</li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Quase 45
+                    mil anotações exegéticas e comentários acadêmicos
+                    aprofundados
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Centenas de
+                    reconstruções cartográficas e mapas históricos
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Extenso
+                    material comparativo e infográficos temáticos
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Ensaios e
+                    monografias sobre os desafios da teologia contemporânea
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Prólogos
+                    estruturais e análises de contexto para todos os livros
+                    canônicos
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span> Motor
+                    avançado de referências cruzadas e elucidação doutrinária
+                  </li>
                 </ul>
               </CardContent>
             </Card>
@@ -424,11 +499,15 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15">
                 <Zap className="w-2.5 h-2.5 text-emerald-400" />
-                <span className="text-[9px] text-emerald-400/80 font-bold">Cache Semântico</span>
+                <span className="text-[9px] text-emerald-400/80 font-bold">
+                  Cache Semântico
+                </span>
               </div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/15">
                 <Database className="w-2.5 h-2.5 text-blue-400" />
-                <span className="text-[9px] text-blue-400/80 font-bold">Contexto Google Drive</span>
+                <span className="text-[9px] text-blue-400/80 font-bold">
+                  Contexto Google Drive
+                </span>
               </div>
             </div>
 
@@ -506,9 +585,24 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                 <div className="bg-white/[0.03] border border-border-subtle rounded-xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full bg-purple-400/40" style={{ animation: "typing 1.2s ease-in-out infinite 0s" }} />
-                      <div className="w-2 h-2 rounded-full bg-purple-400/40" style={{ animation: "typing 1.2s ease-in-out infinite 0.2s" }} />
-                      <div className="w-2 h-2 rounded-full bg-purple-400/40" style={{ animation: "typing 1.2s ease-in-out infinite 0.4s" }} />
+                      <div
+                        className="w-2 h-2 rounded-full bg-purple-400/40"
+                        style={{
+                          animation: "typing 1.2s ease-in-out infinite 0s",
+                        }}
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full bg-purple-400/40"
+                        style={{
+                          animation: "typing 1.2s ease-in-out infinite 0.2s",
+                        }}
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full bg-purple-400/40"
+                        style={{
+                          animation: "typing 1.2s ease-in-out infinite 0.4s",
+                        }}
+                      />
                     </div>
                     <span className="text-[9px] text-white/15 uppercase tracking-wider font-bold ml-1">
                       {isBackendAvailable ? "RAG Pipeline" : "Processando"}

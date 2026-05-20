@@ -115,7 +115,7 @@ export async function request<T = unknown>(
       headers: buildHeaders(headers, withAuth),
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
-      credentials: 'include',
+      credentials: "include",
     });
   } catch (err) {
     clearTimeout(timer);
@@ -141,7 +141,7 @@ export async function request<T = unknown>(
         const refreshRes = await fetch(refreshUrl, {
           method: "POST",
           headers: buildHeaders({}, false),
-          credentials: 'include',
+          credentials: "include",
         });
 
         if (refreshRes.ok) {
@@ -149,7 +149,7 @@ export async function request<T = unknown>(
           window.localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
           isRefreshing = false;
           onTokenRefreshed(accessToken);
-          
+
           // Retry original request
           return request<T>(path, opts);
         }
@@ -165,7 +165,10 @@ export async function request<T = unknown>(
         window.localStorage.removeItem("theosphere-user-id");
         window.dispatchEvent(new CustomEvent("theosphere:unauthorized"));
       }
-      throw new ApiError("Sessão expirada. Por favor, faça login novamente.", 401);
+      throw new ApiError(
+        "Sessão expirada. Por favor, faça login novamente.",
+        401,
+      );
     } else {
       // Outra request já está renovando o token — aguarda e refaz.
       // `_token` recebido aqui é o novo accessToken; não precisamos dele
@@ -202,18 +205,12 @@ export async function request<T = unknown>(
 export const api = {
   get: <T = unknown>(path: string, opts?: Omit<RequestOptions, "body">) =>
     request<T>(path, { ...opts, method: "GET" }),
-  post: <T = unknown>(
-    path: string,
-    body?: unknown,
-    opts?: RequestOptions,
-  ) => request<T>(path, { ...opts, method: "POST", body }),
+  post: <T = unknown>(path: string, body?: unknown, opts?: RequestOptions) =>
+    request<T>(path, { ...opts, method: "POST", body }),
   put: <T = unknown>(path: string, body?: unknown, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "PUT", body }),
-  patch: <T = unknown>(
-    path: string,
-    body?: unknown,
-    opts?: RequestOptions,
-  ) => request<T>(path, { ...opts, method: "PATCH", body }),
+  patch: <T = unknown>(path: string, body?: unknown, opts?: RequestOptions) =>
+    request<T>(path, { ...opts, method: "PATCH", body }),
   delete: <T = unknown>(path: string, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "DELETE" }),
 };

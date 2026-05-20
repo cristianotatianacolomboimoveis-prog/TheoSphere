@@ -13,13 +13,28 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", isLoading, children, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      isLoading,
+      children,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
     const variants = {
-      primary: "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-[1.02] active:scale-95",
-      secondary: "bg-surface text-foreground border border-border-subtle hover:bg-surface-hover",
+      primary:
+        "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-[1.02] active:scale-95",
+      secondary:
+        "bg-surface text-foreground border border-border-subtle hover:bg-surface-hover",
       ghost: "text-foreground/60 hover:text-foreground hover:bg-surface-hover",
-      destructive: "bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20",
-      outline: "bg-transparent border-2 border-primary text-primary hover:bg-primary/10",
+      destructive:
+        "bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20",
+      outline:
+        "bg-transparent border-2 border-primary text-primary hover:bg-primary/10",
     };
 
     const sizes = {
@@ -37,7 +52,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "inline-flex items-center justify-center rounded-2xl font-bold transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
           variants[variant],
           sizes[size],
-          className
+          className,
         )}
         {...props}
       >
@@ -47,7 +62,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";

@@ -2,14 +2,14 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Sparkles, 
-  BrainCircuit, 
-  MessageSquare, 
-  ChevronRight, 
+import {
+  Sparkles,
+  BrainCircuit,
+  MessageSquare,
+  ChevronRight,
   BookOpen,
   Zap,
-  Quote
+  Quote,
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
@@ -22,21 +22,23 @@ export const AIInsights: React.FC = () => {
 
   const handleAnalyze = async () => {
     if (!activeBook) return;
-    
+
     setIsAnalyzing(true);
     setInsight(null);
-    
+
     try {
       const res = await api.post<any>("enterprise/ai/exegesis", {
         book: activeBook,
-        chapter: activeChapter
+        chapter: activeChapter,
       });
-      
+
       if (res.success && res.data) {
         setInsight(res.data);
         setIsExpanded(true);
       } else {
-        setInsight("Não foi possível gerar insights agora. Tente novamente em breve.");
+        setInsight(
+          "Não foi possível gerar insights agora. Tente novamente em breve.",
+        );
       }
     } catch (err) {
       setInsight("Erro de conexão com o TheoSphere AI Engine.");
@@ -62,8 +64,12 @@ export const AIInsights: React.FC = () => {
                   <BrainCircuit className="w-4 h-4 text-accent" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-white uppercase tracking-tighter">TheoSphere AI</h4>
-                  <p className="text-[9px] text-white/40 font-medium">Análise em Tempo Real</p>
+                  <h4 className="text-xs font-black text-white uppercase tracking-tighter">
+                    TheoSphere AI
+                  </h4>
+                  <p className="text-[9px] text-white/40 font-medium">
+                    Análise em Tempo Real
+                  </p>
                 </div>
               </div>
 
@@ -78,21 +84,31 @@ export const AIInsights: React.FC = () => {
                           if (trimmed.startsWith("#")) {
                             const cleanLine = trimmed.replace(/^#+\s*/, "");
                             return (
-                              <span key={i} className="block text-[10px] font-black text-accent mt-3 mb-1 uppercase tracking-widest font-sans not-italic">
+                              <span
+                                key={i}
+                                className="block text-[10px] font-black text-accent mt-3 mb-1 uppercase tracking-widest font-sans not-italic"
+                              >
                                 {cleanLine}
                               </span>
                             );
                           }
                           if (trimmed.startsWith("- ")) {
                             return (
-                              <span key={i} className="block text-[11px] text-white/70 ml-2 mt-1 font-sans not-italic">
+                              <span
+                                key={i}
+                                className="block text-[11px] text-white/70 ml-2 mt-1 font-sans not-italic"
+                              >
                                 • {trimmed.replace(/^- \s*/, "")}
                               </span>
                             );
                           }
-                          if (trimmed === "") return <span key={i} className="block h-1.5" />;
+                          if (trimmed === "")
+                            return <span key={i} className="block h-1.5" />;
                           return (
-                            <p key={i} className="text-[11px] text-white/80 leading-relaxed mt-1">
+                            <p
+                              key={i}
+                              className="text-[11px] text-white/80 leading-relaxed mt-1"
+                            >
                               {trimmed}
                             </p>
                           );
@@ -116,7 +132,7 @@ export const AIInsights: React.FC = () => {
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setIsExpanded(false)}
               className="w-full py-2 bg-white/5 hover:bg-white/10 text-[9px] font-bold text-white/30 uppercase tracking-widest border-t border-white/5"
             >
@@ -131,23 +147,27 @@ export const AIInsights: React.FC = () => {
         whileTap={{ scale: 0.95 }}
         onClick={isExpanded ? handleAnalyze : () => setIsExpanded(true)}
         className={`relative flex items-center gap-2 px-4 py-3 rounded-2xl shadow-2xl transition-all border ${
-          isAnalyzing 
-            ? "bg-accent/20 border-accent/40 cursor-wait" 
+          isAnalyzing
+            ? "bg-accent/20 border-accent/40 cursor-wait"
             : "bg-accent border-accent/50 hover:shadow-accent/20"
         }`}
       >
         {isAnalyzing ? (
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-white animate-pulse" />
-            <span className="text-xs font-black text-white uppercase tracking-widest">Analisando...</span>
+            <span className="text-xs font-black text-white uppercase tracking-widest">
+              Analisando...
+            </span>
           </div>
         ) : (
           <>
             <Sparkles className="w-4 h-4 text-white" />
-            <span className="text-xs font-black text-white uppercase tracking-widest">Insights da IA</span>
+            <span className="text-xs font-black text-white uppercase tracking-widest">
+              Insights da IA
+            </span>
           </>
         )}
-        
+
         {/* Glow Effect */}
         <div className="absolute inset-0 rounded-2xl bg-white/20 opacity-0 hover:opacity-100 transition-opacity" />
       </motion.button>

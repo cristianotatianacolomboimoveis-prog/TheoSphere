@@ -9,12 +9,18 @@ import dynamic from "next/dynamic";
 import "@/lib/i18n";
 
 // O registro do Service Worker deve ser client-side
-const SWRegistrar = dynamic(() => import("@/components/SWRegistrar"), { ssr: false });
+const SWRegistrar = dynamic(() => import("@/components/SWRegistrar"), {
+  ssr: false,
+});
 
-export default function ClientProviders({ children }: { children: React.ReactNode }) {
+export default function ClientProviders({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [mounted, setMounted] = useState(false);
 
-  const fetchBooks = useTheoStore(state => state.fetchBooks);
+  const fetchBooks = useTheoStore((state) => state.fetchBooks);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);

@@ -2,9 +2,24 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  X, BookOpen, Users, MapPin, Calendar, MessageSquare, ChevronDown, ChevronRight,
-  Loader2, Link2, Lightbulb, ScrollText, ArrowLeft, ExternalLink,
-  Library, Languages, Trash2, Save 
+  X,
+  BookOpen,
+  Users,
+  MapPin,
+  Calendar,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  Link2,
+  Lightbulb,
+  ScrollText,
+  ArrowLeft,
+  ExternalLink,
+  Library,
+  Languages,
+  Trash2,
+  Save,
 } from "lucide-react";
 import { useToast } from "./Toast";
 import { api } from "@/lib/api";
@@ -17,7 +32,10 @@ interface UserNote {
 }
 import { motion, AnimatePresence } from "framer-motion";
 import { BIBLE_BOOKS, type BibleBook } from "@/data/bibleBooks";
-import { CROSS_REFERENCES, findRelatedReferences } from "@/data/crossReferences";
+import {
+  CROSS_REFERENCES,
+  findRelatedReferences,
+} from "@/data/crossReferences";
 import { BIBLICAL_PEOPLE, searchPeople } from "@/data/biblicalPeople";
 import { BIBLICAL_EVENTS, searchEvents } from "@/data/biblicalEvents";
 import { SEED_LOCATIONS, type GeoLocation3D } from "@/data/geoSeedData";
@@ -51,11 +69,11 @@ function normalizeRefToEnglish(ref: string): string {
   if (!ref) return "";
   const parts = ref.split(" ");
   if (parts.length < 2) return ref;
-  
+
   // Handle books with numbers like "1 João"
   let bookName = "";
   let chapterVerse = "";
-  
+
   if (/^\d/.test(parts[0])) {
     bookName = parts[0] + " " + parts[1];
     chapterVerse = parts.slice(2).join(" ");
@@ -71,20 +89,72 @@ function normalizeRefToEnglish(ref: string): string {
 
   // Find the English key for this ID (first key in English that maps to this ID)
   const englishKeys: Record<number, string> = {
-    1: "Genesis", 2: "Exodus", 3: "Leviticus", 4: "Numbers", 5: "Deuteronomy",
-    6: "Joshua", 7: "Judges", 8: "Ruth", 9: "1 Samuel", 10: "2 Samuel",
-    11: "1 Kings", 12: "2 Kings", 13: "1 Chronicles", 14: "2 Chronicles",
-    15: "Ezra", 16: "Nehemiah", 17: "Esther", 18: "Job", 19: "Psalms",
-    20: "Proverbs", 21: "Ecclesiastes", 22: "Song of Solomon", 23: "Isaiah",
-    24: "Jeremiah", 25: "Lamentations", 26: "Ezekiel", 27: "Daniel", 28: "Hosea",
-    29: "Joel", 30: "Amos", 31: "Obadiah", 32: "Jonah", 33: "Micah", 34: "Nahum",
-    35: "Habakkuk", 36: "Zephaniah", 37: "Haggai", 38: "Zechariah", 39: "Malachi",
-    40: "Matthew", 41: "Mark", 42: "Luke", 43: "John", 44: "Acts", 45: "Romans",
-    46: "1 Corinthians", 47: "2 Corinthians", 48: "Galatians", 49: "Ephesians",
-    50: "Philippians", 51: "Colossians", 52: "1 Thessalonians", 53: "2 Thessalonians",
-    54: "1 Timothy", 55: "2 Timothy", 56: "Titus", 57: "Philemon", 58: "Hebrews",
-    59: "James", 60: "1 Peter", 61: "2 Peter", 62: "1 John", 63: "2 John",
-    64: "3 John", 65: "Jude", 66: "Revelation"
+    1: "Genesis",
+    2: "Exodus",
+    3: "Leviticus",
+    4: "Numbers",
+    5: "Deuteronomy",
+    6: "Joshua",
+    7: "Judges",
+    8: "Ruth",
+    9: "1 Samuel",
+    10: "2 Samuel",
+    11: "1 Kings",
+    12: "2 Kings",
+    13: "1 Chronicles",
+    14: "2 Chronicles",
+    15: "Ezra",
+    16: "Nehemiah",
+    17: "Esther",
+    18: "Job",
+    19: "Psalms",
+    20: "Proverbs",
+    21: "Ecclesiastes",
+    22: "Song of Solomon",
+    23: "Isaiah",
+    24: "Jeremiah",
+    25: "Lamentations",
+    26: "Ezekiel",
+    27: "Daniel",
+    28: "Hosea",
+    29: "Joel",
+    30: "Amos",
+    31: "Obadiah",
+    32: "Jonah",
+    33: "Micah",
+    34: "Nahum",
+    35: "Habakkuk",
+    36: "Zephaniah",
+    37: "Haggai",
+    38: "Zechariah",
+    39: "Malachi",
+    40: "Matthew",
+    41: "Mark",
+    42: "Luke",
+    43: "John",
+    44: "Acts",
+    45: "Romans",
+    46: "1 Corinthians",
+    47: "2 Corinthians",
+    48: "Galatians",
+    49: "Ephesians",
+    50: "Philippians",
+    51: "Colossians",
+    52: "1 Thessalonians",
+    53: "2 Thessalonians",
+    54: "1 Timothy",
+    55: "2 Timothy",
+    56: "Titus",
+    57: "Philemon",
+    58: "Hebrews",
+    59: "James",
+    60: "1 Peter",
+    61: "2 Peter",
+    62: "1 John",
+    63: "2 John",
+    64: "3 John",
+    65: "Jude",
+    66: "Revelation",
   };
 
   const engBook = englishKeys[id];
@@ -98,16 +168,32 @@ function isHebrewOrGreek(text: string): boolean {
 
 /* ─── Component ──────────────────────────────────────────── */
 
-export default function PassageGuide({ onClose, initialRef }: { onClose: () => void; initialRef?: string }) {
+export default function PassageGuide({
+  onClose,
+  initialRef,
+}: {
+  onClose: () => void;
+  initialRef?: string;
+}) {
   const [reference, setReference] = useState(initialRef || "John 3:16");
   const [inputRef, setInputRef] = useState(initialRef || "John 3:16");
   const [verses, setVerses] = useState<VerseData[]>([]);
   const [loading, setLoading] = useState(false);
   const [sections, setSections] = useState<Section[]>([
     { id: "text", title: "Texto Bíblico", icon: BookOpen, open: true },
-    { id: "commentaries", title: "Comentários Clássicos", icon: Library, open: true },
+    {
+      id: "commentaries",
+      title: "Comentários Clássicos",
+      icon: Library,
+      open: true,
+    },
     { id: "crossrefs", title: "Referências Cruzadas", icon: Link2, open: true },
-    { id: "dictionaries", title: "Lexicon & Dicionários", icon: Languages, open: false },
+    {
+      id: "dictionaries",
+      title: "Lexicon & Dicionários",
+      icon: Languages,
+      open: false,
+    },
     { id: "people", title: "Pessoas", icon: Users, open: false },
     { id: "places", title: "Lugares", icon: MapPin, open: false },
     { id: "events", title: "Eventos", icon: Calendar, open: false },
@@ -121,7 +207,7 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const saved = localStorage.getItem('theosphere-notes');
+      const saved = localStorage.getItem("theosphere-notes");
       if (saved) {
         try {
           setUserNotes(JSON.parse(saved));
@@ -135,17 +221,17 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
 
   const saveNote = () => {
     if (!noteContent.trim()) return;
-    
+
     const newNote: UserNote = {
       id: Date.now().toString(),
       reference,
       content: noteContent,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const updated = [newNote, ...userNotes];
     try {
-      localStorage.setItem('theosphere-notes', JSON.stringify(updated));
+      localStorage.setItem("theosphere-notes", JSON.stringify(updated));
       setUserNotes(updated);
       setNoteContent("");
       show("Nota salva com sucesso!", "success");
@@ -155,19 +241,22 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   };
 
   const deleteNote = (id: string) => {
-    const updated = userNotes.filter(n => n.id !== id);
+    const updated = userNotes.filter((n) => n.id !== id);
     setUserNotes(updated);
-    localStorage.setItem('theosphere-notes', JSON.stringify(updated));
+    localStorage.setItem("theosphere-notes", JSON.stringify(updated));
     show("Nota removida", "info");
   };
 
-  const currentPassageNotes = userNotes.filter(n => 
-    n.reference.toLowerCase().includes(reference.toLowerCase()) || 
-    reference.toLowerCase().includes(n.reference.toLowerCase())
+  const currentPassageNotes = userNotes.filter(
+    (n) =>
+      n.reference.toLowerCase().includes(reference.toLowerCase()) ||
+      reference.toLowerCase().includes(n.reference.toLowerCase()),
   );
 
   const toggleSection = (id: string) => {
-    setSections(prev => prev.map(s => s.id === id ? { ...s, open: !s.open } : s));
+    setSections((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, open: !s.open } : s)),
+    );
   };
 
   /* ── Fetch passage ────────────────────────────────────── */
@@ -175,14 +264,16 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
     setLoading(true);
     try {
       // CONFIG.API_BASE_URL já contém /api/v1 — usar path relativo.
-      const result = await api.get<any>(`search/verses?q=${encodeURIComponent(ref)}&limit=50`);
+      const result = await api.get<any>(
+        `search/verses?q=${encodeURIComponent(ref)}&limit=50`,
+      );
       if (result.success && result.data) {
         // Deduplicate and filter: keep only Portuguese, one version per verse number
         const seenVerses = new Set<number>();
         const filtered = result.data.reduce((acc: VerseData[], v: any) => {
           const vNum = v.verse;
           const vText = v.text.trim();
-          
+
           if (!seenVerses.has(vNum) && !isHebrewOrGreek(vText)) {
             seenVerses.add(vNum);
             acc.push({ verse: vNum, text: vText });
@@ -212,48 +303,86 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   };
 
   /* ── Extract context from text ────────────────────────── */
-  const fullText = useMemo(() => verses.map(v => v.text).join(" ").toLowerCase(), [verses]);
+  const fullText = useMemo(
+    () =>
+      verses
+        .map((v) => v.text)
+        .join(" ")
+        .toLowerCase(),
+    [verses],
+  );
 
   /* ── Normalized context for matching ──────────────────── */
-  const normalizedRef = useMemo(() => normalizeRefToEnglish(reference), [reference]);
+  const normalizedRef = useMemo(
+    () => normalizeRefToEnglish(reference),
+    [reference],
+  );
 
   /* ── Contextual Datasets (Memoized for Performance) ── */
   const relatedPeople = useMemo(() => {
-    return BIBLICAL_PEOPLE.filter(p => fullText.includes(p.namePt.toLowerCase()));
+    return BIBLICAL_PEOPLE.filter((p) =>
+      fullText.includes(p.namePt.toLowerCase()),
+    );
   }, [fullText]);
 
   const relatedLocations = useMemo(() => {
-    return SEED_LOCATIONS.filter(loc => fullText.includes(loc.names.pt.toLowerCase()));
+    return SEED_LOCATIONS.filter((loc) =>
+      fullText.includes(loc.names.pt.toLowerCase()),
+    );
   }, [fullText]);
 
   const relatedEvents = useMemo(() => {
-    return BIBLICAL_EVENTS.filter(e => {
+    return BIBLICAL_EVENTS.filter((e) => {
       const normalizedBase = normalizeRefToEnglish(e.scriptureBase);
-      return normalizedBase.toLowerCase().includes(normalizedRef.toLowerCase()) ||
-             normalizedRef.toLowerCase().includes(normalizedBase.toLowerCase()) ||
-             (normalizedRef.split(':')[0] === normalizedBase.split(':')[0] && normalizedRef.split(':')[0].length > 0);
+      return (
+        normalizedBase.toLowerCase().includes(normalizedRef.toLowerCase()) ||
+        normalizedRef.toLowerCase().includes(normalizedBase.toLowerCase()) ||
+        (normalizedRef.split(":")[0] === normalizedBase.split(":")[0] &&
+          normalizedRef.split(":")[0].length > 0)
+      );
     });
   }, [normalizedRef]);
 
   const relatedTopics = useMemo(() => {
-    return THEOLOGICAL_TOPICS.filter(t =>
-      t.keyVerses.some(v => {
+    return THEOLOGICAL_TOPICS.filter((t) =>
+      t.keyVerses.some((v) => {
         const normalizedV = normalizeRefToEnglish(v);
-        return normalizedV.toLowerCase().includes(normalizedRef.toLowerCase()) ||
-               normalizedRef.toLowerCase().includes(normalizedV.toLowerCase().split(':')[0]);
-      })
+        return (
+          normalizedV.toLowerCase().includes(normalizedRef.toLowerCase()) ||
+          normalizedRef
+            .toLowerCase()
+            .includes(normalizedV.toLowerCase().split(":")[0])
+        );
+      }),
     );
   }, [normalizedRef]);
 
   const crossRefs = findRelatedReferences(normalizedRef);
   const commentaries = getCommentariesForReference(normalizedRef);
-  
+
   // Simulated dictionary extraction (would use NLP in real world)
   const dictionaryMatches = useMemo(() => {
-    const commonTheologicalTerms = ["graça", "justificação", "batismo", "santificação", "amor", "mundo", "crer", "princípio", "deus", "criar", "céu", "terra"];
-    return DICTIONARIES.filter(d => 
-      fullText.includes(d.word.toLowerCase()) || 
-      commonTheologicalTerms.some(term => fullText.includes(term) && d.word.toLowerCase().includes(term))
+    const commonTheologicalTerms = [
+      "graça",
+      "justificação",
+      "batismo",
+      "santificação",
+      "amor",
+      "mundo",
+      "crer",
+      "princípio",
+      "deus",
+      "criar",
+      "céu",
+      "terra",
+    ];
+    return DICTIONARIES.filter(
+      (d) =>
+        fullText.includes(d.word.toLowerCase()) ||
+        commonTheologicalTerms.some(
+          (term) =>
+            fullText.includes(term) && d.word.toLowerCase().includes(term),
+        ),
     );
   }, [fullText]);
 
@@ -273,12 +402,12 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
     if (!currentTarget) return;
 
     const observer = new IntersectionObserver(
-      entries => {
+      (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCommentCount(prev => prev + 5);
+          setVisibleCommentCount((prev) => prev + 5);
         }
       },
-      { threshold: 1.0 }
+      { threshold: 1.0 },
     );
     observer.observe(currentTarget);
     return () => {
@@ -302,11 +431,18 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
               <ScrollText className="w-5 h-5 text-slate-950" />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight"><span className="text-gradient">GUIA DE PASSAGEM</span></h2>
-              <p className="text-[10px] text-white/30 font-bold tracking-[0.2em] uppercase">Estudo Exegético Profundo</p>
+              <h2 className="text-lg font-black tracking-tight">
+                <span className="text-gradient">GUIA DE PASSAGEM</span>
+              </h2>
+              <p className="text-[10px] text-white/30 font-bold tracking-[0.2em] uppercase">
+                Estudo Exegético Profundo
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2.5 hover:bg-white/5 rounded-xl transition-all text-white/30 hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-2.5 hover:bg-white/5 rounded-xl transition-all text-white/30 hover:text-white"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -321,7 +457,10 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
             placeholder="Ex: João 3:16, Romanos 8:28"
             className="input-glass flex-grow text-sm focus:border-amber-500/50"
           />
-          <button onClick={handleSearch} className="btn-primary px-4 bg-gradient-to-br from-amber-500 to-orange-600 hover:shadow-amber-500/20">
+          <button
+            onClick={handleSearch}
+            className="btn-primary px-4 bg-gradient-to-br from-amber-500 to-orange-600 hover:shadow-amber-500/20"
+          >
             Pesquisar
           </button>
         </div>
@@ -335,25 +474,32 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
               <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
               <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
             </div>
-            <span className="mt-4 text-xs font-bold uppercase tracking-widest text-amber-500/60">Analisando passagem e bibliotecas...</span>
+            <span className="mt-4 text-xs font-bold uppercase tracking-widest text-amber-500/60">
+              Analisando passagem e bibliotecas...
+            </span>
           </div>
         ) : (
           <div className="space-y-4">
             {sections.map((section) => {
               const Icon = section.icon;
-              
+
               // Count badges
               let badgeCount = 0;
               if (section.id === "crossrefs") badgeCount = crossRefs.length;
               if (section.id === "people") badgeCount = relatedPeople.length;
               if (section.id === "places") badgeCount = relatedLocations.length;
-              if (section.id === "commentaries") badgeCount = commentaries.length;
-              if (section.id === "dictionaries") badgeCount = dictionaryMatches.length;
+              if (section.id === "commentaries")
+                badgeCount = commentaries.length;
+              if (section.id === "dictionaries")
+                badgeCount = dictionaryMatches.length;
               if (section.id === "events") badgeCount = relatedEvents.length;
               if (section.id === "topics") badgeCount = relatedTopics.length;
-              
+
               return (
-                <div key={section.id} className="rounded-[18px] border border-border-subtle bg-white/[0.01] overflow-hidden backdrop-blur-md transition-all hover:border-border-strong group/section">
+                <div
+                  key={section.id}
+                  className="rounded-[18px] border border-border-subtle bg-white/[0.01] overflow-hidden backdrop-blur-md transition-all hover:border-border-strong group/section"
+                >
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full flex items-center gap-3.5 px-5 py-4 hover:bg-white/[0.03] transition-colors text-left group"
@@ -369,7 +515,9 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                         {badgeCount}
                       </span>
                     )}
-                    <ChevronDown className={`w-4 h-4 text-white/10 transition-transform duration-300 ${section.open ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/10 transition-transform duration-300 ${section.open ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   <AnimatePresence>
@@ -384,15 +532,24 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Text Section ──────── */}
                           {section.id === "text" && (
                             <div className="bible-text text-[15px] leading-[1.9] p-4 bg-surface rounded-xl border border-border-subtle shadow-inner">
-                              <h3 className="text-xl font-serif font-bold text-amber-400 mb-3">{reference}</h3>
+                              <h3 className="text-xl font-serif font-bold text-amber-400 mb-3">
+                                {reference}
+                              </h3>
                               {verses.map((v, i) => (
-                                <span key={`${v.verse}-${i}`} className="verse inline">
-                                  <sup className="verse-number text-amber-500/50 mr-1">{v.verse}</sup>
+                                <span
+                                  key={`${v.verse}-${i}`}
+                                  className="verse inline"
+                                >
+                                  <sup className="verse-number text-amber-500/50 mr-1">
+                                    {v.verse}
+                                  </sup>
                                   {v.text}{" "}
                                 </span>
                               ))}
                               {verses.length === 0 && (
-                                <p className="text-xs text-white/20 italic">Nenhum texto encontrado para esta referência.</p>
+                                <p className="text-xs text-white/20 italic">
+                                  Nenhum texto encontrado para esta referência.
+                                </p>
                               )}
                             </div>
                           )}
@@ -400,27 +557,46 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Commentaries Section ──── */}
                           {section.id === "commentaries" && (
                             <div className="space-y-3">
-                              {visibleCommentaries.length > 0 ? visibleCommentaries.map((comm) => (
-                                <div key={comm.id} className="p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.05] relative overflow-hidden group">
-                                  <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                      <h4 className="text-sm font-bold text-white/90">{comm.author}</h4>
-                                      <p className="text-[10px] text-amber-400/60 font-medium">{comm.title} ({comm.year})</p>
+                              {visibleCommentaries.length > 0 ? (
+                                visibleCommentaries.map((comm) => (
+                                  <div
+                                    key={comm.id}
+                                    className="p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.05] relative overflow-hidden group"
+                                  >
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <h4 className="text-sm font-bold text-white/90">
+                                          {comm.author}
+                                        </h4>
+                                        <p className="text-[10px] text-amber-400/60 font-medium">
+                                          {comm.title} ({comm.year})
+                                        </p>
+                                      </div>
+                                      <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-border-strong text-white/40 uppercase tracking-wider">
+                                        {comm.tradition}
+                                      </span>
                                     </div>
-                                    <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-border-strong text-white/40 uppercase tracking-wider">{comm.tradition}</span>
+                                    <div className="relative">
+                                      <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-border-strong pl-3 py-1">
+                                        "{comm.text}"
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="relative">
-                                    <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-border-strong pl-3 py-1">"{comm.text}"</p>
-                                  </div>
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">Nenhum comentário clássico indexado para esta passagem.</p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">
+                                  Nenhum comentário clássico indexado para esta
+                                  passagem.
+                                </p>
                               )}
-                              
+
                               {/* Elemento alvo para o Lazy Loading (Infinite Scroll) */}
                               {visibleCommentCount < commentaries.length && (
-                                <div ref={observerTarget} className="py-4 flex justify-center">
+                                <div
+                                  ref={observerTarget}
+                                  className="py-4 flex justify-center"
+                                >
                                   <Loader2 className="w-5 h-5 text-amber-500/50 animate-spin" />
                                 </div>
                               )}
@@ -430,16 +606,30 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Dictionaries Section ──── */}
                           {section.id === "dictionaries" && (
                             <div className="space-y-3">
-                              {dictionaryMatches.length > 0 ? dictionaryMatches.map((dict) => (
-                                <div key={dict.id} className="p-3 rounded-lg bg-surface border border-border-subtle">
-                                  <div className="flex justify-between items-center border-b border-border-subtle pb-2 mb-2">
-                                    <h4 className="text-sm font-bold text-blue-400">{dict.word}</h4>
-                                    <span className="text-[9px] text-white/30 uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded">{dict.source}</span>
+                              {dictionaryMatches.length > 0 ? (
+                                dictionaryMatches.map((dict) => (
+                                  <div
+                                    key={dict.id}
+                                    className="p-3 rounded-lg bg-surface border border-border-subtle"
+                                  >
+                                    <div className="flex justify-between items-center border-b border-border-subtle pb-2 mb-2">
+                                      <h4 className="text-sm font-bold text-blue-400">
+                                        {dict.word}
+                                      </h4>
+                                      <span className="text-[9px] text-white/30 uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded">
+                                        {dict.source}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-white/60 leading-relaxed">
+                                      {dict.definition}
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-white/60 leading-relaxed">{dict.definition}</p>
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">Nenhum termo de dicionário relevante detectado.</p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">
+                                  Nenhum termo de dicionário relevante
+                                  detectado.
+                                </p>
                               )}
                             </div>
                           )}
@@ -447,20 +637,30 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Cross References ──── */}
                           {section.id === "crossrefs" && (
                             <div className="space-y-1.5">
-                              {crossRefs.length > 0 ? crossRefs.map((ref, i) => (
-                                <button
-                                  key={i}
-                                  onClick={() => { setInputRef(ref); fetchPassage(ref); }}
-                                  className="w-full text-left px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03] hover:border-amber-500/30 hover:bg-amber-500/5 transition-all text-xs group flex items-center justify-between"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Link2 className="w-3 h-3 text-amber-500/40 group-hover:text-amber-500" />
-                                    <span className="text-white/70 font-mono font-medium group-hover:text-amber-400">{ref}</span>
-                                  </div>
-                                  <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-amber-500" />
-                                </button>
-                              )) : (
-                                <p className="text-xs text-white/20 italic">Nenhuma referência cruzada encontrada para esta passagem.</p>
+                              {crossRefs.length > 0 ? (
+                                crossRefs.map((ref, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      setInputRef(ref);
+                                      fetchPassage(ref);
+                                    }}
+                                    className="w-full text-left px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03] hover:border-amber-500/30 hover:bg-amber-500/5 transition-all text-xs group flex items-center justify-between"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Link2 className="w-3 h-3 text-amber-500/40 group-hover:text-amber-500" />
+                                      <span className="text-white/70 font-mono font-medium group-hover:text-amber-400">
+                                        {ref}
+                                      </span>
+                                    </div>
+                                    <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-amber-500" />
+                                  </button>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic">
+                                  Nenhuma referência cruzada encontrada para
+                                  esta passagem.
+                                </p>
                               )}
                             </div>
                           )}
@@ -468,19 +668,32 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── People ──────────── */}
                           {section.id === "people" && (
                             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {relatedPeople.length > 0 ? relatedPeople.map((person) => (
-                                <div key={person.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-blue-500/30 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                      <Users className="w-3 h-3 text-blue-400" />
+                              {relatedPeople.length > 0 ? (
+                                relatedPeople.map((person) => (
+                                  <div
+                                    key={person.id}
+                                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-blue-500/30 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <Users className="w-3 h-3 text-blue-400" />
+                                      </div>
+                                      <h4 className="text-sm font-bold text-white/80">
+                                        {person.namePt}
+                                      </h4>
                                     </div>
-                                    <h4 className="text-sm font-bold text-white/80">{person.namePt}</h4>
+                                    <p className="text-[10px] text-blue-400/60 font-medium mb-1.5">
+                                      {person.role} · {person.period}
+                                    </p>
+                                    <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">
+                                      {person.description}
+                                    </p>
                                   </div>
-                                  <p className="text-[10px] text-blue-400/60 font-medium mb-1.5">{person.role} · {person.period}</p>
-                                  <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{person.description}</p>
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic col-span-2">Nenhuma pessoa identificada nesta passagem.</p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic col-span-2">
+                                  Nenhuma pessoa identificada nesta passagem.
+                                </p>
                               )}
                             </div>
                           )}
@@ -488,21 +701,33 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Places ──────────── */}
                           {section.id === "places" && (
                             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {relatedLocations.length > 0 ? relatedLocations.map((loc) => (
-                                <div key={loc.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-emerald-500/30 transition-colors">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                      <MapPin className="w-3 h-3 text-emerald-400" />
+                              {relatedLocations.length > 0 ? (
+                                relatedLocations.map((loc) => (
+                                  <div
+                                    key={loc.id}
+                                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-emerald-500/30 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                        <MapPin className="w-3 h-3 text-emerald-400" />
+                                      </div>
+                                      <h4 className="text-sm font-bold text-white/80">
+                                        {loc.names.pt}
+                                      </h4>
                                     </div>
-                                    <h4 className="text-sm font-bold text-white/80">{loc.names.pt}</h4>
+                                    <p className="text-[10px] text-emerald-400/60 font-medium mb-1.5">
+                                      {loc.era}
+                                    </p>
+                                    <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">
+                                      {(loc as any).description ||
+                                        (loc as any).theologicalSignificance}
+                                    </p>
                                   </div>
-                                  <p className="text-[10px] text-emerald-400/60 font-medium mb-1.5">{loc.era}</p>
-                                  <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">
-                  {(loc as any).description || (loc as any).theologicalSignificance}
-                </p>
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic col-span-2">Nenhum lugar identificado nesta passagem.</p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic col-span-2">
+                                  Nenhum lugar identificado nesta passagem.
+                                </p>
                               )}
                             </div>
                           )}
@@ -510,22 +735,41 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Events ──────────── */}
                           {section.id === "events" && (
                             <div className="space-y-2">
-                              {relatedEvents.length > 0 ? relatedEvents.map((event) => (
-                                <div key={event.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-purple-500/30 transition-colors relative overflow-hidden">
-                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500/50" />
-                                  <div className="flex justify-between items-start mb-1">
-                                    <h4 className="text-sm font-bold text-white/90">{event.namePt}</h4>
-                                    <span className="text-[9px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded font-mono">{event.date}</span>
+                              {relatedEvents.length > 0 ? (
+                                relatedEvents.map((event) => (
+                                  <div
+                                    key={event.id}
+                                    className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-purple-500/30 transition-colors relative overflow-hidden"
+                                  >
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500/50" />
+                                    <div className="flex justify-between items-start mb-1">
+                                      <h4 className="text-sm font-bold text-white/90">
+                                        {event.namePt}
+                                      </h4>
+                                      <span className="text-[9px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded font-mono">
+                                        {event.date}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-white/30 mb-2 uppercase tracking-wider">
+                                      {event.period}
+                                    </p>
+                                    <p className="text-xs text-white/50 leading-relaxed">
+                                      {event.description}
+                                    </p>
+                                    <div className="mt-3 pt-2 border-t border-border-subtle flex gap-2">
+                                      <span className="text-[10px] text-purple-400/80 font-medium">
+                                        Significado:
+                                      </span>
+                                      <span className="text-[10px] text-white/40 italic">
+                                        {event.significance}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <p className="text-[10px] text-white/30 mb-2 uppercase tracking-wider">{event.period}</p>
-                                  <p className="text-xs text-white/50 leading-relaxed">{event.description}</p>
-                                  <div className="mt-3 pt-2 border-t border-border-subtle flex gap-2">
-                                    <span className="text-[10px] text-purple-400/80 font-medium">Significado:</span>
-                                    <span className="text-[10px] text-white/40 italic">{event.significance}</span>
-                                  </div>
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic">Nenhum evento relacionado encontrado.</p>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic">
+                                  Nenhum evento relacionado encontrado.
+                                </p>
                               )}
                             </div>
                           )}
@@ -533,28 +777,49 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                           {/* ── Topics ──────────── */}
                           {section.id === "topics" && (
                             <div className="space-y-3">
-                              {relatedTopics.length > 0 ? relatedTopics.map((topic) => (
-                                <div key={topic.id} className="p-4 rounded-xl bg-surface border border-border-subtle">
-                                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border-subtle">
-                                    <Lightbulb className="w-4 h-4 text-amber-500" />
-                                    <h4 className="text-sm font-bold text-white/90">{topic.namePt}</h4>
-                                    <span className="ml-auto text-[9px] bg-white/5 px-2 py-0.5 rounded text-white/40">{topic.category}</span>
-                                  </div>
-                                  <p className="text-xs text-white/60 leading-relaxed mb-3">{topic.definition}</p>
-                                  {topic.perspectives.length > 0 && (
-                                    <div className="bg-white/[0.02] rounded-lg p-3 space-y-2 border border-border-subtle">
-                                      <span className="text-[9px] uppercase tracking-widest text-amber-500/60 font-bold block mb-1">Perspectivas Teológicas</span>
-                                      {topic.perspectives.slice(0, 3).map((p, i) => (
-                                        <div key={i} className="flex gap-2">
-                                          <span className="text-[10px] font-bold text-white/50 whitespace-nowrap">{p.tradition}:</span>
-                                          <span className="text-[10px] text-white/40">{p.view}</span>
-                                        </div>
-                                      ))}
+                              {relatedTopics.length > 0 ? (
+                                relatedTopics.map((topic) => (
+                                  <div
+                                    key={topic.id}
+                                    className="p-4 rounded-xl bg-surface border border-border-subtle"
+                                  >
+                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border-subtle">
+                                      <Lightbulb className="w-4 h-4 text-amber-500" />
+                                      <h4 className="text-sm font-bold text-white/90">
+                                        {topic.namePt}
+                                      </h4>
+                                      <span className="ml-auto text-[9px] bg-white/5 px-2 py-0.5 rounded text-white/40">
+                                        {topic.category}
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
-                              )) : (
-                                <p className="text-xs text-white/20 italic">Nenhum tópico teológico relacionado.</p>
+                                    <p className="text-xs text-white/60 leading-relaxed mb-3">
+                                      {topic.definition}
+                                    </p>
+                                    {topic.perspectives.length > 0 && (
+                                      <div className="bg-white/[0.02] rounded-lg p-3 space-y-2 border border-border-subtle">
+                                        <span className="text-[9px] uppercase tracking-widest text-amber-500/60 font-bold block mb-1">
+                                          Perspectivas Teológicas
+                                        </span>
+                                        {topic.perspectives
+                                          .slice(0, 3)
+                                          .map((p, i) => (
+                                            <div key={i} className="flex gap-2">
+                                              <span className="text-[10px] font-bold text-white/50 whitespace-nowrap">
+                                                {p.tradition}:
+                                              </span>
+                                              <span className="text-[10px] text-white/40">
+                                                {p.view}
+                                              </span>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-white/20 italic">
+                                  Nenhum tópico teológico relacionado.
+                                </p>
                               )}
                             </div>
                           )}
@@ -565,12 +830,14 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
                               <div>
                                 <textarea
                                   value={noteContent}
-                                  onChange={(e) => setNoteContent(e.target.value)}
+                                  onChange={(e) =>
+                                    setNoteContent(e.target.value)
+                                  }
                                   className="w-full h-28 bg-surface border border-border-strong rounded-xl p-3 text-xs text-foreground/70 resize-none focus:outline-none focus:border-accent/50 transition-colors placeholder:text-muted shadow-inner"
                                   placeholder={`Escreva sua reflexão sobre ${reference}...`}
                                 />
                                 <div className="flex justify-end mt-2">
-                                  <button 
+                                  <button
                                     onClick={saveNote}
                                     className="flex items-center gap-2 text-[10px] bg-amber-500 text-slate-950 font-black px-4 py-2 rounded-lg hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20 active:scale-95"
                                   >
@@ -581,13 +848,24 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
 
                               {currentPassageNotes.length > 0 && (
                                 <div className="space-y-2 mt-4 pt-4 border-t border-border-subtle">
-                                  <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-3">Notas salvas para esta referência</p>
-                                  {currentPassageNotes.map(note => (
-                                    <div key={note.id} className="p-3 rounded-lg bg-white/[0.02] border border-border-subtle group relative">
-                                      <p className="text-[11px] text-white/60 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                  <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-3">
+                                    Notas salvas para esta referência
+                                  </p>
+                                  {currentPassageNotes.map((note) => (
+                                    <div
+                                      key={note.id}
+                                      className="p-3 rounded-lg bg-white/[0.02] border border-border-subtle group relative"
+                                    >
+                                      <p className="text-[11px] text-white/60 leading-relaxed whitespace-pre-wrap">
+                                        {note.content}
+                                      </p>
                                       <div className="flex items-center justify-between mt-2">
-                                        <span className="text-[9px] text-white/20">{new Date(note.timestamp).toLocaleDateString()}</span>
-                                        <button 
+                                        <span className="text-[9px] text-white/20">
+                                          {new Date(
+                                            note.timestamp,
+                                          ).toLocaleDateString()}
+                                        </span>
+                                        <button
                                           onClick={() => deleteNote(note.id)}
                                           className="p-1 text-white/10 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                                         >
@@ -615,7 +893,9 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
       <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between flex-shrink-0 bg-surface/80 backdrop-blur-md relative z-10">
         <div className="flex items-center gap-1.5">
           <Library className="w-3.5 h-3.5 text-amber-500/50" />
-          <p className="text-[9px] text-white/30 font-medium">BIBLE STUDY TOOLS V2</p>
+          <p className="text-[9px] text-white/30 font-medium">
+            BIBLE STUDY TOOLS V2
+          </p>
         </div>
         <p className="text-[9px] text-white/12 text-center uppercase tracking-[0.15em] font-bold">
           TheoSphere OS
@@ -624,4 +904,3 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
     </div>
   );
 }
-

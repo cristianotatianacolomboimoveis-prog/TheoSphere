@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from "react";
 
 export function useVoice() {
   const [isListening, setIsListening] = useState(false);
@@ -8,7 +8,9 @@ export function useVoice() {
 
   // ── Speech to Text (Dictation) ──────────────────────────────────────────
   const startListening = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Seu navegador não suporta reconhecimento de voz.");
       return;
@@ -17,7 +19,7 @@ export function useVoice() {
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
-    recognitionRef.current.lang = 'pt-BR';
+    recognitionRef.current.lang = "pt-BR";
 
     recognitionRef.current.onresult = (event: any) => {
       let currentTranscript = "";
@@ -50,24 +52,32 @@ export function useVoice() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'pt-BR';
-    
+    utterance.lang = "pt-BR";
+
     // Try to find a high-quality neural voice
     const voices = window.speechSynthesis.getVoices();
-    const premiumVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Natural') || v.lang === 'pt-BR') || voices[0];
+    const premiumVoice =
+      voices.find(
+        (v) =>
+          v.name.includes("Google") ||
+          v.name.includes("Natural") ||
+          v.lang === "pt-BR",
+      ) || voices[0];
     if (premiumVoice) utterance.voice = premiumVoice;
 
     utterance.rate = 0.92; // Slightly slower for cathedral atmosphere
     utterance.pitch = 1.0;
 
-    if (spatial && typeof window !== 'undefined') {
+    if (spatial && typeof window !== "undefined") {
       // Basic "Cathedral" simulation using Web Audio
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
-      
+
       // In a real spatial implementation, we'd pipe synthesis into an AudioNode.
-      // Since Synthesis doesn't expose a direct Node, we simulate spatiality by 
+      // Since Synthesis doesn't expose a direct Node, we simulate spatiality by
       // adjusting the pan/reverb based on the reading position if we had a stream.
       // For now, we'll focus on the high-quality synthesis settings.
     }
@@ -86,6 +96,6 @@ export function useVoice() {
     startListening,
     stopListening,
     speak,
-    stopSpeaking
+    stopSpeaking,
   };
 }
