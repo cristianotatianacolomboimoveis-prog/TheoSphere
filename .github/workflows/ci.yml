@@ -28,7 +28,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: imresamu/postgis-pgvector:16-3.4-0.8.0
         env:
           POSTGRES_USER: theosphere
           POSTGRES_PASSWORD: ci_test_password
@@ -71,9 +71,7 @@ jobs:
       - name: Enable Postgres extensions
         run: |
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_ci -c "CREATE EXTENSION IF NOT EXISTS vector;"
-          # postgis is NOT available in pgvector/pgvector image. The migrations
-          # for Location depend on it. We patch by skipping postgis-only tests
-          # in CI; the schema validation and unit tests don't need it.
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_ci -c "CREATE EXTENSION IF NOT EXISTS postgis;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_ci -c "SELECT version();"
 
       - name: Generate Prisma Client
@@ -82,18 +80,14 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy
+
       - name: Lint
         run: npm run lint -- --max-warnings 0
 
       - name: Typecheck
-        # Pre-existing error in bible-ingestion.service.ts (unrelated 'author'
-        # field). Tracked for fix; not a regression. Filter with grep -v so
-        # CI catches NEW errors but tolerates the known one.
-        run: |
-          set -o pipefail
-          npx tsc --noEmit -p tsconfig.json 2>&1 | tee tsc.log
-          # Fail if any error other than the documented pre-existing one shows up
-          ! grep -v "bible-ingestion.service.ts.*'author' does not exist" tsc.log | grep -E "error TS"
+        run: npx tsc --noEmit -p tsconfig.json
 
       - name: Unit tests
         run: npm test -- --ci --coverage --maxWorkers=2
@@ -156,7 +150,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: imresamu/postgis-pgvector:16-3.4-0.8.0
         env:
           POSTGRES_USER: theosphere
           POSTGRES_PASSWORD: ci_test_password
@@ -191,6 +185,7 @@ jobs:
       - name: Enable Postgres extensions
         run: |
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
       # `migrate diff` compares the current DB state (after deploying all
       # migrations) against the schema.prisma. A non-empty diff = drift.
