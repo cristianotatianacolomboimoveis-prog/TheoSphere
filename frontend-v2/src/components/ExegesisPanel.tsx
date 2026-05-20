@@ -76,7 +76,7 @@ export default function ExegesisPanel({ verse, onClose, hideHeader = false }: { 
       finally { setLoading(false); }
     };
     fetchExegesis();
-  }, [verse]);
+  }, [verse, chat]);
 
   return (
     <div className="flex flex-col h-full bg-[#F3F4F6] dark:bg-[#0A0D14] text-gray-900 dark:text-gray-100 overflow-hidden border-l border-gray-200 dark:border-white/10 shadow-2xl">

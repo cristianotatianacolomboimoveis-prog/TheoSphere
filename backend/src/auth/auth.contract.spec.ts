@@ -67,7 +67,7 @@ describe('Auth contract (e2e)', () => {
 
   it('POST /api/v1/auth/register → 201 with userId', async () => {
     const response = await request(
-      app.getHttpServer() as Record<string, unknown>,
+      app.getHttpServer() as any,
     )
       .post('/api/v1/auth/register')
       .send(testUser)
@@ -82,7 +82,7 @@ describe('Auth contract (e2e)', () => {
 
   it('POST /api/v1/auth/login → 200 with accessToken + httpOnly refresh cookie', async () => {
     const response = await request(
-      app.getHttpServer() as Record<string, unknown>,
+      app.getHttpServer() as any,
     )
       .post('/api/v1/auth/login')
       .send(testUser)
@@ -106,7 +106,7 @@ describe('Auth contract (e2e)', () => {
   });
 
   it('POST /api/v1/auth/login → 401 on wrong password', async () => {
-    await request(app.getHttpServer() as Record<string, unknown>)
+    await request(app.getHttpServer() as any)
       .post('/api/v1/auth/login')
       .send({ email: testUser.email, password: 'WrongPassword999' })
       .expect(401);
@@ -114,7 +114,7 @@ describe('Auth contract (e2e)', () => {
 
   it('POST /api/v1/auth/refresh → 200 and rotates the cookie', async () => {
     const loginRes = await request(
-      app.getHttpServer() as Record<string, unknown>,
+      app.getHttpServer() as any,
     )
       .post('/api/v1/auth/login')
       .send(testUser);
@@ -126,7 +126,7 @@ describe('Auth contract (e2e)', () => {
     expect(initialRefresh).toBeDefined();
 
     const refreshRes = await request(
-      app.getHttpServer() as Record<string, unknown>,
+      app.getHttpServer() as any,
     )
       .post('/api/v1/auth/refresh')
       .set('Cookie', loginCookies)
@@ -144,14 +144,14 @@ describe('Auth contract (e2e)', () => {
   });
 
   it('POST /api/v1/auth/refresh → 401 without cookie', async () => {
-    await request(app.getHttpServer() as Record<string, unknown>)
+    await request(app.getHttpServer() as any)
       .post('/api/v1/auth/refresh')
       .expect(401);
   });
 
   it('POST /api/v1/auth/logout → 200 and clears the cookie', async () => {
     const response = await request(
-      app.getHttpServer() as Record<string, unknown>,
+      app.getHttpServer() as any,
     )
       .post('/api/v1/auth/logout')
       .expect(200);

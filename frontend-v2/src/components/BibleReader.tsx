@@ -111,7 +111,7 @@ export default function BibleReader({
     ? allVerses.filter(v => v.text.toLowerCase().includes(searchQuery.toLowerCase()))
     : allVerses;
 
-  const chapterRefs = React.useMemo(() => versesToRender.map((v) => `${selectedBook.nameEn} ${activeChapter}:${v.verse}`), [selectedBook.nameEn, activeChapter, versesToRender.length]);
+  const chapterRefs = React.useMemo(() => versesToRender.map((v) => `${selectedBook.nameEn} ${activeChapter}:${v.verse}`), [selectedBook.nameEn, activeChapter, versesToRender]);
   const { counts: crossRefCounts, list: listCrossRefs } = useChapterCrossRefs(chapterRefs);
   
   const rowVirtualizer = useVirtualizer({
