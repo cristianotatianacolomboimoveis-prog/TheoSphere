@@ -1,6 +1,12 @@
 {
-  "backend/**/*.ts": ["eslint --fix", "prettier --write"],
-  "frontend-v2/**/*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+  "backend/**/*.ts": [
+    "bash -c 'cd backend && npx eslint --fix ${0} ${@}' --",
+    "bash -c 'cd backend && npx prettier --write ${0} ${@}' --"
+  ],
+  "frontend-v2/**/*.{ts,tsx}": [
+    "bash -c 'cd frontend-v2 && npx eslint --fix ${0} ${@}' --",
+    "bash -c 'cd frontend-v2 && npx prettier --write ${0} ${@}' --"
+  ],
   "*.md": ["prettier --write"],
   "*.json": ["prettier --write"]
 }

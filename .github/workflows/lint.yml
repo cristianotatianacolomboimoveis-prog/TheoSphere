@@ -10,6 +10,9 @@ concurrency:
   group: lint-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint:
     name: Lint & Format
@@ -18,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['20.x']
+        node-version: ['24.x']
 
     steps:
       - uses: actions/checkout@v4
