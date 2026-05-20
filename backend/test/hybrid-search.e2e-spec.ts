@@ -24,8 +24,12 @@ describe('Hybrid search infrastructure (e2e)', () => {
 
   beforeAll(async () => {
     testDb = await setupTestDatabase();
+    // Prisma 7 dropped `datasources` constructor option in favor of a
+    // driver adapter. Use @prisma/adapter-pg wrapping the testcontainer URL.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaPg } = require('@prisma/adapter-pg');
     prisma = new PrismaClient({
-      datasources: { db: { url: testDb.url } },
+      adapter: new PrismaPg({ connectionString: testDb.url }),
     });
     await prisma.$connect();
   }, 180_000);

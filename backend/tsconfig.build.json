@@ -14,6 +14,7 @@
     "test-db.ts",
     "trigger-ingest.ts",
     "prisma",
+    "prisma.config.ts",
     "scratch"
   ]
 }

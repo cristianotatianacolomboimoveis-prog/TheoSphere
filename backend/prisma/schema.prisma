@@ -2,10 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Prisma 7+: url/directUrl saíram daqui e foram para `prisma.config.ts`.
+// O schema declara apenas o provider; a conexão é resolvida em runtime.
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

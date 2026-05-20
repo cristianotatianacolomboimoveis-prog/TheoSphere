@@ -1,15 +1,27 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 // ─── Singleton Pattern ──────────────────────────────────────────────────────
 // Em desenvolvimento, o NestJS realiza hot-reloads frequentes. Se criarmos uma
 // nova instância do PrismaClient a cada reload, esgotaremos o pool de
 // conexões do PostgreSQL rapidamente. O objeto global persiste entre reloads.
+//
+// Prisma 7 exige um driver adapter explícito no constructor (antes a URL
+// vinha do schema). O adapter para Postgres direto é `@prisma/adapter-pg`,
+// que envelopa o driver `pg` (8.x) já presente nas deps.
 // ─────────────────────────────────────────────────────────────────────────────
+
+function buildClient(): PrismaClient {
+  const connectionString =
+    process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+  const adapter = new PrismaPg({ connectionString });
+  return new PrismaClient({ adapter });
+}
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export const prisma = globalForPrisma.prisma || new PrismaClient();
+export const prisma = globalForPrisma.prisma || buildClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
@@ -19,8 +31,9 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    // Inicializamos a classe base usando a instância singleton se disponível
-    super();
+    const connectionString =
+      process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+    super({ adapter: new PrismaPg({ connectionString }) });
   }
 
   async onModuleInit() {

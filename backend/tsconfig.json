@@ -24,5 +24,12 @@
     "noFallthroughCasesInSwitch": false,
     "types": ["jest", "node"]
   },
-  "exclude": ["scratch", "dist", "node_modules"]
+  "exclude": [
+    "scratch",
+    "dist",
+    "node_modules",
+    "test-db-direct.ts",
+    "trigger-ingest.ts",
+    "seed.ts"
+  ]
 }
