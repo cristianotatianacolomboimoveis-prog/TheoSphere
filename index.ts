@@ -2,9 +2,13 @@ import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import 'dotenv/config';
 
-// Configuração para carregar o .env do backend caso esteja rodando da raiz
 import path from 'path';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config({ path: path.resolve(__dirname, 'backend/.env') });
 
 async function main() {

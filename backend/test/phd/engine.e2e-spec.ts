@@ -19,7 +19,7 @@ describe('PhD Engine Audit (e2e)', () => {
   describe('Linguistic Engine (Strong/Lexicon)', () => {
     it('Deve retornar análise exegética para G26 (Agápē)', () => {
       return request(app.getHttpServer())
-        .get('/api/v1/bible/lexical/G26')
+        .get('/api/v1/linguistics/lexical/G26')
         .expect(200)
         .then((response) => {
           expect(response.body.success).toBe(true);
@@ -29,7 +29,7 @@ describe('PhD Engine Audit (e2e)', () => {
 
     it('Deve buscar ocorrências da raiz (Concordância)', () => {
       return request(app.getHttpServer())
-        .get('/api/v1/bible/search-root/G26')
+        .get('/api/v1/linguistics/search-root/G26')
         .expect(200)
         .then((response) => {
           expect(response.body.success).toBe(true);
