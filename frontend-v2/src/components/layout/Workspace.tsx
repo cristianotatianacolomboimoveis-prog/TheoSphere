@@ -1,6 +1,12 @@
 "use client";
 
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+// react-resizable-panels v4 (migrated from v2):
+//   • PanelGroup        → Group
+//   • PanelResizeHandle → Separator
+//   • Panel             → Panel (mantido)
+//   • prop `direction`  → `orientation`
+// defaultSize/minSize continuam aceitando number (% do grupo).
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { useState } from "react";
 import {
   X,
@@ -36,7 +42,7 @@ export function Workspace({
 
   return (
     <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
-      <PanelGroup direction="horizontal" className="flex-grow">
+      <Group orientation="horizontal" className="flex-grow">
         {/* Pane 1: Primary Content */}
         <Panel
           defaultSize={40}
@@ -47,13 +53,13 @@ export function Workspace({
           <div className="flex-grow overflow-hidden relative">{leftPane}</div>
         </Panel>
 
-        <PanelResizeHandle className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+        <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
           <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
-        </PanelResizeHandle>
+        </Separator>
 
         {/* Panes 2 & 3: Supporting Content */}
         <Panel defaultSize={60} minSize={20}>
-          <PanelGroup direction="vertical">
+          <Group orientation="vertical">
             {/* Top Right Pane */}
             <Panel
               defaultSize={50}
@@ -64,9 +70,9 @@ export function Workspace({
               <div className="flex-grow overflow-hidden">{rightPane}</div>
             </Panel>
 
-            <PanelResizeHandle className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
+            <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
               <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
-            </PanelResizeHandle>
+            </Separator>
 
             {/* Bottom Right Pane */}
             <Panel
@@ -77,9 +83,9 @@ export function Workspace({
               <PaneTabHeader title={activeTabs.right} />
               <div className="flex-grow overflow-hidden">{bottomPane}</div>
             </Panel>
-          </PanelGroup>
+          </Group>
         </Panel>
-      </PanelGroup>
+      </Group>
 
       {/* Logos Status Bar */}
       <div className="h-6 bg-[#E8EBF0] dark:bg-[#1E252B] border-t border-gray-300 dark:border-white/10 flex items-center px-4 justify-between">

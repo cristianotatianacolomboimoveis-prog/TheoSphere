@@ -48,7 +48,7 @@
     "react-i18next": "^17.0.8",
     "react-leaflet": "^5.0.0",
     "react-map-gl": "^8.1.1",
-    "react-resizable-panels": "^2.1.9",
+    "react-resizable-panels": "^4.11.1",
     "resium": "^1.21.0",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
