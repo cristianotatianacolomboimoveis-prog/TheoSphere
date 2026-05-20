@@ -28,7 +28,6 @@
     "tsk:import": "ts-node scripts/import-tsk-full.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.75",
     "@ai-sdk/openai": "^3.0.64",
     "@google/generative-ai": "^0.24.1",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
@@ -47,7 +46,6 @@
     "@sentry/node": "^10.53.1",
     "@types/opossum": "^8.1.9",
     "@youversion/platform-core": "^1.29.0",
-    "ai": "^6.0.185",
     "axios": "^1.16.1",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -74,11 +72,11 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.3",
     "tsx": "^4.22.3",
-    "uuid": "^10.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
-    "@eslint/js": "^9.18.0",
+    "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "^11.1.21",
@@ -93,8 +91,8 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.0",
-    "@types/uuid": "^10.0.0",
-    "eslint": "^9.18.0",
+    "@types/uuid": "^11.0.0",
+    "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.6.0",
@@ -107,7 +105,7 @@
     "ts-loader": "^9.5.7",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.3",
+    "typescript": "5.9",
     "typescript-eslint": "^8.59.4"
   },
   "jest": {

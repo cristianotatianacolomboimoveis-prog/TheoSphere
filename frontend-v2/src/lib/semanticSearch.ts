@@ -1,4 +1,4 @@
-import { pipeline } from "@xenova/transformers";
+import { pipeline } from "@huggingface/transformers";
 
 class SemanticSearchEngine {
   private static instance: SemanticSearchEngine;
