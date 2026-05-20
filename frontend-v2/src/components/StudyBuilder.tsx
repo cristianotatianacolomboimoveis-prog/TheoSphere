@@ -90,10 +90,13 @@ export default function StudyBuilder({ onClose }: { onClose: () => void }) {
   const { show } = useToast();
 
   useEffect(() => {
-    const savedStudies = localStorage.getItem('theosphere-studies');
-    if (savedStudies) {
-      try { setStudies(JSON.parse(savedStudies)); } catch (e) {}
-    }
+    const timer = setTimeout(() => {
+      const savedStudies = localStorage.getItem('theosphere-studies');
+      if (savedStudies) {
+        try { setStudies(JSON.parse(savedStudies)); } catch (e) {}
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const createStudy = () => {

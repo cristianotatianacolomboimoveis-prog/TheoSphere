@@ -8,11 +8,14 @@ export default function NoteEditor({ reference }: { reference: string }) {
   const [history, setHistory] = useState<{ref: string, text: string, date: string}[]>([]);
 
   useEffect(() => {
-    const savedNote = localStorage.getItem(`note_${reference}`);
-    setNote(savedNote || "");
+    const timer = setTimeout(() => {
+      const savedNote = localStorage.getItem(`note_${reference}`);
+      setNote(savedNote || "");
 
-    const savedHistory = JSON.parse(localStorage.getItem("note_history") || "[]");
-    setHistory(savedHistory);
+      const savedHistory = JSON.parse(localStorage.getItem("note_history") || "[]");
+      setHistory(savedHistory);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [reference]);
 
   const saveNote = () => {

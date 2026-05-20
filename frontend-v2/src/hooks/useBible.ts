@@ -56,7 +56,7 @@ export function useBible(primaryTranslation: string, viewMode: "text" | "interli
     } else if (type === "WORKER_ERROR") {
       setLoading(false);
     }
-  }, [activeBook, primaryTranslation]);
+  }, [activeBook, primaryTranslation, secondaryTranslation]);
 
   const { postMessage } = useTheoWorker(handleWorkerMessage);
 
@@ -92,7 +92,10 @@ export function useBible(primaryTranslation: string, viewMode: "text" | "interli
   }, [activeBook, activeChapter, primaryTranslation, secondaryTranslation, viewMode, _hasHydrated, postMessage]);
 
   useEffect(() => {
-    fetchChapter();
+    const timer = setTimeout(() => {
+      fetchChapter();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchChapter]);
 
   return { chaptersData, secondaryData, interlinearMap, loading, refetch: fetchChapter };

@@ -457,14 +457,17 @@ export class RagService {
    */
   private sanitizeInput(input: string): string {
     if (!input) return '';
-    return input
-      .replace(
-        /System:|User:|Assistant:|Assistant Instruction:|Ignore previous instructions/gi,
-        '',
-      ) // Blindagem básica
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove caracteres de controle
-      .trim()
-      .substring(0, 1000); // Limite de 1k chars para evitar DoS por tokens
+    return (
+      input
+        .replace(
+          /System:|User:|Assistant:|Assistant Instruction:|Ignore previous instructions/gi,
+          '',
+        ) // Blindagem básica
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove caracteres de controle
+        .trim()
+        .substring(0, 1000)
+    ); // Limite de 1k chars para evitar DoS por tokens
   }
 
   /**

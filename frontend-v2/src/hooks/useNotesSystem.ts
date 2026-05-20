@@ -119,12 +119,15 @@ export function useNotesSystem() {
 
   // Load on mount
   useEffect(() => {
-    setHighlights(loadFromStorage(KEYS.highlights, []));
-    setNotes(loadFromStorage(KEYS.notes, []));
-    setNotebooks(loadFromStorage(KEYS.notebooks, []));
-    setBookmarks(loadFromStorage(KEYS.bookmarks, []));
-    setSermons(loadFromStorage(KEYS.sermons, []));
-    setStudies(loadFromStorage(KEYS.studies, []));
+    const timer = setTimeout(() => {
+      setHighlights(loadFromStorage(KEYS.highlights, []));
+      setNotes(loadFromStorage(KEYS.notes, []));
+      setNotebooks(loadFromStorage(KEYS.notebooks, []));
+      setBookmarks(loadFromStorage(KEYS.bookmarks, []));
+      setSermons(loadFromStorage(KEYS.sermons, []));
+      setStudies(loadFromStorage(KEYS.studies, []));
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   /* ── Highlights ───────────────────────────────────────── */

@@ -68,7 +68,9 @@ export function CrossRefsPopover({
   // Carrega refs
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    const timer = setTimeout(() => {
+      if (!cancelled) setLoading(true);
+    }, 0);
     void loader().then((r) => {
       if (!cancelled) {
         setRefs(r);
@@ -77,6 +79,7 @@ export function CrossRefsPopover({
     });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [loader]);
 

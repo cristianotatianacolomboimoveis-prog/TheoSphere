@@ -17,8 +17,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   const fetchBooks = useTheoStore(state => state.fetchBooks);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
     fetchBooks();
+    return () => clearTimeout(timer);
   }, [fetchBooks]);
 
   return (

@@ -111,8 +111,12 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
   // Lookup na biblioteca pessoal — async, falha em silêncio.
   useEffect(() => {
     let cancelled = false;
-    setLibraryHits([]);
-    setLoadingLibrary(true);
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        setLibraryHits([]);
+        setLoadingLibrary(true);
+      }
+    }, 0);
 
     const term = lemma || word;
     const run = async () => {
@@ -137,6 +141,7 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
     void run();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [strongId, lemma, word]);
 

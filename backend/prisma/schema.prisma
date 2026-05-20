@@ -84,6 +84,8 @@ model TheologyEmbedding {
   content   String
   tradition String
   embedding Unsupported("vector(768)")
+
+  @@index([embedding], map: "TheologyEmbedding_embedding_hnsw_idx")
 }
 
 // User-content Embeddings (personalized RAG)
@@ -100,6 +102,7 @@ model UserEmbedding {
 
   @@index([userId])
   @@index([type])
+  @@index([embedding], map: "UserEmbedding_embedding_hnsw_idx")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,6 +125,7 @@ model SemanticCacheEntry {
   @@index([userId])
   @@index([tradition])
   @@index([expiresAt])
+  @@index([embedding], map: "SemanticCacheEntry_embedding_hnsw_idx")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,6 +232,7 @@ model BibleVerse {
   @@unique([translation, bookId, chapter, verse])
   @@index([translation])
   @@index([bookId, chapter])
+  @@index([embedding], map: "BibleVerse_embedding_hnsw_idx")
 }
 
 model LexicalEntry {

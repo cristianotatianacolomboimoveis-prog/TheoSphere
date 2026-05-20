@@ -122,6 +122,7 @@ jobs:
       # Build needs SOMETHING for client-side env vars or Next will inline empty.
       NEXT_PUBLIC_BACKEND_URL: http://localhost:3002
       NEXT_PUBLIC_MAPBOX_TOKEN: ''
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
       - uses: actions/checkout@v4

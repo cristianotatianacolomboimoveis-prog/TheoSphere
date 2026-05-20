@@ -94,7 +94,6 @@ export async function request<T = unknown>(
   let normalizedPath = path;
   if (!path.startsWith("http") && /^\/?api\/v1\//.test(path)) {
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.warn(
         `[lib/api] Path "${path}" includes /api/v1/ but the base URL already does — stripping. Use a relative path like "${path.replace(/^\/?api\/v1\//, "")}" instead.`,
       );

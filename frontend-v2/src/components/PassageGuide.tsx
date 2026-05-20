@@ -120,14 +120,17 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   const { show } = useToast();
 
   useEffect(() => {
-    const saved = localStorage.getItem('theosphere-notes');
-    if (saved) {
-      try {
-        setUserNotes(JSON.parse(saved));
-      } catch (e) {
-        console.error("Erro ao carregar notas", e);
+    const timer = setTimeout(() => {
+      const saved = localStorage.getItem('theosphere-notes');
+      if (saved) {
+        try {
+          setUserNotes(JSON.parse(saved));
+        } catch (e) {
+          console.error("Erro ao carregar notas", e);
+        }
       }
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const saveNote = () => {
@@ -197,7 +200,12 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
     }
   }, []);
 
-  useEffect(() => { fetchPassage(reference); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchPassage(reference);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchPassage, reference]);
 
   const handleSearch = () => {
     if (inputRef.trim()) fetchPassage(inputRef.trim());
@@ -241,8 +249,8 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   const commentaries = getCommentariesForReference(normalizedRef);
   
   // Simulated dictionary extraction (would use NLP in real world)
-  const commonTheologicalTerms = ["graça", "justificação", "batismo", "santificação", "amor", "mundo", "crer", "princípio", "deus", "criar", "céu", "terra"];
   const dictionaryMatches = useMemo(() => {
+    const commonTheologicalTerms = ["graça", "justificação", "batismo", "santificação", "amor", "mundo", "crer", "princípio", "deus", "criar", "céu", "terra"];
     return DICTIONARIES.filter(d => 
       fullText.includes(d.word.toLowerCase()) || 
       commonTheologicalTerms.some(term => fullText.includes(term) && d.word.toLowerCase().includes(term))
@@ -254,10 +262,16 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
   const observerTarget = React.useRef(null);
 
   useEffect(() => {
-    setVisibleCommentCount(5); // Reseta ao mudar de passagem
+    const timer = setTimeout(() => {
+      setVisibleCommentCount(5); // Reseta ao mudar de passagem
+    }, 0);
+    return () => clearTimeout(timer);
   }, [reference]);
 
   useEffect(() => {
+    const currentTarget = observerTarget.current;
+    if (!currentTarget) return;
+
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
@@ -266,13 +280,11 @@ export default function PassageGuide({ onClose, initialRef }: { onClose: () => v
       },
       { threshold: 1.0 }
     );
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
+    observer.observe(currentTarget);
     return () => {
-      if (observerTarget.current) observer.unobserve(observerTarget.current);
+      observer.unobserve(currentTarget);
     };
-  }, [observerTarget.current]);
+  }, [visibleCommentCount, commentaries.length]);
 
   const visibleCommentaries = commentaries.slice(0, visibleCommentCount);
 

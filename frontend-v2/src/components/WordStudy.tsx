@@ -62,18 +62,24 @@ export default function WordStudy({
 
   React.useEffect(() => {
     if (!selectedEntry) return;
-    void fetchLibraryExcerpts(selectedEntry);
+    const timer = setTimeout(() => {
+      void fetchLibraryExcerpts(selectedEntry);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [selectedEntry]);
 
   React.useEffect(() => {
     if (!initialStrongId) return;
     const isHebrew = initialStrongId.startsWith("H");
     const targetLang = isHebrew ? "hebrew" : "greek";
-    if (language !== targetLang) setLanguage(targetLang);
-    const table = isHebrew ? STRONGS_HEBREW : STRONGS_GREEK;
-    const entry = (table as Record<string, StrongsEntry>)[initialStrongId];
-    if (entry) setSelectedEntry(entry);
-  }, [initialStrongId]);
+    const timer = setTimeout(() => {
+      if (language !== targetLang) setLanguage(targetLang);
+      const table = isHebrew ? STRONGS_HEBREW : STRONGS_GREEK;
+      const entry = (table as Record<string, StrongsEntry>)[initialStrongId];
+      if (entry) setSelectedEntry(entry);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialStrongId, language]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

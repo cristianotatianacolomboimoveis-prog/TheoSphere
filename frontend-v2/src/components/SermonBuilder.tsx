@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { 
   Type, List, Layout, Save, Download, 
@@ -34,12 +34,25 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
     isListening, transcript, startListening, stopListening, speak, stopSpeaking 
   } = useVoice();
 
+  const roomId = activeId || "new-sermon";
+  const { users, cursors, updateContent, updateCursor } = useCollaboration(roomId, content, (remoteContent) => {
+    setContent(remoteContent);
+  });
+
+  const handleContentChange = useCallback((newContent: string) => {
+    setContent(newContent);
+    updateContent(newContent);
+  }, [updateContent]);
+
   // Sync transcript to content
   useEffect(() => {
     if (isListening && transcript) {
-      handleContentChange(content + " " + transcript);
+      const timer = setTimeout(() => {
+        handleContentChange(content + " " + transcript);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [transcript]);
+  }, [transcript, isListening, content, handleContentChange]);
 
   const processDictation = async () => {
     stopListening();
@@ -65,16 +78,6 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const roomId = activeId || "new-sermon";
-  const { users, cursors, updateContent, updateCursor } = useCollaboration(roomId, content, (remoteContent) => {
-    setContent(remoteContent);
-  });
-
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    updateContent(newContent);
-  };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     // Get position relative to the editor container
     const rect = e.currentTarget.getBoundingClientRect();
@@ -82,15 +85,18 @@ export default function SermonBuilder({ onClose }: { onClose: () => void }) {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('theosphere-sermons');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSermons(parsed);
-      } catch (e) {
-        console.error("Erro ao carregar sermões", e);
+    const timer = setTimeout(() => {
+      const saved = localStorage.getItem('theosphere-sermons');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setSermons(parsed);
+        } catch (e) {
+          console.error("Erro ao carregar sermões", e);
+        }
       }
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const createNew = () => {

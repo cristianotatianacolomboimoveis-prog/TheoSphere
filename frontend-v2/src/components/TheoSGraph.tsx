@@ -19,7 +19,6 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
 
   const currentRef = `${activeBook} ${activeChapter}`;

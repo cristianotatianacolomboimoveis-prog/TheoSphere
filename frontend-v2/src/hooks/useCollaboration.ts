@@ -17,6 +17,11 @@ export function useCollaboration(roomId: string, initialContent: string, onUpdat
   const [cursors, setCursors] = useState<Record<string, RemoteCursor>>({});
   const ydocRef = useRef(new Y.Doc());
   const isRemoteUpdate = useRef(false);
+  const onUpdateRef = useRef(onUpdate);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
     // Use centralized config for backend URL
@@ -25,7 +30,9 @@ export function useCollaboration(roomId: string, initialContent: string, onUpdat
       transports: ['websocket'],
     });
 
-    setSocket(s);
+    const timer = setTimeout(() => {
+      setSocket(s);
+    }, 0);
 
     const userName = `Pastor ${Math.floor(Math.random() * 100)}`;
     const userColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
@@ -40,7 +47,7 @@ export function useCollaboration(roomId: string, initialContent: string, onUpdat
       isRemoteUpdate.current = true;
       Y.applyUpdate(ydocRef.current, new Uint8Array(update));
       const text = ydocRef.current.getText('content').toString();
-      onUpdate(text);
+      onUpdateRef.current(text);
       isRemoteUpdate.current = false;
     });
 
@@ -58,6 +65,7 @@ export function useCollaboration(roomId: string, initialContent: string, onUpdat
     });
 
     return () => {
+      clearTimeout(timer);
       s.disconnect();
     };
   }, [roomId]);

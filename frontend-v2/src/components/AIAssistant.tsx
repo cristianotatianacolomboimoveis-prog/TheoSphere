@@ -71,6 +71,27 @@ const SUGGESTED_PROMPTS = [
   },
 ];
 
+/* ─── Helpers (outside component — avoids React compiler purity flags) ── */
+
+function createUserMessage(content: string): Message {
+  return {
+    id: `user-${Date.now()}`,
+    role: "user",
+    content,
+    timestamp: new Date(),
+  };
+}
+
+function createAssistantMessage(content: string, meta?: Message["meta"]): Message {
+  return {
+    id: `ai-${Date.now()}`,
+    role: "assistant",
+    content,
+    timestamp: new Date(),
+    meta,
+  };
+}
+
 /* ─── Component ──────────────────────────────────────────── */
 
 export default function AIAssistant({ onClose }: { onClose: () => void }) {
@@ -110,12 +131,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
     const content = text || input.trim();
     if (!content) return;
 
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content,
-      timestamp: new Date(),
-    };
+    const userMsg = createUserMessage(content);
 
     setMessages(prev => [...prev, userMsg]);
     setInput("");
@@ -137,13 +153,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       // Usa o hook RAG (tenta backend, fallback local)
       const response = await chat(contextualQuery, history);
 
-      const aiMsg: Message = {
-        id: `ai-${Date.now()}`,
-        role: "assistant",
-        content: response.content,
-        timestamp: new Date(),
-        meta: response.meta,
-      };
+      const aiMsg = createAssistantMessage(response.content, response.meta);
 
       setMessages(prev => [...prev, aiMsg]);
 

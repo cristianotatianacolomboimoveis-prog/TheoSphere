@@ -156,14 +156,17 @@ export default function TheologicalLibrary({ onClose }: { onClose: () => void })
 
   // Carrega status indexados anteriormente do localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("theosphere-indexed-books");
-      if (stored) {
-        setIndexingStatus(JSON.parse(stored));
+    const timer = setTimeout(() => {
+      try {
+        const stored = localStorage.getItem("theosphere-indexed-books");
+        if (stored) {
+          setIndexingStatus(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.error("Erro ao carregar cache de indexação:", e);
       }
-    } catch (e) {
-      console.error("Erro ao carregar cache de indexação:", e);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleIndexBook = async (book: BookItem) => {

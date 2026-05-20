@@ -104,6 +104,7 @@ export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefreshRef = useRef<(token: string) => void>(() => {});
 
   const clearLocalSession = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -138,7 +139,7 @@ export function useAuth() {
         const fresh = await refreshAccessToken();
         if (fresh) {
           setToken(fresh);
-          scheduleRefresh(fresh);
+          scheduleRefreshRef.current(fresh);
         } else {
           clearLocalSession();
         }
@@ -146,6 +147,10 @@ export function useAuth() {
     },
     [clearLocalSession],
   );
+
+  useEffect(() => {
+    scheduleRefreshRef.current = scheduleRefresh;
+  }, [scheduleRefresh]);
 
   const applyAccessToken = useCallback(
     (accessToken: string, uid?: string | null) => {
@@ -164,38 +169,44 @@ export function useAuth() {
 
   // Hydrate on mount.
   useEffect(() => {
-    if (typeof window === "undefined") {
-      setLoading(false);
-      return;
-    }
+    const timer = setTimeout(() => {
+      if (typeof window === "undefined") {
+        setLoading(false);
+        return;
+      }
 
-    const savedToken = window.localStorage.getItem(TOKEN_KEY);
-    const savedUserId = window.localStorage.getItem(USER_ID_KEY);
+      const savedToken = window.localStorage.getItem(TOKEN_KEY);
+      const savedUserId = window.localStorage.getItem(USER_ID_KEY);
 
-    const tryHydrate = async () => {
-      if (savedToken) {
-        const payload = decodeJwtPayload(savedToken);
-        if (payload?.exp && payload.exp * 1000 > Date.now()) {
-          // Still valid — adopt it and schedule a refresh.
-          setToken(savedToken);
-          setUserId(savedUserId || payload.sub || null);
-          setIsAuthenticated(true);
-          scheduleRefresh(savedToken);
-          setLoading(false);
-          return;
+      const tryHydrate = async () => {
+        if (savedToken) {
+          const payload = decodeJwtPayload(savedToken);
+          if (payload?.exp && payload.exp * 1000 > Date.now()) {
+            // Still valid — adopt it and schedule a refresh.
+            setToken(savedToken);
+            setUserId(savedUserId || payload.sub || null);
+            setIsAuthenticated(true);
+            scheduleRefresh(savedToken);
+            setLoading(false);
+            return;
+          }
         }
-      }
-      // Either no token, expired, or malformed — try the refresh cookie.
-      const fresh = await refreshAccessToken();
-      if (fresh) {
-        applyAccessToken(fresh, savedUserId);
-      } else {
-        clearLocalSession();
-      }
-      setLoading(false);
-    };
+        // Either no token, expired, or malformed — try the refresh cookie.
+        const fresh = await refreshAccessToken();
+        if (fresh) {
+          applyAccessToken(fresh, savedUserId);
+        } else {
+          clearLocalSession();
+        }
+        setLoading(false);
+      };
 
-    void tryHydrate();
+      void tryHydrate();
+    }, 0);
+
+    if (typeof window === "undefined") {
+      return () => clearTimeout(timer);
+    }
 
     // Cross-tab logout: another tab cleared the token → mirror here.
     const onStorage = (e: StorageEvent) => {
@@ -210,6 +221,7 @@ export function useAuth() {
     window.addEventListener("theosphere:unauthorized", onUnauthorized);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("theosphere:unauthorized", onUnauthorized);
       if (refreshTimerRef.current) {

@@ -24,12 +24,15 @@ export function LogosDashboard() {
 
   // ─── Carregar Notas (CRUD localStorage) ────────────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem("logos_notes_data");
-    if (saved) setNotes(JSON.parse(saved));
+    const timer = setTimeout(() => {
+      const saved = localStorage.getItem("logos_notes_data");
+      if (saved) setNotes(JSON.parse(saved));
+    }, 0);
 
     // Listen for Map Events (Event Bus)
+    let unsub: (() => void) | undefined;
     if (MapAdapter) {
-      const unsub = MapAdapter.events.subscribe('onLocationSelected', (loc: any) => {
+      unsub = MapAdapter.events.subscribe('onLocationSelected', (loc: any) => {
         console.log("[LogosDashboard] Local selecionado no mapa:", loc);
         // Atualiza UI com base no clique do mapa
         setVerseOfDay(prev => ({
@@ -38,8 +41,11 @@ export function LogosDashboard() {
           ref: `Geo-Contexto: ${loc.name}`
         }));
       });
-      return unsub;
     }
+    return () => {
+      clearTimeout(timer);
+      unsub?.();
+    };
   }, []);
 
   const saveNote = (note: Partial<Note>) => {

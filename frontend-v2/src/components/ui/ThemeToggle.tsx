@@ -12,7 +12,10 @@ export function ThemeToggle({ className = "" }: ThemeToggleProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Retornar um skeleton/placeholder com a exata mesma estrutura para evitar hydration mismatch
   if (!mounted) {

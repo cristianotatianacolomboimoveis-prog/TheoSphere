@@ -120,7 +120,7 @@ export function useRAG() {
   const [totalSaved, setTotalSaved] = useState(0);
   const [edgeAIStatus, setEdgeAIStatus] = useState<{ progress: number; text: string } | null>(null);
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const userId = useRef(getUserId());
+  const [userId] = useState(() => getUserId());
 
   /* ── Inicializa IA de Borda (WebGPU) ──────────────────── */
   const initEdgeAI = useCallback(async () => {
@@ -150,6 +150,50 @@ export function useRAG() {
       return false;
     }
   }, []);
+
+  /* ── IA Local via Transformers.js (Singleton Worker) ───── */
+  async function generateLocalAIResponse(query: string, jsonMode: boolean = false): Promise<string> {
+    return new Promise((resolve) => {
+      const aiWorker = getAIWorker();
+      
+      if (!aiWorker) {
+        resolve(generateLocalResponse(query, jsonMode));
+        return;
+      }
+
+      const messageHandler = (e: any) => {
+        if (e.data.type === "EMBEDDING_GENERATED") {
+          aiWorker.removeEventListener("message", messageHandler);
+          aiWorker.removeEventListener("error", errorHandler);
+          
+          if (jsonMode) {
+             resolve(generateLocalResponse(query, true));
+          } else {
+             resolve(`[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`);
+          }
+        }
+      };
+
+      const errorHandler = (err: any) => {
+        logger.error("[RAG] Worker error:", err);
+        aiWorker.removeEventListener("message", messageHandler);
+        aiWorker.removeEventListener("error", errorHandler);
+        resolve(generateLocalResponse(query, jsonMode));
+      };
+
+      aiWorker.addEventListener("message", messageHandler);
+      aiWorker.addEventListener("error", errorHandler);
+      
+      aiWorker.postMessage({ type: "GENERATE_EMBEDDING", payload: { text: query } });
+
+      // Timeout de segurança
+      setTimeout(() => {
+        aiWorker.removeEventListener("message", messageHandler);
+        aiWorker.removeEventListener("error", errorHandler);
+        resolve(generateLocalResponse(query));
+      }, 8000);
+    });
+  }
 
   /* ── Chat com RAG ─────────────────────────────────────── */
   const chat = useCallback(async (
@@ -203,49 +247,7 @@ export function useRAG() {
     };
   }, []);
 
-  /* ── IA Local via Transformers.js (Singleton Worker) ───── */
-  const generateLocalAIResponse = async (query: string, jsonMode: boolean = false): Promise<string> => {
-    return new Promise((resolve) => {
-      const aiWorker = getAIWorker();
-      
-      if (!aiWorker) {
-        resolve(generateLocalResponse(query, jsonMode));
-        return;
-      }
 
-      const messageHandler = (e: any) => {
-        if (e.data.type === "EMBEDDING_GENERATED") {
-          aiWorker.removeEventListener("message", messageHandler);
-          aiWorker.removeEventListener("error", errorHandler);
-          
-          if (jsonMode) {
-             resolve(generateLocalResponse(query, true));
-          } else {
-             resolve(`[TheoAI Local] Analisando sua dúvida sobre "${query}" offline... \n\nBaseado nos seus estudos locais, este conceito se relaciona com passagens geográficas mapeadas no seu Atlas 4D.`);
-          }
-        }
-      };
-
-      const errorHandler = (err: any) => {
-        logger.error("[RAG] Worker error:", err);
-        aiWorker.removeEventListener("message", messageHandler);
-        aiWorker.removeEventListener("error", errorHandler);
-        resolve(generateLocalResponse(query, jsonMode));
-      };
-
-      aiWorker.addEventListener("message", messageHandler);
-      aiWorker.addEventListener("error", errorHandler);
-      
-      aiWorker.postMessage({ type: "GENERATE_EMBEDDING", payload: { text: query } });
-
-      // Timeout de segurança
-      setTimeout(() => {
-        aiWorker.removeEventListener("message", messageHandler);
-        aiWorker.removeEventListener("error", errorHandler);
-        resolve(generateLocalResponse(query));
-      }, 8000);
-    });
-  };
 
   /* ── Sincroniza conteúdo do usuário ───────────────────── */
   const syncUserContent = useCallback(async (): Promise<SyncResult | null> => {
@@ -305,14 +307,16 @@ export function useRAG() {
 
   /* ── Auto-sync ao montar ──────────────────────────────── */
   useEffect(() => {
-    checkBackend().then((available) => {
-      if (available) {
-        const lastSync = parseInt(localStorage.getItem(LAST_SYNC_KEY) || "0");
-        if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
-          syncUserContent();
+    const timer = setTimeout(() => {
+      checkBackend().then((available) => {
+        if (available) {
+          const lastSync = parseInt(localStorage.getItem(LAST_SYNC_KEY) || "0");
+          if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
+            syncUserContent();
+          }
         }
-      }
-    });
+      });
+    }, 0);
 
     syncTimerRef.current = setInterval(() => {
       if (isBackendAvailable) {
@@ -321,6 +325,7 @@ export function useRAG() {
     }, SYNC_INTERVAL_MS);
 
     return () => {
+      clearTimeout(timer);
       if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     };
   }, [checkBackend, syncUserContent, isBackendAvailable]);
@@ -336,7 +341,7 @@ export function useRAG() {
     isBackendAvailable,
     lastSyncResult,
     totalSaved,
-    userId: userId.current,
+    userId,
   };
 }
 
