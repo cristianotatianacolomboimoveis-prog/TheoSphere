@@ -184,10 +184,13 @@ jobs:
 
       - run: npm ci
 
-      - name: Enable Postgres extensions
+      - name: Enable Postgres extensions and create shadow database
         run: |
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS vector;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE DATABASE theosphere_drift_shadow;"
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
       # `migrate diff` compares the current DB state (after deploying all
       # migrations) against the schema.prisma. A non-empty diff = drift.
