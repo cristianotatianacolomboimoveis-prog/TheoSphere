@@ -12,6 +12,8 @@ import { STRONGS_GREEK } from "../data/strongsGreek";
 import { STRONGS_HEBREW } from "../data/strongsHebrew";
 import { OFFLINE_SEED_VERSES } from "../data/seedVerses";
 
+let abibliaToken = "";
+
 self.onerror = (message, source, lineno, colno, error) => {
   self.postMessage({
     type: "WORKER_ERROR",
@@ -35,25 +37,80 @@ function sanitizeInt(n: any): number {
 
 // --- Mapping from Bible Book ID to English book name expected by bible-api.com ---
 const BIBLE_ID_TO_ENGLISH_BOOK: Record<number, string> = {
-  1: "Genesis", 2: "Exodus", 3: "Leviticus", 4: "Numbers", 5: "Deuteronomy",
-  6: "Joshua", 7: "Judges", 8: "Ruth", 9: "1 Samuel", 10: "2 Samuel",
-  11: "1 Kings", 12: "2 Kings", 13: "1 Chronicles", 14: "2 Chronicles",
-  15: "Ezra", 16: "Nehemiah", 17: "Esther", 18: "Job", 19: "Psalms",
-  20: "Proverbs", 21: "Ecclesiastes", 22: "Song of Solomon", 23: "Isaiah",
-  24: "Jeremiah", 25: "Lamentations", 26: "Ezekiel", 27: "Daniel",
-  28: "Hosea", 29: "Joel", 30: "Amos", 31: "Obadiah", 32: "Jonah",
-  33: "Micah", 34: "Nahum", 35: "Habakkuk", 36: "Zephaniah", 37: "Haggai",
-  38: "Zechariah", 39: "Malachi", 40: "Matthew", 41: "Mark", 42: "Luke",
-  43: "John", 44: "Acts", 45: "Romans", 46: "1 Corinthians", 47: "2 Corinthians",
-  48: "Galatians", 49: "Ephesians", 50: "Philippians", 51: "Colossians",
-  52: "1 Thessalonians", 53: "2 Thessalonians", 54: "1 Timothy", 55: "2 Timothy",
-  56: "Titus", 57: "Philemon", 58: "Hebrews", 59: "James", 60: "1 Peter",
-  61: "2 Peter", 62: "1 John", 63: "2 John", 64: "3 John", 65: "Jude",
-  66: "Revelation"
+  1: "Genesis",
+  2: "Exodus",
+  3: "Leviticus",
+  4: "Numbers",
+  5: "Deuteronomy",
+  6: "Joshua",
+  7: "Judges",
+  8: "Ruth",
+  9: "1 Samuel",
+  10: "2 Samuel",
+  11: "1 Kings",
+  12: "2 Kings",
+  13: "1 Chronicles",
+  14: "2 Chronicles",
+  15: "Ezra",
+  16: "Nehemiah",
+  17: "Esther",
+  18: "Job",
+  19: "Psalms",
+  20: "Proverbs",
+  21: "Ecclesiastes",
+  22: "Song of Solomon",
+  23: "Isaiah",
+  24: "Jeremiah",
+  25: "Lamentations",
+  26: "Ezekiel",
+  27: "Daniel",
+  28: "Hosea",
+  29: "Joel",
+  30: "Amos",
+  31: "Obadiah",
+  32: "Jonah",
+  33: "Micah",
+  34: "Nahum",
+  35: "Habakkuk",
+  36: "Zephaniah",
+  37: "Haggai",
+  38: "Zechariah",
+  39: "Malachi",
+  40: "Matthew",
+  41: "Mark",
+  42: "Luke",
+  43: "John",
+  44: "Acts",
+  45: "Romans",
+  46: "1 Corinthians",
+  47: "2 Corinthians",
+  48: "Galatians",
+  49: "Ephesians",
+  50: "Philippians",
+  51: "Colossians",
+  52: "1 Thessalonians",
+  53: "2 Thessalonians",
+  54: "1 Timothy",
+  55: "2 Timothy",
+  56: "Titus",
+  57: "Philemon",
+  58: "Hebrews",
+  59: "James",
+  60: "1 Peter",
+  61: "2 Peter",
+  62: "1 John",
+  63: "2 John",
+  64: "3 John",
+  65: "Jude",
+  66: "Revelation",
 };
 
 function getEnglishBookName(book: string): string {
-  const id = BIBLE_BOOK_TO_ID[book] || BIBLE_BOOK_TO_ID[book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()];
+  const id =
+    BIBLE_BOOK_TO_ID[book] ||
+    BIBLE_BOOK_TO_ID[
+      book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()
+    ];
   if (id && BIBLE_ID_TO_ENGLISH_BOOK[id]) {
     return BIBLE_ID_TO_ENGLISH_BOOK[id];
   }
@@ -62,25 +119,80 @@ function getEnglishBookName(book: string): string {
 
 // --- Mapping from Bible Book ID to standard Portuguese abbreviation expected by abibliadigital.com.br ---
 const BIBLE_ID_TO_ABIBLIADIGITAL_BOOK: Record<number, string> = {
-  1: "gn", 2: "ex", 3: "lv", 4: "nm", 5: "dt",
-  6: "js", 7: "jz", 8: "rt", 9: "1sm", 10: "2sm",
-  11: "1rs", 12: "2rs", 13: "1cr", 14: "2cr",
-  15: "ed", 16: "ne", 17: "et", 18: "job", 19: "sl",
-  20: "pv", 21: "ec", 22: "ct", 23: "is",
-  24: "jr", 25: "lm", 26: "ez", 27: "dn",
-  28: "os", 29: "jl", 30: "am", 31: "ob", 32: "jn",
-  33: "mq", 34: "na", 35: "hc", 36: "sf", 37: "ag",
-  38: "zc", 39: "ml", 40: "mt", 41: "mc", 42: "lc",
-  43: "jo", 44: "at", 45: "rm", 46: "1co", 47: "2co",
-  48: "gl", 49: "ef", 50: "fp", 51: "cl",
-  52: "1ts", 53: "2ts", 54: "1tm", 55: "2tm",
-  56: "tt", 57: "fm", 58: "hb", 59: "tg", 60: "1pe",
-  61: "2pe", 62: "1jo", 63: "2jo", 64: "3jo", 65: "jd",
-  66: "ap"
+  1: "gn",
+  2: "ex",
+  3: "lv",
+  4: "nm",
+  5: "dt",
+  6: "js",
+  7: "jz",
+  8: "rt",
+  9: "1sm",
+  10: "2sm",
+  11: "1rs",
+  12: "2rs",
+  13: "1cr",
+  14: "2cr",
+  15: "ed",
+  16: "ne",
+  17: "et",
+  18: "job",
+  19: "sl",
+  20: "pv",
+  21: "ec",
+  22: "ct",
+  23: "is",
+  24: "jr",
+  25: "lm",
+  26: "ez",
+  27: "dn",
+  28: "os",
+  29: "jl",
+  30: "am",
+  31: "ob",
+  32: "jn",
+  33: "mq",
+  34: "na",
+  35: "hc",
+  36: "sf",
+  37: "ag",
+  38: "zc",
+  39: "ml",
+  40: "mt",
+  41: "mc",
+  42: "lc",
+  43: "jo",
+  44: "at",
+  45: "rm",
+  46: "1co",
+  47: "2co",
+  48: "gl",
+  49: "ef",
+  50: "fp",
+  51: "cl",
+  52: "1ts",
+  53: "2ts",
+  54: "1tm",
+  55: "2tm",
+  56: "tt",
+  57: "fm",
+  58: "hb",
+  59: "tg",
+  60: "1pe",
+  61: "2pe",
+  62: "1jo",
+  63: "2jo",
+  64: "3jo",
+  65: "jd",
+  66: "ap",
 };
 
 function getABibliaDigitalBookName(book: string): string {
-  const id = BIBLE_BOOK_TO_ID[book] || BIBLE_BOOK_TO_ID[book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()];
+  const id =
+    BIBLE_BOOK_TO_ID[book] ||
+    BIBLE_BOOK_TO_ID[
+      book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()
+    ];
   if (id && BIBLE_ID_TO_ABIBLIADIGITAL_BOOK[id]) {
     return BIBLE_ID_TO_ABIBLIADIGITAL_BOOK[id];
   }
@@ -89,25 +201,80 @@ function getABibliaDigitalBookName(book: string): string {
 
 // --- Mapping from Bible Book ID to standard 3-letter uppercase abbreviation expected by api.bible ---
 const BIBLE_ID_TO_APIBIBLE_BOOK: Record<number, string> = {
-  1: "GEN", 2: "EXO", 3: "LEV", 4: "NUM", 5: "DEU",
-  6: "JOS", 7: "JDG", 8: "RUT", 9: "1SA", 10: "2SA",
-  11: "1KI", 12: "2KI", 13: "1CH", 14: "2CH",
-  15: "EZR", 16: "NEH", 17: "EST", 18: "JOB", 19: "PSA",
-  20: "PRO", 21: "ECC", 22: "SNG", 23: "ISA",
-  24: "JER", 25: "LAM", 26: "EZK", 27: "DAN",
-  28: "HOS", 29: "JOL", 30: "AMO", 31: "OBA", 32: "JON",
-  33: "MIC", 34: "NAM", 35: "HAB", 36: "ZEP", 37: "HAG",
-  38: "ZEC", 39: "MAL", 40: "MAT", 41: "MRK", 42: "LUK",
-  43: "JHN", 44: "ACT", 45: "ROM", 46: "1CO", 47: "2CO",
-  48: "GAL", 49: "EPH", 50: "PHP", 51: "COL",
-  52: "1TH", 53: "2TH", 54: "1TI", 55: "2TI",
-  56: "TIT", 57: "PHM", 58: "HEB", 59: "JAS", 60: "1PE",
-  61: "2PE", 62: "1JN", 63: "2JN", 64: "3JN", 65: "JUD",
-  66: "REV"
+  1: "GEN",
+  2: "EXO",
+  3: "LEV",
+  4: "NUM",
+  5: "DEU",
+  6: "JOS",
+  7: "JDG",
+  8: "RUT",
+  9: "1SA",
+  10: "2SA",
+  11: "1KI",
+  12: "2KI",
+  13: "1CH",
+  14: "2CH",
+  15: "EZR",
+  16: "NEH",
+  17: "EST",
+  18: "JOB",
+  19: "PSA",
+  20: "PRO",
+  21: "ECC",
+  22: "SNG",
+  23: "ISA",
+  24: "JER",
+  25: "LAM",
+  26: "EZK",
+  27: "DAN",
+  28: "HOS",
+  29: "JOL",
+  30: "AMO",
+  31: "OBA",
+  32: "JON",
+  33: "MIC",
+  34: "NAM",
+  35: "HAB",
+  36: "ZEP",
+  37: "HAG",
+  38: "ZEC",
+  39: "MAL",
+  40: "MAT",
+  41: "MRK",
+  42: "LUK",
+  43: "JHN",
+  44: "ACT",
+  45: "ROM",
+  46: "1CO",
+  47: "2CO",
+  48: "GAL",
+  49: "EPH",
+  50: "PHP",
+  51: "COL",
+  52: "1TH",
+  53: "2TH",
+  54: "1TI",
+  55: "2TI",
+  56: "TIT",
+  57: "PHM",
+  58: "HEB",
+  59: "JAS",
+  60: "1PE",
+  61: "2PE",
+  62: "1JN",
+  63: "2JN",
+  64: "3JN",
+  65: "JUD",
+  66: "REV",
 };
 
 function getAPIBibleBookName(book: string): string {
-  const id = BIBLE_BOOK_TO_ID[book] || BIBLE_BOOK_TO_ID[book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()];
+  const id =
+    BIBLE_BOOK_TO_ID[book] ||
+    BIBLE_BOOK_TO_ID[
+      book.charAt(0).toUpperCase() + book.slice(1).toLowerCase()
+    ];
   if (id && BIBLE_ID_TO_APIBIBLE_BOOK[id]) {
     return BIBLE_ID_TO_APIBIBLE_BOOK[id];
   }
@@ -320,10 +487,10 @@ async function prefetchEssentialChapters(): Promise<void> {
       // 1.5ª: abibliadigital fallback
       if (verses.length === 0) {
         const ABIBLIA_DIGITAL_MAPPING: Record<string, string> = {
-          "nvipt": "nvi",
-          "ara": "ra",
-          "acf": "acf",
-          "almeida": "acf"
+          nvipt: "nvi",
+          ara: "ra",
+          acf: "acf",
+          almeida: "acf",
         };
         const abVersion = ABIBLIA_DIGITAL_MAPPING[trans] || "acf";
         try {
@@ -332,10 +499,14 @@ async function prefetchEssentialChapters(): Promise<void> {
             `https://www.abibliadigital.com.br/api/verses/${abVersion}/${ptBookAbbrev}/${chapter}`,
             {
               headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "application/json"
-              }
-            }
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                Accept: "application/json",
+                ...(abibliaToken
+                  ? { Authorization: `Bearer ${abibliaToken}` }
+                  : {}),
+              },
+            },
           );
           if (res.ok) {
             const data = await res.json();
@@ -508,10 +679,10 @@ async function downloadFullBible(backendUrl?: string) {
           // 1.5ª: abibliadigital fallback
           if (rawVerses.length === 0) {
             const ABIBLIA_DIGITAL_MAPPING: Record<string, string> = {
-              "nvipt": "nvi",
-              "ara": "ra",
-              "acf": "acf",
-              "almeida": "acf"
+              nvipt: "nvi",
+              ara: "ra",
+              acf: "acf",
+              almeida: "acf",
             };
             const abVersion = ABIBLIA_DIGITAL_MAPPING[trans] || "acf";
             try {
@@ -520,10 +691,14 @@ async function downloadFullBible(backendUrl?: string) {
                 `https://www.abibliadigital.com.br/api/verses/${abVersion}/${ptBookAbbrev}/${chapter}`,
                 {
                   headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Accept": "application/json"
-                  }
-                }
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    Accept: "application/json",
+                    ...(abibliaToken
+                      ? { Authorization: `Bearer ${abibliaToken}` }
+                      : {}),
+                  },
+                },
               );
               if (res.ok) {
                 const data = await res.json();
@@ -621,7 +796,18 @@ self.addEventListener("message", async (event) => {
       return;
     }
     if (type === "FETCH_BIBLE_CHAPTER") {
-      const { book, chapter, translation, isSecondary, apiBibleKey, apiBibleId } = payload;
+      const {
+        book,
+        chapter,
+        translation,
+        isSecondary,
+        apiBibleKey,
+        apiBibleId,
+        abibliaDigitalToken,
+      } = payload;
+      if (abibliaDigitalToken) {
+        abibliaToken = abibliaDigitalToken;
+      }
       let verses: Array<{ verse: number; text: string; strongs?: string }> = [];
       let source: "cache" | "api" = "api";
 
@@ -652,11 +838,13 @@ self.addEventListener("message", async (event) => {
 
       // ── 1.2 Direct Fetch from api.scripture.api.bible/v1 (Priority API if Key Available) ──
       if (verses.length === 0) {
-        const isApiBible = (trans === "kjv" && apiBibleKey) || trans === "apibible";
+        const isApiBible =
+          (trans === "kjv" && apiBibleKey) || trans === "apibible";
         if (isApiBible) {
           const apiKey = apiBibleKey || "";
-          const bibleId = trans === "kjv" ? "de4e12af7f28f599-01" : (apiBibleId || "");
-          
+          const bibleId =
+            trans === "kjv" ? "de4e12af7f28f599-01" : apiBibleId || "";
+
           if (apiKey && bibleId) {
             try {
               const apiBookName = getAPIBibleBookName(bookName);
@@ -664,15 +852,20 @@ self.addEventListener("message", async (event) => {
               const res = await fetch(abUrl, {
                 headers: {
                   "api-key": apiKey,
-                  "Accept": "application/json"
-                }
+                  Accept: "application/json",
+                },
               });
               if (res.ok) {
                 const json = await res.json();
                 if (json.data && json.data.content) {
                   const htmlContent = json.data.content;
-                  const parsedVerses: Array<{ verse: number; text: string; strongs?: string }> = [];
-                  const regex = /<span[^>]*class="v"[^>]*id="[^"]*"\s*>(\d+)<\/span>([\s\S]*?)(?=<span[^>]*class="v"[^>]*id="[^"]*"|$)/g;
+                  const parsedVerses: Array<{
+                    verse: number;
+                    text: string;
+                    strongs?: string;
+                  }> = [];
+                  const regex =
+                    /<span[^>]*class="v"[^>]*id="[^"]*"\s*>(\d+)<\/span>([\s\S]*?)(?=<span[^>]*class="v"[^>]*id="[^"]*"|$)/g;
                   let match;
                   while ((match = regex.exec(htmlContent)) !== null) {
                     const verseNum = Number(match[1]);
@@ -687,15 +880,25 @@ self.addEventListener("message", async (event) => {
                     verses = parsedVerses;
                     source = "api";
                     if (dbReady) {
-                      cacheVersesInDuckDB(bookName, chapter, translation, verses).catch(() => {});
+                      cacheVersesInDuckDB(
+                        bookName,
+                        chapter,
+                        translation,
+                        verses,
+                      ).catch(() => {});
                     }
                   }
                 }
               } else {
-                console.warn(`[TheoWorker] api.bible responded with status: ${res.status}`);
+                console.warn(
+                  `[TheoWorker] api.bible responded with status: ${res.status}`,
+                );
               }
             } catch (e) {
-              console.warn("[TheoWorker] api.scripture.api.bible fetch failed, trying fallbacks:", e);
+              console.warn(
+                "[TheoWorker] api.scripture.api.bible fetch failed, trying fallbacks:",
+                e,
+              );
             }
           }
         }
@@ -704,9 +907,23 @@ self.addEventListener("message", async (event) => {
       // ── 1.3 Direct Fetch from bible-api.com if supported ────────────────────────────
       if (verses.length === 0) {
         const BIBLE_API_TRANSLATIONS = [
-          "almeida", "web", "kjv", "asv", "bbe", "darby", "dra", "ylt",
-          "cherokee", "cuv", "bkr", "oeb-cw", "webbe", "oeb-us", "clementine",
-          "rccv", "synodal"
+          "almeida",
+          "web",
+          "kjv",
+          "asv",
+          "bbe",
+          "darby",
+          "dra",
+          "ylt",
+          "cherokee",
+          "cuv",
+          "bkr",
+          "oeb-cw",
+          "webbe",
+          "oeb-us",
+          "clementine",
+          "rccv",
+          "synodal",
         ];
         if (BIBLE_API_TRANSLATIONS.includes(trans)) {
           try {
@@ -723,12 +940,20 @@ self.addEventListener("message", async (event) => {
                 }));
                 source = "api";
                 if (dbReady) {
-                  cacheVersesInDuckDB(bookName, chapter, translation, verses).catch(() => {});
+                  cacheVersesInDuckDB(
+                    bookName,
+                    chapter,
+                    translation,
+                    verses,
+                  ).catch(() => {});
                 }
               }
             }
           } catch (e) {
-            console.warn("[TheoWorker] bible-api.com fetch failed, trying fallbacks:", e);
+            console.warn(
+              "[TheoWorker] bible-api.com fetch failed, trying fallbacks:",
+              e,
+            );
           }
         }
       }
@@ -736,9 +961,9 @@ self.addEventListener("message", async (event) => {
       // ── 1.4 Direct Fetch from abibliadigital.com.br if requested ────────────────────
       if (verses.length === 0) {
         const ABIBLIA_DIGITAL_MAPPING: Record<string, string> = {
-          "nvipt": "nvi",
-          "ara": "ra",
-          "acf": "acf"
+          nvipt: "nvi",
+          ara: "ra",
+          acf: "acf",
         };
         const abVersion = ABIBLIA_DIGITAL_MAPPING[trans];
         if (abVersion) {
@@ -747,9 +972,15 @@ self.addEventListener("message", async (event) => {
             const abUrl = `https://www.abibliadigital.com.br/api/verses/${abVersion}/${ptBookAbbrev}/${chapter}`;
             const res = await fetch(abUrl, {
               headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "application/json"
-              }
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                Accept: "application/json",
+                ...(abibliaDigitalToken || abibliaToken
+                  ? {
+                      Authorization: `Bearer ${abibliaDigitalToken || abibliaToken}`,
+                    }
+                  : {}),
+              },
             });
             if (res.ok) {
               const data = await res.json();
@@ -761,12 +992,20 @@ self.addEventListener("message", async (event) => {
                 }));
                 source = "api";
                 if (dbReady) {
-                  cacheVersesInDuckDB(bookName, chapter, translation, verses).catch(() => {});
+                  cacheVersesInDuckDB(
+                    bookName,
+                    chapter,
+                    translation,
+                    verses,
+                  ).catch(() => {});
                 }
               }
             }
           } catch (e) {
-            console.warn("[TheoWorker] abibliadigital.com.br fetch failed, trying fallbacks:", e);
+            console.warn(
+              "[TheoWorker] abibliadigital.com.br fetch failed, trying fallbacks:",
+              e,
+            );
           }
         }
       }
@@ -851,9 +1090,9 @@ self.addEventListener("message", async (event) => {
           // 1.5ª tentativa: abibliadigital fallback
           if (rawData.length === 0) {
             const ABIBLIA_DIGITAL_MAPPING: Record<string, string> = {
-              "nvipt": "nvi",
-              "ara": "ra",
-              "acf": "acf"
+              nvipt: "nvi",
+              ara: "ra",
+              acf: "acf",
             };
             const abVersion = ABIBLIA_DIGITAL_MAPPING[transParam] || "acf";
             try {
@@ -861,9 +1100,13 @@ self.addEventListener("message", async (event) => {
               const abUrl = `https://www.abibliadigital.com.br/api/verses/${abVersion}/${ptBookAbbrev}/${chapter}`;
               const res = await fetch(abUrl, {
                 headers: {
-                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                  "Accept": "application/json"
-                }
+                  "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                  Accept: "application/json",
+                  ...(abibliaToken
+                    ? { Authorization: `Bearer ${abibliaToken}` }
+                    : {}),
+                },
               });
               if (res.ok) {
                 const data = await res.json();
@@ -899,7 +1142,11 @@ self.addEventListener("message", async (event) => {
           if (rawData.length === 0) {
             try {
               const englishBook = getEnglishBookName(book);
-              const fallbackTrans = ["ara", "nvipt", "almeida"].includes(transParam) ? "almeida" : "web";
+              const fallbackTrans = ["ara", "nvipt", "almeida"].includes(
+                transParam,
+              )
+                ? "almeida"
+                : "web";
               const bibleApiRes = await fetch(
                 `https://bible-api.com/${encodeURIComponent(englishBook)}+${chapter}?translation=${fallbackTrans}`,
               );

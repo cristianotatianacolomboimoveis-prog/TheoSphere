@@ -18,6 +18,9 @@ export const CONFIG = {
   // API.Bible (ABS) Integration
   API_BIBLE_KEY: process.env.NEXT_PUBLIC_API_BIBLE_KEY || "",
   API_BIBLE_ID: process.env.NEXT_PUBLIC_API_BIBLE_ID || "",
+
+  // A Bíblia Digital Integration
+  ABIBLIA_DIGITAL_TOKEN: process.env.NEXT_PUBLIC_ABIBLIADIGITAL_TOKEN || "",
 };
 
 export const I18N = {

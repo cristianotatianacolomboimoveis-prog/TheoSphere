@@ -85,6 +85,7 @@ export function useBible(
       backendUrl: BACKEND_URL,
       apiBibleKey: CONFIG.API_BIBLE_KEY,
       apiBibleId: CONFIG.API_BIBLE_ID,
+      abibliaDigitalToken: CONFIG.ABIBLIA_DIGITAL_TOKEN,
     });
 
     if (secondaryTranslation) {
@@ -96,6 +97,7 @@ export function useBible(
         isSecondary: true,
         apiBibleKey: CONFIG.API_BIBLE_KEY,
         apiBibleId: CONFIG.API_BIBLE_ID,
+        abibliaDigitalToken: CONFIG.ABIBLIA_DIGITAL_TOKEN,
       });
     }
 
