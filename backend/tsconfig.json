@@ -28,6 +28,7 @@
     "scratch",
     "dist",
     "node_modules",
+    "scripts",
     "test-db-direct.ts",
     "trigger-ingest.ts",
     "seed.ts"
