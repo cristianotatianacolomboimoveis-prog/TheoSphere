@@ -28,8 +28,7 @@
     "tsk:import": "ts-node scripts/import-tsk-full.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.64",
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^2.5.0",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/common": "^11.1.21",
     "@nestjs/config": "^4.0.4",

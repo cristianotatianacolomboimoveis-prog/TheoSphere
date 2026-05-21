@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GoogleGenerativeAI, Content } from '@google/generative-ai';
+import { GoogleGenAI, type Content } from '@google/genai';
 import { OpenAI } from 'openai';
 import { EmbeddingService } from './embedding.service';
 import { SemanticCacheService } from './semantic-cache.service';
@@ -40,7 +40,7 @@ export interface RagResponse {
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
   private openai: OpenAI | null = null;
 
   constructor(
@@ -55,7 +55,7 @@ export class RagService {
     const openaiKey = process.env.OPENAI_API_KEY;
 
     if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
-      this.genAI = new GoogleGenerativeAI(geminiKey);
+      this.genAI = new GoogleGenAI({ apiKey: geminiKey });
       this.logger.log('Google Gemini AI inicializado para Chat (Flash 1.5).');
     } else if (openaiKey && !openaiKey.startsWith('sk-your')) {
       this.openai = new OpenAI({ apiKey: openaiKey });
@@ -275,49 +275,22 @@ export class RagService {
             userId,
           },
           async () => {
-            const model = this.genAI!.getGenerativeModel({
-              model: 'gemini-1.5-flash-latest',
-              generationConfig: {
-                temperature: jsonMode ? 0.2 : 0.7,
-                maxOutputTokens: 3000,
-                responseMimeType: jsonMode ? 'application/json' : 'text/plain',
-              },
-              safetySettings: [
-                {
-                  category: 'HARM_CATEGORY_HARASSMENT' as any,
-                  threshold: 'BLOCK_NONE' as any,
-                },
-                {
-                  category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-                  threshold: 'BLOCK_NONE' as any,
-                },
-                {
-                  category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-                  threshold: 'BLOCK_NONE' as any,
-                },
-                {
-                  category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-                  threshold: 'BLOCK_NONE' as any,
-                },
-              ],
-            });
-
+            // @google/genai 2.x: chamada unificada `models.generateContent`.
+            // `contents` carrega o histórico + a query atual; `config` recebe
+            // generationConfig (achatado), systemInstruction e safetySettings.
             const history: Content[] = conversationHistory.map((m) => ({
               role: m.role === 'assistant' ? 'model' : 'user',
               parts: [{ text: m.content }],
             }));
 
+            const contents: Content[] = [
+              ...history,
+              { role: 'user', parts: [{ text: sanitizedQuery }] },
+            ];
+
             const systemMessage = jsonMode
               ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${theologicalContext}\n${bibleContext}\n${userContextText}`
               : `${THEO_AI_SYSTEM_PROMPT}\n\nCONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
-
-            const chat = model.startChat({
-              history,
-              systemInstruction: {
-                role: 'system',
-                parts: [{ text: systemMessage }],
-              },
-            });
 
             // 5s Timeout + Race for resilience (DT-9)
             const timeoutPromise = new Promise<never>((_, reject) =>
@@ -328,12 +301,41 @@ export class RagService {
             );
 
             const result = await Promise.race([
-              chat.sendMessage(sanitizedQuery),
+              this.genAI!.models.generateContent({
+                model: 'gemini-1.5-flash-latest',
+                contents,
+                config: {
+                  temperature: jsonMode ? 0.2 : 0.7,
+                  maxOutputTokens: 3000,
+                  responseMimeType: jsonMode
+                    ? 'application/json'
+                    : 'text/plain',
+                  systemInstruction: systemMessage,
+                  safetySettings: [
+                    {
+                      category: 'HARM_CATEGORY_HARASSMENT' as any,
+                      threshold: 'BLOCK_NONE' as any,
+                    },
+                    {
+                      category: 'HARM_CATEGORY_HATE_SPEECH' as any,
+                      threshold: 'BLOCK_NONE' as any,
+                    },
+                    {
+                      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
+                      threshold: 'BLOCK_NONE' as any,
+                    },
+                    {
+                      category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
+                      threshold: 'BLOCK_NONE' as any,
+                    },
+                  ],
+                },
+              }),
               timeoutPromise,
             ]);
 
-            const response = await (result as any).response;
-            return response.text();
+            // `result.text` é um getter que concatena as partes textuais.
+            return (result as { text?: string }).text ?? '';
           },
         );
       } catch (error: any) {

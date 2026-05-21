@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { OpenAI } from 'openai';
 import Redis from 'ioredis';
 import { createHash } from 'node:crypto';
@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
 @Injectable()
 export class EmbeddingService implements OnModuleDestroy {
   private readonly logger = new Logger(EmbeddingService.name);
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
   private openai: OpenAI | null = null;
   private readonly VECTOR_DIM = 768;
 
@@ -42,7 +42,7 @@ export class EmbeddingService implements OnModuleDestroy {
     const openaiKey = process.env.OPENAI_API_KEY;
 
     if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
-      this.genAI = new GoogleGenerativeAI(geminiKey);
+      this.genAI = new GoogleGenAI({ apiKey: geminiKey });
       this.logger.log(
         'Google Gemini AI inicializado para Embeddings (768 dims).',
       );
@@ -206,15 +206,19 @@ export class EmbeddingService implements OnModuleDestroy {
 
     if (this.genAI) {
       try {
-        const model = this.genAI.getGenerativeModel({
+        // @google/genai 2.x: a chamada de embedding é única (sem
+        // getGenerativeModel intermediário). `contents` aceita string
+        // ou array. `config` carrega taskType + outputDimensionality.
+        const result = await this.genAI.models.embedContent({
           model: 'text-embedding-004',
+          contents: normalized,
+          config: {
+            taskType: 'RETRIEVAL_DOCUMENT',
+            outputDimensionality: 768,
+          },
         });
-        const result = await model.embedContent({
-          content: { role: 'user', parts: [{ text: normalized }] },
-          taskType: 'RETRIEVAL_DOCUMENT' as any,
-          outputDimensionality: 768,
-        } as any);
-        const embedding = result.embedding.values;
+        const embedding = result.embeddings?.[0]?.values;
+        if (!embedding) throw new Error('Gemini retornou embedding vazio');
         await this.writeCache(normalized, embedding);
         return embedding;
       } catch (error) {
@@ -265,22 +269,23 @@ export class EmbeddingService implements OnModuleDestroy {
     if (uncachedIndices.length === 0) return results as number[][];
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: 'text-embedding-004',
-      });
       const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
 
       // Process in parallel for high performance
       await Promise.all(
         uncachedIndices.map(async (originalIndex, i) => {
           const text = uncachedTexts[i];
-          const result = await model.embedContent({
-            content: { role: 'user', parts: [{ text }] },
-            taskType: 'RETRIEVAL_DOCUMENT' as any,
-            outputDimensionality: 768,
-          } as any);
+          const result = await this.genAI!.models.embedContent({
+            model: 'text-embedding-004',
+            contents: text,
+            config: {
+              taskType: 'RETRIEVAL_DOCUMENT',
+              outputDimensionality: 768,
+            },
+          });
 
-          const embedding = result.embedding.values;
+          const embedding = result.embeddings?.[0]?.values;
+          if (!embedding) throw new Error('Gemini retornou embedding vazio');
           results[originalIndex] = embedding;
           await this.writeCache(normalized[originalIndex], embedding);
         }),
