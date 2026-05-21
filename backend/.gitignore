@@ -44,3 +44,9 @@ Thumbs.db
 
 # Docker override files that may contain secrets
 docker-compose.override.yml
+
+# Prisma compiled config artifacts
+prisma.config.js
+prisma.config.js.map
+prisma.config.d.ts
+
