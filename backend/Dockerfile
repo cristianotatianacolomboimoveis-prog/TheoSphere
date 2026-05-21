@@ -37,10 +37,13 @@ ENV NODE_ENV=production \
 
 # The official node image already ships a non-root `node` user (uid 1000).
 # Copy with proper ownership so we don't need a chown pass.
-COPY --from=builder --chown=node:node /app/dist          ./dist
-COPY --from=builder --chown=node:node /app/node_modules  ./node_modules
-COPY --from=builder --chown=node:node /app/prisma        ./prisma
-COPY --from=builder --chown=node:node /app/package.json  ./package.json
+COPY --from=builder --chown=node:node /app/dist             ./dist
+COPY --from=builder --chown=node:node /app/node_modules     ./node_modules
+COPY --from=builder --chown=node:node /app/prisma           ./prisma
+COPY --from=builder --chown=node:node /app/package.json     ./package.json
+# Prisma 7 lê a datasource de prisma.config.ts (não mais do schema).
+# Sem este arquivo no runtime, `prisma migrate deploy` no CMD falha.
+COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 
 USER node
 
