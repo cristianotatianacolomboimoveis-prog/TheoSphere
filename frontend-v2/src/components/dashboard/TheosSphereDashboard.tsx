@@ -21,7 +21,7 @@ interface Note {
   coordinates?: [number, number];
 }
 
-export function LogosDashboard() {
+export function TheosSphereDashboard() {
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -42,7 +42,7 @@ export function LogosDashboard() {
     let unsub: (() => void) | undefined;
     if (MapAdapter) {
       unsub = MapAdapter.events.subscribe("onLocationSelected", (loc: any) => {
-        console.log("[LogosDashboard] Local selecionado no mapa:", loc);
+        console.log("[TheosSphereDashboard] Local selecionado no mapa:", loc);
         // Atualiza UI com base no clique do mapa
         setVerseOfDay((prev) => ({
           ...prev,
@@ -89,7 +89,7 @@ export function LogosDashboard() {
 
   return (
     <div className="flex flex-col h-full bg-[#F9FAFB] dark:bg-[#0A0D14] border-l border-gray-200 dark:border-white/10 w-[350px] shadow-2xl z-20">
-      {/* Logos Search Bar */}
+      {/* TheosSphere Search Bar */}
       <div className="p-4 border-b border-gray-200 dark:border-white/10">
         <form onSubmit={handleSearch} className="relative">
           <input

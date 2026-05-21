@@ -61,10 +61,10 @@ const TheoSGraph = dynamic(() => import("@/components/TheoSGraph"), {
 const AgenticConsole = dynamic(() => import("@/components/AgenticConsole"), {
   ssr: false,
 });
-const LogosDashboard = dynamic(
+const TheosSphereDashboard = dynamic(
   () =>
-    import("@/components/dashboard/LogosDashboard").then(
-      (m) => m.LogosDashboard,
+    import("@/components/dashboard/TheosSphereDashboard").then(
+      (m) => m.TheosSphereDashboard,
     ),
   { ssr: false },
 );
@@ -221,7 +221,7 @@ export default function TheoSphereOS() {
                   <div className="flex-grow relative h-full">
                     <TheoSphere3D onClose={closeTool} />
                   </div>
-                  <LogosDashboard />
+                  <TheosSphereDashboard />
                 </div>
               )}
               {activeTool === "console" && <AgenticConsole />}
