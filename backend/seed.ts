@@ -1,6 +1,10 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL ?? '';
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 const initialLocations = [
   {
@@ -234,7 +238,7 @@ async function seedTheologyEmbeddings() {
       // Usa ON CONFLICT DO NOTHING para evitar duplicatas por conteúdo idêntico.
       // O embedding zero será substituído pelo sistema RAG quando a OPENAI_API_KEY
       // estiver configurada e o processo de re-embedding for executado.
-      const zeroEmbedding = JSON.stringify(Array(1536).fill(0));
+      const zeroEmbedding = JSON.stringify(Array(768).fill(0));
 
       await prisma.$executeRaw`
         INSERT INTO "TheologyEmbedding" (content, tradition, embedding)

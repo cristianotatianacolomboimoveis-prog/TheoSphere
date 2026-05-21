@@ -83,6 +83,8 @@ export function useBible(
       chapter: activeChapter,
       translation: primaryTranslation,
       backendUrl: BACKEND_URL,
+      apiBibleKey: CONFIG.API_BIBLE_KEY,
+      apiBibleId: CONFIG.API_BIBLE_ID,
     });
 
     if (secondaryTranslation) {
@@ -92,6 +94,8 @@ export function useBible(
         translation: secondaryTranslation,
         backendUrl: BACKEND_URL,
         isSecondary: true,
+        apiBibleKey: CONFIG.API_BIBLE_KEY,
+        apiBibleId: CONFIG.API_BIBLE_ID,
       });
     }
 

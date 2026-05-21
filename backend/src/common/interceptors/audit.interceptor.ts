@@ -33,7 +33,7 @@ export class AuditInterceptor implements NestInterceptor {
           try {
             await this.prisma.auditLog.create({
               data: {
-                actorId: user?.id || 'anonymous',
+                actorId: user?.id || null,
                 action: `${method} ${url}`,
                 resource: url.split('/')[3] || 'unknown',
                 // metadata: JSON.stringify({ ip, userAgent, duration }) // Se o schema suportar Json

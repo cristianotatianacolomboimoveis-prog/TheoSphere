@@ -14,6 +14,10 @@ export const CONFIG = {
   // Feature Flags
   ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true",
   OFFLINE_MODE: true, // Priority for local DuckDB cache
+
+  // API.Bible (ABS) Integration
+  API_BIBLE_KEY: process.env.NEXT_PUBLIC_API_BIBLE_KEY || "",
+  API_BIBLE_ID: process.env.NEXT_PUBLIC_API_BIBLE_ID || "",
 };
 
 export const I18N = {

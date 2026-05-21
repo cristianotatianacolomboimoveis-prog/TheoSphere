@@ -68,9 +68,45 @@ export const TRANSLATIONS = [
     type: "Equivalência Dinâmica",
   },
   {
+    id: "almeida",
+    name: "João Ferreira de Almeida (JFA - Bible-API)",
+    lang: "PT",
+    type: "Equivalência Formal",
+  },
+  {
+    id: "acf",
+    name: "Almeida Corrigida Fiel (ACF - Digital)",
+    lang: "PT",
+    type: "Equivalência Formal",
+  },
+  {
+    id: "apibible",
+    name: "API.Bible (Custom ID)",
+    lang: "EN",
+    type: "Personalizado",
+  },
+  {
     id: "kjv",
     name: "King James Version (KJV)",
     lang: "EN",
+    type: "Equivalência Formal",
+  },
+  {
+    id: "web",
+    name: "World English Bible (WEB - Bible-API)",
+    lang: "EN",
+    type: "Equivalência Formal",
+  },
+  {
+    id: "clementine",
+    name: "Clementine Latin Vulgate (Vulgate - Bible-API)",
+    lang: "LA",
+    type: "Equivalência Formal",
+  },
+  {
+    id: "cuv",
+    name: "Chinese Union Version (CUV - Bible-API)",
+    lang: "ZH",
     type: "Equivalência Formal",
   },
 ];

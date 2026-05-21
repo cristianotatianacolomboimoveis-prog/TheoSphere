@@ -7,7 +7,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 
 // Components
 import { Sidebar } from "@/components/layout/Sidebar";
-import { TheosSphereTopBar } from "@/components/layout/TheosSphereTopBar";
+import { TheoSphereTopBar } from "@/components/layout/TheoSphereTopBar";
 import { Workspace } from "@/components/layout/Workspace";
 import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOverlay";
 import AuthModal from "@/components/AuthModal";
@@ -61,10 +61,10 @@ const TheoSGraph = dynamic(() => import("@/components/TheoSGraph"), {
 const AgenticConsole = dynamic(() => import("@/components/AgenticConsole"), {
   ssr: false,
 });
-const TheosSphereDashboard = dynamic(
+const TheoSphereDashboard = dynamic(
   () =>
-    import("@/components/dashboard/TheosSphereDashboard").then(
-      (m) => m.TheosSphereDashboard,
+    import("@/components/dashboard/TheoSphereDashboard").then(
+      (m) => m.TheoSphereDashboard,
     ),
   { ssr: false },
 );
@@ -124,7 +124,7 @@ export default function TheoSphereOS() {
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden bg-[#DDE2E8] dark:bg-[#0A0D14] text-foreground font-sans">
       {/* ─── Logos Top Bar (Global Search & Tools) ────────────────────────── */}
-      <TheosSphereTopBar />
+      <TheoSphereTopBar />
 
       <div className="flex flex-grow w-full overflow-hidden">
         {/* ─── Sidebar Persistente (Logos Shortcuts) ─────────────────────── */}
@@ -221,7 +221,7 @@ export default function TheoSphereOS() {
                   <div className="flex-grow relative h-full">
                     <TheoSphere3D onClose={closeTool} />
                   </div>
-                  <TheosSphereDashboard />
+                  <TheoSphereDashboard />
                 </div>
               )}
               {activeTool === "console" && <AgenticConsole />}

@@ -1,6 +1,10 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL ?? '';
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 const BIBLE_BOOKS = [
   { id: 1,  namePt: "Gênesis",         nameEn: "Genesis",         abbreviation: "Gn",  chapters: 50, testament: "OT", yearStart: -2100 },
