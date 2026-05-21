@@ -7,7 +7,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 
 // Components
 import { Sidebar } from "@/components/layout/Sidebar";
-import { LogosTopBar } from "@/components/layout/LogosTopBar";
+import { TheosSphereTopBar } from "@/components/layout/TheosSphereTopBar";
 import { Workspace } from "@/components/layout/Workspace";
 import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOverlay";
 import AuthModal from "@/components/AuthModal";
@@ -124,7 +124,7 @@ export default function TheoSphereOS() {
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden bg-[#DDE2E8] dark:bg-[#0A0D14] text-foreground font-sans">
       {/* ─── Logos Top Bar (Global Search & Tools) ────────────────────────── */}
-      <LogosTopBar />
+      <TheosSphereTopBar />
 
       <div className="flex flex-grow w-full overflow-hidden">
         {/* ─── Sidebar Persistente (Logos Shortcuts) ─────────────────────── */}

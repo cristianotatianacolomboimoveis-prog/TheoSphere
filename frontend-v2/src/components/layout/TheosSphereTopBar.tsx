@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useTheoStore, ToolId } from "@/store/useTheoStore";
 
-export function LogosTopBar() {
+export function TheosSphereTopBar() {
   const { setActiveTool } = useTheoStore();
 
   const handleCommand = (e: React.FormEvent<HTMLFormElement>) => {
