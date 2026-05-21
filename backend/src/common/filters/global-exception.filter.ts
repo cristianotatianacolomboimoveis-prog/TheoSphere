@@ -7,7 +7,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ConfigService } from '@nestjs/config';
 import { Sentry } from '../../observability/sentry';
 
 /**
@@ -23,15 +22,15 @@ import { Sentry } from '../../observability/sentry';
  *     forwarded to Sentry for 5xx only.
  *
  * In development we expose more — helps debugging.
+ *
+ * Note: ConfigService is intentionally NOT injected here — APP_FILTER
+ * providers can have DI resolution issues in NestJS 11 when ConfigModule
+ * is loaded lazily. Using process.env directly is equivalent and reliable.
  */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
-  private readonly isProd: boolean;
-
-  constructor(private readonly configService: ConfigService) {
-    this.isProd = this.configService.get<string>('NODE_ENV') === 'production';
-  }
+  private readonly isProd = process.env.NODE_ENV === 'production';
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
