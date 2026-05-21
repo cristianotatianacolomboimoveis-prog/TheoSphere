@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "node dist/main",
-    "healthcheckPath": "/api/v1/rag/stats",
+    "healthcheckPath": "/api/v1/health/live",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"
   }
