@@ -27,13 +27,28 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
   ];
 
   app.use(cookieParser());
 
   app.enableCors({
-    origin: allowedOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const isLocalhost =
+        /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+      if (isLocalhost || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
@@ -74,9 +89,12 @@ async function bootstrap() {
   );
 
   const port = config.get<number>('PORT') ?? 3002;
-  await app.listen(port);
+  // Bind explicitly to 0.0.0.0 so PaaS routers (Railway/Render/Fly) can reach
+  // the container. Sem host explícito, alguns ambientes bindam só em
+  // localhost/IPv6 e o domínio público retorna 502.
+  await app.listen(port, '0.0.0.0');
   logger.log(
-    `✅ TheoSphere backend up on :${port} (${config.get('NODE_ENV')})`,
+    `✅ TheoSphere backend up on 0.0.0.0:${port} (${config.get('NODE_ENV')})`,
   );
   logger.log(`   CORS origins: ${allowedOrigins.join(', ')}`);
 }
