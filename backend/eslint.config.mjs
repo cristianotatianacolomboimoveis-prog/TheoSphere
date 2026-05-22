@@ -13,6 +13,21 @@ export default tseslint.config(
       'prisma.config.js.map',
       'dist/**',
       'node_modules/**',
+      // Standalone scripts e arquivos fora do tsconfig do app — o
+      // projectService do typescript-eslint não os encontra e lança
+      // "was not found by the project service". São scripts utilitários
+      // (seed, ingestão, scratch) que não fazem parte do build do NestJS.
+      'scratch/**',
+      'scripts/**',
+      'seed.ts',
+      'trigger-ingest.ts',
+      'test-db-direct.ts',
+      'prisma/seed-*.ts',
+      // Artefatos compilados que às vezes vazam pra raiz (não devem ser
+      // lintados nem versionados).
+      '**/*.js',
+      '**/*.js.map',
+      '**/*.d.ts',
     ],
   },
   eslint.configs.recommended,

@@ -4,7 +4,8 @@
     "rootDir": "./src",
     "module": "commonjs",
     "moduleResolution": "node",
-    "resolvePackageJsonExports": false
+    "resolvePackageJsonExports": false,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"]
 }

@@ -99,7 +99,7 @@ export class DriveRagService {
     try {
       const response = await drive.files.list({
         q: `'${targetFolderId}' in parents and trashed = false and (${SUPPORTED_MIME_QUERY})`,
-        fields: 'files(id, name, mimeType)',
+        fields: 'files(id, name, mimeType, modifiedTime, size)',
         pageSize: 1000,
       });
 
@@ -129,24 +129,51 @@ export class DriveRagService {
   ) {
     const targetUserId = userId || 'public-guest';
 
-    // Evita re-processar e duplicar arquivos na sincronização semanal automática
+    // Protetor contra arquivos massivos de 100MB+ (CWE-400)
+    if (file.size && parseInt(file.size, 10) > 100 * 1024 * 1024) {
+      this.logger.warn(
+        `[DriveRagService] Arquivo "${file.name}" excede o limite de 100MB (${file.size} bytes). Ignorando ingestão para evitar OOM.`,
+      );
+      return;
+    }
+
+    // Evita re-processar e duplicar arquivos na sincronização semanal automática,
+    // mas invalida e recria o estado caso o arquivo tenha sido modificado no Drive.
     try {
       const exists: any[] = await this.prisma.$queryRaw`
-        SELECT id FROM "UserEmbedding"
+        SELECT id, metadata FROM "UserEmbedding"
         WHERE "userId" = ${targetUserId}
           AND type = 'library_book'
           AND metadata->>'fileId' = ${file.id}
         LIMIT 1
       `;
       if (exists && exists.length > 0) {
+        const storedModifiedTime = exists[0].metadata?.modifiedTime;
+        if (
+          storedModifiedTime &&
+          file.modifiedTime &&
+          storedModifiedTime === file.modifiedTime
+        ) {
+          this.logger.log(
+            `[DriveRagService] Arquivo "${file.name}" já está indexado e atualizado. Pulando...`,
+          );
+          return;
+        }
+
+        // Se o arquivo foi modificado, deleta os chunks antigos para manter sincronizado (DELETE -> INSERT)
         this.logger.log(
-          `[DriveRagService] Arquivo "${file.name}" já está indexado no banco de dados. Pulando...`,
+          `[DriveRagService] Arquivo "${file.name}" mutou no Drive. Removendo chunks obsoletos...`,
         );
-        return;
+        await this.prisma.$executeRaw`
+          DELETE FROM "UserEmbedding"
+          WHERE "userId" = ${targetUserId}
+            AND type = 'library_book'
+            AND metadata->>'fileId' = ${file.id}
+        `;
       }
     } catch (checkErr: any) {
       this.logger.warn(
-        `Erro ao checar se arquivo "${file.name}" já existe: ${checkErr.message}`,
+        `Erro ao checar sincronia de estado para "${file.name}": ${checkErr.message}`,
       );
     }
 
@@ -210,6 +237,7 @@ export class DriveRagService {
           const metadata = {
             fileName: file.name,
             fileId: file.id,
+            modifiedTime: file.modifiedTime, // Sincronização de mutação
             tradition,
             chunkIndex: i + j,
             // Metadados do próprio arquivo (EPUB exposes title/author/lang via OPF).
@@ -243,25 +271,64 @@ export class DriveRagService {
   }
 
   /**
-   * Método de chunking simples (divide por parágrafos e tenta agrupar até o limite).
+   * Método de chunking semântico baseado em limites lógicos de sentenças e parágrafos.
+   * Evita a fragmentação teológica e textual cortando versículos e frases bíblicas ao meio.
    */
-  private chunkText(text: string, maxLength: number): string[] {
+  private chunkText(text: string, maxLength: number = 1000): string[] {
     const paragraphs = text.split(/\n\s*\n/);
     const chunks: string[] = [];
     let currentChunk = '';
 
-    for (const p of paragraphs) {
-      const cleanP = p.replace(/\s+/g, ' ').trim();
-      if (!cleanP) continue;
+    for (const paragraph of paragraphs) {
+      const cleanParagraph = paragraph.replace(/\s+/g, ' ').trim();
+      if (!cleanParagraph) continue;
 
-      if (
-        currentChunk.length + cleanP.length > maxLength &&
-        currentChunk.length > 0
-      ) {
-        chunks.push(currentChunk);
-        currentChunk = cleanP;
-      } else {
-        currentChunk += (currentChunk ? ' ' : '') + cleanP;
+      // Se o parágrafo inteiro couber e não estourar o limite com o atual chunk, junta
+      if (currentChunk.length + cleanParagraph.length + 1 <= maxLength) {
+        currentChunk = currentChunk
+          ? `${currentChunk}\n\n${cleanParagraph}`
+          : cleanParagraph;
+        continue;
+      }
+
+      // Caso contrário, fatiamos o parágrafo por sentenças para manter a integridade semântica
+      const sentences = cleanParagraph.split(/(?<=[.!?])\s+/);
+
+      for (const sentence of sentences) {
+        const cleanSentence = sentence.trim();
+        if (!cleanSentence) continue;
+
+        // Se a sentença sozinha passar do limite máximo, fatiamos por palavras
+        if (cleanSentence.length > maxLength) {
+          if (currentChunk.length > 0) {
+            chunks.push(currentChunk);
+            currentChunk = '';
+          }
+          const words = cleanSentence.split(' ');
+          let tempSubChunk = '';
+          for (const word of words) {
+            if (tempSubChunk.length + word.length + 1 > maxLength) {
+              if (tempSubChunk.length > 0) {
+                chunks.push(tempSubChunk);
+              }
+              tempSubChunk = word;
+            } else {
+              tempSubChunk = tempSubChunk ? `${tempSubChunk} ${word}` : word;
+            }
+          }
+          if (tempSubChunk.length > 0) {
+            currentChunk = tempSubChunk;
+          }
+        } else if (currentChunk.length + cleanSentence.length + 1 > maxLength) {
+          if (currentChunk.length > 0) {
+            chunks.push(currentChunk);
+          }
+          currentChunk = cleanSentence;
+        } else {
+          currentChunk = currentChunk
+            ? `${currentChunk} ${cleanSentence}`
+            : cleanSentence;
+        }
       }
     }
 
@@ -357,7 +424,21 @@ export class DriveRagService {
           `Falha de conexão com a URL externa (HTTP status ${response.status})`,
         );
       }
+
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > 100 * 1024 * 1024) {
+        throw new Error(
+          `Arquivo excede o limite máximo permitido de 100MB (${contentLength} bytes). Ingestão abortada.`,
+        );
+      }
+
       const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > 100 * 1024 * 1024) {
+        throw new Error(
+          `Arquivo excede o limite máximo permitido de 100MB (${arrayBuffer.byteLength} bytes). Ingestão abortada.`,
+        );
+      }
+
       const buffer = Buffer.from(arrayBuffer);
 
       const extractor = findExtractor(mimeType);

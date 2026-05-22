@@ -1,0 +1,66 @@
+{
+  "audit_metadata": {
+    "system_name": "TheoSphere RAG & Google Drive Ingestion Pipeline",
+    "auditor_role": "Senior SDET & RAG Evaluation Specialist",
+    "timestamp": "2026-05-22T13:35:00Z",
+    "environment": "Development / Audit Mode"
+  },
+  "overall_risk_level": "HIGH",
+  "modules": [
+    {
+      "module_id": "auth_rate_limits",
+      "name": "Autenticação e Limites de Taxa (Google Drive API)",
+      "status": "PASS",
+      "findings": [
+        "A autenticação via JWT (Service Account) é robusta e a biblioteca 'googleapis' nativamente lida com a expiração e renovação automática de tokens.",
+        "Mecanismos de Exponential Backoff são parcialmente delegados ao HTTP client, mas a TheoSphere carece de Jitter explícito configurado nas requisições diretas de downloads via IngestURL."
+      ]
+    },
+    {
+      "module_id": "extreme_ingestion",
+      "name": "Ingestão Extrema (Corrupção e Arquivos Gigantes)",
+      "status": "FAIL",
+      "risk": "HIGH",
+      "cwe": "CWE-400",
+      "cwe_name": "Uncontrolled Resource Consumption (Exaustão de Memória/Disco)",
+      "findings": [
+        "Carregamento integral do buffer de arquivos em memória ('Buffer.from(response.data)') causa Out Of Memory (OOM) no Node.js se arquivos excederem 2GB.",
+        "Falta de validação de tamanho de arquivo (max_file_size) antes da gravação de arquivos temporários em '/tmp/' no extrator EPUB ('text-extractors.ts:L122'), permitindo exaustão de disco."
+      ]
+    },
+    {
+      "module_id": "state_synchronization",
+      "name": "Sincronização de Estado (Mutações vs Duplicação)",
+      "status": "FAIL",
+      "risk": "HIGH",
+      "cwe": "CWE-662",
+      "cwe_name": "Improper Synchronization",
+      "findings": [
+        "A sincronização na função 'processFile' (linhas 134-146) ignora qualquer alteração em arquivos existentes no Drive se o 'file.id' já estiver registrado, gerando dessincronização perpétua de dados (dados obsoletos).",
+        "A única forma de atualização é o endpoint destrutivo 'reindex', que causa indisponibilidade temporária e alto consumo de recursos de computação de embeddings."
+      ]
+    },
+    {
+      "module_id": "rag_evaluation_precision_synthesis",
+      "name": "Qualidade do RAG (Retrieval & Síntese)",
+      "status": "FAIL",
+      "risk": "MEDIUM",
+      "findings": [
+        "Estratégia de chunking linear e puramente baseada em caracteres ('chunkText', max 1000 chars) corta versículos e referências teológicas de forma arbitrária (ex: dividindo João 3:16 no meio).",
+        "Alta propensão à alucinação (Faithfulness reduzido) por fornecer pedaços incompletos de lógica teológica ao LLM, forçando-o a inferir/alucinar elos textuais perdidos."
+      ]
+    },
+    {
+      "module_id": "security_cross_tenant_dow",
+      "name": "Segurança de LLM (Isolamento, Injeção e DoW)",
+      "status": "FAIL",
+      "risk": "HIGH",
+      "cwe": "CWE-284",
+      "cwe_name": "Improper Access Control (Vazamento Cross-Tenant)",
+      "findings": [
+        "Isolamento de banco vetorial baseado rigidamente em Prisma $executeRaw com filtragem por 'userId' está operacional, mas o sistema carece de validação no gateway de API contra injeções de metadados na busca por similaridade.",
+        "Ausência de limitação física de tokens ou caracteres no gateway de busca vetorial, expondo o pipeline a ataques DoW (Denial of Wallet) via prompts inflados recursivamente."
+      ]
+    }
+  ]
+}

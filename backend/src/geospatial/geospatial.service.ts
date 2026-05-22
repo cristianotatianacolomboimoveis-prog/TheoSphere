@@ -17,23 +17,30 @@ export class GeospatialService {
         `Fetching locations ${era ? `for era ${era}` : 'all eras'}`,
       );
 
-      const locations =
-        era !== undefined
-          ? await this.prisma.$queryRaw`
-            SELECT id, name, era, category, description,
-                   ST_X(geom::geometry) as lng,
-                   ST_Y(geom::geometry) as lat
-            FROM "Location"
-            WHERE era BETWEEN ${era - 50} AND ${era + 50};
-          `
-          : await this.prisma.$queryRaw`
-            SELECT id, name, era, category, description,
-                   ST_X(geom::geometry) as lng,
-                   ST_Y(geom::geometry) as lat
-            FROM "Location";
-          `;
+      if (era !== undefined) {
+        // Tolerância dinâmica baseada no testamento:
+        // Antigo Testamento (era < 0): +- 300 anos devido à esparsidade dos dados históricos
+        // Novo Testamento (era >= 0): +- 100 anos para abarcar o primeiro século amplamente
+        const minEra = era < 0 ? era - 300 : era - 100;
+        const maxEra = era < 0 ? era + 300 : era + 100;
 
-      return locations;
+        const locations = await this.prisma.$queryRaw`
+          SELECT id, name, era, category, description,
+                 ST_X(geom::geometry) as lng,
+                 ST_Y(geom::geometry) as lat
+          FROM "Location"
+          WHERE era BETWEEN ${minEra} AND ${maxEra};
+        `;
+        return locations;
+      } else {
+        const locations = await this.prisma.$queryRaw`
+          SELECT id, name, era, category, description,
+                 ST_X(geom::geometry) as lng,
+                 ST_Y(geom::geometry) as lat
+          FROM "Location";
+        `;
+        return locations;
+      }
     } catch (error) {
       this.logger.error(
         `Failed to fetch locations: ${(error as Error).message}`,

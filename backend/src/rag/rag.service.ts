@@ -77,6 +77,9 @@ export class RagService {
     conversationHistory: ChatMessage[] = [],
     jsonMode: boolean = false,
   ): Promise<RagResponse> {
+    if (query && query.length > 4000) {
+      throw new Error('Query exceeds maximum allowed length (DoW prevention).');
+    }
     // Force high-quality fallback for key demonstration verses
     const lowerQuery = query.toLowerCase().trim();
     const isGenesis =

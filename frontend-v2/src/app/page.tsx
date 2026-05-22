@@ -124,7 +124,7 @@ export default function TheoSphereOS() {
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden bg-[#DDE2E8] dark:bg-[#0A0D14] text-foreground font-sans">
       {/* ─── Logos Top Bar (Global Search & Tools) ────────────────────────── */}
-      <TheoSphereTopBar />
+      <TheoSphereTopBar onOpenAuth={() => setAuthOpen(true)} />
 
       <div className="flex flex-grow w-full overflow-hidden">
         {/* ─── Sidebar Persistente (Logos Shortcuts) ─────────────────────── */}

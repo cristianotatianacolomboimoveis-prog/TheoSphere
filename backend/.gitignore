@@ -50,3 +50,7 @@ prisma.config.js
 prisma.config.js.map
 prisma.config.d.ts
 
+
+# Compiled scratch/util artifacts (não versionar)
+check-db.*
+scratch-check.*
