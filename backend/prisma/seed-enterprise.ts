@@ -2,9 +2,11 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { THEOLOGICAL_ROUTES } from '../src/geospatial/geospatial-routes.registry';
+import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL ?? '';
-const adapter = new PrismaPg({ connectionString });
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 function getPeriodForWaypoint(name: string): string {
@@ -344,4 +346,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

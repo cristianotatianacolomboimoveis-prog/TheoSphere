@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { setupTestDatabase, TestDb } from './helpers/postgres-container';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
  * End-to-end: pgvector + Postgres FTS, against a real Postgres container.
@@ -21,21 +23,24 @@ import { setupTestDatabase, TestDb } from './helpers/postgres-container';
 describe('Hybrid search infrastructure (e2e)', () => {
   let testDb: TestDb;
   let prisma: PrismaClient;
+  let pool: any;
 
   beforeAll(async () => {
     testDb = await setupTestDatabase();
     // Prisma 7 dropped `datasources` constructor option in favor of a
     // driver adapter. Use @prisma/adapter-pg wrapping the testcontainer URL.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaPg } = require('@prisma/adapter-pg');
+    pool = new Pool({ connectionString: testDb.url });
     prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: testDb.url }),
+      adapter: new PrismaPg(pool),
     });
     await prisma.$connect();
   }, 180_000);
 
   afterAll(async () => {
     await prisma.$disconnect();
+    if (pool) {
+      await pool.end();
+    }
     await testDb.stop();
   });
 

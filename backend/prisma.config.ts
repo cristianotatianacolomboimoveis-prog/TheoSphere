@@ -17,6 +17,7 @@ export default defineConfig({
     // shadowDatabaseUrl é opcional; DATABASE_URL serve para connection
     // tanto em runtime quanto em migrations.
     url: process.env.DATABASE_URL,
+    directUrl: process.env.DIRECT_URL,
     shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

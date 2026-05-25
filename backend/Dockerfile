@@ -52,7 +52,8 @@ EXPOSE 3002
 # Container-level liveness probe. Fast (≤1s), zero-dep, returns 200 when
 # the Nest event loop is responsive. Readiness (DB-aware) is at /ready.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget --quiet --spider --tries=1 --timeout=3 http://127.0.0.1:3002/api/v1/health/live || exit 1
+  CMD wget --quiet --spider --tries=1 --timeout=3 http://127.0.0.1:${PORT:-3002}/api/v1/health/live || exit 1
+
 
 # tini → migrate → start. If migrations fail, the container exits non-zero
 # and the orchestrator (Railway/K8s) restarts it instead of running stale code.

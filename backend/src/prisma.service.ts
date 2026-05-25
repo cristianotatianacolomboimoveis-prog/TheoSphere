@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 // ─── Singleton Pattern ──────────────────────────────────────────────────────
 // Em desenvolvimento, o NestJS realiza hot-reloads frequentes. Se criarmos uma
@@ -15,7 +16,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 function buildClient(): PrismaClient {
   const connectionString =
     process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
-  const adapter = new PrismaPg({ connectionString });
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
@@ -30,10 +32,15 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  private pool: Pool;
+
   constructor() {
     const connectionString =
       process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
-    super({ adapter: new PrismaPg({ connectionString }) });
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    super({ adapter });
+    this.pool = pool;
   }
 
   async onModuleInit() {
@@ -42,5 +49,8 @@ export class PrismaService
 
   async onModuleDestroy() {
     await this.$disconnect();
+    if (this.pool) {
+      await this.pool.end();
+    }
   }
 }

@@ -1,5 +1,15 @@
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import 'dotenv/config';
+
+const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+console.log('Connection string exists:', !!connectionString);
+
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
 async function test() {
   try {
     await prisma.$connect();
@@ -10,6 +20,7 @@ async function test() {
     console.error('DB Connection Failed:', err);
   } finally {
     await prisma.$disconnect();
+    await pool.end();
   }
 }
 test();
