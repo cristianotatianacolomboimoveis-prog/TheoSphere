@@ -55,7 +55,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --quiet --spider --tries=1 --timeout=3 http://127.0.0.1:${PORT:-3002}/api/v1/health/live || exit 1
 
 
-# tini → migrate → start. If migrations fail, the container exits non-zero
-# and the orchestrator (Railway/K8s) restarts it instead of running stale code.
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "DATABASE_URL=$DIRECT_URL npx prisma migrate deploy && node dist/main"]
+
+
