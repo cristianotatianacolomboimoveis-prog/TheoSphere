@@ -3,6 +3,9 @@
 app = "theosphere-backend"
 primary_region = "gru" # São Paulo, nearest to the user in Brazil
 
+[deploy]
+  release_command = "npx prisma migrate deploy"
+
 [http_service]
   internal_port = 3002
   force_https = true
@@ -11,7 +14,20 @@ primary_region = "gru" # São Paulo, nearest to the user in Brazil
   min_machines_running = 0
   processes = ["app"]
 
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+[[http_service.checks]]
+  grace_period = "20s"
+  interval = "30s"
+  method = "GET"
+  path = "/api/v1/health/live"
+  timeout = "5s"
+
 [[vm]]
   memory = "1gb"
   cpu_kind = "shared"
   cpus = 1
+

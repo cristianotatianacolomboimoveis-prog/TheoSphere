@@ -5,7 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "DATABASE_URL=$DIRECT_URL npx prisma migrate deploy && node dist/main",
     "healthcheckPath": "/api/v1/health/live",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"

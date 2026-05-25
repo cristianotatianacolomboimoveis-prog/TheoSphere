@@ -1,0 +1,6 @@
+# TheoSphere backend — Heroku process definition
+# `release` runs ONCE per deploy (before web dynos restart).
+# `web` is the main process that receives HTTP traffic.
+
+release: npx prisma migrate deploy
+web: node dist/main

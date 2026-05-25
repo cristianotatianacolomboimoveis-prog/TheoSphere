@@ -65,7 +65,7 @@ services:
       dockerfile: Dockerfile
     image: theosphere/backend:latest
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
       # Compose-internal connection: backend → db over the user-defined network.
       DATABASE_URL: postgresql://${POSTGRES_USER:-theosphere}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-theosphere_db}

@@ -54,15 +54,14 @@ jobs:
       # the actual deploy. Skips silently if SENTRY_AUTH_TOKEN is unset.
       - name: Sentry release
         if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: theosphere-backend
-        run: |
-          curl -sL https://sentry.io/get-cli/ | bash
-          sentry-cli releases new "${GITHUB_SHA}"
-          sentry-cli releases set-commits "${GITHUB_SHA}" --auto
-          sentry-cli releases finalize "${GITHUB_SHA}"
+        with:
+          version: ${{ github.sha }}
+          set_commits: auto
 
   # ─────────────────────────────────────────────────────────────────────────
   # Frontend → Vercel. Vercel's GitHub integration usually does this on its

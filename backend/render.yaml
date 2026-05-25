@@ -3,17 +3,16 @@ services:
     name: theosphere-backend
     env: docker
     plan: free
-    region: ohio # Ou a região mais próxima de você disponível no plano free
+    region: ohio
     dockerContext: .
     dockerfilePath: Dockerfile
     healthCheckPath: /api/v1/health/live
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3002
+      # PORT is set automatically by Render — do NOT override it.
       - key: DATABASE_URL
-        sync: false # Você preencherá no painel do Render
+        sync: false # Fill in the Render dashboard
       - key: DIRECT_URL
         sync: false
       - key: JWT_SECRET
@@ -21,4 +20,5 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        value: "*" # Em produção, mude para a URL do seu frontend
+        value: "https://theosphere.vercel.app" # Replace with your actual frontend URL
+

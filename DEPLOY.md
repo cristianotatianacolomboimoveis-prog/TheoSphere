@@ -45,12 +45,19 @@ O backend usa o blueprint `render.yaml`.
 
 ### Variáveis de Ambiente (ambos)
 
-- `PORT`: `3002`
-- `DATABASE_URL`: URL de Transaction Pooling do Supabase (porta 6543).
-- `DIRECT_URL`: URL de conexão direta do Supabase (porta 5432).
-- `GEMINI_API_KEY`: Sua chave do Google AI Studio.
+> [!IMPORTANT]
+> Em produção (`NODE_ENV=production`), **pelo menos uma** chave de IA
+> (`GEMINI_API_KEY` ou `OPENAI_API_KEY`) é **obrigatória**. Sem ela, o app
+> crasha silenciosamente durante a inicialização (validação Joi) — antes
+> do health endpoint ficar disponível. A plataforma verá um container que
+> nunca fica healthy e reiniciará infinitamente.
+
+- `DATABASE_URL`: URL do Transaction Pooling do Supabase (porta 6543 ou 5432 com `?pgbouncer=true`).
+- `DIRECT_URL`: URL de conexão direta do Supabase (porta 5432, sem pgbouncer).
+- `GEMINI_API_KEY`: **Obrigatória em produção.** Chave do Google AI Studio.
 - `JWT_SECRET`: Uma string longa e aleatória (≥ 32 chars) para os tokens.
 - `ALLOWED_ORIGINS`: URL final do frontend (ex: `https://theosphere.vercel.app`).
+- `PORT`: **Não defina manualmente** — Railway e Render atribuem automaticamente.
 
 > Nota: a partir do Prisma 7 as URLs são lidas via `backend/prisma.config.ts`,
 > que por sua vez lê `DATABASE_URL`/`DIRECT_URL` do ambiente — o shape das

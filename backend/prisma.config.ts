@@ -14,9 +14,10 @@ export default defineConfig({
     path: './prisma/migrations',
   },
   datasource: {
-    // shadowDatabaseUrl é opcional; DATABASE_URL serve para connection
-    // tanto em runtime quanto em migrations.
+    // url = pooled connection (PgBouncer) — used at runtime by the app.
+    // directUrl = non-pooled — used by `prisma migrate deploy` & introspection.
     url: process.env.DATABASE_URL,
+    directUrl: process.env.DIRECT_URL,
     shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

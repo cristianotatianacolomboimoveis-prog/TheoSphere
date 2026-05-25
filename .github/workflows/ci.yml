@@ -188,7 +188,7 @@ jobs:
         run: |
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS vector;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift -c "CREATE DATABASE theosphere_drift_shadow;"
+          PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d postgres -c "CREATE DATABASE theosphere_drift_shadow;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS vector;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
