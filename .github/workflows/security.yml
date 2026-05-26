@@ -46,8 +46,44 @@ jobs:
       - name: Audit frontend dependencies
         run: cd frontend-v2 && npm audit --audit-level=moderate || true
 
-      - name: Scan for secrets
+  # ──────────────────────────────────────────────────────────────────────────
+  # Secret scanning via TruffleHog. Split into separate jobs per event type:
+  # - PRs: scan diff (BASE..HEAD)
+  # - Push: scan full history (--full-history)
+  # This avoids the TruffleHog flag repetition issue when inferring BASE/HEAD.
+  # ──────────────────────────────────────────────────────────────────────────
+  secrets-pr:
+    name: Scan secrets (PRs)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets in PR diff
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
           extra_args: --only-verified
+
+  secrets-push:
+    name: Scan secrets (push)
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets in full history
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified --full-history
