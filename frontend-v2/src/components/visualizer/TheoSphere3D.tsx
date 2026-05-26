@@ -20,6 +20,7 @@ import {
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
 import { TimeController } from "../atlas/TimeController";
+import CesiumGlobe from "@/components/CesiumGlobe";
 
 // CartoDB Voyager — free, no API key needed
 const MAP_STYLE =
@@ -171,6 +172,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [routes, setRoutes] = useState<any[]>([]);
   const [fullscreen, setFullscreen] = useState(false);
   const [mapMode, setMapMode] = useState<"satellite" | "vector">("satellite");
+  const [useCesium, setUseCesium] = useState(false);
 
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
@@ -588,115 +590,104 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   }, [routes, visibleRouteIds, getRouteInfo]);
 
   // 2. Camadas Deck.gl Unificadas (Locais + Rotas em Linha e Pontos)
-  const layers = useMemo(
-    () => [
-      // Linhas das Rotas de Viagem (PathLayer)
-      new PathLayer({
-        id: "route-paths",
-        data: routes.filter(
-          (r) =>
-            visibleRouteIds.includes(r.id) &&
-            r.waypoints &&
-            r.waypoints.length >= 2,
-        ),
-        getPath: (d: any) =>
-          d.waypoints.map((w: any) => [w.coords[1], w.coords[0]]),
-        getColor: (d: any) => getRouteColor(d.id).rgba,
-        getWidth: 6,
-        widthMinPixels: 3,
-        widthMaxPixels: 8,
-        pickable: true,
-        rounded: true,
-        shadowEnabled: true,
-      }),
+  const layers = [
+    // Linhas das Rotas de Viagem (PathLayer)
+    new PathLayer({
+      id: "route-paths",
+      data: routes.filter(
+        (r) =>
+          visibleRouteIds.includes(r.id) &&
+          r.waypoints &&
+          r.waypoints.length >= 2,
+      ),
+      getPath: (d: any) =>
+        d.waypoints.map((w: any) => [w.coords[1], w.coords[0]]),
+      getColor: (d: any) => getRouteColor(d.id).rgba,
+      getWidth: 6,
+      widthMinPixels: 3,
+      widthMaxPixels: 8,
+      pickable: true,
+      rounded: true,
+      shadowEnabled: true,
+    }),
 
-      // Pontos das Rotas de Viagem (ScatterplotLayer)
-      new ScatterplotLayer({
-        id: "route-waypoints",
-        data: allWaypoints,
-        getPosition: (w: any) => [w.coords[1], w.coords[0]],
-        getFillColor: (w: any) => [...getRouteColor(w.routeId).rgb, 240],
-        getRadius: 80,
-        radiusMinPixels: 6.5,
-        radiusMaxPixels: 10,
-        pickable: true,
-        onClick: (info: any) => {
-          if (info.object && MapAdapter) {
-            const { category, routeIndex, routeTitle } = getRouteInfo(
-              info.object.routeId,
-            );
-            let catLabel = "Antigo Testamento (AT)";
-            if (category === "jesus") catLabel = "Ministério de Jesus";
-            else if (category === "apostolos")
-              catLabel = "Ministério dos Apóstolos";
-            else if (category === "paulo") catLabel = "Ministério de Paulo";
+    // Pontos das Rotas de Viagem (ScatterplotLayer)
+    new ScatterplotLayer({
+      id: "route-waypoints",
+      data: allWaypoints,
+      getPosition: (w: any) => [w.coords[1], w.coords[0]],
+      getFillColor: (w: any) => [...getRouteColor(w.routeId).rgb, 240],
+      getRadius: 80,
+      radiusMinPixels: 6.5,
+      radiusMaxPixels: 10,
+      pickable: true,
+      onClick: (info: any) => {
+        if (info.object && MapAdapter) {
+          const { category, routeIndex, routeTitle } = getRouteInfo(
+            info.object.routeId,
+          );
+          let catLabel = "Antigo Testamento (AT)";
+          if (category === "jesus") catLabel = "Ministério de Jesus";
+          else if (category === "apostolos")
+            catLabel = "Ministério dos Apóstolos";
+          else if (category === "paulo") catLabel = "Ministério de Paulo";
 
-            const mappedLocation = {
-              id: info.object.title,
-              name: `${info.object.indexInRoute}. ${info.object.title}`,
-              description: `**${catLabel}** • Rota ${routeIndex}: ${routeTitle.split(". ")[1]}\n\n${info.object.description || info.object.quote || info.object.bible}`,
-              lat: info.object.coords[0],
-              lng: info.object.coords[1],
-              era: currentTime,
-              category: "route-waypoint",
-            };
-            MapAdapter.events.publish("onLocationSelected", mappedLocation);
-          }
-        },
-      }),
+          const mappedLocation = {
+            id: info.object.title,
+            name: `${info.object.indexInRoute}. ${info.object.title}`,
+            description: `**${catLabel}** • Rota ${routeIndex}: ${routeTitle.split(". ")[1]}\n\n${info.object.description || info.object.quote || info.object.bible}`,
+            lat: info.object.coords[0],
+            lng: info.object.coords[1],
+            era: currentTime,
+            category: "route-waypoint",
+          };
+          MapAdapter.events.publish("onLocationSelected", mappedLocation);
+        }
+      },
+    }),
 
-      // Rótulos dos Pontos das Rotas de Viagem (TextLayer)
-      new TextLayer({
-        id: "route-waypoint-labels",
-        data: allWaypoints,
-        getPosition: (w: any) => [w.coords[1], w.coords[0]],
-        getText: (w: any) => `${w.indexInRoute}. ${w.title || ""}`,
-        getSize: 12,
-        getColor: [255, 255, 255, 255],
-        getAlignmentBaseline: "bottom",
-        fontFamily: "Inter, sans-serif",
-        fontWeight: "bold",
-      }),
+    // Rótulos dos Pontos das Rotas de Viagem (TextLayer)
+    new TextLayer({
+      id: "route-waypoint-labels",
+      data: allWaypoints,
+      getPosition: (w: any) => [w.coords[1], w.coords[0]],
+      getText: (w: any) => `${w.indexInRoute}. ${w.title || ""}`,
+      getSize: 12,
+      getColor: [255, 255, 255, 255],
+      getAlignmentBaseline: "bottom",
+      fontFamily: "Inter, sans-serif",
+      fontWeight: "bold",
+    }),
 
-      // Locais Bíblicos Originais (ScatterplotLayer)
-      new ScatterplotLayer({
-        id: "points",
-        data: locations || [],
-        getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
-        getFillColor: [245, 158, 11, 200], // Amber/Orange (#f59e0b) to match the legend
-        getRadius: 100,
-        radiusMinPixels: 6,
-        pickable: true,
-        onClick: (info: any) => {
-          if (info.object && MapAdapter) {
-            MapAdapter.events.publish("onLocationSelected", info.object);
-          }
-        },
-      }),
+    // Locais Bíblicos Originais (ScatterplotLayer)
+    new ScatterplotLayer({
+      id: "points",
+      data: locations || [],
+      getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
+      getFillColor: [245, 158, 11, 200], // Amber/Orange (#f59e0b) to match the legend
+      getRadius: 100,
+      radiusMinPixels: 6,
+      pickable: true,
+      onClick: (info: any) => {
+        if (info.object && MapAdapter) {
+          MapAdapter.events.publish("onLocationSelected", info.object);
+        }
+      },
+    }),
 
-      // Rótulos dos Locais Bíblicos (TextLayer)
-      new TextLayer({
-        id: "labels",
-        data: locations || [],
-        getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
-        getText: (d: any) => d?.name || "",
-        getSize: 14,
-        getColor: [255, 255, 255, 255],
-        getAlignmentBaseline: "bottom",
-        fontFamily: "Inter, sans-serif",
-        fontWeight: "bold",
-      }),
-    ],
-    [
-      locations,
-      routes,
-      allWaypoints,
-      visibleRouteIds,
-      currentTime,
-      getRouteInfo,
-      getRouteColor,
-    ],
-  );
+    // Rótulos dos Locais Bíblicos (TextLayer)
+    new TextLayer({
+      id: "labels",
+      data: locations || [],
+      getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
+      getText: (d: any) => d?.name || "",
+      getSize: 14,
+      getColor: [255, 255, 255, 255],
+      getAlignmentBaseline: "bottom",
+      fontFamily: "Inter, sans-serif",
+      fontWeight: "bold",
+    }),
+  ];
 
   return (
     <div
@@ -740,6 +731,32 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
             />
             <span className="text-sm font-bold text-white tracking-tight">
               {mapMode === "satellite" ? "Imagem Real" : "Mapa Esquemático"}
+            </span>
+          </button>
+
+          {/* Elegant vertical separator */}
+          <div className="w-[1px] h-6 bg-white/20 self-center" />
+
+          {/* Premium Cesium Globe Toggle */}
+          <button
+            onClick={() => setUseCesium(!useCesium)}
+            className={`px-4 py-2 hover:bg-slate-900/80 active:scale-95 rounded-full border flex items-center gap-2.5 transition-all shadow-lg select-none ${
+              useCesium
+                ? "bg-blue-600/60 border-blue-500 text-blue-200"
+                : "bg-slate-900/60 border-white/10 text-white"
+            }`}
+            title={
+              useCesium
+                ? "Voltar para Visualizador MapLibre"
+                : "Mudar para Globo 3D Cesium (Cartografia Real)"
+            }
+          >
+            <Globe
+              className={`w-5 h-5 text-[#3b82f6] ${useCesium ? "animate-spin" : "animate-pulse"}`}
+              style={{ animationDuration: useCesium ? "8s" : "3s" }}
+            />
+            <span className="text-sm font-bold tracking-tight">
+              {useCesium ? "Globo Cesium 3D" : "Globo 2.5D"}
             </span>
           </button>
         </div>
@@ -866,20 +883,24 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
             </div>
           }
         >
-          <Map
-            mapLib={maplibregl}
-            mapStyle={
-              customStyle ||
-              (mapMode === "satellite" ? (SATELLITE_STYLE as any) : MAP_STYLE)
-            }
-            {...viewState}
-            onMove={(evt) => setViewState(evt.viewState as any)}
-            style={{ width: "100%", height: "100%" }}
-            reuseMaps
-          >
-            <DeckGLOverlay layers={layers} />
-            <NavigationControl position="bottom-right" />
-          </Map>
+          {useCesium ? (
+            <CesiumGlobe visibleRouteIds={visibleRouteIds} routes={routes} />
+          ) : (
+            <Map
+              mapLib={maplibregl}
+              mapStyle={
+                customStyle ||
+                (mapMode === "satellite" ? (SATELLITE_STYLE as any) : MAP_STYLE)
+              }
+              {...viewState}
+              onMove={(evt) => setViewState(evt.viewState as any)}
+              style={{ width: "100%", height: "100%" }}
+              reuseMaps
+            >
+              <DeckGLOverlay layers={layers} />
+              <NavigationControl position="bottom-right" />
+            </Map>
+          )}
         </MapErrorBoundary>
       </div>
 

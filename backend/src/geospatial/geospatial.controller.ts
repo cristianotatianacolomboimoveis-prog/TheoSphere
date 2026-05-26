@@ -45,4 +45,22 @@ export class GeospatialController {
     if (!data) throw new NotFoundException(`Route ${id} not found`);
     return { success: true, data };
   }
+
+  @Get('route-path')
+  async routePath(
+    @Query('startLat') startLat: string,
+    @Query('startLng') startLng: string,
+    @Query('endLat') endLat: string,
+    @Query('endLng') endLng: string,
+    @Query('costing') costing?: string,
+  ) {
+    const data = await this.geospatial.getRoutePath(
+      parseFloat(startLat),
+      parseFloat(startLng),
+      parseFloat(endLat),
+      parseFloat(endLng),
+      costing || 'pedestrian',
+    );
+    return data;
+  }
 }

@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService) {
-    const secret = config.get<string>('JWT_SECRET');
+  constructor() {
+    const secret = process.env.JWT_SECRET;
     if (!secret) {
       // Should be unreachable: Joi schema in AppModule fails the boot first.
       throw new Error('JWT_SECRET is not configured');

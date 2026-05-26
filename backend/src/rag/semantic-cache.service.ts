@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { EmbeddingService } from './embedding.service';
@@ -44,8 +43,6 @@ export class SemanticCacheService {
   constructor(
     private readonly embeddingService: EmbeddingService,
     private readonly prisma: PrismaService,
-    // Kept for future tuning (e.g. THRESHOLD via env). Unused for now.
-    private readonly configService: ConfigService,
   ) {}
 
   /**

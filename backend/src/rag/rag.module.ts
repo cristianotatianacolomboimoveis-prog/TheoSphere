@@ -13,9 +13,16 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RolesGuard } from '../auth/roles.guard';
 import { SearchModule } from '../search/search.module';
 import { TheologicalSourcesService } from './theological-sources.service';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [EmbeddingModule, BibleModule, PrismaModule, SearchModule],
+  imports: [
+    ConfigModule,
+    EmbeddingModule,
+    BibleModule,
+    PrismaModule,
+    SearchModule,
+  ],
   controllers: [RagController, DriveRagController, LibraryController],
   providers: [
     RagService,

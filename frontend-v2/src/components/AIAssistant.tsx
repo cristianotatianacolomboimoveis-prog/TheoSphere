@@ -119,6 +119,10 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
     isBackendAvailable,
     lastSyncResult,
     totalSaved,
+    localAiMode,
+    toggleLocalAiMode,
+    edgeAIStatus,
+    initEdgeAI,
   } = useRAG();
 
   // Estatísticas de economia da sessão
@@ -300,18 +304,41 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {/* Soberania de IA Local Toggle Switch */}
+            <button
+              onClick={toggleLocalAiMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all mr-2 ${
+                localAiMode
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-400 font-bold shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+                  : "bg-white/5 border-white/10 text-white/40 hover:text-white/70"
+              }`}
+              title="Soberania de IA Local: Executa a IA 100% no seu navegador via WebGPU sem enviar dados para fora."
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span className="text-[9px] uppercase tracking-wider font-bold">
+                {localAiMode ? "Soberana" : "Soberana Off"}
+              </span>
+            </button>
+
             {/* RAG Status Indicator */}
             <div className="flex items-center gap-1.5 mr-2">
-              {isBackendAvailable ? (
+              {localAiMode ? (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <Bot className="w-3 h-3 text-blue-400" />
+                  <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider">
+                    WebGPU
+                  </span>
+                </div>
+              ) : isBackendAvailable ? (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <Wifi className="w-3 h-3 text-emerald-400" />
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
                     RAG
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <WifiOff className="w-3 h-3 text-amber-400" />
+                  <WifiOff className="w-3.5 h-3.5 text-amber-400" />
                   <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">
                     Local
                   </span>
@@ -442,6 +469,38 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── Local AI Model Weight Ingestion Progress ─────────────────── */}
+      <AnimatePresence>
+        {localAiMode && edgeAIStatus && edgeAIStatus.progress < 1 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-blue-950/40 border-b border-blue-500/20 px-6 py-2 flex items-center justify-between gap-4 flex-shrink-0"
+          >
+            <div className="flex items-center gap-2 text-blue-400">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="text-[10px] font-bold tracking-wider uppercase text-blue-300">
+                {edgeAIStatus.text || "Baixando pesos do Gemma-2B..."}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                  style={{
+                    width: `${Math.round(edgeAIStatus.progress * 100)}%`,
+                  }}
+                />
+              </div>
+              <span className="text-[10px] font-mono font-bold text-blue-400">
+                {Math.round(edgeAIStatus.progress * 100)}%
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Messages Area ────────────────────────────────── */}
       <div className="flex-grow overflow-y-auto custom-scrollbar px-5 py-4">

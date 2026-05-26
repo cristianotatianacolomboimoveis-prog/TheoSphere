@@ -134,6 +134,21 @@ export function useRAG() {
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [userId] = useState(() => getUserId());
 
+  const [localAiMode, setLocalAiMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theosphere-local-ai-mode") === "true";
+    }
+    return false;
+  });
+
+  const toggleLocalAiMode = useCallback(() => {
+    setLocalAiMode((prev) => {
+      const next = !prev;
+      localStorage.setItem("theosphere-local-ai-mode", String(next));
+      return next;
+    });
+  }, []);
+
   /* ── Inicializa IA de Borda (WebGPU) ──────────────────── */
   const initEdgeAI = useCallback(async () => {
     try {
@@ -223,34 +238,42 @@ export function useRAG() {
       tradition?: string,
       jsonMode: boolean = false,
     ): Promise<RagResponse> => {
-      // Tenta o backend primeiro (se online)
-      if (typeof navigator !== "undefined" && navigator.onLine) {
-        try {
-          const data = await api.post<{ success: boolean; data: RagResponse }>(
-            "rag/chat",
-            // userId removido — backend pega do JWT (SEC-002).
-            { query, tradition, history: history.slice(-6), jsonMode },
-            { timeoutMs: 20_000 },
-          );
-          if (data.success && data.data) {
-            if (data.data.meta.cached) {
-              setTotalSaved((prev) => prev + 0.015);
-            }
-            return data.data;
-          }
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 401) {
-            // Sessão expirou e o auto-refresh também falhou — useAuth já foi
-            // notificado pelo evento global. Cai pra Edge AI silenciosamente.
-          } else {
-            logger.warn(
-              "[RAG] Backend lento ou indisponível, tentando Edge AI…",
+      // Se a IA Local não estiver explicitamente ativa, tentamos o backend
+      if (!localAiMode) {
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          try {
+            const data = await api.post<{
+              success: boolean;
+              data: RagResponse;
+            }>(
+              "rag/chat",
+              { query, tradition, history: history.slice(-6), jsonMode },
+              { timeoutMs: 20_000 },
             );
+            if (data.success && data.data) {
+              if (data.data.meta.cached) {
+                setTotalSaved((prev) => prev + 0.015);
+              }
+              return data.data;
+            }
+          } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+              // Sessão expirou e o auto-refresh também falhou — useAuth já foi
+              // notificado pelo evento global. Cai pra Edge AI silenciosamente.
+            } else {
+              logger.warn(
+                "[RAG] Backend lento ou indisponível, tentando Edge AI…",
+              );
+            }
           }
         }
+      } else {
+        logger.debug(
+          "[RAG] Local AI mode enabled. Forcing WebGPU execution path.",
+        );
       }
 
-      // Fallback: IA de Borda (WebGPU) se estiver pronta
+      // Fallback/Forçado: IA de Borda (WebGPU) se estiver pronta
       if (edgeAI.isReady()) {
         const systemPrompt = `Você é o TheoAI, assistente PhD em teologia. Analise a passagem bíblica ou questão fornecida. Responda em Português. Tradição: ${tradition || "Geral"}. ${jsonMode ? "Responda APENAS em JSON seguindo o esquema acadêmico." : ""}`;
         const content = await edgeAI.generate(query, systemPrompt);
@@ -281,7 +304,7 @@ export function useRAG() {
         },
       };
     },
-    [],
+    [localAiMode],
   );
 
   /* ── Sincroniza conteúdo do usuário ───────────────────── */
@@ -369,6 +392,19 @@ export function useRAG() {
     };
   }, [checkBackend, syncUserContent, isBackendAvailable]);
 
+  useEffect(() => {
+    if (
+      localAiMode &&
+      !edgeAI.isReady() &&
+      (!edgeAIStatus || edgeAIStatus.text !== "WebGPU não suportada")
+    ) {
+      const timer = setTimeout(() => {
+        initEdgeAI();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [localAiMode, initEdgeAI, edgeAIStatus]);
+
   return {
     chat,
     initEdgeAI,
@@ -381,6 +417,8 @@ export function useRAG() {
     lastSyncResult,
     totalSaved,
     userId,
+    localAiMode,
+    toggleLocalAiMode,
   };
 }
 

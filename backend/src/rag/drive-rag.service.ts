@@ -216,44 +216,66 @@ export class DriveRagService {
         return;
       }
 
-      // Chunking: Fatiar o texto em pedaços lógicos para RAG (aprox 1000 caracteres)
-      const chunks = this.chunkText(text, 1000);
+      // Chunking Hierárquico: Fatiar em Parent Chunks (~1200 chars) e Child Chunks (~250 chars)
+      const parentChunks = this.chunkText(text, 1200);
+      const childChunksData: Array<{
+        childText: string;
+        parentText: string;
+        parentIndex: number;
+      }> = [];
+
+      for (let i = 0; i < parentChunks.length; i++) {
+        const parentText = parentChunks[i];
+        const children = this.chunkChildText(parentText, 250);
+        for (const childText of children) {
+          childChunksData.push({
+            childText,
+            parentText,
+            parentIndex: i,
+          });
+        }
+      }
+
       this.logger.log(
-        `Livro "${file.name}" fatiado em ${chunks.length} partes.`,
+        `Livro "${file.name}" fatiado em ${parentChunks.length} partes pai e ${childChunksData.length} partes filho.`,
       );
 
       // Processar em lotes para não estourar a API do Gemini
       const batchSize = 10;
-      for (let i = 0; i < chunks.length; i += batchSize) {
-        const batch = chunks.slice(i, i + batchSize);
+      for (let i = 0; i < childChunksData.length; i += batchSize) {
+        const batch = childChunksData.slice(i, i + batchSize);
+        const batchTexts = batch.map((b) => b.childText);
         const embeddings =
-          await this.embeddingService.createBatchEmbeddings(batch);
+          await this.embeddingService.createBatchEmbeddings(batchTexts);
 
         // Salvar no PostgreSQL com pgvector
         for (let j = 0; j < batch.length; j++) {
-          const chunkText = batch[j];
+          const item = batch[j];
           const embeddingVector = embeddings[j];
-          const enriched = this.extractLemmaAndStrong(chunkText);
+          const enriched = this.extractLemmaAndStrong(item.childText);
           const metadata = {
             fileName: file.name,
             fileId: file.id,
             modifiedTime: file.modifiedTime, // Sincronização de mutação
             tradition,
-            chunkIndex: i + j,
+            chunkIndex: item.parentIndex,
+            childIndex: i + j,
+            parentText: item.parentText, // Conteúdo Parent guardado para o LLM
+            isChild: true,
             // Metadados do próprio arquivo (EPUB exposes title/author/lang via OPF).
             // Útil pra UI exibir "BDAG (3ª ed.)" em vez de "BDAG3.epub".
             ...fileMeta,
             ...enriched,
           };
 
-          // Salvar como conhecimento pessoal do usuário
+          // Salvar como conhecimento pessoal do usuário (salvando o Child + parentText no metadado)
           await this.prisma.$executeRaw`
             INSERT INTO "UserEmbedding" (id, "userId", type, content, metadata, embedding, "createdAt")
             VALUES (
               ${uuidv4()},
               ${targetUserId},
               'library_book',
-              ${chunkText},
+              ${item.childText},
               ${metadata}::jsonb,
               ${JSON.stringify(embeddingVector)}::vector,
               NOW()
@@ -337,6 +359,62 @@ export class DriveRagService {
     }
 
     return chunks;
+  }
+
+  /**
+   * Método de chunking para gerar Child Chunks focados (~250 caracteres) a partir de um Parent Chunk.
+   * Preserva a coerência de sentenças.
+   */
+  private chunkChildText(
+    parentText: string,
+    maxLength: number = 250,
+  ): string[] {
+    const sentences = parentText.split(/(?<=[.!?])\s+/);
+    const childChunks: string[] = [];
+    let currentChild = '';
+
+    for (const sentence of sentences) {
+      const cleanSentence = sentence.trim();
+      if (!cleanSentence) continue;
+
+      if (cleanSentence.length > maxLength) {
+        // Se uma única sentença excede o limite, quebra por palavras
+        if (currentChild.length > 0) {
+          childChunks.push(currentChild);
+          currentChild = '';
+        }
+        const words = cleanSentence.split(' ');
+        let tempSub = '';
+        for (const word of words) {
+          if (tempSub.length + word.length + 1 > maxLength) {
+            if (tempSub.length > 0) {
+              childChunks.push(tempSub);
+            }
+            tempSub = word;
+          } else {
+            tempSub = tempSub ? `${tempSub} ${word}` : word;
+          }
+        }
+        if (tempSub.length > 0) {
+          currentChild = tempSub;
+        }
+      } else if (currentChild.length + cleanSentence.length + 1 > maxLength) {
+        if (currentChild.length > 0) {
+          childChunks.push(currentChild);
+        }
+        currentChild = cleanSentence;
+      } else {
+        currentChild = currentChild
+          ? `${currentChild} ${cleanSentence}`
+          : cleanSentence;
+      }
+    }
+
+    if (currentChild.length > 0) {
+      childChunks.push(currentChild);
+    }
+
+    return childChunks;
   }
 
   /**
@@ -458,26 +536,49 @@ export class DriveRagService {
         );
       }
 
-      const chunks = this.chunkText(text, 1000);
+      // Chunking Hierárquico: Parent Chunks (~1200 chars) e Child Chunks (~250 chars)
+      const parentChunks = this.chunkText(text, 1200);
+      const childChunksData: Array<{
+        childText: string;
+        parentText: string;
+        parentIndex: number;
+      }> = [];
+
+      for (let i = 0; i < parentChunks.length; i++) {
+        const parentText = parentChunks[i];
+        const children = this.chunkChildText(parentText, 250);
+        for (const childText of children) {
+          childChunksData.push({
+            childText,
+            parentText,
+            parentIndex: i,
+          });
+        }
+      }
+
       this.logger.log(
-        `[Ingest URL] Livro "${fileName}" fatiado em ${chunks.length} partes.`,
+        `[Ingest URL] Livro "${fileName}" fatiado em ${parentChunks.length} partes pai e ${childChunksData.length} partes filho.`,
       );
 
       const batchSize = 10;
-      for (let i = 0; i < chunks.length; i += batchSize) {
-        const batch = chunks.slice(i, i + batchSize);
+      for (let i = 0; i < childChunksData.length; i += batchSize) {
+        const batch = childChunksData.slice(i, i + batchSize);
+        const batchTexts = batch.map((b) => b.childText);
         const embeddings =
-          await this.embeddingService.createBatchEmbeddings(batch);
+          await this.embeddingService.createBatchEmbeddings(batchTexts);
 
         for (let j = 0; j < batch.length; j++) {
-          const chunkText = batch[j];
+          const item = batch[j];
           const embeddingVector = embeddings[j];
-          const enriched = this.extractLemmaAndStrong(chunkText);
+          const enriched = this.extractLemmaAndStrong(item.childText);
           const metadata = {
             fileName,
             sourceUrl: url,
             tradition,
-            chunkIndex: i + j,
+            chunkIndex: item.parentIndex,
+            childIndex: i + j,
+            parentText: item.parentText, // Conteúdo Parent guardado para o LLM
+            isChild: true,
             ...fileMeta,
             ...enriched,
           };
@@ -488,7 +589,7 @@ export class DriveRagService {
               ${uuidv4()},
               ${targetUserId},
               'library_book',
-              ${chunkText},
+              ${item.childText},
               ${metadata}::jsonb,
               ${JSON.stringify(embeddingVector)}::vector,
               NOW()
@@ -500,7 +601,7 @@ export class DriveRagService {
       this.logger.log(
         `[Ingest URL] Sincronização concluída com sucesso: ${fileName}`,
       );
-      return { success: true, chunksIndexed: chunks.length, fileName };
+      return { success: true, chunksIndexed: childChunksData.length, fileName };
     } catch (error: any) {
       this.logger.error(
         `Falha ao indexar livro via URL (${fileName}): ${(error as Error).message}`,

@@ -4,7 +4,6 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 /**
@@ -65,11 +64,10 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
     Set<(payload: unknown) => void>
   >();
 
-  constructor(private readonly config: ConfigService) {}
+  constructor() {}
 
   onModuleInit(): void {
-    const url =
-      this.config.get<string>('REDIS_URL') || 'redis://localhost:6379';
+    const url = process.env.REDIS_URL || 'redis://localhost:6379';
 
     // Lazy connect, don't block startup if Redis is down.
     const opts = {

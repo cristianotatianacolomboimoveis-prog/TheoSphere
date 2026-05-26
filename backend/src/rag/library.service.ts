@@ -22,6 +22,8 @@ export interface LibraryExcerpt {
   similarity?: number;
   /** Origem do match: 'vector' (semantic) ou 'fulltext' (literal) */
   source: 'vector' | 'fulltext' | 'hybrid';
+  /** Conteúdo completo do chunk pai (Parent-Child chunking) */
+  parentText?: string;
 }
 
 /**
@@ -214,7 +216,8 @@ export class LibraryService {
     source: 'vector' | 'fulltext',
     similarity?: number,
   ): LibraryExcerpt {
-    const m = metadata ?? {};
+    const m =
+      typeof metadata === 'string' ? JSON.parse(metadata) : (metadata ?? {});
     return {
       content,
       fileName:
@@ -226,6 +229,7 @@ export class LibraryService {
       strongId: typeof m.strongId === 'string' ? m.strongId : undefined,
       similarity,
       source,
+      parentText: typeof m.parentText === 'string' ? m.parentText : undefined,
     };
   }
 

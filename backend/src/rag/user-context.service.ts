@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
 import Redis from 'ioredis';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * UserContextService — Gerencia o contexto pessoal do usuário para RAG.
@@ -52,9 +51,8 @@ export class UserContextService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private embeddingService: EmbeddingService,
-    private configService: ConfigService,
   ) {
-    const redisUrl = this.configService.get<string>('REDIS_URL');
+    const redisUrl = process.env.REDIS_URL;
     if (redisUrl) {
       this.redis = new Redis(redisUrl, {
         lazyConnect: true,
@@ -249,7 +247,8 @@ export class UserContextService implements OnModuleInit {
       if (doc.metadata.title) meta += `Título: ${doc.metadata.title}\n`;
       if (doc.metadata.passage) meta += `Passagem: ${doc.metadata.passage}\n`;
 
-      return `--- ${header} ${similarity} ---\n${meta}${doc.content}`;
+      const docContent = doc.metadata?.parentText || doc.content;
+      return `--- ${header} ${similarity} ---\n${meta}${docContent}`;
     });
 
     // 2. Busca na Biblioteca do Google Drive do Usuário (via pgvector)
@@ -269,9 +268,13 @@ export class UserContextService implements OnModuleInit {
         .filter((d) => d.similarity > 0.3)
         .map((doc) => {
           const sim = `(relevância: ${(doc.similarity * 100).toFixed(0)}%)`;
-          const meta = doc.metadata || {};
+          const meta =
+            typeof doc.metadata === 'string'
+              ? JSON.parse(doc.metadata)
+              : doc.metadata || {};
           const title = meta.fileName || 'Livro da Biblioteca';
-          return `--- 📚 Biblioteca Pessoal: ${title} ${sim} ---\n${doc.content}`;
+          const contentToUse = meta.parentText || doc.content;
+          return `--- 📚 Biblioteca Pessoal: ${title} ${sim} ---\n${contentToUse}`;
         });
     } catch (err) {
       this.logger.error(
