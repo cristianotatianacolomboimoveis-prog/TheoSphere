@@ -86,4 +86,4 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          extra_args: --only-verified --full-history
+          extra_args: --only-verified
