@@ -24,7 +24,7 @@ compatibility_date = "2025-05-01"
 # ]
 
 [vars]
-# Override per environment. CI / staging gets its own values.
+# Default (production) configuration
 ORIGIN_URL = "https://theosphere-backend.fly.dev"
 
 # Cache TTLs (seconds). Edge cache only — does NOT replace the
@@ -35,7 +35,12 @@ BIBLE_FALLBACK_TTL = "3600"    # 1 hour — third-party API; shorter
 LINGUISTICS_TTL = "604800"     # 7 days — lexical entries are immutable
 GEO_TTL = "86400"              # 1 day  — locations updated rarely
 
+[env.staging]
+name = "theosphere-edge-staging"
+
 [env.staging.vars]
+# Wrangler does NOT inherit vars from [vars] global scope to [env.staging.vars]
+# Must redeclare all variables explicitly for staging environment
 ORIGIN_URL = "https://theosphere-backend-staging.fly.dev"
 BIBLE_CHAPTER_TTL = "604800"
 BIBLE_VERSIONS_TTL = "86400"
