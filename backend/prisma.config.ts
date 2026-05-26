@@ -14,10 +14,9 @@ export default defineConfig({
     path: './prisma/migrations',
   },
   datasource: {
-    // url = pooled connection (PgBouncer) — used at runtime by the app.
-    // directUrl = non-pooled — used by `prisma migrate deploy` & introspection.
-    url: process.env.DATABASE_URL,
-    directUrl: process.env.DIRECT_URL,
+    // For Prisma 7, the CLI uses the `url` specified here for migrations and introspection.
+    // Therefore, it must point to the direct (non-pooled) connection string.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
     shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

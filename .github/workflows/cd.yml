@@ -22,9 +22,13 @@ jobs:
   # Backend → Fly.io. Tag pushes go to production; main pushes go to staging.
   # `flyctl deploy --remote-only` runs the build on Fly's builder (no need to
   # configure a Docker buildx host in CI).
+  #
+  # ⚠️  TEMPORARILY DISABLED — remove the `if: false` line below to re-enable
+  #     once the Fly.io apps and FLY_API_TOKEN secret are configured.
   # ─────────────────────────────────────────────────────────────────────────
   backend:
     name: Deploy backend (Fly.io)
+    if: false  # TODO: re-enable when Fly.io is ready
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:

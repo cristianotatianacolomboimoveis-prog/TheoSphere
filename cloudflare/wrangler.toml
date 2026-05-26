@@ -37,3 +37,8 @@ GEO_TTL = "86400"              # 1 day  — locations updated rarely
 
 [env.staging.vars]
 ORIGIN_URL = "https://theosphere-backend-staging.fly.dev"
+BIBLE_CHAPTER_TTL = "604800"
+BIBLE_VERSIONS_TTL = "86400"
+BIBLE_FALLBACK_TTL = "3600"
+LINGUISTICS_TTL = "604800"
+GEO_TTL = "86400"
