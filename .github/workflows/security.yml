@@ -28,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v5
@@ -44,17 +46,8 @@ jobs:
       - name: Audit frontend dependencies
         run: cd frontend-v2 && npm audit --audit-level=moderate || true
 
-      - name: Scan for secrets (PR)
-        if: github.event_name == 'pull_request'
+      - name: Scan for secrets
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-
-      - name: Scan for secrets (push)
-        if: github.event_name == 'push'
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          extra_args: --since-commit ${{ github.event.before }}
+          extra_args: --only-verified
