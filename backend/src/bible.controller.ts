@@ -5,7 +5,9 @@ import {
   Query,
   Logger,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { BibleIngestionService } from './bible-ingestion.service';
 import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
 
@@ -137,7 +139,7 @@ export class BibleController {
           translation: 'Sefaria',
           book: data.book,
           ref: data.ref,
-          hebrew: data.he(),
+          hebrew: data.he,
         },
       };
     } catch (err) {
@@ -153,6 +155,7 @@ export class BibleController {
     return { success: true, data: entry };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('ingest-embeddings')
   async ingestEmbeddings(
     @Query('translation') translation: string,

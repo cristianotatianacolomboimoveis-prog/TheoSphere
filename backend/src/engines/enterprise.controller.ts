@@ -6,7 +6,9 @@ import {
   Param,
   Query,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GeoEngineService } from './geo/geo-engine.service';
 import { TheologyEngineService } from './theo/theo-engine.service';
 import { GraphEngineService } from './graph/graph-engine.service';
@@ -15,6 +17,7 @@ import { ThreeEngineService } from './3d/three-engine.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { TranslateRequestDto } from './dto/translate-request.dto';
 
+@UseGuards(JwtAuthGuard)
 @Controller('api/v1/enterprise')
 export class EnterpriseController {
   constructor(

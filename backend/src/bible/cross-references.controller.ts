@@ -5,7 +5,9 @@ import {
   Post,
   Body,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   IsString,
   IsNotEmpty,

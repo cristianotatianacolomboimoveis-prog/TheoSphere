@@ -19,13 +19,65 @@ class EdgeAIService {
    * Inicializa o modelo no navegador.
    * Isso irá baixar os pesos (vários GBs) apenas na primeira vez.
    */
-  async init(onProgress?: ProgressCallback) {
-    if (this.engine) return;
-    if (this.isInitializing) return;
+  async init(onProgress?: ProgressCallback): Promise<boolean> {
+    if (this.engine) return true;
+    if (this.isInitializing) return false;
 
     this.isInitializing = true;
     try {
-      // Usamos CreateMLCEngine para inicialização mais robusta
+      // 1. Pré-verificação de suporte WebGPU
+      if (
+        typeof window === "undefined" ||
+        typeof navigator === "undefined" ||
+        !navigator.gpu
+      ) {
+        console.warn("WebGPU não é suportada ou disponível neste navegador.");
+        this.isInitializing = false;
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        console.warn(
+          "WebGPU disponível, mas nenhum adaptador de GPU compatível foi encontrado.",
+        );
+        this.isInitializing = false;
+        return false;
+      }
+
+      const requiredBuffers = 10;
+
+      // 2. Verificação estática por propriedade dos limites (se disponível no objeto limits)
+      const limits = adapter.limits;
+      if (
+        limits &&
+        typeof limits.maxStorageBuffersPerShaderStage === "number" &&
+        limits.maxStorageBuffersPerShaderStage < requiredBuffers
+      ) {
+        console.warn(
+          `Dispositivo WebGPU incompatível: maxStorageBuffersPerShaderStage suportado é ${limits.maxStorageBuffersPerShaderStage}, mas o modelo exige pelo menos ${requiredBuffers}.`,
+        );
+        this.isInitializing = false;
+        return false;
+      }
+
+      // 3. Verificação dinâmica ativa por tentativa de inicialização (segurança para Safari/navegadores com limites ocultos)
+      try {
+        const testDevice = await adapter.requestDevice({
+          requiredLimits: {
+            maxStorageBuffersPerShaderStage: requiredBuffers,
+          },
+        });
+        testDevice.destroy();
+      } catch (deviceErr) {
+        console.warn(
+          `A GPU não pôde satisfazer o limite exigido de maxStorageBuffersPerShaderStage = ${requiredBuffers} (Erro: ${deviceErr instanceof Error ? deviceErr.message : String(deviceErr)}).`,
+        );
+        this.isInitializing = false;
+        return false;
+      }
+
+      // 4. Inicialização definitiva do MLC Engine
       this.engine = await webllm.CreateMLCEngine(this.selectedModel, {
         initProgressCallback: (report) => {
           if (onProgress) {
@@ -36,13 +88,14 @@ class EdgeAIService {
           }
         },
       });
+      return true;
     } catch (err) {
-      console.error(
-        "Erro ao inicializar Edge AI (WebGPU pode não estar disponível ou modelo não encontrado):",
+      console.warn(
+        "Erro ao inicializar Edge AI (WebGPU pode não estar disponível ou limites insuficientes):",
         err,
       );
       this.isInitializing = false;
-      throw err;
+      return false;
     } finally {
       this.isInitializing = false;
     }

@@ -21,6 +21,7 @@ import { HealthModule } from './health/health.module';
 import { AuditModule } from './audit/audit.module';
 import { EnginesModule } from './engines/engines.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
+import { AiModule } from './common/ai/ai.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -103,6 +104,7 @@ interface EnvShape {
     GeospatialModule,
     SearchModule,
     CollaborationModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [

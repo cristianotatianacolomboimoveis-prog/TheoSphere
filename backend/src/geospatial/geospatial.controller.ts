@@ -4,7 +4,9 @@ import {
   Query,
   Param,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GeospatialService } from './geospatial.service';
 
 @Controller('api/v1/geo')

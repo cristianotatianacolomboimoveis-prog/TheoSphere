@@ -1,11 +1,12 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: "postgresql://postgres:iTVmnrXhrGpjR0bK@db.chjywahtwktqqxqlthvc.supabase.co:5432/postgres"
-    }
-  }
-});
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 async function test() {
   try {
     await prisma.$connect();

@@ -1,5 +1,6 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { LinguisticsService } from './linguistics.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * Routes for lexical / morphological analysis (BDAG / HALOT / Strong's).

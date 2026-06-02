@@ -53,7 +53,10 @@ O backend usa o blueprint `render.yaml`.
 > nunca fica healthy e reiniciará infinitamente.
 
 - `DATABASE_URL`: URL do Transaction Pooling do Supabase (porta 6543 ou 5432 com `?pgbouncer=true`).
-- `DIRECT_URL`: URL de conexão direta do Supabase (porta 5432, sem pgbouncer).
+- `DIRECT_URL`: URL de conexão direta do Supabase (porta 5432).
+  > [!IMPORTANT]
+  > Se a sua hospedagem (Railway, Render, etc.) não possuir IPv6 habilitado por padrão ou se houver bloqueios na porta direta `5432` do Supabase, o deploy falhará com erro de **Healthcheck failure** durante o `prisma migrate deploy`.
+  > **Resolução:** Altere a porta da sua `DIRECT_URL` (e `DATABASE_URL`) no painel da Railway de `5432` para `6543`. A porta `6543` é o Connection Pooler da Supabase que suporta conexões IPv4 públicas estáveis.
 - `GEMINI_API_KEY`: **Obrigatória em produção.** Chave do Google AI Studio.
 - `JWT_SECRET`: Uma string longa e aleatória (≥ 32 chars) para os tokens.
 - `ALLOWED_ORIGINS`: URL final do frontend (ex: `https://theosphere.vercel.app`).

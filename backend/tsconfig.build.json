@@ -12,6 +12,7 @@
     "seed.ts",
     "test-db-direct.ts",
     "test-db.ts",
+    "test-ai-service.ts",
     "trigger-ingest.ts",
     "prisma",
     "prisma.config.ts",

@@ -152,10 +152,14 @@ export function useRAG() {
   /* ── Inicializa IA de Borda (WebGPU) ──────────────────── */
   const initEdgeAI = useCallback(async () => {
     try {
-      await edgeAI.init((report) => {
+      const success = await edgeAI.init((report) => {
         setEdgeAIStatus(report);
       });
-      setEdgeAIStatus({ progress: 1, text: "Edge AI pronta (Offline Mode)" });
+      if (success) {
+        setEdgeAIStatus({ progress: 1, text: "Edge AI pronta (Offline Mode)" });
+      } else {
+        setEdgeAIStatus({ progress: 0, text: "WebGPU não suportada" });
+      }
     } catch (err) {
       logger.error("Falha ao inicializar Edge AI:", err);
       setEdgeAIStatus({ progress: 0, text: "WebGPU não suportada" });
@@ -248,7 +252,7 @@ export function useRAG() {
             }>(
               "rag/chat",
               { query, tradition, history: history.slice(-6), jsonMode },
-              { timeoutMs: 20_000 },
+              { timeoutMs: 20_000, withAuth: true },
             );
             if (data.success && data.data) {
               if (data.data.meta.cached) {
@@ -258,8 +262,28 @@ export function useRAG() {
             }
           } catch (err) {
             if (err instanceof ApiError && err.status === 401) {
-              // Sessão expirou e o auto-refresh também falhou — useAuth já foi
-              // notificado pelo evento global. Cai pra Edge AI silenciosamente.
+              // Sessão expirou e o auto-refresh também falhou — tenta novamente como guest público de forma transparente
+              try {
+                const data = await api.post<{
+                  success: boolean;
+                  data: RagResponse;
+                }>(
+                  "rag/chat",
+                  { query, tradition, history: history.slice(-6), jsonMode },
+                  { timeoutMs: 20_000, withAuth: false },
+                );
+                if (data.success && data.data) {
+                  if (data.data.meta.cached) {
+                    setTotalSaved((prev) => prev + 0.015);
+                  }
+                  return data.data;
+                }
+              } catch (retryErr) {
+                logger.warn(
+                  "[RAG] Falha na tentativa de chat público:",
+                  retryErr,
+                );
+              }
             } else {
               logger.warn(
                 "[RAG] Backend lento ou indisponível, tentando Edge AI…",

@@ -122,14 +122,7 @@ export class RagController {
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async chat(@Body() body: ChatDto, @Req() req: Request) {
-    let userId = req.user?.userId;
-    if (!userId) {
-      if (process.env.NODE_ENV === 'production') {
-        userId = 'public-guest';
-      } else {
-        userId = (req.headers['x-user-id'] as string) || 'public-guest';
-      }
-    }
+    const userId = req.user?.userId || 'public-guest';
 
     this.logger.log(
       `[Chat] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,

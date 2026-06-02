@@ -139,6 +139,21 @@ export class RagService {
       };
     }
 
+    if (!this.isTheologicalDomain(sanitizedQuery, conversationHistory)) {
+      this.logger.log(
+        `[RAG] Query out of domain rejected: "${sanitizedQuery.slice(0, 60)}..."`,
+      );
+      return {
+        content:
+          'Desculpe, minha especialidade é teologia e estudos bíblicos. Não posso ajudar com mecânica automotiva ou outros assuntos fora desse escopo.',
+        cached: false,
+        contextUsed: false,
+        contextDocCount: 0,
+        tokensEstimated: 0,
+        costEstimated: 0,
+      };
+    }
+
     // ═══ ETAPA 1: Semantic Cache ═══
     // Importante: No modo JSON (Exegese), ignoramos o cache semântico para evitar
     // retornar respostas textuais antigas que quebrariam o frontend.
@@ -272,7 +287,7 @@ export class RagService {
         responseContent = await withLlmTelemetry(
           {
             provider: 'gemini',
-            model: 'gemini-1.5-flash-latest',
+            model: 'gemini-2.5-flash',
             op: 'chat',
             tradition,
             userId,
@@ -295,17 +310,17 @@ export class RagService {
               ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${theologicalContext}\n${bibleContext}\n${userContextText}`
               : `${THEO_AI_SYSTEM_PROMPT}\n\nCONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
 
-            // 5s Timeout + Race for resilience (DT-9)
+            // 30s Timeout + Race for resilience (DT-9)
             const timeoutPromise = new Promise<never>((_, reject) =>
               setTimeout(
-                () => reject(new Error('Gemini latency exceeded 5s')),
-                5000,
+                () => reject(new Error('Gemini latency exceeded 30s')),
+                30000,
               ),
             );
 
             const result = await Promise.race([
               this.genAI!.models.generateContent({
-                model: 'gemini-1.5-flash-latest',
+                model: 'gemini-2.5-flash',
                 contents,
                 config: {
                   temperature: jsonMode ? 0.2 : 0.7,
@@ -317,19 +332,19 @@ export class RagService {
                   safetySettings: [
                     {
                       category: 'HARM_CATEGORY_HARASSMENT' as any,
-                      threshold: 'BLOCK_NONE' as any,
+                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
                     },
                     {
                       category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-                      threshold: 'BLOCK_NONE' as any,
+                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
                     },
                     {
                       category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-                      threshold: 'BLOCK_NONE' as any,
+                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
                     },
                     {
                       category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-                      threshold: 'BLOCK_NONE' as any,
+                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
                     },
                   ],
                 },
@@ -476,6 +491,295 @@ export class RagService {
   }
 
   /**
+   * Classifica se uma query está dentro do domínio teológico, bíblico ou histórico da TheoSphere.
+   */
+  private isTheologicalDomain(
+    query: string,
+    conversationHistory: ChatMessage[] = [],
+  ): boolean {
+    // A. Bypassar filtro estático para fluxos de conversação ativos (continuação de chat)
+    if (conversationHistory && conversationHistory.length > 0) {
+      return true;
+    }
+
+    const q = query.toLowerCase().trim();
+
+    // 1. Blacklist explícita (assuntos puramente mundanos/off-topic)
+    const blacklistKeywords = [
+      'motor de carro',
+      'consertar carro',
+      'trocar pneu',
+      'receita de bolo',
+      'programar em javascript',
+      'código python',
+      'desenvolvimento web',
+      'campeonato de futebol',
+      'fórmula 1',
+      'previsão do tempo',
+      'ações da bolsa',
+      'como assar',
+      'jogos eletrônicos',
+      'smartphone',
+    ];
+
+    const hasBlacklistKeyword = blacklistKeywords.some((keyword) =>
+      q.includes(keyword),
+    );
+    if (hasBlacklistKeyword) {
+      return false;
+    }
+
+    // 2. Whitelist abrangente de termos teológicos, bíblicos, apologéticos e filosóficos
+    const inDomainKeywords = [
+      // Teologia e Escritura
+      'deus',
+      'jesus',
+      'cristo',
+      'bíblia',
+      'biblia',
+      'escritura',
+      'versículo',
+      'versiculo',
+      'teologia',
+      'fé',
+      'salvação',
+      'graça',
+      'pecado',
+      'perdão',
+      'espirito',
+      'igreja',
+      'pastor',
+      'exegese',
+      'léxico',
+      'lexico',
+      'grego',
+      'hebraico',
+      'aramaico',
+      'strong',
+      'análise',
+      'analise',
+      'comentário',
+      'comentario',
+      'calvino',
+      'lutero',
+      'agostinho',
+      'tomás',
+      'spurgeon',
+      'wesley',
+      'henry',
+      'clarke',
+      'dogma',
+      'doutrina',
+      'trindade',
+      'criação',
+      'criacao',
+      'fim dos tempos',
+      'apocalipse',
+      'gênesis',
+      'genesis',
+      'evangelho',
+      'epístola',
+      'epistola',
+      'profeta',
+      'salmo',
+      'provérbio',
+      'proverbio',
+      'exílio',
+      'exilio',
+      'templo',
+      'aliança',
+      'alianca',
+      'testamento',
+      'hermenêutica',
+      'hermeneutica',
+      'homilética',
+      'homiletica',
+      'sermão',
+      'sermao',
+      'pregação',
+      'pregacao',
+      'justificação',
+      'justificacao',
+      'santificação',
+      'santificacao',
+      'redenção',
+      'redencao',
+      'escatologia',
+      'eclesiologia',
+      'cristologia',
+      'pneumatologia',
+      'soteriologia',
+      'teodiceia',
+      'sofrimento',
+      'mortalidade',
+      'ressurreição',
+      'ressurreicao',
+      'milagre',
+      'parábola',
+      'parabola',
+      'sefaria',
+      'hebrew',
+      // Figuras Bíblicas Importantes
+      'paulo',
+      'pedro',
+      'joão',
+      'joao',
+      'lucas',
+      'mateus',
+      'marcos',
+      'tiago',
+      'moisés',
+      'moises',
+      'abraão',
+      'abraao',
+      'isaque',
+      'jacó',
+      'jaco',
+      'davi',
+      'salomão',
+      'salomao',
+      'elias',
+      'eliseu',
+      'isaías',
+      'isaias',
+      'jeremias',
+      'ezequiel',
+      'daniel',
+      'maria',
+      'josé',
+      'jose',
+      // Sacramentos e Práticas (Batismo, Aspersão, Imersão)
+      'batismo',
+      'aspersão',
+      'imersão',
+      'aspersao',
+      'imersao',
+      'ceia',
+      'comunhão',
+      'comunhao',
+      'sacramento',
+      'culto',
+      'liturgia',
+      'oração',
+      'oracao',
+      'jejum',
+      'adoração',
+      'adoracao',
+      'santo',
+      'santidade',
+      // Tradições (Arminianismo, Calvinismo, Apologética)
+      'arminiana',
+      'arminiano',
+      'arminianismo',
+      'armínio',
+      'arminio',
+      'calvinista',
+      'calvinismo',
+      'reformada',
+      'puritano',
+      'protestante',
+      'luterana',
+      'anglicana',
+      'católica',
+      'catolica',
+      'ortodoxa',
+      'apologética',
+      'apologetica',
+      'apologista',
+      'apologia',
+      'apologético',
+      'apologetico',
+      // Filosofia e Razão
+      'filosofia',
+      'filosófico',
+      'filosofico',
+      'metafísica',
+      'metafisica',
+      'epistemologia',
+      'ontologia',
+      'ética',
+      'etica',
+      'moral',
+      'razão',
+      'razao',
+      'lógica',
+      'logica',
+      'existencialismo',
+      'existencial',
+      'platão',
+      'platao',
+      'aristóteles',
+      'aristoteles',
+      'descartes',
+      'kant',
+      'hegel',
+      'nietzsche',
+      'sartre',
+      'kierkegaard',
+      'ciência',
+      'ciencia',
+      'cosmovisão',
+      'cosmovisao',
+      'ateísmo',
+      'ateismo',
+      'agnosticismo',
+      'teísmo',
+      'teismo',
+      'deísmo',
+      'deismo',
+      'panteísmo',
+      'panteismo',
+      'livre-arbítrio',
+      'livre arbitrio',
+      'determinismo',
+      'vontade',
+    ];
+
+    const hasInDomainKeyword = inDomainKeywords.some((keyword) =>
+      q.includes(keyword),
+    );
+
+    // 3. Padrões de referências bíblicas (ex: "Jo 3:16", "Genesis 1:1")
+    const bibleRefRegex =
+      /\b([1-3]\s+)?[A-Za-záéíóúçêôãõü]{2,15}\s+\d+([\s:,]+\d+)?\b/i;
+    const hasBibleRef = bibleRefRegex.test(q);
+
+    if (hasInDomainKeyword || hasBibleRef) {
+      return true;
+    }
+
+    // 4. Indicadores de perguntas gerais de caráter reflexivo/filosófico ou termos de continuação
+    const generalQuestionIndicators = [
+      'quem',
+      'como',
+      'onde',
+      'quando',
+      'porque',
+      'por que',
+      'qual',
+      'quais',
+      'o que',
+      'explique',
+      'responda',
+      'continue',
+      'comente',
+      'fale',
+      'diga',
+      'descreva',
+      'prossiga',
+    ];
+    const isGeneralQuestion = generalQuestionIndicators.some((ind) =>
+      q.includes(ind),
+    );
+
+    if (isGeneralQuestion) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Indexa documentos do usuário para RAG personalizado.
    */
   async indexUserContent(userId: string, documents: UserDocument[]) {
@@ -497,18 +801,18 @@ export class RagService {
       if (tradition) {
         docs = await this.prisma.$queryRaw`
           SELECT content, tradition, 
-                 1 - (embedding <=> ${queryEmbedding}::vector) as similarity
+                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
           FROM "TheologyEmbedding"
           WHERE tradition = ${tradition}
-          ORDER BY embedding <=> ${queryEmbedding}::vector
+          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
           LIMIT 12;
         `;
       } else {
         docs = await this.prisma.$queryRaw`
           SELECT content, tradition,
-                 1 - (embedding <=> ${queryEmbedding}::vector) as similarity
+                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
           FROM "TheologyEmbedding"
-          ORDER BY embedding <=> ${queryEmbedding}::vector
+          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
           LIMIT 15;
         `;
       }
@@ -531,9 +835,9 @@ export class RagService {
         ),
         '=== FIM DA BASE DE CONHECIMENTO ===',
       ].join('\n\n');
-    } catch {
+    } catch (err: any) {
       this.logger.debug(
-        '[RAG] Vector search failed — using classic commentary fallback',
+        `[RAG] Vector search failed: ${err.message} — using classic commentary fallback`,
       );
       return this.getFallbackCommentaryContext(query);
     }
@@ -811,7 +1115,7 @@ export class RagService {
         SELECT id, tradition, 
                substring(content from 1 for 40) as preview
         FROM "TheologyEmbedding"
-        ORDER BY embedding <=> ${queryEmbedding}::vector
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
         LIMIT 6;
       `;
       for (const t of theologyDocs) {

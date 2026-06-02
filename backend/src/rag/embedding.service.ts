@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 /**
  * EmbeddingService — Gerencia a criação de embeddings vetoriais via Google Gemini (Prioridade) ou OpenAI (Fallback).
  *
- * Usa text-embedding-004 do Google (768 dimensões) ou text-embedding-3-small (1536 dimensões - truncado).
+ * Usa gemini-embedding-001 do Google (768 dimensões) ou text-embedding-3-small (1536 dimensões - truncado).
  *
  * Para economizar ainda mais, implementa:
  * - Cache local de embeddings recentes (evita reprocessar queries iguais)
@@ -210,7 +210,7 @@ export class EmbeddingService implements OnModuleDestroy {
         // getGenerativeModel intermediário). `contents` aceita string
         // ou array. `config` carrega taskType + outputDimensionality.
         const result = await this.genAI.models.embedContent({
-          model: 'text-embedding-004',
+          model: 'gemini-embedding-001',
           contents: normalized,
           config: {
             taskType: 'RETRIEVAL_DOCUMENT',
@@ -276,7 +276,7 @@ export class EmbeddingService implements OnModuleDestroy {
         uncachedIndices.map(async (originalIndex, i) => {
           const text = uncachedTexts[i];
           const result = await this.genAI!.models.embedContent({
-            model: 'text-embedding-004',
+            model: 'gemini-embedding-001',
             contents: text,
             config: {
               taskType: 'RETRIEVAL_DOCUMENT',
