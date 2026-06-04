@@ -28,11 +28,26 @@ class CompareTheologyDto {
   topic!: string;
 }
 
-@Controller('api/v1/ai')
+@Controller()
 export class AppController {
   constructor(private readonly orchestratorService: OrchestratorService) {}
 
-  @Post('compare')
+  /**
+   * Root endpoint — returns API status info.
+   * Prevents "Cannot GET /" when Railway or browsers hit the base URL.
+   */
+  @Get()
+  root() {
+    return {
+      success: true,
+      service: 'TheoSphere API',
+      version: '1.0.0',
+      status: 'operational',
+      docs: '/api/v1/health',
+    };
+  }
+
+  @Post('api/v1/ai/compare')
   @UseGuards(JwtAuthGuard)
   async compareTheology(@Body() body: CompareTheologyDto, @Req() req: Request) {
     const userId = req.user?.userId;
@@ -51,7 +66,7 @@ export class AppController {
    * Locations dataset. Paginated to avoid shipping the whole biblical-atlas
    * payload on every page-load (P-3 in the audit).
    */
-  @Get('locations')
+  @Get('api/v1/ai/locations')
   async getLocations(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number,
