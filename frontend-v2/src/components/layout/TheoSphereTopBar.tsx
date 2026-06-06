@@ -46,7 +46,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   };
 
   return (
-    <div className="h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 gap-4 z-[60]">
+    <div className="relative h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 gap-4 z-[60]">
       {/* Logos Icon / Menu */}
       <button
         onClick={() => setActiveTool("dashboard")}

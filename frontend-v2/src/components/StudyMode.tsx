@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import dynamic from "next/dynamic";
+import { api } from "@/lib/api";
 
 const TheoSphere3D = dynamic(
   () => import("@/components/visualizer/TheoSphere3D"),
@@ -42,11 +43,10 @@ export default function StudyMode({ onClose }: { onClose: () => void }) {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(
-        `/api/v1/enterprise/search?q=${encodeURIComponent(searchQuery)}`,
+      const res = await api.get<any>(
+        `enterprise/search?q=${encodeURIComponent(searchQuery)}`,
       );
-      const data = await res.json();
-      setSearchResults(data.data);
+      setSearchResults(res.data);
     } catch (err) {
       console.error(err);
     } finally {

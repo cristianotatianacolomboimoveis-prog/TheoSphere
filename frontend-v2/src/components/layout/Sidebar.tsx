@@ -30,7 +30,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-12 h-full bg-[#E8EBF0] dark:bg-[#1E252B] border-r border-gray-300 dark:border-black/20 flex flex-col items-center py-4 z-50">
+    <aside className="relative w-12 h-full bg-[#E8EBF0] dark:bg-[#1E252B] border-r border-gray-300 dark:border-black/20 flex flex-col items-center py-4 z-50">
       {/* Logos App Icon */}
       <div className="mb-6">
         <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">

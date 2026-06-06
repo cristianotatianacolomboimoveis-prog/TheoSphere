@@ -12,6 +12,7 @@ import {
 import * as Cesium from "cesium";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
 import { useTheoStore } from "@/store/useTheoStore";
+import { CONFIG } from "@/lib/config";
 
 // Set the base URL for Cesium assets
 if (typeof window !== "undefined") {
@@ -107,8 +108,9 @@ export default function CesiumGlobe({
           if (!start || !end) continue;
 
           try {
+            const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
             const res = await fetch(
-              `/api/v1/geo/route-path?startLat=${start[0]}&startLng=${start[1]}&endLat=${end[0]}&endLng=${end[1]}&costing=pedestrian`,
+              `${baseUrl}/geo/route-path?startLat=${start[0]}&startLng=${start[1]}&endLat=${end[0]}&endLng=${end[1]}&costing=pedestrian`,
             );
             const data = await res.json();
 

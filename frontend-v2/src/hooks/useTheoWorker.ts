@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { CONFIG } from "../lib/config";
 
 type WorkerMessageType =
   | "FILTER_BY_TIME"
@@ -34,6 +35,15 @@ function getOrCreateWorker(): Worker | null {
         if (err.error)
           console.error("[useTheoWorker] Underlying error:", err.error);
       };
+
+      // Inicializa o worker com as configurações de ambiente
+      globalWorker.postMessage({
+        type: "INIT",
+        payload: {
+          backendUrl: `${CONFIG.API_BASE_URL}/bible`,
+          abibliaDigitalToken: CONFIG.ABIBLIA_DIGITAL_TOKEN,
+        },
+      });
     } catch (e: any) {
       console.error("[useTheoWorker] Failed to create worker:", e.message || e);
     }

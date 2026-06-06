@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+valhalla_data
+backend
+supabase-auth-app
+ai-service
+audit
+cloudflare
+scripts

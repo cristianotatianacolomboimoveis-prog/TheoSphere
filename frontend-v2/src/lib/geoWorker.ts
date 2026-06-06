@@ -382,7 +382,6 @@ try {
   dbPromise = initDB()
     .then(() => {
       dbReady = true;
-      prefetchEssentialChapters(); // fire and forget
     })
     .catch((err) => {
       console.warn(
@@ -452,7 +451,7 @@ const PREFETCH_LIST = [
   { book: "Apocalipse", chapter: 1, translation: "almeida" },
 ];
 
-async function prefetchEssentialChapters(): Promise<void> {
+async function prefetchEssentialChapters(backendUrl?: string): Promise<void> {
   const sleep = (ms: number) =>
     new Promise((resolve) => setTimeout(resolve, ms));
   const extractVerses = (json: any): any[] => {
@@ -478,8 +477,9 @@ async function prefetchEssentialChapters(): Promise<void> {
       // 1ª: Nosso backend
       let verses: any[] = [];
       try {
+        const baseUrl = backendUrl || "http://localhost:3002/api/v1/bible";
         const res = await fetch(
-          `http://localhost:3002/api/v1/bible/chapter?book=${encodeURIComponent(book)}&chapter=${chapter}&translation=${trans}`,
+          `${baseUrl.replace(/\/$/, "")}/chapter?book=${encodeURIComponent(book)}&chapter=${chapter}&translation=${trans}`,
         );
         if (res.ok) verses = extractVerses(await res.json());
       } catch (_) {}
@@ -783,9 +783,12 @@ self.addEventListener("message", async (event) => {
       payload?.backendUrl || "http://localhost:3002/api/v1/bible";
 
     if (type === "INIT") {
+      if (payload?.abibliaDigitalToken) {
+        abibliaToken = payload.abibliaDigitalToken;
+      }
       await dbPromise;
       if (dbReady) {
-        await prefetchEssentialChapters();
+        await prefetchEssentialChapters(BACKEND_URL);
         setTimeout(() => downloadFullBible(BACKEND_URL), 30000);
       }
       return;

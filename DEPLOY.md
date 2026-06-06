@@ -70,17 +70,24 @@ O backend usa o blueprint `render.yaml`.
 
 O frontend Next.js 15 otimizado para performance.
 
-- **Root Directory:** Selecione `/frontend-v2`.
+- **Root Directory:** Selecione `frontend-v2`.
 - **Framework:** Next.js.
 - **Variáveis de Ambiente:**
-  - `NEXT_PUBLIC_BACKEND_URL`: URL gerada pelo Render (ex: `https://theosphere-1.onrender.com`).
-  - `NEXT_PUBLIC_MAPBOX_TOKEN`: Seu token do Mapbox para o Atlas 4D.
+  - `NEXT_PUBLIC_BACKEND_URL`: URL pública do backend no Railway
+    (ex: `https://theosphere-production.up.railway.app`).
+    > [!CAUTION]
+    > Esta variável **deve ser do tipo `Plain`** (não `Sensitive`/`Secret`).
+    > Variáveis `NEXT_PUBLIC_*` são embutidas no JavaScript do frontend
+    > durante o build. Se for `Sensitive`, o valor fica vazio no bundle
+    > final e **nenhuma chamada de API funciona** para visitantes do site.
+  - `NEXT_PUBLIC_MAPBOX_TOKEN`: (Opcional) Seu token do Mapbox para o Atlas 4D.
 
 ## 🚀 Ordem de Operações
 
-1. **Supabase**: Validar conexão, habilitar `vector` e adicionar IPs do Render ao firewall.
-2. **Backend**: Rodar `db:migrate` localmente apontando para o Supabase e depois subir no Render.
-3. **Frontend**: Subir no Vercel apontando para o domínio do Render.
+1. **Supabase**: Validar conexão e habilitar `vector`.
+2. **Backend**: Rodar `db:migrate` localmente apontando para o Supabase e depois subir no Railway (ou Render).
+3. **Frontend**: Subir no Vercel com `NEXT_PUBLIC_BACKEND_URL` apontando para o domínio público do Railway.
+4. **Backend (ALLOWED_ORIGINS)**: Atualizar no Railway para incluir o domínio gerado pela Vercel.
 
 ---
 
