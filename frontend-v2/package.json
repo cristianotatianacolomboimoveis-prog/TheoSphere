@@ -26,7 +26,6 @@
     "@mlc-ai/web-llm": "^0.2.83",
     "@tanstack/react-virtual": "^3.13.25",
     "@turf/turf": "^7.3.5",
-    "@types/maplibre-gl": "^1.14.0",
     "@types/three": "^0.184.1",
     "@vis.gl/react-maplibre": "^8.1.1",
     "cesium": "^1.141.0",
