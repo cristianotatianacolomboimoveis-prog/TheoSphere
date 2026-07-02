@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "TheoSphere",
   },
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({
@@ -59,14 +62,6 @@ export default function RootLayout({
       suppressHydrationWarning
       data-theme="dark"
     >
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
-      </head>
       <body
         className={`${inter.variable} ${outfit.variable} ${literata.variable} antialiased min-h-full flex flex-col bg-background font-sans text-foreground`}
       >
