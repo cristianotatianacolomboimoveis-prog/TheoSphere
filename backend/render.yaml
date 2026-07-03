@@ -20,5 +20,5 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        value: "https://theosphere.vercel.app" # Replace with your actual frontend URL
+        value: "https://cristianocolombo.vercel.app,https://theosphere.vercel.app,https://frontend-v2-omega-seven.vercel.app"
 
