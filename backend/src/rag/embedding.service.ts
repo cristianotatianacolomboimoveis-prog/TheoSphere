@@ -137,19 +137,14 @@ export class EmbeddingService implements OnModuleDestroy {
   }
 
   private setL1(key: string, embedding: number[]): void {
-    if (this.embeddingCache.size >= this.MAX_CACHE_SIZE) {
-      // Cheap LRU-ish eviction: drop the oldest by timestamp.
-      let oldestKey = '';
-      let oldestTime = Infinity;
-      for (const [k, v] of this.embeddingCache) {
-        if (v.timestamp < oldestTime) {
-          oldestTime = v.timestamp;
-          oldestKey = k;
-        }
-      }
-      if (oldestKey) this.embeddingCache.delete(oldestKey);
-    }
+    // Remove antes de inserir para que a chave vá ao final da ordem de inserção do Map
+    this.embeddingCache.delete(key);
     this.embeddingCache.set(key, { embedding, timestamp: Date.now() });
+    if (this.embeddingCache.size > this.MAX_CACHE_SIZE) {
+      // Map.keys() retorna na ordem de inserção — a primeira chave é a mais antiga (LRU)
+      const oldest = this.embeddingCache.keys().next().value;
+      if (oldest) this.embeddingCache.delete(oldest);
+    }
   }
 
   /**

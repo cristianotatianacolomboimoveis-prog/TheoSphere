@@ -46,11 +46,11 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   };
 
   return (
-    <div className="relative h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 gap-4 z-[60]">
-      {/* Logos Icon / Menu */}
+    <div className="relative h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 md:px-4 pl-14 gap-2 md:gap-4 z-[60]">
+      {/* Logos Icon / Menu (hidden on mobile — hamburger is in Sidebar) */}
       <button
         onClick={() => setActiveTool("dashboard")}
-        className="p-1 hover:bg-gray-300 dark:hover:bg-white/5 rounded transition-colors"
+        className="hidden md:block p-1 hover:bg-gray-300 dark:hover:bg-white/5 rounded transition-colors"
       >
         <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
       </button>
@@ -66,7 +66,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         <input
           name="command"
           type="text"
-          placeholder="Ir para Gênesis 1:1, Pesquisar 'Justificação'..."
+          placeholder="Ir para Gn 1:1, Pesquisar..."
           className="w-full h-7 pl-10 pr-4 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[12px] focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-400 outline-none"
         />
         <button
@@ -77,8 +77,8 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         </button>
       </form>
 
-      {/* Tools Icons */}
-      <div className="flex items-center gap-1">
+      {/* Tools Icons (hidden on mobile — accessible via sidebar drawer) */}
+      <div className="hidden md:flex items-center gap-1">
         <TopBarButton
           icon={Library}
           label="Biblioteca"
@@ -102,8 +102,8 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-3 relative">
-        <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
+      <div className="ml-auto flex items-center gap-2 md:gap-3 relative">
+        <button className="hidden md:block p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
           <Bell className="w-4 h-4 text-gray-500" />
         </button>
 

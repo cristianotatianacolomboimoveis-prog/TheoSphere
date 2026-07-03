@@ -7,7 +7,7 @@
 //   • prop `direction`  → `orientation`
 // defaultSize/minSize continuam aceitando number (% do grupo).
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Columns,
@@ -16,6 +16,19 @@ import {
   ChevronDown,
   MoreVertical,
 } from "lucide-react";
+
+/** Detecta se a viewport é mobile (<768px) */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
 
 interface WorkspaceProps {
   leftPane: React.ReactNode;
@@ -39,6 +52,21 @@ export function Workspace({
     middle: middleTitle,
     right: rightTitle,
   });
+  const isMobile = useIsMobile();
+
+  // Mobile: painéis empilhados verticalmente com tabs
+  if (isMobile) {
+    return (
+      <MobileWorkspace
+        leftPane={leftPane}
+        rightPane={rightPane}
+        bottomPane={bottomPane}
+        leftTitle={leftTitle}
+        middleTitle={middleTitle}
+        rightTitle={rightTitle}
+      />
+    );
+  }
 
   return (
     <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
@@ -97,6 +125,56 @@ export function Workspace({
         <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
           <span>Latência: 45ms</span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Layout mobile: tabs no topo, um painel visível por vez.
+ * Evita painéis side-by-side impossíveis em telas <768px.
+ */
+function MobileWorkspace({
+  leftPane,
+  rightPane,
+  bottomPane,
+  leftTitle,
+  middleTitle,
+  rightTitle,
+}: WorkspaceProps) {
+  const tabs = [
+    { key: "left", label: leftTitle, pane: leftPane },
+    { key: "middle", label: middleTitle, pane: rightPane },
+    ...(bottomPane ? [{ key: "bottom", label: rightTitle, pane: bottomPane }] : []),
+  ];
+  const [activeTab, setActiveTab] = useState("left");
+  const current = tabs.find((t) => t.key === activeTab) || tabs[0];
+
+  return (
+    <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
+      {/* Mobile Tab Bar */}
+      <div className="flex bg-[#F3F5F7] dark:bg-[#1E252B] border-b border-gray-300 dark:border-white/10 overflow-x-auto">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex-1 min-w-0 px-3 py-2 text-[11px] font-bold truncate transition-colors relative ${
+              activeTab === tab.key
+                ? "text-gray-800 dark:text-white bg-white dark:bg-[#0D1117]"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.key && (
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Active Pane */}
+      <div className="flex-grow overflow-hidden bg-white dark:bg-[#0D1117]">
+        {current?.pane}
       </div>
     </div>
   );

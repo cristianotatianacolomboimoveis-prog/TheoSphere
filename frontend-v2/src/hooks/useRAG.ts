@@ -22,9 +22,33 @@ interface RagMeta {
   costEstimated: number;
 }
 
+/** Fonte utilizada na composição da resposta RAG. */
+export interface RagSource {
+  type: 'bible' | 'theology' | 'lexicon' | 'commentary' | 'classic' | 'personal' | 'sefaria';
+  title: string;
+  reference?: string;
+  snippet: string;
+  score?: number;
+}
+
 interface RagResponse {
   content: string;
+  sources?: RagSource[];
   meta: RagMeta;
+}
+
+interface StreamEvent {
+  type: 'status' | 'chunk' | 'done' | 'error' | 'sources';
+  data: {
+    text?: string;
+    message?: string;
+    step?: string;
+    cached?: boolean;
+    tokens?: number;
+    similarity?: number;
+    cacheSource?: 'global' | 'user';
+    sources?: RagSource[];
+  };
 }
 
 interface SyncResult {
@@ -50,7 +74,7 @@ interface RagStats {
 
 /* ─── Config ─────────────────────────────────────────────── */
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === "production" ? "https://theosphere.onrender.com" : "http://localhost:3002");
 const USER_ID_KEY = "theosphere-user-id";
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 const LAST_SYNC_KEY = "theosphere-last-rag-sync";
@@ -133,6 +157,11 @@ export function useRAG() {
   } | null>(null);
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [userId] = useState(() => getUserId());
+
+  const [streamingText, setStreamingText] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [sources, setSources] = useState<RagSource[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const [localAiMode, setLocalAiMode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -258,6 +287,7 @@ export function useRAG() {
               if (data.data.meta.cached) {
                 setTotalSaved((prev) => prev + 0.015);
               }
+              if (data.data.sources) setSources(data.data.sources);
               return data.data;
             }
           } catch (err) {
@@ -276,6 +306,7 @@ export function useRAG() {
                   if (data.data.meta.cached) {
                     setTotalSaved((prev) => prev + 0.015);
                   }
+                  if (data.data.sources) setSources(data.data.sources);
                   return data.data;
                 }
               } catch (retryErr) {
@@ -329,6 +360,142 @@ export function useRAG() {
       };
     },
     [localAiMode],
+  );
+
+  /* ── Chat com Streaming SSE ────────────────────────────── */
+  const chatStream = useCallback(
+    async (
+      query: string,
+      history: ChatMessage[] = [],
+      tradition?: string,
+      jsonMode: boolean = false,
+    ): Promise<RagResponse> => {
+      // Se IA local estiver ativa ou offline, delega para o chat padrão
+      if (localAiMode || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        return chat(query, history, tradition, jsonMode);
+      }
+
+      setIsStreaming(true);
+      setStreamingText('');
+      setStatusMessage('');
+      setSources([]);
+
+      const token = getAuthToken();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/rag/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            query,
+            tradition,
+            history: history.slice(-6),
+            jsonMode,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body?.getReader();
+        if (!reader) {
+          throw new Error('ReadableStream not supported');
+        }
+
+        const decoder = new TextDecoder();
+        let fullText = '';
+        let buffer = '';
+        let meta: Partial<RagMeta> = {
+          cached: false,
+          contextUsed: true,
+          contextDocCount: 0,
+          tokensEstimated: 0,
+          costEstimated: 0,
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Processa linhas SSE completas do buffer
+          const lines = buffer.split('\n');
+          // Mantém a última linha incompleta no buffer
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+
+            try {
+              const event: StreamEvent = JSON.parse(line.slice(6));
+
+              switch (event.type) {
+                case 'chunk':
+                  if (event.data.text) {
+                    fullText += event.data.text;
+                    setStreamingText(fullText);
+                  }
+                  break;
+
+                case 'status':
+                  if (event.data.message) {
+                    setStatusMessage(event.data.message);
+                  }
+                  break;
+
+                case 'done':
+                  meta = {
+                    cached: event.data.cached ?? false,
+                    similarity: event.data.similarity,
+                    cacheSource: event.data.cacheSource,
+                    contextUsed: true,
+                    contextDocCount: 0,
+                    tokensEstimated: event.data.tokens ?? 0,
+                    costEstimated: 0,
+                  };
+                  if (meta.cached) {
+                    setTotalSaved((prev) => prev + 0.015);
+                  }
+                  break;
+
+                case 'sources':
+                  if (event.data.sources) {
+                    setSources(event.data.sources);
+                  }
+                  break;
+
+                case 'error':
+                  logger.error('[RAG Stream] Erro do servidor:', event.data.message);
+                  break;
+              }
+            } catch (parseErr) {
+              // Linha SSE malformada — ignora e continua
+              logger.debug('[RAG Stream] SSE parse error:', parseErr);
+            }
+          }
+        }
+
+        setStatusMessage('');
+        return {
+          content: fullText,
+          meta: meta as RagMeta,
+        };
+      } catch (error) {
+        logger.warn('[RAG Stream] Falha no streaming, tentando fallback não-streaming...', error);
+        setStreamingText('');
+        setStatusMessage('');
+        // Fallback gracioso para o chat padrão
+        return chat(query, history, tradition, jsonMode);
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    [localAiMode, chat],
   );
 
   /* ── Sincroniza conteúdo do usuário ───────────────────── */
@@ -431,6 +598,11 @@ export function useRAG() {
 
   return {
     chat,
+    chatStream,
+    streamingText,
+    statusMessage,
+    isStreaming,
+    sources,
     initEdgeAI,
     edgeAIStatus,
     syncUserContent,

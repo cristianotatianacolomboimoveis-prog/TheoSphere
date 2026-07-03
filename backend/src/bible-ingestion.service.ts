@@ -332,10 +332,24 @@ export class BibleIngestionService {
         select: { id: true, text: true },
       });
 
-      for (const v of versesToEmbed) {
-        // Fire-and-forget; createVerseEmbedding has its own try/catch.
-        void this.createVerseEmbedding(v.id, v.text);
-      }
+      if (versesToEmbed.length === 0) return;
+
+      // Gera embeddings em lote e atualiza com um único UPDATE via unnest
+      const texts = versesToEmbed.map((v) => v.text);
+      const embeddings =
+        await this.embeddingService.createBatchEmbeddings(texts);
+      const ids = versesToEmbed.map((v) => v.id);
+      const embStrings = embeddings.map((e) => JSON.stringify(e));
+
+      await this.prisma.$executeRaw`
+        UPDATE "BibleVerse" AS bv
+        SET embedding = v.embedding::vector
+        FROM (
+          SELECT unnest(${ids}::text[]) AS id,
+                 unnest(${embStrings}::text[]) AS embedding
+        ) AS v
+        WHERE bv.id = v.id
+      `;
     } catch (err) {
       this.logger.error(
         `Batch embedding trigger failed: ${
@@ -376,15 +390,18 @@ export class BibleIngestionService {
         const embeddings =
           await this.embeddingService.createBatchEmbeddings(texts);
 
-        for (let j = 0; j < batch.length; j++) {
-          const v = batch[j];
-          const emb = embeddings[j];
-          await this.prisma.$executeRaw`
-            UPDATE "BibleVerse"
-            SET embedding = ${emb}::vector
-            WHERE id = ${v.id}
-          `;
-        }
+        // Atualização em lote — um único UPDATE via unnest ao invés de N round-trips
+        const ids = batch.map((v) => v.id);
+        const embStrings = embeddings.map((e) => JSON.stringify(e));
+        await this.prisma.$executeRaw`
+          UPDATE "BibleVerse" AS bv
+          SET embedding = v.embedding::vector
+          FROM (
+            SELECT unnest(${ids}::text[]) AS id,
+                   unnest(${embStrings}::text[]) AS embedding
+          ) AS v
+          WHERE bv.id = v.id
+        `;
         this.logger.log(
           `[RAG-Bible] Progresso: ${i + batch.length}/${verses.length}`,
         );
@@ -396,19 +413,8 @@ export class BibleIngestionService {
     this.logger.log(`[RAG-Bible] Geração concluída para ${translation}.`);
   }
 
-  private async createVerseEmbedding(id: string, text: string) {
-    try {
-      const embedding = await this.embeddingService.createEmbedding(text);
-      await this.prisma.$executeRaw`
-        UPDATE "BibleVerse"
-        SET embedding = ${embedding}::vector
-        WHERE id = ${id}
-      `;
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Embedding background process failed: ${errMsg}`);
-    }
-  }
+  // createVerseEmbedding removido — lógica absorvida por triggerBatchEmbeddings
+  // que agora faz batch UPDATE via unnest (sem N+1).
 
   private getBookName(id: number): string {
     const map: Record<number, string> = {

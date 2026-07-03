@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Map, { NavigationControl, useControl } from "@vis.gl/react-maplibre";
 import maplibregl from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -8,19 +9,30 @@ import { ScatterplotLayer, TextLayer, PathLayer } from "@deck.gl/layers";
 import { FlyToInterpolator } from "@deck.gl/core";
 import {
   Box,
+  Globe,
   Minimize2,
   Maximize2,
   X,
-  Globe,
+  ChevronUp,
+  ChevronDown,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
 import { TimeController } from "../atlas/TimeController";
-import CesiumGlobe from "@/components/CesiumGlobe";
+import { getRouteColor, getRouteInfo, getCategoryLabel } from "./routeConfig";
+import { RouteControlPanel } from "./RouteControlPanel";
+import { MapHeader } from "./MapHeader";
+
+const CesiumGlobe = dynamic(() => import("@/components/CesiumGlobe"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full w-full bg-black/50">
+      <div className="text-white text-sm animate-pulse">Carregando globo 3D...</div>
+    </div>
+  ),
+});
 
 // CartoDB Voyager — free, no API key needed
 const MAP_STYLE =
@@ -454,125 +466,9 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     fetchRoutes();
   }, []);
 
-  // Helper de Cores Customizadas por Rota
-  const getRouteColor = useCallback((routeId: string) => {
-    switch (routeId) {
-      case "abraao":
-        return {
-          hex: "#ff2d55",
-          rgb: [255, 45, 85] as [number, number, number],
-          rgba: [255, 45, 85, 220] as [number, number, number, number],
-          bgClass: "bg-[#ff2d55]/10 border-[#ff2d55]/30 text-white",
-          activeEyeClass: "bg-[#ff2d55]/20 text-[#ff2d55]",
-        };
-      case "exodo":
-        return {
-          hex: "#f97316",
-          rgb: [249, 115, 22] as [number, number, number],
-          rgba: [249, 115, 22, 220] as [number, number, number, number],
-          bgClass: "bg-[#f97316]/10 border-[#f97316]/30 text-white",
-          activeEyeClass: "bg-[#f97316]/20 text-[#f97316]",
-        };
-      case "terra_prometida":
-        return {
-          hex: "#10b981",
-          rgb: [16, 185, 129] as [number, number, number],
-          rgba: [16, 185, 129, 220] as [number, number, number, number],
-          bgClass: "bg-[#10b981]/10 border-[#10b981]/30 text-white",
-          activeEyeClass: "bg-[#10b981]/20 text-[#10b981]",
-        };
-      case "exilio_assirio":
-        return {
-          hex: "#64748b",
-          rgb: [100, 116, 139] as [number, number, number],
-          rgba: [100, 116, 139, 220] as [number, number, number, number],
-          bgClass: "bg-[#64748b]/10 border-[#64748b]/30 text-white",
-          activeEyeClass: "bg-[#64748b]/20 text-[#64748b]",
-        };
-      case "exilio_babilonico":
-        return {
-          hex: "#f43f5e",
-          rgb: [244, 63, 94] as [number, number, number],
-          rgba: [244, 63, 94, 220] as [number, number, number, number],
-          bgClass: "bg-[#f43f5e]/10 border-[#f43f5e]/30 text-white",
-          activeEyeClass: "bg-[#f43f5e]/20 text-[#f43f5e]",
-        };
-      case "jesus_galileia":
-        return {
-          hex: "#2dd4bf",
-          rgb: [45, 212, 191] as [number, number, number],
-          rgba: [45, 212, 191, 220] as [number, number, number, number],
-          bgClass: "bg-[#2dd4bf]/10 border-[#2dd4bf]/30 text-white",
-          activeEyeClass: "bg-[#2dd4bf]/20 text-[#2dd4bf]",
-        };
-      case "paulo":
-        return {
-          hex: "#6366f1",
-          rgb: [99, 102, 241] as [number, number, number],
-          rgba: [99, 102, 241, 220] as [number, number, number, number],
-          bgClass: "bg-[#6366f1]/10 border-[#6366f1]/30 text-white",
-          activeEyeClass: "bg-[#6366f1]/20 text-[#6366f1]",
-        };
-      case "paulo_roma":
-        return {
-          hex: "#a855f7",
-          rgb: [168, 85, 247] as [number, number, number],
-          rgba: [168, 85, 247, 220] as [number, number, number, number],
-          bgClass: "bg-[#a855f7]/10 border-[#a855f7]/30 text-white",
-          activeEyeClass: "bg-[#a855f7]/20 text-[#a855f7]",
-        };
-      default:
-        return {
-          hex: "#6366f1",
-          rgb: [99, 102, 241] as [number, number, number],
-          rgba: [99, 102, 241, 220] as [number, number, number, number],
-          bgClass: "bg-[#6366f1]/10 border-[#6366f1]/30 text-white",
-          activeEyeClass: "bg-[#6366f1]/20 text-[#6366f1]",
-        };
-    }
-  }, []);
+  // getRouteColor importado de ./routeConfig
 
-  // Helper de Classificação de Rotas
-  const getRouteInfo = useCallback((routeId: string) => {
-    let routeIndex = 1;
-    let routeTitle = "";
-    let category: "at" | "jesus" | "apostolos" | "paulo" = "at";
-
-    if (routeId === "abraao") {
-      routeIndex = 1;
-      routeTitle = "1. Jornada de Abraão";
-      category = "at";
-    } else if (routeId === "exodo") {
-      routeIndex = 2;
-      routeTitle = "2. Rota do Êxodo";
-      category = "at";
-    } else if (routeId === "terra_prometida") {
-      routeIndex = 3;
-      routeTitle = "3. Terra Prometida, 12 Tribos, Divisão dos Reinos";
-      category = "at";
-    } else if (routeId === "exilio_assirio") {
-      routeIndex = 4;
-      routeTitle = "4. Exílio Assírio e Dispersão";
-      category = "at";
-    } else if (routeId === "exilio_babilonico") {
-      routeIndex = 5;
-      routeTitle = "5. Exílio Babilônico e Nova Aliança";
-      category = "at";
-    } else if (routeId === "jesus_galileia") {
-      routeIndex = 1;
-      routeTitle = "1. Ministério Galileu de Jesus";
-      category = "jesus";
-    } else if (routeId === "paulo") {
-      routeIndex = 1;
-      routeTitle = "1. 1ª Viagem de Paulo (Apóstolos)";
-      category = "apostolos";
-    } else if (routeId === "paulo_roma") {
-      routeIndex = 1;
-      routeTitle = "1. Viagem de Paulo a Roma";
-      category = "paulo";
-    }
-    return { category, routeIndex, routeTitle };
-  }, []);
+  // getRouteInfo importado de ./routeConfig
 
   // Extrair todos os waypoints das rotas (apenas as ativas/visíveis)
   const allWaypoints = useMemo(() => {
@@ -693,95 +589,15 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     <div
       className={`relative w-full h-full bg-slate-950 flex flex-col ${fullscreen ? "fixed inset-0 z-[200]" : "rounded-3xl border border-white/10 shadow-2xl overflow-hidden"}`}
     >
-      {/* Unified Header */}
-      <div className="absolute top-6 left-6 z-10 flex items-center gap-4">
-        <div className="glass-heavy p-4 rounded-2xl border border-white/10 flex items-center gap-6 shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Box className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black text-white tracking-tight italic uppercase">
-                TheoSphere 3D Visualizer
-              </h2>
-              <p className="text-[9px] text-blue-400 font-bold tracking-widest uppercase">
-                Motor Geoespacial Enterprise
-              </p>
-            </div>
-          </div>
-
-          {/* Elegant vertical separator */}
-          <div className="w-[1px] h-6 bg-white/20 self-center" />
-
-          {/* Premium Custom Map Mode Toggle (Teal/Cyan Globe Pill) */}
-          <button
-            onClick={() =>
-              setMapMode(mapMode === "satellite" ? "vector" : "satellite")
-            }
-            className="px-4 py-2 bg-slate-900/60 hover:bg-slate-900/80 active:scale-95 rounded-full border border-white/10 flex items-center gap-2.5 transition-all shadow-lg select-none"
-            title={
-              mapMode === "satellite"
-                ? "Mudar para Mapa Esquemático"
-                : "Mudar para Imagem Real (Satélite)"
-            }
-          >
-            <Globe
-              className="w-5 h-5 text-[#2DD4BF] animate-pulse"
-              style={{ animationDuration: "3s" }}
-            />
-            <span className="text-sm font-bold text-white tracking-tight">
-              {mapMode === "satellite" ? "Imagem Real" : "Mapa Esquemático"}
-            </span>
-          </button>
-
-          {/* Elegant vertical separator */}
-          <div className="w-[1px] h-6 bg-white/20 self-center" />
-
-          {/* Premium Cesium Globe Toggle */}
-          <button
-            onClick={() => setUseCesium(!useCesium)}
-            className={`px-4 py-2 hover:bg-slate-900/80 active:scale-95 rounded-full border flex items-center gap-2.5 transition-all shadow-lg select-none ${
-              useCesium
-                ? "bg-blue-600/60 border-blue-500 text-blue-200"
-                : "bg-slate-900/60 border-white/10 text-white"
-            }`}
-            title={
-              useCesium
-                ? "Voltar para Visualizador MapLibre"
-                : "Mudar para Globo 3D Cesium (Cartografia Real)"
-            }
-          >
-            <Globe
-              className={`w-5 h-5 text-[#3b82f6] ${useCesium ? "animate-spin" : "animate-pulse"}`}
-              style={{ animationDuration: useCesium ? "8s" : "3s" }}
-            />
-            <span className="text-sm font-bold tracking-tight">
-              {useCesium ? "Globo Cesium 3D" : "Globo 2.5D"}
-            </span>
-          </button>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFullscreen(!fullscreen)}
-            className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/50 border border-white/10 backdrop-blur-md"
-          >
-            {fullscreen ? (
-              <Minimize2 className="w-4 h-4" />
-            ) : (
-              <Maximize2 className="w-4 h-4" />
-            )}
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-red-400 border border-red-500/20 backdrop-blur-md"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      <MapHeader
+        mapMode={mapMode}
+        useCesium={useCesium}
+        fullscreen={fullscreen}
+        onToggleMapMode={() => setMapMode(mapMode === "satellite" ? "vector" : "satellite")}
+        onToggleCesium={() => setUseCesium(!useCesium)}
+        onToggleFullscreen={() => setFullscreen(!fullscreen)}
+        onClose={onClose}
+      />
 
       {/* Main Render Area — Map is now the primary container */}
       <div
@@ -912,325 +728,16 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         />
       </div>
 
-      {/* Premium 3D Route Control Panel & Legend */}
-      <div
-        className={`absolute top-6 right-6 z-10 bg-[#0d0e12]/95 backdrop-blur-md border border-white/10 shadow-2xl flex flex-col transition-all duration-300 select-none ${
-          isLegendExpanded
-            ? "w-[320px] rounded-[2rem] p-6 gap-5"
-            : "w-[220px] rounded-full px-5 py-3 gap-0"
-        }`}
-      >
-        {/* Panel Header */}
-        <div
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => setIsLegendExpanded(!isLegendExpanded)}
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <span className="flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            </div>
-            <span className="text-[11px] font-black text-white tracking-[0.12em] uppercase">
-              {isLegendExpanded ? "Painel de Rotas" : "Rotas & Locais"}
-            </span>
-          </div>
-          <button className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white">
-            {isLegendExpanded ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-
-        {/* Collapsible Content */}
-        {isLegendExpanded && (
-          <div className="flex flex-col gap-5 animate-fadeIn">
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-extrabold tracking-wider uppercase">
-              <button
-                onClick={showAllRoutes}
-                className="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-xl text-white transition-all text-center flex items-center justify-center gap-1.5"
-              >
-                <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                Mostrar Todas
-              </button>
-              <button
-                onClick={clearAllRoutes}
-                className="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-xl text-white transition-all text-center flex items-center justify-center gap-1.5"
-              >
-                <EyeOff className="w-3.5 h-3.5 text-rose-400" />
-                Ocultar Todas
-              </button>
-            </div>
-
-            {/* Static Legend References */}
-            <div className="flex flex-col gap-2.5 border-t border-b border-white/5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                <span className="text-[10px] font-bold text-slate-400 tracking-[0.05em] uppercase">
-                  Locais Históricos (Sempre Ativos)
-                </span>
-              </div>
-            </div>
-
-            {/* Antigo Testamento Routes */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-4 rounded-full bg-gradient-to-b from-[#ff2d55] via-[#f97316] to-[#10b981]" />
-                <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                  Antigo Testamento (AT)
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {routes
-                  .filter((r) => getRouteInfo(r.id).category === "at")
-                  .map((r) => {
-                    const { routeTitle } = getRouteInfo(r.id);
-                    const isVisible = visibleRouteIds.includes(r.id);
-                    const colorInfo = getRouteColor(r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center justify-between p-2 rounded-xl transition-all duration-200 border group ${
-                          isVisible
-                            ? colorInfo.bgClass
-                            : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            if (!isVisible) {
-                              toggleRoute(r.id);
-                            } else {
-                              flyToRouteStart(r.id);
-                            }
-                          }}
-                          className="flex-grow text-left text-[11px] font-bold tracking-tight truncate pr-2 select-text"
-                          title="Clique para voar até o início da rota"
-                        >
-                          {routeTitle}
-                        </button>
-                        <button
-                          onClick={() => toggleRoute(r.id)}
-                          className={`p-1 rounded-lg transition-colors ${
-                            isVisible
-                              ? colorInfo.activeEyeClass
-                              : "bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300"
-                          }`}
-                        >
-                          {isVisible ? (
-                            <Eye className="w-3.5 h-3.5" />
-                          ) : (
-                            <EyeOff className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                {routes.filter((r) => getRouteInfo(r.id).category === "at")
-                  .length === 0 && (
-                  <span className="text-[10px] text-slate-500 italic">
-                    Nenhuma rota carregada
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Ministério de Jesus */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-3 rounded-full bg-[#2dd4bf]" />
-                <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                  Ministério de Jesus
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {routes
-                  .filter((r) => getRouteInfo(r.id).category === "jesus")
-                  .map((r) => {
-                    const { routeTitle } = getRouteInfo(r.id);
-                    const isVisible = visibleRouteIds.includes(r.id);
-                    const colorInfo = getRouteColor(r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center justify-between p-2 rounded-xl transition-all duration-200 border group ${
-                          isVisible
-                            ? colorInfo.bgClass
-                            : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            if (!isVisible) {
-                              toggleRoute(r.id);
-                            } else {
-                              flyToRouteStart(r.id);
-                            }
-                          }}
-                          className="flex-grow text-left text-[11px] font-bold tracking-tight truncate pr-2 select-text"
-                          title="Clique para voar até o início da rota"
-                        >
-                          {routeTitle}
-                        </button>
-                        <button
-                          onClick={() => toggleRoute(r.id)}
-                          className={`p-1 rounded-lg transition-colors ${
-                            isVisible
-                              ? colorInfo.activeEyeClass
-                              : "bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300"
-                          }`}
-                        >
-                          {isVisible ? (
-                            <Eye className="w-3.5 h-3.5" />
-                          ) : (
-                            <EyeOff className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                {routes.filter((r) => getRouteInfo(r.id).category === "jesus")
-                  .length === 0 && (
-                  <span className="text-[10px] text-slate-500 italic">
-                    Nenhuma rota carregada
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Ministério dos Apóstolos */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-3 rounded-full bg-[#6366f1]" />
-                <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                  Ministério dos Apóstolos
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {routes
-                  .filter((r) => getRouteInfo(r.id).category === "apostolos")
-                  .map((r) => {
-                    const { routeTitle } = getRouteInfo(r.id);
-                    const isVisible = visibleRouteIds.includes(r.id);
-                    const colorInfo = getRouteColor(r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center justify-between p-2 rounded-xl transition-all duration-200 border group ${
-                          isVisible
-                            ? colorInfo.bgClass
-                            : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            if (!isVisible) {
-                              toggleRoute(r.id);
-                            } else {
-                              flyToRouteStart(r.id);
-                            }
-                          }}
-                          className="flex-grow text-left text-[11px] font-bold tracking-tight truncate pr-2 select-text"
-                          title="Clique para voar até o início da rota"
-                        >
-                          {routeTitle}
-                        </button>
-                        <button
-                          onClick={() => toggleRoute(r.id)}
-                          className={`p-1 rounded-lg transition-colors ${
-                            isVisible
-                              ? colorInfo.activeEyeClass
-                              : "bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300"
-                          }`}
-                        >
-                          {isVisible ? (
-                            <Eye className="w-3.5 h-3.5" />
-                          ) : (
-                            <EyeOff className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                {routes.filter(
-                  (r) => getRouteInfo(r.id).category === "apostolos",
-                ).length === 0 && (
-                  <span className="text-[10px] text-slate-500 italic">
-                    Nenhuma rota carregada
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Ministério de Paulo */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-3 rounded-full bg-[#a855f7]" />
-                <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                  Ministério de Paulo
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {routes
-                  .filter((r) => getRouteInfo(r.id).category === "paulo")
-                  .map((r) => {
-                    const { routeTitle } = getRouteInfo(r.id);
-                    const isVisible = visibleRouteIds.includes(r.id);
-                    const colorInfo = getRouteColor(r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center justify-between p-2 rounded-xl transition-all duration-200 border group ${
-                          isVisible
-                            ? colorInfo.bgClass
-                            : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            if (!isVisible) {
-                              toggleRoute(r.id);
-                            } else {
-                              flyToRouteStart(r.id);
-                            }
-                          }}
-                          className="flex-grow text-left text-[11px] font-bold tracking-tight truncate pr-2 select-text"
-                          title="Clique para voar até o início da rota"
-                        >
-                          {routeTitle}
-                        </button>
-                        <button
-                          onClick={() => toggleRoute(r.id)}
-                          className={`p-1 rounded-lg transition-colors ${
-                            isVisible
-                              ? colorInfo.activeEyeClass
-                              : "bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300"
-                          }`}
-                        >
-                          {isVisible ? (
-                            <Eye className="w-3.5 h-3.5" />
-                          ) : (
-                            <EyeOff className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                {routes.filter((r) => getRouteInfo(r.id).category === "paulo")
-                  .length === 0 && (
-                  <span className="text-[10px] text-slate-500 italic">
-                    Nenhuma rota carregada
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <RouteControlPanel
+        routes={routes}
+        visibleRouteIds={visibleRouteIds}
+        isLegendExpanded={isLegendExpanded}
+        onToggleLegend={() => setIsLegendExpanded(!isLegendExpanded)}
+        onToggleRoute={toggleRoute}
+        onFlyToRouteStart={flyToRouteStart}
+        onShowAll={showAllRoutes}
+        onClearAll={clearAllRoutes}
+      />
     </div>
   );
 }

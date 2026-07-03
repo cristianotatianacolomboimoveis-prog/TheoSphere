@@ -3,16 +3,22 @@
  * Single source of truth for environment variables and global constants.
  */
 
+const PRODUCTION_BACKEND = "https://theosphere.onrender.com";
+const DEFAULT_BACKEND =
+  process.env.NODE_ENV === "production"
+    ? PRODUCTION_BACKEND
+    : "http://localhost:3002";
+
 export const CONFIG = {
   API_BASE_URL:
     process.env.NEXT_PUBLIC_API_URL ||
     (process.env.NEXT_PUBLIC_BACKEND_URL
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/$/, "")}/api/v1`
-      : "http://localhost:3002/api/v1"),
+      : `${DEFAULT_BACKEND}/api/v1`),
   WS_URL:
     process.env.NEXT_PUBLIC_WS_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://localhost:3002",
+    DEFAULT_BACKEND,
   DEFAULT_LANGUAGE: "pt-BR",
   VERSION: "2.1.0-enterprise",
   ENVIRONMENT: process.env.NODE_ENV || "development",

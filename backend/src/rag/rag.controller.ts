@@ -7,10 +7,11 @@ import {
   Param,
   Logger,
   Req,
+  Res,
   UseGuards,
   Query,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { RagService, ChatMessage } from './rag.service';
 import { UserDocument } from './user-context.service';
 import { SemanticCacheService } from './semantic-cache.service';
@@ -140,6 +141,7 @@ export class RagController {
       success: true,
       data: {
         content: response.content,
+        sources: response.sources || [],
         meta: {
           cached: response.cached,
           similarity: response.similarity,
@@ -151,6 +153,46 @@ export class RagController {
         },
       },
     };
+  }
+
+  @Post('chat/stream')
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
+  async chatStream(
+    @Body() body: ChatDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const userId = req.user?.userId || 'public-guest';
+
+    this.logger.log(
+      `[ChatStream] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,
+    );
+
+    // Configura headers SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Desabilita buffering no Nginx/Render
+    res.flushHeaders();
+
+    try {
+      for await (const event of this.ragService.chatStream(
+        body.query,
+        userId,
+        body.tradition,
+        body.history || [],
+        body.jsonMode,
+      )) {
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      }
+    } catch (error: any) {
+      this.logger.error(`[ChatStream] Erro: ${error.message}`);
+      res.write(
+        `data: ${JSON.stringify({ type: 'error', data: { message: error.message } })}\n\n`,
+      );
+    }
+
+    res.end();
   }
 
   @Post('dictate')

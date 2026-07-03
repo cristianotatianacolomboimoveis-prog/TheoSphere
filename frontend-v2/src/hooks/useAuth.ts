@@ -28,7 +28,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const TOKEN_KEY = "theosphere-access-token";
 const USER_ID_KEY = "theosphere-user-id";
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === "production" ? "https://theosphere.onrender.com" : "http://localhost:3002");
 
 // How early (in ms) to refresh the access token before it actually expires.
 // 60s margin absorbs clock skew and avoids racing with in-flight requests.

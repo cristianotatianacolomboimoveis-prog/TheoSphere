@@ -13,6 +13,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RolesGuard } from '../auth/roles.guard';
 import { SearchModule } from '../search/search.module';
 import { TheologicalSourcesService } from './theological-sources.service';
+import { RerankerService } from './reranker.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -31,6 +32,7 @@ import { ConfigModule } from '@nestjs/config';
     DriveRagService,
     LibraryService,
     TheologicalSourcesService,
+    RerankerService,
     RolesGuard, // class-based guard used by @UseGuards(RolesGuard) — needs DI
   ],
   exports: [RagService],

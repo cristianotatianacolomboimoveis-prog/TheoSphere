@@ -288,7 +288,7 @@ export class UserContextService implements OnModuleInit {
     return [
       '=== CONTEXTO PESSOAL E BIBLIOTECA DO USUÁRIO ===',
       'Os seguintes documentos são do histórico de estudo e da biblioteca pessoal (Google Drive) do usuário.',
-      'Eles são a VERDADE ABSOLUTA para este usuário. Priorize essas informações na sua resposta:',
+      'Estas são as anotações pessoais do usuário. Referencie-as quando relevante para personalizar a resposta, mas mantenha sempre o rigor acadêmico e a precisão exegética. Se as notas do usuário contiverem imprecisões teológicas, apresente gentilmente a perspectiva acadêmica sem invalidar a experiência pessoal do usuário.',
       '',
       ...allParts,
       '',

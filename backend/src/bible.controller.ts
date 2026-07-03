@@ -6,10 +6,12 @@ import {
   Logger,
   BadRequestException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { BibleIngestionService } from './bible-ingestion.service';
 import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
+import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
 const ALLOWED_TRANSLATIONS = new Set([
   'ARA',
@@ -30,17 +32,20 @@ export class BibleController {
   constructor(private ingestionService: BibleIngestionService) {}
 
   @Get('versions')
+  @UseInterceptors(new CacheControlInterceptor(86400))
   async getVersions() {
     return { success: true, data: ['ARA', 'NVIPT', 'KJV', 'TR', 'WLC'] };
   }
 
   @Get('books')
+  @UseInterceptors(new CacheControlInterceptor(86400))
   async getBooks() {
     const books = await this.ingestionService.getBooks();
     return { success: true, data: books };
   }
 
   @Get('chapter')
+  @UseInterceptors(new CacheControlInterceptor(3600))
   async getChapterQuery(
     @Query('translation') translation: string,
     @Query('bookId') bookId: string,
@@ -69,6 +74,7 @@ export class BibleController {
   }
 
   @Get('chapter/:translation/:bookId/:chapter')
+  @UseInterceptors(new CacheControlInterceptor(3600))
   async getChapterParam(
     @Param('translation') translation: string,
     @Param('bookId') bookId: string,

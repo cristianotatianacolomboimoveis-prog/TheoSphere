@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheoStore } from "@/store/useTheoStore";
@@ -8,6 +8,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 // Components
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TheoSphereTopBar } from "@/components/layout/TheoSphereTopBar";
+import { CommandBar } from "@/components/layout/CommandBar";
 import { Workspace } from "@/components/layout/Workspace";
 import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOverlay";
 import AuthModal from "@/components/AuthModal";
@@ -96,15 +97,28 @@ export default function TheoSphereOS() {
   } = useTheoStore();
 
   const [authOpen, setAuthOpen] = useState(false);
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
   const [pendingStrongId, setPendingStrongId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActiveTool("dashboard");
+      // Ctrl+K / Cmd+K toggles command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandBarOpen((prev) => !prev);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (commandBarOpen) {
+          setCommandBarOpen(false);
+        } else {
+          setActiveTool("dashboard");
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setActiveTool]);
+  }, [setActiveTool, commandBarOpen]);
 
   const currentReference =
     visibleVerseId || activeVerseId || `${activeBook} ${activeChapter}`;
@@ -234,6 +248,11 @@ export default function TheoSphereOS() {
       {/* Auth & Overlays */}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
       <UnifiedAssistantOverlay />
+      <CommandBar
+        isOpen={commandBarOpen}
+        onClose={() => setCommandBarOpen(false)}
+        onSelectTool={(tool) => setActiveTool(tool)}
+      />
     </div>
   );
 }
