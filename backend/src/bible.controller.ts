@@ -25,6 +25,50 @@ const ALLOWED_TRANSLATIONS = new Set([
   'ylt',
 ]);
 
+/**
+ * Metadados de licenciamento por versão (auditoria go-to-market 2026-07-13).
+ * `license: 'free'`  → licença livre (CC/domínio público), ok para uso comercial
+ * `license: 'restricted'` → texto sob copyright, exige licença do detentor
+ * BLIVRE e NVA são servidas do banco local (seed-public-domain.ts), não de APIs externas.
+ */
+const VERSION_METADATA: Record<
+  string,
+  {
+    name: string;
+    lang: string;
+    license: 'free' | 'restricted';
+    holder?: string;
+  }
+> = {
+  BLIVRE: {
+    name: 'Bíblia Livre (Textus Receptus)',
+    lang: 'PT',
+    license: 'free',
+    holder: 'CC BY 3.0 BR',
+  },
+  NVA: {
+    name: 'Nova Versão de Acesso Livre',
+    lang: 'PT',
+    license: 'free',
+    holder: 'CC BY-SA 4.0',
+  },
+  ARA: {
+    name: 'Almeida Revista e Atualizada',
+    lang: 'PT',
+    license: 'restricted',
+    holder: 'Sociedade Bíblica do Brasil',
+  },
+  NVIPT: {
+    name: 'Nova Versão Internacional',
+    lang: 'PT',
+    license: 'restricted',
+    holder: 'Biblica',
+  },
+  KJV: { name: 'King James Version', lang: 'EN', license: 'free' },
+  TR: { name: 'Textus Receptus', lang: 'GRC', license: 'free' },
+  WLC: { name: 'Westminster Leningrad Codex', lang: 'HEB', license: 'free' },
+};
+
 @Controller('api/v1/bible')
 export class BibleController {
   private readonly logger = new Logger(BibleController.name);
@@ -34,7 +78,14 @@ export class BibleController {
   @Get('versions')
   @UseInterceptors(new CacheControlInterceptor(86400))
   async getVersions() {
-    return { success: true, data: ['ARA', 'NVIPT', 'KJV', 'TR', 'WLC'] };
+    // `data` mantém o formato legado (array de strings) para compatibilidade.
+    // `meta` traz licenciamento por versão — o frontend usa para exibir
+    // apenas versões de licença livre no beta público (Fase 0 go-to-market).
+    return {
+      success: true,
+      data: ['BLIVRE', 'NVA', 'ARA', 'NVIPT', 'KJV', 'TR', 'WLC'],
+      meta: VERSION_METADATA,
+    };
   }
 
   @Get('books')

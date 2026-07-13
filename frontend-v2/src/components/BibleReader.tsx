@@ -58,6 +58,20 @@ import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const TRANSLATIONS = [
+  // Traduções de licença livre (CC) — padrão do beta público.
+  // Servidas do banco local via seed-public-domain.ts (backend).
+  {
+    id: "blivre",
+    name: "Bíblia Livre (BLIVRE)",
+    lang: "PT",
+    type: "Equivalência Formal • Licença Livre",
+  },
+  {
+    id: "nva",
+    name: "Nova Versão de Acesso Livre (NVA)",
+    lang: "PT",
+    type: "Equivalência Dinâmica • Licença Livre",
+  },
   {
     id: "ara",
     name: "Almeida Revista e Atualizada (ARA)",
@@ -138,7 +152,8 @@ export default function BibleReader({
     _hasHydrated,
   } = useTheoStore();
 
-  const [primaryTranslation, setPrimaryTranslation] = useState("ara");
+  // Padrão do beta: BLIVRE (licença livre CC BY 3.0 BR) — ver go-to-market-checklist.md
+  const [primaryTranslation, setPrimaryTranslation] = useState("blivre");
   const [secondaryTranslation, setSecondaryTranslation] = useState("");
 
   const handleWorkerMessage = useCallback((type: string, payload: any) => {

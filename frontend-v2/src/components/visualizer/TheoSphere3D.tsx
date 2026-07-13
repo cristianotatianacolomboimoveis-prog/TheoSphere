@@ -29,7 +29,9 @@ const CesiumGlobe = dynamic(() => import("@/components/CesiumGlobe"), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full w-full bg-black/50">
-      <div className="text-white text-sm animate-pulse">Carregando globo 3D...</div>
+      <div className="text-white text-sm animate-pulse">
+        Carregando globo 3D...
+      </div>
     </div>
   ),
 });
@@ -483,7 +485,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           indexInRoute: index + 1, // Começa do 1
         }));
       });
-  }, [routes, visibleRouteIds, getRouteInfo]);
+  }, [routes, visibleRouteIds]);
 
   // 2. Camadas Deck.gl Unificadas (Locais + Rotas em Linha e Pontos)
   const layers = [
@@ -593,7 +595,9 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         mapMode={mapMode}
         useCesium={useCesium}
         fullscreen={fullscreen}
-        onToggleMapMode={() => setMapMode(mapMode === "satellite" ? "vector" : "satellite")}
+        onToggleMapMode={() =>
+          setMapMode(mapMode === "satellite" ? "vector" : "satellite")
+        }
         onToggleCesium={() => setUseCesium(!useCesium)}
         onToggleFullscreen={() => setFullscreen(!fullscreen)}
         onClose={onClose}

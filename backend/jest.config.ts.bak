@@ -1,0 +1,27 @@
+import type { Config } from 'jest';
+import { resolve, dirname } from 'path';
+
+const tsJestPath = dirname(require.resolve('ts-jest/package.json'));
+
+const config: Config = {
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: 'src',
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': [
+      tsJestPath,
+      {
+        tsconfig: 'tsconfig.spec.json',
+        useESM: false,
+      },
+    ],
+  },
+  moduleNameMapper: {
+    '^uuid$': '<rootDir>/../__mocks__/uuid.js',
+  },
+  collectCoverageFrom: ['**/*.(t|j)s'],
+  coverageDirectory: '../coverage',
+  testEnvironment: 'node',
+};
+
+export default config;

@@ -43,9 +43,10 @@ async function bootstrap() {
       const isLocalhost =
         /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
       // Accept any Vercel preview/production URL for this project
-      const isVercel = /^https:\/\/(frontend-v2|cristianocolombo)[\w-]*\.vercel\.app$/.test(
-        origin,
-      );
+      const isVercel =
+        /^https:\/\/(frontend-v2|cristianocolombo)[\w-]*\.vercel\.app$/.test(
+          origin,
+        );
       if (isLocalhost || isVercel || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {

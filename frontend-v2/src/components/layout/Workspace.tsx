@@ -7,7 +7,7 @@
 //   • prop `direction`  → `orientation`
 // defaultSize/minSize continuam aceitando number (% do grupo).
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   X,
   Columns,
@@ -17,17 +17,29 @@ import {
   MoreVertical,
 } from "lucide-react";
 
-/** Detecta se a viewport é mobile (<768px) */
+/** Detecta se a viewport é mobile (<768px) — compatível com React Compiler */
+const MOBILE_QUERY = "(max-width: 767px)";
+
+function subscribeMobile(cb: () => void) {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function getSnapshotMobile() {
+  return window.matchMedia(MOBILE_QUERY).matches;
+}
+
+function getServerSnapshotMobile() {
+  return false;
+}
+
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isMobile;
+  return useSyncExternalStore(
+    subscribeMobile,
+    getSnapshotMobile,
+    getServerSnapshotMobile,
+  );
 }
 
 interface WorkspaceProps {
@@ -145,7 +157,9 @@ function MobileWorkspace({
   const tabs = [
     { key: "left", label: leftTitle, pane: leftPane },
     { key: "middle", label: middleTitle, pane: rightPane },
-    ...(bottomPane ? [{ key: "bottom", label: rightTitle, pane: bottomPane }] : []),
+    ...(bottomPane
+      ? [{ key: "bottom", label: rightTitle, pane: bottomPane }]
+      : []),
   ];
   const [activeTab, setActiveTab] = useState("left");
   const current = tabs.find((t) => t.key === activeTab) || tabs[0];

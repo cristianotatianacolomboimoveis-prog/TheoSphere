@@ -124,9 +124,7 @@ export class RerankerService {
     query: string,
     docs: { index: number; text: string }[],
   ): string {
-    const docList = docs
-      .map((d) => `[${d.index}]: ${d.text}`)
-      .join('\n---\n');
+    const docList = docs.map((d) => `[${d.index}]: ${d.text}`).join('\n---\n');
 
     return `You are a theological relevance judge. Score how relevant each document is to the query.
 Return a JSON array of numbers (0-10 scale, 10 = perfectly relevant).
@@ -168,7 +166,9 @@ ${docList}`;
     }
 
     // If all parsing fails, return zeros
-    this.logger.warn(`[Reranker] Could not parse scores from: ${raw.slice(0, 100)}`);
+    this.logger.warn(
+      `[Reranker] Could not parse scores from: ${raw.slice(0, 100)}`,
+    );
     return new Array(expectedLength).fill(5);
   }
 

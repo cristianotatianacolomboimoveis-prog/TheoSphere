@@ -27,6 +27,7 @@
     "db:seed:phd": "ts-node prisma/seed-phd.ts",
     "db:seed:enterprise": "ts-node prisma/seed-enterprise.ts",
     "db:seed:tsk": "ts-node prisma/seed-tsk.ts",
+    "db:seed:free-bibles": "ts-node prisma/seed-public-domain.ts",
     "db:studio": "prisma studio",
     "ingest:drive": "ts-node trigger-ingest.ts",
     "tsk:import": "ts-node scripts/import-tsk-full.ts"
@@ -112,31 +113,5 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": [
-        "ts-jest",
-        {
-          "tsconfig": "tsconfig.spec.json",
-          "useESM": false
-        }
-      ]
-    },
-    "moduleNameMapper": {
-      "^uuid$": "<rootDir>/../__mocks__/uuid.js"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }

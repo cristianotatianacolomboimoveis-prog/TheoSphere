@@ -142,7 +142,7 @@ describe("EdgeAIService", () => {
     });
     expect(mockDevice.destroy).toHaveBeenCalled();
     expect(webllm.CreateMLCEngine).toHaveBeenCalledWith(
-      "gemma-2b-it-q4f16_1-MLC",
+      "gemma-2-2b-it-q4f16_1-MLC",
       expect.any(Object),
     );
 

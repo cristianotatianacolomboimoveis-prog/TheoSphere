@@ -11,8 +11,18 @@ export class BibleIngestionService {
   private readonly logger = new Logger(BibleIngestionService.name);
   private youversionClient: BibleClient | null = null;
 
-  // Versões prioritárias que devem estar sempre no banco
-  private readonly CORE_TRANSLATIONS = ['ARA', 'NVIPT', 'KJV', 'TR', 'WLC'];
+  // Versões prioritárias que devem estar sempre no banco.
+  // BLIVRE e NVA (licença livre) são populadas via seed-public-domain.ts,
+  // não via Bolls.life — o cache hit do banco as serve diretamente.
+  private readonly CORE_TRANSLATIONS = [
+    'BLIVRE',
+    'NVA',
+    'ARA',
+    'NVIPT',
+    'KJV',
+    'TR',
+    'WLC',
+  ];
 
   constructor(
     private prisma: PrismaService,

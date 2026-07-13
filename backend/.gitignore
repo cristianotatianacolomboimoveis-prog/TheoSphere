@@ -54,3 +54,4 @@ prisma.config.d.ts
 # Compiled scratch/util artifacts (não versionar)
 check-db.*
 scratch-check.*
+.vercel
