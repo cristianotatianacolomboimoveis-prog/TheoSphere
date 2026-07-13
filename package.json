@@ -3,11 +3,14 @@
   "private": true,
   "description": "Raiz do monorepo. NÃO é um app deployável — o backend vive em backend/ e o frontend em frontend-v2/. Este package.json existe apenas para o tooling de commit (husky + lint-staged + prettier).",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "devDependencies": {
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "wrangler": "^4.110.0"
   }
 }

@@ -23,3 +23,8 @@ valhalla_data/
 .venv/
 __pycache__/
 *.pyc
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
