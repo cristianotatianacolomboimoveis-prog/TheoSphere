@@ -17,56 +17,13 @@ concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: false
 
+# ───────────────────────────────────────────────────────────────────────────
+# Backend → Render: deploy automático via integração GitHub do Render
+# (blueprint em backend/render.yaml). Não há job de backend aqui.
+# Histórico: os jobs de Fly.io e Cloudflare Worker foram removidos na limpeza
+# de 2026-07-13 (experimentos descontinuados — recuperáveis no histórico git).
+# ───────────────────────────────────────────────────────────────────────────
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────
-  # Backend → Fly.io. Tag pushes go to production; main pushes go to staging.
-  # `flyctl deploy --remote-only` runs the build on Fly's builder (no need to
-  # configure a Docker buildx host in CI).
-  #
-  # ⚠️  TEMPORARILY DISABLED — remove the `if: false` line below to re-enable
-  #     once the Fly.io apps and FLY_API_TOKEN secret are configured.
-  # ─────────────────────────────────────────────────────────────────────────
-  backend:
-    name: Deploy backend (Fly.io)
-    if: false  # TODO: re-enable when Fly.io is ready
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
-
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@v5
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN || secrets.FLY }}
-          FLY_ACCESS_TOKEN: ${{ secrets.FLY_API_TOKEN || secrets.FLY }}
-        run: |
-          APP_NAME="theosphere-backend"
-          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
-            APP_NAME="theosphere-backend-staging"
-          fi
-          flyctl deploy --app "$APP_NAME" --remote-only \
-            --build-arg SENTRY_RELEASE="${GITHUB_SHA}"
-
-      # Tag the Sentry release so frontend/backend errors get attributed to
-      # the actual deploy. Skips silently if SENTRY_AUTH_TOKEN is unset.
-      - name: Sentry release
-        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: theosphere-backend
-        with:
-          version: ${{ github.sha }}
-          set_commits: auto
-
   # ─────────────────────────────────────────────────────────────────────────
   # Frontend → Vercel. Vercel's GitHub integration usually does this on its
   # own — this job is a fallback / explicit invocation. Comment out if you
@@ -91,33 +48,3 @@ jobs:
 
       - run: npm ci
       - run: npx vercel --token=${{ secrets.VERCEL_TOKEN || secrets.VERCEL }} --prod=${{ startsWith(github.ref, 'refs/tags/v') }} --yes
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # Cloudflare Worker — edge cache layer.
-  # ─────────────────────────────────────────────────────────────────────────
-  edge:
-    name: Deploy edge worker (Cloudflare)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    defaults:
-      run:
-        working-directory: cloudflare
-
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-
-      - run: npm ci
-      - name: Deploy worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFARETOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.IDCLOUDFARE }}
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            npx wrangler deploy
-          else
-            npx wrangler deploy --env staging
-          fi
