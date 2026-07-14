@@ -13,6 +13,7 @@ import * as Cesium from "cesium";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
 import { useTheoStore } from "@/store/useTheoStore";
 import { CONFIG } from "@/lib/config";
+import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
 
 // Set the base URL for Cesium assets
 if (typeof window !== "undefined") {
@@ -64,11 +65,21 @@ function getRouteColor(routeId: string): string {
 interface CesiumGlobeProps {
   visibleRouteIds?: string[];
   routes?: any[];
+  /** Exibe a camada do acervo arqueológico (pins no globo). */
+  showArchaeology?: boolean;
 }
+
+/** Cores dos pins de arqueologia por status de autenticidade. */
+const ARCH_COLORS: Record<string, string> = {
+  confirmada: "#f43f5e", // rose
+  debatida: "#f59e0b", // amber
+  disputada: "#94a3b8", // slate
+};
 
 export default function CesiumGlobe({
   visibleRouteIds = [],
   routes = [],
+  showArchaeology = true,
 }: CesiumGlobeProps) {
   const currentTime = useTheoStore((state) => state.currentTime);
   const [routePaths, setRoutePaths] = useState<
@@ -77,6 +88,36 @@ export default function CesiumGlobe({
   const [loadingRoutes, setLoadingRoutes] = useState<Record<string, boolean>>(
     {},
   );
+  const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
+
+  // Camada de arqueologia: carrega o acervo (uma vez) para plotar no globo
+  useEffect(() => {
+    if (!showArchaeology) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
+        const res = await fetch(`${baseUrl}/archaeology?limit=200`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          success: boolean;
+          data: { items: ArchaeologicalFind[] };
+        };
+        if (json.success) {
+          setArchFinds(
+            json.data.items.filter(
+              (f) => f.latitude != null && f.longitude != null,
+            ),
+          );
+        }
+      } catch {
+        // rede/abort — camada simplesmente não aparece
+      }
+    })();
+    return () => controller.abort();
+  }, [showArchaeology]);
 
   // Filtro Temporal 4D: Apenas locais ativos no ano selecionado
   const activeLocations = useMemo(() => {
@@ -190,6 +231,76 @@ export default function CesiumGlobe({
             </EntityDescription>
           </Entity>
         ))}
+
+        {/* Acervo Arqueológico — pins das descobertas */}
+        {showArchaeology &&
+          archFinds.map((find) => (
+            <Entity
+              key={`arch-${find.slug}`}
+              position={Cesium.Cartesian3.fromDegrees(
+                find.longitude as number,
+                find.latitude as number,
+                0,
+              )}
+              name={`🏺 ${find.namePt}`}
+            >
+              <PointGraphics
+                pixelSize={9}
+                color={Cesium.Color.fromCssColorString(
+                  ARCH_COLORS[find.authenticity] ?? ARCH_COLORS.confirmada,
+                )}
+                outlineColor={Cesium.Color.WHITE}
+                outlineWidth={2}
+              />
+              <EntityDescription>
+                <div className="p-3 bg-slate-950/90 text-white rounded-xl border border-white/10 shadow-2xl min-w-[280px] backdrop-blur-xl">
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-2">
+                    <h4 className="text-sm font-bold text-white leading-none">
+                      {find.namePt}
+                    </h4>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 uppercase tracking-widest text-amber-400">
+                      {find.authenticity}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/70 leading-relaxed mb-2">
+                    {find.description}
+                  </p>
+                  <p className="text-xs text-amber-200/90 italic mb-2">
+                    {find.significance}
+                  </p>
+                  <div className="text-[10px] text-white/50 space-y-1 mb-2">
+                    <div>
+                      <strong className="text-white/70">Descoberta:</strong>{" "}
+                      {find.discoverySite}
+                      {find.discoveryYear ? ` (${find.discoveryYear})` : ""}
+                    </div>
+                    {find.currentLocation && (
+                      <div>
+                        <strong className="text-white/70">Acervo:</strong>{" "}
+                        {find.currentLocation}
+                      </div>
+                    )}
+                    {find.period && (
+                      <div>
+                        <strong className="text-white/70">Período:</strong>{" "}
+                        {find.period}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {find.relatedRefs.map((ref) => (
+                      <span
+                        key={ref}
+                        className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-border-subtle text-amber-500/80"
+                      >
+                        {ref}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </EntityDescription>
+            </Entity>
+          ))}
 
         {/* Rotas Teológicas Dinâmicas do Valhalla */}
         {visibleRouteIds.map((routeId) => {

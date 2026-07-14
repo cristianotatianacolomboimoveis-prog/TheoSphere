@@ -366,3 +366,29 @@ model Model3D {
 
   @@index([waypointId])
 }
+
+// Acervo arqueológico — descobertas relacionadas ao mundo bíblico.
+// Dados curados de fontes abertas (fatos não são protegidos por copyright;
+// descrições são texto original PT-BR). Coordenadas alimentam o Atlas 4D.
+model ArchaeologicalFind {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  namePt          String
+  nameEn          String?
+  category        String // 'inscricao' | 'manuscrito' | 'estrutura' | 'selo' | 'ossuario' | 'tablete' | 'artefato'
+  discoveryYear   Int? // ano da descoberta (null se desconhecido)
+  discoverySite   String // local da descoberta
+  currentLocation String? // museu/local atual
+  period          String? // período histórico (ex: 'Séc. IX a.C.')
+  latitude        Float? // coordenadas do sítio da descoberta
+  longitude       Float?
+  description     String // o que é (PT-BR, texto original)
+  significance    String // relevância bíblica/teológica (PT-BR)
+  authenticity    String   @default("confirmada") // 'confirmada' | 'debatida' | 'disputada'
+  relatedRefs     String[] // referências bíblicas (ex: '2Rs 3', 'Jo 9:7')
+  externalUrl     String? // fonte externa (Wikipedia/museu)
+  createdAt       DateTime @default(now())
+
+  @@index([category])
+  @@index([authenticity])
+}

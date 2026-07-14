@@ -48,6 +48,7 @@ import { ReaderSearch } from "./reader/ReaderSearch";
 import { BookSelector } from "./reader/BookSelector";
 import { ChapterSelector } from "./reader/ChapterSelector";
 import { AIInsights } from "./reader/AIInsights";
+import { ArchaeologyPanel } from "./reader/ArchaeologyPanel";
 import { VerseRow } from "./reader/VerseRow";
 import { TranslationPicker } from "./reader/TranslationPicker";
 import { GlobalSearchResults } from "./reader/GlobalSearchResults";
@@ -491,6 +492,7 @@ export default function BibleReader({
         />
 
         <AIInsights />
+        <ArchaeologyPanel />
       </div>
 
       {/* Floating UI Elements */}
