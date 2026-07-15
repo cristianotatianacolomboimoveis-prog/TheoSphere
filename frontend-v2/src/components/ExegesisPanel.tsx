@@ -20,6 +20,8 @@ import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { api } from "@/lib/api";
+import { CONFIG } from "@/lib/config";
+import { BIBLE_BOOKS } from "@/data/bibleBooks";
 
 interface InterlinearWord {
   word: string;
@@ -73,7 +75,51 @@ export default function ExegesisPanel({
   const [data, setData] = useState<ExegesisData | null>(null);
   const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
   const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
+  // Interlinear REAL (STEP Bible via backend) — substitui a saída da IA,
+  // que podia vir mockada/incompleta (QA 2026-07-14).
+  const [realInterlinear, setRealInterlinear] = useState<
+    InterlinearWord[] | null
+  >(null);
   const { chat } = useRAG();
+
+  useEffect(() => {
+    // Parse de "Gênesis 1:1" / "1 Samuel 3" → bookId, capítulo, versículo
+    const m = verse.trim().match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
+    if (!m) return;
+    const book = BIBLE_BOOKS.find(
+      (b) => b.namePt.toLowerCase() === m[1].trim().toLowerCase(),
+    );
+    if (!book) return;
+    const chapter = parseInt(m[2], 10);
+    const verseNum = m[3] ? parseInt(m[3], 10) : 1;
+
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(
+          `${CONFIG.API_BASE_URL}/linguistics/interlinear/${book.id}/${chapter}`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        const words = json?.data?.verses?.[verseNum];
+        if (Array.isArray(words) && words.length > 0) {
+          setRealInterlinear(
+            words.map((w: any) => ({
+              word: w.word,
+              transliteration: w.translit,
+              strong: w.strongId,
+              morphology: w.morph || "",
+              translation: w.gloss,
+            })),
+          );
+        }
+      } catch {
+        // Sem dados reais (rede) — mantém a saída da IA como fallback
+      }
+    })();
+    return () => controller.abort();
+  }, [verse]);
 
   useEffect(() => {
     const fetchExegesis = async () => {
@@ -158,8 +204,14 @@ export default function ExegesisPanel({
               icon={BookOpen}
               defaultOpen
             >
+              {realInterlinear && (
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-3">
+                  Fonte: STEP Bible / Tyndale House (CC BY 4.0) — dados curados
+                  por tradutores
+                </p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data?.interlinear.map((w, i) => (
+                {(realInterlinear ?? data?.interlinear ?? []).map((w, i) => (
                   <div
                     key={i}
                     className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-sm flex flex-col"

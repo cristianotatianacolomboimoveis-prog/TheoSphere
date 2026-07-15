@@ -1,13 +1,101 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, BookOpen, ScrollText } from "lucide-react";
+import { BIBLE_BOOKS } from "@/data/bibleBooks";
+import { useTheoStore } from "@/store/useTheoStore";
+
+/**
+ * Plano de leitura diário REAL (QA 2026-07-14 — antes era mock estático).
+ * Três trilhas determinísticas pela data (AT, NT e Salmos), com progresso
+ * do dia persistido em localStorage e navegação direta para o leitor.
+ */
+
+/** Resolve o N-ésimo capítulo de uma faixa de livros (ex.: AT = livros 1-39). */
+function nthChapter(
+  n: number,
+  fromBook: number,
+  toBook: number,
+): { book: string; chapter: number } {
+  const books = BIBLE_BOOKS.filter((b) => b.id >= fromBook && b.id <= toBook);
+  const total = books.reduce((s, b) => s + b.chapters, 0);
+  let idx = ((n % total) + total) % total;
+  for (const b of books) {
+    if (idx < b.chapters) return { book: b.namePt, chapter: idx + 1 };
+    idx -= b.chapters;
+  }
+  return { book: books[0].namePt, chapter: 1 };
+}
+
+/** Dias desde a época (UTC) — indexa o plano pela data local. */
+function dayNumber(): number {
+  const now = new Date();
+  return Math.floor(
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      Date.UTC(2026, 0, 1)) /
+      86_400_000,
+  );
+}
+
+const PLAN_STORAGE_KEY = `theo-reading-plan-${new Date().toDateString()}`;
+
+/** Lê o progresso do dia (client-only; SSR retorna vazio). */
+function loadDone(): number[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = window.localStorage.getItem(PLAN_STORAGE_KEY);
+    return saved ? (JSON.parse(saved) as number[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function ReadingPlanWidget() {
+  const router = useRouter();
+  const { setBibleReference } = useTheoStore();
+  const [done, setDone] = useState<number[]>([]);
+
+  // Carrega o progresso do dia após a hidratação (assíncrono para
+  // respeitar a regra react-hooks/set-state-in-effect e evitar mismatch SSR)
+  useEffect(() => {
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) setDone(loadDone());
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const day = dayNumber();
+  const salmos = BIBLE_BOOKS.find((b) => b.id === 19)!;
   const tasks = [
-    { id: 1, title: "Gênesis 32", completed: true },
-    { id: 2, title: "Mateus 18", completed: false },
-    { id: 3, title: "Atos 15", completed: false },
+    { id: 0, ...nthChapter(day, 1, 39) }, // trilha do AT
+    { id: 1, ...nthChapter(day, 40, 66) }, // trilha do NT
+    { id: 2, book: salmos.namePt, chapter: (day % salmos.chapters) + 1 }, // Salmo do dia
   ];
+
+  const storageKey = PLAN_STORAGE_KEY;
+
+  const toggle = (id: number) => {
+    const next = done.includes(id)
+      ? done.filter((d) => d !== id)
+      : [...done, id];
+    setDone(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      // sem persistência
+    }
+  };
+
+  const pct = Math.round((done.length / tasks.length) * 100);
+
+  const openInReader = (book: string, chapter: number) => {
+    setBibleReference(book, chapter);
+    router.push("/study");
+  };
 
   return (
     <div className="space-y-6">
@@ -18,41 +106,45 @@ export function ReadingPlanWidget() {
           </span>
           <div className="flex items-center gap-3">
             <span className="text-2xl font-bold text-gray-800 dark:text-white">
-              55%
+              {pct}%
             </span>
             <div className="h-1.5 w-24 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-600 w-[55%]" />
+              <div
+                className="h-full bg-blue-600 transition-all"
+                style={{ width: `${pct}%` }}
+              />
             </div>
           </div>
         </div>
-        <button className="px-4 py-2 rounded-lg bg-blue-600 text-white text-[11px] font-bold hover:bg-blue-700 transition-all shadow-sm">
-          Concluir Hoje
-        </button>
       </div>
 
       <div className="space-y-2">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className="group flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-white/5"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "bg-blue-600 border-blue-600" : "border-gray-300 dark:border-white/10"}`}
-              >
-                {task.completed && (
-                  <CheckCircle2 className="w-3 h-3 text-white" />
-                )}
+        {tasks.map((task) => {
+          const completed = done.includes(task.id);
+          return (
+            <div
+              key={task.id}
+              className="group flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all border border-transparent hover:border-gray-100 dark:hover:border-white/5"
+            >
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toggle(task.id)}
+                  aria-label={completed ? "Desmarcar" : "Marcar como lido"}
+                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${completed ? "bg-blue-600 border-blue-600" : "border-gray-300 dark:border-white/10"}`}
+                >
+                  {completed && <CheckCircle2 className="w-3 h-3 text-white" />}
+                </button>
+                <button
+                  onClick={() => openInReader(task.book, task.chapter)}
+                  className={`text-sm font-medium text-left cursor-pointer ${completed ? "text-gray-400 dark:text-white/30 line-through" : "text-gray-700 dark:text-white/80 group-hover:text-blue-600 dark:group-hover:text-blue-400"}`}
+                >
+                  {task.book} {task.chapter}
+                </button>
               </div>
-              <span
-                className={`text-sm font-medium ${task.completed ? "text-gray-400 dark:text-white/30 line-through" : "text-gray-700 dark:text-white/80 group-hover:text-blue-600 dark:group-hover:text-blue-400"}`}
-              >
-                {task.title}
-              </span>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600 transition-colors" />
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600 transition-colors" />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

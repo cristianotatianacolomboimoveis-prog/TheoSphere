@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
+import { CONFIG } from "@/lib/config";
+import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
 import { TimeController } from "../atlas/TimeController";
 import { getRouteColor, getRouteInfo, getCategoryLabel } from "./routeConfig";
 import { RouteControlPanel } from "./RouteControlPanel";
@@ -192,6 +194,33 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
 
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
+  const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
+
+  // Acervo arqueológico — pins no motor padrão (Deck.gl/MapLibre).
+  // O CesiumGlobe tem camada própria; esta cobre o modo inicial (QA 2026-07-14).
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
+        const res = await fetch(`${baseUrl}/archaeology?limit=200`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json?.success) {
+          setArchFinds(
+            (json.data.items as ArchaeologicalFind[]).filter(
+              (f) => f.latitude != null && f.longitude != null,
+            ),
+          );
+        }
+      } catch {
+        // sem rede — camada simplesmente não aparece
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   const flyToRouteStart = useCallback(
     (routeId: string) => {
@@ -569,6 +598,44 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       onClick: (info: any) => {
         if (info.object && MapAdapter) {
           MapAdapter.events.publish("onLocationSelected", info.object);
+        }
+      },
+    }),
+
+    // Acervo Arqueológico (ScatterplotLayer) — cor por autenticidade
+    new ScatterplotLayer({
+      id: "arch-finds",
+      data: archFinds,
+      getPosition: (f: ArchaeologicalFind) => [
+        f.longitude as number,
+        f.latitude as number,
+      ],
+      getFillColor: (f: ArchaeologicalFind) =>
+        f.authenticity === "confirmada"
+          ? [244, 63, 94, 220] // rose
+          : f.authenticity === "debatida"
+            ? [245, 158, 11, 220] // amber
+            : [148, 163, 184, 220], // slate (disputada)
+      getRadius: 90,
+      radiusMinPixels: 5,
+      radiusMaxPixels: 9,
+      pickable: true,
+      onClick: (info: any) => {
+        const f = info.object as ArchaeologicalFind | undefined;
+        if (f && MapAdapter) {
+          MapAdapter.events.publish("onLocationSelected", {
+            id: `arch-${f.slug}`,
+            name: `🏺 ${f.namePt}`,
+            description:
+              `**Arqueologia** • ${f.period || ""} • Autenticidade: ${f.authenticity}\n\n` +
+              `${f.description}\n\n_${f.significance}_\n\n` +
+              `Descoberta: ${f.discoverySite}${f.discoveryYear ? ` (${f.discoveryYear})` : ""}` +
+              (f.currentLocation ? `\nAcervo: ${f.currentLocation}` : ""),
+            lat: f.latitude,
+            lng: f.longitude,
+            era: currentTime,
+            category: "archaeology",
+          });
         }
       },
     }),
