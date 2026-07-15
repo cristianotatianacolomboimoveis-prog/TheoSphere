@@ -18,44 +18,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
 
-  const handleOAuth = async (provider: "google" | "apple") => {
-    setError(null);
-    setLoading(true);
-
-    const mockEmail =
-      provider === "google"
-        ? "google-user@theosphere.com"
-        : "apple-user@theosphere.com";
-    const mockPassword =
-      provider === "google" ? "GoogleOAuthMock2026!" : "AppleOAuthMock2026!";
-
-    try {
-      // Tenta fazer login primeiro
-      let result = await login(mockEmail, mockPassword);
-
-      // Se o usuário não existir, realiza o cadastro automático (que já loga por padrão)
-      if (!result.success) {
-        result = await register(mockEmail, mockPassword);
-      }
-
-      setLoading(false);
-
-      if (result.success) {
-        onClose();
-      } else {
-        setError(
-          result.error ||
-            `Erro de autenticação com o ${provider === "google" ? "Google" : "Apple"}.`,
-        );
-      }
-    } catch (err) {
-      setLoading(false);
-      setError(
-        `Erro inesperado ao conectar com o ${provider === "google" ? "Google" : "Apple"}.`,
-      );
-    }
-  };
-
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -224,65 +186,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
         </form>
 
-        {/* Divider separator */}
-        <div className="relative z-10 flex items-center gap-3 px-8 my-1">
-          <div className="flex-grow h-[1px] bg-white/10"></div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            ou continue com
-          </span>
-          <div className="flex-grow h-[1px] bg-white/10"></div>
-        </div>
-
-        {/* OAuth Buttons */}
-        <div className="relative z-10 grid grid-cols-2 gap-3.5 px-8 mb-6 mt-4">
-          {/* Google OAuth Button */}
-          <button
-            id="google-login-btn"
-            type="button"
-            disabled={loading}
-            onClick={() => handleOAuth("google")}
-            className="flex items-center justify-center gap-2.5 bg-white/5 hover:bg-white/10 active:scale-[0.97] border border-white/10 py-2.5 rounded-xl text-xs font-bold text-white cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {/* Custom SVG Google Icon */}
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.24 1 3.2 3.73 1.24 7.73l3.87 3a7.18 7.18 0 0 1 6.89-5.69z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.46h6.46a5.52 5.52 0 0 1-2.4 3.63l3.72 2.89c2.18-2 3.71-4.96 3.71-8.62z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.11 10.73A7.18 7.18 0 0 1 5 12c0 .43.04.86.11 1.27L1.24 16.27A11.94 11.94 0 0 1 0 12c0-1.54.29-3.01.81-4.36l4.3 3.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.72-2.89a7.15 7.15 0 0 1-10.9-4.01L1.47 16.27C3.47 20.27 7.51 23 12 23z"
-              />
-            </svg>
-            <span>Google</span>
-          </button>
-
-          {/* Apple OAuth Button */}
-          <button
-            id="apple-login-btn"
-            type="button"
-            disabled={loading}
-            onClick={() => handleOAuth("apple")}
-            className="flex items-center justify-center gap-2.5 bg-white/5 hover:bg-white/10 active:scale-[0.97] border border-white/10 py-2.5 rounded-xl text-xs font-bold text-white cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {/* Custom SVG Apple Icon */}
-            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-              <path d="M17.05 13.02c.07-2.6 2.3-3.83 2.4-3.88-1.28-1.89-3.26-2.15-3.97-2.18-1.69-.17-3.3 1-4.16 1.01-.86 0-2.2-1-3.6-1-1.86.02-3.57 1.1-4.52 2.76-1.95 3.37-.5 8.32 1.34 11.02.89 1.3 1.94 2.76 3.32 2.71 1.33-.05 1.84-.85 3.44-.85 1.6 0 2.06.85 3.46.82 1.43-.03 2.37-1.31 3.25-2.55 1.02-1.44 1.44-2.84 1.46-2.91-.03-.01-2.82-1.08-2.86-4.42zM12.9 6.27c.75-.92 1.25-2.19 1.11-3.46-1.07.04-2.37.72-3.13 1.63-.69.81-1.25 2.08-1.1 3.3 1.2.09 2.47-.65 3.12-1.47z" />
-            </svg>
-            <span>Apple</span>
-          </button>
+        {/* Login social removido no beta (QA 2026-07-14): os botões
+            Google/Apple eram mocks que autenticavam todos os usuários na
+            MESMA conta compartilhada — risco de privacidade. Reativar apenas
+            com OAuth real (Supabase Auth / NextAuth). */}
+        <div className="relative z-10 px-8 mb-6 mt-2 text-center text-[10px] text-slate-500 uppercase tracking-wider">
+          Login com Google/Apple em breve
         </div>
 
         <div className="relative z-10 p-6 bg-slate-950/60 border-t border-white/5 text-center text-[10px] text-slate-400 uppercase tracking-wider">
-          Protegido por TheoSphere Security OS.
+          Ao continuar, você concorda com os{" "}
+          <a href="/termos" className="underline hover:text-slate-200">
+            Termos de Uso
+          </a>{" "}
+          e a{" "}
+          <a href="/privacidade" className="underline hover:text-slate-200">
+            Política de Privacidade
+          </a>
+          .
         </div>
       </div>
     </div>
