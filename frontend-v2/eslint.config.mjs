@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Artefato de build renomeado (workaround do lock FUSE em deploys):
+    ".next_stale/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

@@ -1210,6 +1210,45 @@ self.addEventListener("message", async (event) => {
       const isNT = bookId ? bookId >= 40 : false;
       const originalTrans = getOriginalLanguageTranslation(normalizedBook);
 
+      // ── Caminho 1: interlinear REAL (STEP Bible TAGNT via backend) ──────
+      // Palavra-a-palavra com Strong's, morfologia e glosas curadas por
+      // tradutores. Se indisponível (AT ainda não ingerido, rede, etc.),
+      // cai no caminho legado abaixo.
+      if (bookId) {
+        try {
+          const stepRes = await fetch(
+            `${BACKEND_URL.replace(/\/bible$/, "")}/linguistics/interlinear/${bookId}/${chapter}`,
+          );
+          if (stepRes.ok) {
+            const stepJson = await stepRes.json();
+            const data = stepJson?.data;
+            if (data?.available && data.verses) {
+              const interlinearMap: Record<number, any[]> = {};
+              for (const [verseNum, words] of Object.entries(data.verses)) {
+                interlinearMap[parseInt(verseNum, 10)] = (words as any[]).map(
+                  (w) => ({
+                    original: w.word,
+                    translit: w.translit,
+                    root: w.lemma || w.word,
+                    rootTrans: w.lemmaGloss || "",
+                    translations: [w.gloss],
+                    morphology: w.morph || "",
+                    strong: w.strongId,
+                  }),
+                );
+              }
+              self.postMessage({
+                type: "INTERLINEAR_CHAPTER_DATA",
+                payload: { book, chapter, interlinearMap, source: "step" },
+              });
+              return;
+            }
+          }
+        } catch {
+          // Silencioso: segue para o caminho legado
+        }
+      }
+
       try {
         // Helper: normaliza resposta do nosso backend OU do bolls.life
         const extractVerses = (

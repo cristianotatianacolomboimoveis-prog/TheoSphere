@@ -392,3 +392,25 @@ model ArchaeologicalFind {
   @@index([category])
   @@index([authenticity])
 }
+
+// Interlinear palavra-a-palavra (fonte: STEP Bible TAGNT/TAHOT, CC BY 4.0).
+// NT grego ingerido primeiro; OT hebraico na próxima fase.
+model InterlinearWord {
+  id         String @id @default(uuid())
+  bookId     Int
+  chapter    Int
+  verse      Int
+  position   Int // ordem da palavra no versículo
+  word       String // palavra no original (grego/hebraico)
+  translit   String // transliteração
+  gloss      String // glosa contextual (EN)
+  glossEs    String? // glosa em espanhol (fonte STEP)
+  strongId   String // ex: G976
+  morph      String? // código morfológico (ex: N-NSF)
+  lemma      String? // lema no original
+  lemmaGloss String? // glosa do lema
+
+  @@unique([bookId, chapter, verse, position])
+  @@index([bookId, chapter])
+  @@index([strongId])
+}

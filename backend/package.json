@@ -29,6 +29,7 @@
     "db:seed:tsk": "ts-node prisma/seed-tsk.ts",
     "db:seed:free-bibles": "ts-node prisma/seed-public-domain.ts",
     "db:seed:archaeology": "ts-node prisma/seed-archaeology.ts",
+    "db:seed:interlinear": "ts-node prisma/seed-interlinear.ts",
     "db:studio": "prisma studio",
     "ingest:drive": "ts-node trigger-ingest.ts",
     "tsk:import": "ts-node scripts/import-tsk-full.ts"
