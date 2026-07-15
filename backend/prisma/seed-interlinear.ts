@@ -39,8 +39,12 @@ type Row = [
   string,
 ];
 
-async function main() {
-  const filePath = path.join(__dirname, 'data', 'interlinear-nt.json.gz');
+async function seedFile(fileName: string) {
+  const filePath = path.join(__dirname, 'data', fileName);
+  if (!fs.existsSync(filePath)) {
+    console.warn(`[seed] Arquivo não encontrado, pulando: ${fileName}`);
+    return;
+  }
   const payload = JSON.parse(
     zlib.gunzipSync(fs.readFileSync(filePath)).toString('utf-8'),
   ) as { source: string; words: Row[] };
@@ -48,8 +52,6 @@ async function main() {
   console.log(
     `[seed] Interlinear: ${payload.words.length} palavras (${payload.source})`,
   );
-  const existing = await prisma.interlinearWord.count();
-  console.log(`[seed] Já no banco: ${existing}`);
 
   let inserted = 0;
   for (let i = 0; i < payload.words.length; i += BATCH) {
@@ -76,7 +78,16 @@ async function main() {
       `[seed] ${Math.min(i + BATCH, payload.words.length)}/${payload.words.length}...`,
     );
   }
-  console.log(`[seed] Interlinear concluído — ${inserted} novas palavras.`);
+  console.log(`[seed] ${fileName}: concluído — ${inserted} novas palavras.`);
+}
+
+async function main() {
+  const existing = await prisma.interlinearWord.count();
+  console.log(`[seed] Já no banco: ${existing}`);
+  await seedFile('interlinear-nt.json.gz'); // TAGNT — NT grego
+  await seedFile('interlinear-ot.json.gz'); // TAHOT — AT hebraico
+  const total = await prisma.interlinearWord.count();
+  console.log(`[seed] Total no banco: ${total}`);
 }
 
 main()
