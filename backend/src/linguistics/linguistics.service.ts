@@ -57,12 +57,16 @@ export class LinguisticsService {
     for (const w of words) {
       (verses[w.verse] ??= []).push(w);
     }
+    // Rótulo da fonte por testamento: TAHOT (AT hebraico) / TAGNT (NT grego)
+    const dataset = bookId < 40 ? 'TAHOT' : 'TAGNT';
     return {
       bookId,
       chapter,
       available: words.length > 0,
       source:
-        words.length > 0 ? 'STEP Bible TAGNT (Tyndale House, CC BY 4.0)' : null,
+        words.length > 0
+          ? `STEP Bible ${dataset} (Tyndale House, CC BY 4.0)`
+          : null,
       verses,
     };
   }
