@@ -119,11 +119,17 @@ export class ArchaeologyService {
    */
   async findByRef(ref: string): Promise<ArchFind[]> {
     const normalized = ref.trim().replace(/\s+/g, ' ');
+    // Match com fronteira: 'Gn 1' casa 'Gn 1', 'Gn 1:1-2:3' e 'Gn 1-9',
+    // mas NÃO 'Gn 11' (bug de prefixo corrigido no QA de 2026-07-14).
+    // Nível de livro ('Gn') casa qualquer 'Gn <cap>'.
     return this.prisma.$queryRaw<ArchFind[]>`
       SELECT * FROM "ArchaeologicalFind"
       WHERE EXISTS (
         SELECT 1 FROM unnest("relatedRefs") AS r
-        WHERE r ILIKE ${normalized + '%'}
+        WHERE r ILIKE ${normalized}
+           OR r ILIKE ${normalized + ':%'}
+           OR r ILIKE ${normalized + '-%'}
+           OR r ILIKE ${normalized + ' %'}
       )
       ORDER BY "discoveryYear" ASC NULLS LAST
       LIMIT 100

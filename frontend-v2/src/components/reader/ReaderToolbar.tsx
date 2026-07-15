@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Volume2,
   Square,
+  Languages,
 } from "lucide-react";
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
 import { TRANSLATIONS } from "../BibleReader";
@@ -53,8 +54,14 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   isPlaying,
   toggleReading,
 }) => {
-  const { activeBook, activeChapter, setBibleReference, books } =
-    useTheoStore();
+  const {
+    activeBook,
+    activeChapter,
+    setBibleReference,
+    books,
+    viewMode,
+    setViewMode,
+  } = useTheoStore();
 
   const selectedBook =
     books.find((b) => b.namePt === activeBook || b.nameEn === activeBook) ||
@@ -163,6 +170,26 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             title="Buscar no capítulo"
           >
             <Search className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Botão do modo interlinear (grego/hebraico palavra-a-palavra).
+              Antes só acessível pelo ReaderHeader, oculto no /study (QA 2026-07-14). */}
+          <button
+            onClick={() =>
+              setViewMode(viewMode === "exegesis" ? "reading" : "exegesis")
+            }
+            className={`px-3 py-2 rounded-lg border transition-all ${
+              viewMode === "exegesis"
+                ? "bg-accent/20 border-accent/30 text-accent"
+                : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-accent"
+            }`}
+            title={
+              viewMode === "exegesis"
+                ? "Voltar à leitura"
+                : "Modo interlinear (grego/hebraico)"
+            }
+          >
+            <Languages className="w-3.5 h-3.5" />
           </button>
 
           {/* Botão de Leitura Bíblica */}
