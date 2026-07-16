@@ -56,7 +56,10 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventBusService.name);
   private publisher: Redis | null = null;
   private subscriber: Redis | null = null;
-  private healthy = false;
+  /** Pub/Sub habilitado? false quando REDIS_URL não está configurada. */
+  private enabled = false;
+  /** Throttle de logs de erro de conexão (1 log/min por cliente). */
+  private lastErrorLogAt: Record<'pub' | 'sub', number> = { pub: 0, sub: 0 };
 
   // channel → handlers
   private readonly handlers = new Map<
@@ -67,26 +70,66 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
   constructor() {}
 
   onModuleInit(): void {
-    const url = process.env.REDIS_URL || 'redis://localhost:6379';
+    const url = process.env.REDIS_URL;
 
-    // Lazy connect, don't block startup if Redis is down.
+    // Sem REDIS_URL → Pub/Sub desabilitado deliberadamente (dev/single-pod).
+    // Não tentamos localhost: em produção isso só gera "degraded" eterno
+    // no health check sem nenhum Redis de verdade por trás.
+    if (!url) {
+      this.logger.log(
+        'REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).',
+      );
+      return;
+    }
+    this.enabled = true;
+
+    // Conexão lazy para não bloquear o bootstrap se o Redis estiver fora.
+    // retryStrategy NUNCA retorna null: desistir permanentemente deixava o
+    // cliente em status "end" para sempre após 5 tentativas (bug do
+    // "degraded" permanente em produção). Backoff com teto de 10s.
     const opts = {
       lazyConnect: true,
       maxRetriesPerRequest: 2,
       enableOfflineQueue: false,
-      retryStrategy: (times: number): number | null =>
-        times > 5 ? null : Math.min(times * 200, 2000),
+      retryStrategy: (times: number): number => Math.min(times * 500, 10_000),
     } as const;
 
     this.publisher = new Redis(url, opts);
     this.subscriber = new Redis(url, opts);
 
     const onError = (who: 'pub' | 'sub') => (err: Error) => {
-      this.healthy = false;
-      this.logger.warn(`Redis ${who} error: ${err.message}`);
+      // ioredis emite 'error' a cada tentativa de reconexão — throttle
+      // para não inundar os logs durante uma indisponibilidade longa.
+      const now = Date.now();
+      if (now - this.lastErrorLogAt[who] > 60_000) {
+        this.lastErrorLogAt[who] = now;
+        this.logger.warn(`Redis ${who} error: ${err.message}`);
+      }
     };
     this.publisher.on('error', onError('pub'));
     this.subscriber.on('error', onError('sub'));
+
+    this.publisher.on('ready', () => {
+      this.logger.log('Redis pub pronto (conectado/reconectado).');
+    });
+
+    // Ao (re)conectar o subscriber, garante a inscrição de todos os canais
+    // registrados — cobre o caso em que o subscribe() inicial falhou porque
+    // o Redis ainda estava indisponível no boot.
+    this.subscriber.on('ready', () => {
+      const channels = [...this.handlers.keys()];
+      if (channels.length === 0) return;
+      this.subscriber
+        ?.subscribe(...channels)
+        .then(() =>
+          this.logger.log(
+            `Redis sub pronto — ${channels.length} canal(is) reinscrito(s).`,
+          ),
+        )
+        .catch((err: Error) =>
+          this.logger.warn(`Reinscrição de canais falhou: ${err.message}`),
+        );
+    });
 
     this.subscriber.on('message', (channel, raw) => {
       const set = this.handlers.get(channel);
@@ -110,10 +153,9 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
 
     Promise.all([this.publisher.connect(), this.subscriber.connect()])
       .then(() => {
-        this.healthy = true;
         this.logger.log(`EventBus connected to ${url}`);
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         this.logger.warn(
           `EventBus could not reach Redis (${url}): ${err.message}. ` +
             `Pub/Sub will be a no-op until reconnect succeeds.`,
@@ -125,9 +167,18 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
     await Promise.allSettled([this.publisher?.quit(), this.subscriber?.quit()]);
   }
 
-  /** Returns true if the publisher connection is currently usable. */
+  /** Pub/Sub está configurado (REDIS_URL presente)? */
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /**
+   * Saúde derivada do status REAL da conexão do publisher — nada de flag
+   * "sticky": um erro transitório não marca o serviço como degradado para
+   * sempre; ao reconectar, o status volta a 'ready' e a saúde se recupera.
+   */
   isHealthy(): boolean {
-    return this.healthy && this.publisher?.status === 'ready';
+    return this.publisher?.status === 'ready';
   }
 
   /**

@@ -21,4 +21,20 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         value: "https://cristianocolombo.vercel.app,https://theosphere.vercel.app,https://frontend-v2-omega-seven.vercel.app"
+      # Redis (Render Key Value) — usado pelo EventBus (pub/sub), throttler
+      # distribuído e cache L2 de embeddings. Sem esta var o backend roda com
+      # pub/sub desabilitado (não é fatal, mas perde eventos e rate-limit global).
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: theosphere-redis
+          property: connectionString
+
+  # Instância Key Value (Redis-compatível) — plano free (25 MB).
+  # ipAllowList vazio = acesso apenas interno (serviços do mesmo workspace).
+  - type: keyvalue
+    name: theosphere-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 

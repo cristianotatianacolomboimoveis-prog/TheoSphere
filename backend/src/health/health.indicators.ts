@@ -30,16 +30,27 @@ export class TheoHealthIndicators {
   }
 
   /**
-   * Redis is considered "up" if the publisher connection is ready.
-   * Returns `up` with `degraded: true` when not ready — this lets a /ready
-   * probe pass while still surfacing the issue in the payload.
+   * Redis é "up" se a conexão do publisher estiver pronta.
+   *
+   * Três estados possíveis no payload:
+   *   - up                        → conectado e saudável
+   *   - up + pubsub: 'disabled'   → REDIS_URL não configurada (deliberado,
+   *                                 não é falha — dev/single-pod)
+   *   - up + degraded: true       → configurado, mas a conexão caiu
+   *
+   * Sempre `up()` porque a indisponibilidade do Pub/Sub não é fatal à API.
    */
   checkRedis(key = 'redis') {
     const indicator = this.health.check(key);
+    if (!this.events.isEnabled()) {
+      return indicator.up({
+        pubsub: 'disabled',
+        reason: 'REDIS_URL not set — pub/sub intentionally off',
+      });
+    }
     if (this.events.isHealthy()) {
       return indicator.up();
     }
-    // Use up() with metadata; pub/sub outage is not fatal to the API.
     return indicator.up({ degraded: true, reason: 'redis pub/sub not ready' });
   }
 }
