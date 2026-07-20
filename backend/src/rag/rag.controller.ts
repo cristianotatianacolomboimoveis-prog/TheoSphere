@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { RagService, ChatMessage } from './rag.service';
-import { UserDocument } from './user-context.service';
+import { UserDocument, UserContextService } from './user-context.service';
 import { SemanticCacheService } from './semantic-cache.service';
 import { BibleIngestionService } from '../bible-ingestion.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -26,6 +26,7 @@ import {
   IsArray,
   IsNotEmpty,
   IsBoolean,
+  IsIn,
   MaxLength,
   ArrayMaxSize,
 } from 'class-validator';
@@ -107,6 +108,27 @@ class DictateDto {
   transcript!: string;
 }
 
+/**
+ * Feedback do usuário sobre uma resposta do TheoAI (aprendizado contínuo).
+ * 👍 promove a resposta à coleção `validated_qa` (contexto secundário);
+ * 👎 invalida entradas quase idênticas do cache semântico.
+ * `userId` vem do JWT — visitantes não promovem conhecimento compartilhado.
+ */
+class FeedbackDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  query!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20000)
+  answer!: string;
+
+  @IsIn(['up', 'down'])
+  rating!: 'up' | 'down';
+}
+
 /* ─── Controller ────────────────────────────────────────── */
 
 @Controller('api/v1/rag')
@@ -118,7 +140,45 @@ export class RagController {
     private readonly semanticCache: SemanticCacheService,
     private readonly bibleIngestion: BibleIngestionService,
     private readonly audit: AuditService,
+    private readonly userContext: UserContextService,
   ) {}
+
+  /**
+   * Feedback do usuário — motor do aprendizado contínuo seguro.
+   * 👍 (autenticado): promove a `validated_qa` com dedup semântico.
+   * 👍 (guest): aceito mas não promove (evita poluição do acervo comum).
+   * 👎 (qualquer): invalida entradas quase idênticas do cache semântico.
+   */
+  @Post('feedback')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  async feedback(@Body() body: FeedbackDto, @Req() req: Request) {
+    const userId = req.user?.userId;
+
+    if (body.rating === 'down') {
+      const invalidated = await this.semanticCache.invalidateSimilar(
+        body.query,
+      );
+      return {
+        success: true,
+        data: { action: 'cache-invalidated', invalidated },
+      };
+    }
+
+    if (!userId) {
+      // Guest: registra a intenção, não promove conhecimento compartilhado
+      return { success: true, data: { action: 'ack', promoted: false } };
+    }
+
+    const result = await this.userContext.promoteValidatedAnswer(
+      body.query,
+      body.answer,
+      userId,
+    );
+    return {
+      success: true,
+      data: { action: 'promote', ...result },
+    };
+  }
 
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
@@ -366,6 +426,33 @@ export class RagController {
     const userId = req.user?.userId || 'public-guest';
     const graph = await this.ragService.getKnowledgeGraph(q, userId);
     return { success: true, data: graph };
+  }
+
+  /** Painel de moderação: lista as Q&A validadas (paginado). */
+  @Get('validated-qa')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  async listValidatedQa(@Query('page') page?: string) {
+    const data = await this.userContext.listValidatedQa(
+      Math.max(1, parseInt(page || '1', 10) || 1),
+    );
+    return { success: true, data };
+  }
+
+  /** Painel de moderação: remove uma Q&A validada. */
+  @Delete('validated-qa/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  async deleteValidatedQa(@Param('id') id: string, @Req() req: Request) {
+    const removed = await this.userContext.deleteValidatedQa(id);
+    await this.audit.log({
+      actorId: req.user?.userId,
+      action: 'validated_qa.delete',
+      resource: 'UserEmbedding',
+      resourceId: id,
+      req,
+    });
+    return { success: true, data: { removed } };
   }
 
   @Delete('cache')

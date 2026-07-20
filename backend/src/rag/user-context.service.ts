@@ -297,6 +297,271 @@ export class UserContextService implements OnModuleInit {
   }
 
   /**
+   * Busca SEMPRE na Biblioteca RAG do Google Drive (chunks type='library_book').
+   * Cobre tanto a biblioteca do próprio usuário quanto a biblioteca
+   * compartilhada ('public-guest' — obras ingeridas sem userId), que antes
+   * nunca era consultada por usuários logados. Fonte prioritária do chat:
+   * se retornar hits, a IA responde com base neles; se vazio, o RagService
+   * aciona a IA com conhecimento geral (feature 2026-07-20).
+   */
+  async searchDriveLibrary(
+    query: string,
+    userId?: string,
+    maxResults: number = 5,
+  ): Promise<
+    { title: string; content: string; similarity: number; fileName: string }[]
+  > {
+    try {
+      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const owner = userId || 'public-guest';
+
+      const rows = await this.prisma.$queryRaw<any[]>`
+        SELECT content, metadata,
+               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+        FROM "UserEmbedding"
+        WHERE type = 'library_book'
+          AND ("userId" = ${owner} OR "userId" = 'public-guest')
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+        LIMIT ${maxResults * 2};
+      `;
+
+      // Dedup por parentText (vários child chunks podem apontar pro mesmo pai)
+      const seen = new Set<string>();
+      const results: {
+        title: string;
+        content: string;
+        similarity: number;
+        fileName: string;
+      }[] = [];
+
+      for (const r of rows) {
+        if (r.similarity <= 0.3) continue;
+        const meta =
+          typeof r.metadata === 'string'
+            ? JSON.parse(r.metadata)
+            : r.metadata || {};
+        const content: string = meta.parentText || r.content;
+        const key = content.slice(0, 120);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({
+          title: meta.title || meta.fileName || 'Obra da Biblioteca',
+          fileName: meta.fileName || 'desconhecido',
+          content,
+          similarity: r.similarity,
+        });
+        if (results.length >= maxResults) break;
+      }
+
+      if (results.length > 0) {
+        this.logger.log(
+          `[Drive Library] ${results.length} hits | Best: ${results[0].similarity.toFixed(3)}`,
+        );
+      }
+      return results;
+    } catch (err) {
+      this.logger.debug(
+        `[Drive Library] Busca falhou: ${(err as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Promove uma resposta validada por humano (👍) à coleção `validated_qa`.
+   * Regras anti-feedback-loop (2026-07-20):
+   *  - chave de recuperação = a PERGUNTA (embedding); a resposta fica no metadata
+   *  - dedup semântico: similaridade ≥ 0.95 com pergunta já validada → descarta
+   *  - a coleção é sempre contexto SECUNDÁRIO, rotulado, abaixo da Biblioteca
+   */
+  async promoteValidatedAnswer(
+    query: string,
+    answer: string,
+    validatedBy: string,
+  ): Promise<{ promoted: boolean; reason?: string; votes?: number }> {
+    // Nº mínimo de validações independentes para ativar (default 1 no beta;
+    // subir para 2+ via env quando a base de usuários crescer).
+    const minVotesRaw = Number(process.env.VALIDATED_QA_MIN_VOTES ?? 1);
+    const minVotes =
+      Number.isFinite(minVotesRaw) && minVotesRaw >= 1 ? minVotesRaw : 1;
+
+    try {
+      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+
+      // Pergunta validada quase idêntica já existe? → conta como VOTO, não duplicata cega
+      const existing = await this.prisma.$queryRaw<any[]>`
+        SELECT id, metadata,
+               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+        FROM "UserEmbedding"
+        WHERE type = 'validated_qa'
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+        LIMIT 1;
+      `;
+
+      if (existing.length > 0 && existing[0].similarity >= 0.95) {
+        const row = existing[0];
+        const meta =
+          typeof row.metadata === 'string'
+            ? JSON.parse(row.metadata)
+            : row.metadata || {};
+        const votes: string[] = Array.isArray(meta.votes)
+          ? meta.votes
+          : [meta.validatedBy].filter(Boolean);
+
+        if (votes.includes(validatedBy)) {
+          // Mesmo usuário não vota duas vezes na mesma pergunta
+          return { promoted: false, reason: 'duplicate', votes: votes.length };
+        }
+
+        votes.push(validatedBy);
+        const status = votes.length >= minVotes ? 'active' : 'pending';
+        const newMeta = { ...meta, votes, status };
+
+        await this.prisma.$executeRaw`
+          UPDATE "UserEmbedding"
+          SET metadata = ${JSON.stringify(newMeta)}::jsonb
+          WHERE id = ${row.id};
+        `;
+        this.logger.log(
+          `[Validated QA] Voto de ${validatedBy} (${votes.length}/${minVotes}) → ${status}`,
+        );
+        return {
+          promoted: status === 'active',
+          reason: status === 'pending' ? 'pending' : undefined,
+          votes: votes.length,
+        };
+      }
+
+      // Primeira validação desta pergunta
+      const status = 1 >= minVotes ? 'active' : 'pending';
+      const metadata = {
+        query,
+        answer,
+        validatedBy,
+        votes: [validatedBy],
+        status,
+        validatedAt: new Date().toISOString(),
+        origin: 'theoai',
+      };
+
+      await this.prisma.$executeRaw`
+        INSERT INTO "UserEmbedding" (id, "userId", type, content, metadata, embedding, "createdAt")
+        VALUES (
+          gen_random_uuid()::text,
+          ${validatedBy},
+          'validated_qa',
+          ${query},
+          ${JSON.stringify(metadata)}::jsonb,
+          ${JSON.stringify(queryEmbedding)}::vector,
+          NOW()
+        );
+      `;
+      this.logger.log(
+        `[Validated QA] Registrada por ${validatedBy} (1/${minVotes}) → ${status}`,
+      );
+      return {
+        promoted: status === 'active',
+        reason: status === 'pending' ? 'pending' : undefined,
+        votes: 1,
+      };
+    } catch (err) {
+      this.logger.error(
+        `[Validated QA] Falha na promoção: ${(err as Error).message}`,
+      );
+      return { promoted: false, reason: 'error' };
+    }
+  }
+
+  /** Lista paginada das Q&A validadas (painel de moderação). */
+  async listValidatedQa(
+    page: number = 1,
+    pageSize: number = 20,
+  ): Promise<{ items: any[]; total: number; page: number; pageSize: number }> {
+    const skip = (Math.max(1, page) - 1) * pageSize;
+    const [rows, total] = await Promise.all([
+      this.prisma.$queryRaw<any[]>`
+        SELECT id, content, metadata, "createdAt"
+        FROM "UserEmbedding"
+        WHERE type = 'validated_qa'
+        ORDER BY "createdAt" DESC
+        LIMIT ${pageSize} OFFSET ${skip};
+      `,
+      this.prisma.userEmbedding.count({ where: { type: 'validated_qa' } }),
+    ]);
+
+    const items = rows.map((r) => {
+      const meta =
+        typeof r.metadata === 'string'
+          ? JSON.parse(r.metadata)
+          : r.metadata || {};
+      return {
+        id: r.id,
+        query: meta.query || r.content,
+        answer: (meta.answer || '').slice(0, 300),
+        status: meta.status || 'active',
+        votes: Array.isArray(meta.votes) ? meta.votes.length : 1,
+        validatedAt: meta.validatedAt || r.createdAt,
+      };
+    });
+
+    return { items, total, page, pageSize };
+  }
+
+  /** Remove uma Q&A validada (moderação). Retorna quantos registros saíram. */
+  async deleteValidatedQa(id: string): Promise<number> {
+    const result = await this.prisma.userEmbedding.deleteMany({
+      where: { id, type: 'validated_qa' },
+    });
+    if (result.count > 0) {
+      this.logger.log(`[Validated QA] Removida por moderação: ${id}`);
+    }
+    return result.count;
+  }
+
+  /**
+   * Busca respostas validadas semelhantes à pergunta atual (contexto
+   * secundário do chat — compartilhado entre todos os usuários).
+   */
+  async searchValidatedQa(
+    query: string,
+    maxResults: number = 2,
+  ): Promise<{ question: string; answer: string; similarity: number }[]> {
+    try {
+      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      // Só entradas 'active' (quórum de votos atingido) alimentam o chat;
+      // 'pending' aguarda mais validações. IS NULL cobre entradas legadas.
+      const rows = await this.prisma.$queryRaw<any[]>`
+        SELECT content, metadata,
+               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+        FROM "UserEmbedding"
+        WHERE type = 'validated_qa'
+          AND (metadata->>'status' = 'active' OR metadata->>'status' IS NULL)
+        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+        LIMIT ${maxResults};
+      `;
+      return rows
+        .filter((r) => r.similarity > 0.5)
+        .map((r) => {
+          const meta =
+            typeof r.metadata === 'string'
+              ? JSON.parse(r.metadata)
+              : r.metadata || {};
+          return {
+            question: meta.query || r.content,
+            answer: meta.answer || '',
+            similarity: r.similarity,
+          };
+        })
+        .filter((r) => r.answer.length > 0);
+    } catch (err) {
+      this.logger.debug(
+        `[Validated QA] Busca falhou: ${(err as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
    * Transforma um documento do usuário em texto para embedding.
    */
   private buildDocumentText(doc: UserDocument): string {

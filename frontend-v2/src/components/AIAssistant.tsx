@@ -20,10 +20,13 @@ import {
   Wifi,
   WifiOff,
   Info,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
+import { api } from "@/lib/api";
 import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
 import { useTheoStore } from "@/store/useTheoStore";
@@ -35,6 +38,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  /** Pergunta que originou esta resposta (para o feedback 👍/👎) */
+  query?: string;
   meta?: {
     cached: boolean;
     similarity?: number;
@@ -89,6 +94,7 @@ function createUserMessage(content: string): Message {
 function createAssistantMessage(
   content: string,
   meta?: Message["meta"],
+  query?: string,
 ): Message {
   return {
     id: `ai-${Date.now()}`,
@@ -96,6 +102,7 @@ function createAssistantMessage(
     content,
     timestamp: new Date(),
     meta,
+    query,
   };
 }
 
@@ -164,7 +171,11 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       // Usa o hook RAG (tenta backend, fallback local)
       const response = await chat(contextualQuery, history);
 
-      const aiMsg = createAssistantMessage(response.content, response.meta);
+      const aiMsg = createAssistantMessage(
+        response.content,
+        response.meta,
+        content,
+      );
 
       setMessages((prev) => [...prev, aiMsg]);
 
@@ -186,6 +197,29 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
 
   const clearChat = () => {
     setMessages([]);
+  };
+
+  /* ── Feedback 👍/👎 (aprendizado contínuo) ──────────────
+   * 👍 promove a resposta à coleção validated_qa no backend;
+   * 👎 invalida o cache semântico para essa pergunta.
+   * Estado local impede voto duplo na mesma mensagem.        */
+  const [feedbackGiven, setFeedbackGiven] = useState<
+    Record<string, "up" | "down">
+  >({});
+
+  const sendFeedback = async (msg: Message, rating: "up" | "down") => {
+    if (!msg.query || feedbackGiven[msg.id]) return;
+    setFeedbackGiven((prev) => ({ ...prev, [msg.id]: rating }));
+    try {
+      await api.post(
+        "rag/feedback",
+        { query: msg.query, answer: msg.content, rating },
+        { withAuth: true },
+      );
+    } catch (err) {
+      // Não bloqueia a UX — feedback é best-effort
+      console.warn("Falha ao enviar feedback:", err);
+    }
   };
 
   /* ── Render markdown-like content ─────────────────────── */
@@ -620,6 +654,47 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
                     <div className="space-y-0">
                       {renderContent(msg.content)}
                       {renderMetaBadge(msg.meta)}
+                      {msg.query && (
+                        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5">
+                          <button
+                            onClick={() => sendFeedback(msg, "up")}
+                            disabled={!!feedbackGiven[msg.id]}
+                            aria-label="Resposta útil — validar"
+                            title="Resposta útil (valida e ensina o TheoAI)"
+                            className={`p-1.5 rounded-md transition-colors ${
+                              feedbackGiven[msg.id] === "up"
+                                ? "text-emerald-400 bg-emerald-500/10"
+                                : feedbackGiven[msg.id]
+                                  ? "text-white/10 cursor-default"
+                                  : "text-white/25 hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                            }`}
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => sendFeedback(msg, "down")}
+                            disabled={!!feedbackGiven[msg.id]}
+                            aria-label="Resposta ruim — descartar do cache"
+                            title="Resposta ruim (remove do cache de respostas)"
+                            className={`p-1.5 rounded-md transition-colors ${
+                              feedbackGiven[msg.id] === "down"
+                                ? "text-red-400 bg-red-500/10"
+                                : feedbackGiven[msg.id]
+                                  ? "text-white/10 cursor-default"
+                                  : "text-white/25 hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
+                            }`}
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </button>
+                          {feedbackGiven[msg.id] && (
+                            <span className="text-[9px] text-white/25 uppercase tracking-wider font-bold ml-1">
+                              {feedbackGiven[msg.id] === "up"
+                                ? "Obrigado! Resposta validada"
+                                : "Anotado — não será reutilizada"}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -31,21 +31,16 @@ interface UserNote {
   timestamp: number;
 }
 import { motion, AnimatePresence } from "framer-motion";
-import { BIBLE_BOOKS, type BibleBook } from "@/data/bibleBooks";
-import {
-  CROSS_REFERENCES,
-  findRelatedReferences,
-} from "@/data/crossReferences";
-import { BIBLICAL_PEOPLE, searchPeople } from "@/data/biblicalPeople";
-import { BIBLICAL_EVENTS, searchEvents } from "@/data/biblicalEvents";
-import { SEED_LOCATIONS, type GeoLocation3D } from "@/data/geoSeedData";
-import { THEOLOGICAL_TOPICS, searchTopics } from "@/data/theologicalTopics";
-import { COMMENTARIES, getCommentariesForReference } from "@/data/commentaries";
-import { DICTIONARIES, searchDictionaries } from "@/data/dictionaries";
+import { CROSS_REFERENCES } from "@/data/crossReferences";
+import { BIBLICAL_PEOPLE } from "@/data/biblicalPeople";
+import { BIBLICAL_EVENTS } from "@/data/biblicalEvents";
+import { SEED_LOCATIONS } from "@/data/geoSeedData";
+import { THEOLOGICAL_TOPICS } from "@/data/theologicalTopics";
+import { COMMENTARIES } from "@/data/commentaries";
+import { DICTIONARIES } from "@/data/dictionaries";
+import { parsePassage, passagesOverlap } from "@/lib/passageRef";
 
 /* ─── Types ──────────────────────────────────────────────── */
-
-import { BIBLE_BOOK_TO_ID } from "@/lib/bibleUtils";
 
 interface VerseData {
   verse: number;
@@ -60,106 +55,6 @@ interface Section {
 }
 
 /* ─── Helpers ────────────────────────────────────────────── */
-
-/**
- * Normalizes a reference like "Gênesis 1:1" to "Genesis 1:1"
- * to match internal dataset keys.
- */
-function normalizeRefToEnglish(ref: string): string {
-  if (!ref) return "";
-  const parts = ref.split(" ");
-  if (parts.length < 2) return ref;
-
-  // Handle books with numbers like "1 João"
-  let bookName = "";
-  let chapterVerse = "";
-
-  if (/^\d/.test(parts[0])) {
-    bookName = parts[0] + " " + parts[1];
-    chapterVerse = parts.slice(2).join(" ");
-  } else {
-    bookName = parts[0];
-    chapterVerse = parts.slice(1).join(" ");
-  }
-
-  // Reverse mapping from BIBLE_BOOK_TO_ID values back to English keys
-  // This is a bit manual since BIBLE_BOOK_TO_ID is ID-based
-  const id = BIBLE_BOOK_TO_ID[bookName];
-  if (!id) return ref;
-
-  // Find the English key for this ID (first key in English that maps to this ID)
-  const englishKeys: Record<number, string> = {
-    1: "Genesis",
-    2: "Exodus",
-    3: "Leviticus",
-    4: "Numbers",
-    5: "Deuteronomy",
-    6: "Joshua",
-    7: "Judges",
-    8: "Ruth",
-    9: "1 Samuel",
-    10: "2 Samuel",
-    11: "1 Kings",
-    12: "2 Kings",
-    13: "1 Chronicles",
-    14: "2 Chronicles",
-    15: "Ezra",
-    16: "Nehemiah",
-    17: "Esther",
-    18: "Job",
-    19: "Psalms",
-    20: "Proverbs",
-    21: "Ecclesiastes",
-    22: "Song of Solomon",
-    23: "Isaiah",
-    24: "Jeremiah",
-    25: "Lamentations",
-    26: "Ezekiel",
-    27: "Daniel",
-    28: "Hosea",
-    29: "Joel",
-    30: "Amos",
-    31: "Obadiah",
-    32: "Jonah",
-    33: "Micah",
-    34: "Nahum",
-    35: "Habakkuk",
-    36: "Zephaniah",
-    37: "Haggai",
-    38: "Zechariah",
-    39: "Malachi",
-    40: "Matthew",
-    41: "Mark",
-    42: "Luke",
-    43: "John",
-    44: "Acts",
-    45: "Romans",
-    46: "1 Corinthians",
-    47: "2 Corinthians",
-    48: "Galatians",
-    49: "Ephesians",
-    50: "Philippians",
-    51: "Colossians",
-    52: "1 Thessalonians",
-    53: "2 Thessalonians",
-    54: "1 Timothy",
-    55: "2 Timothy",
-    56: "Titus",
-    57: "Philemon",
-    58: "Hebrews",
-    59: "James",
-    60: "1 Peter",
-    61: "2 Peter",
-    62: "1 John",
-    63: "2 John",
-    64: "3 John",
-    65: "Jude",
-    66: "Revelation",
-  };
-
-  const engBook = englishKeys[id];
-  return engBook ? `${engBook} ${chapterVerse}` : ref;
-}
 
 function isHebrewOrGreek(text: string): boolean {
   // Simple heuristic: Hebrew (U+0590 to U+05FF) or Greek (U+0370 to U+03FF)
@@ -263,12 +158,43 @@ export default function PassageGuide({
   const fetchPassage = useCallback(async (ref: string) => {
     setLoading(true);
     try {
-      // CONFIG.API_BASE_URL já contém /api/v1 — usar path relativo.
+      // Caminho principal: a referência é reconhecida estruturalmente
+      // (livro + capítulo + faixa de versículos) → lookup direto de
+      // capítulo no backend (endpoint com Cache-Control de 1h), em vez
+      // da busca híbrida — que é semântica e não retorna a passagem.
+      const segs = parsePassage(ref);
+      if (segs.length > 0) {
+        const seg = segs[0];
+        const result = await api.get<any>(
+          `bible/chapter?translation=blivre&bookId=${seg.bookId}&chapter=${seg.chapterStart}`,
+        );
+        const chapterVerses: VerseData[] = (result?.data?.verses ?? []).map(
+          (v: any) => ({ verse: v.verse, text: String(v.text).trim() }),
+        );
+        const inRange =
+          seg.verseStart !== null && seg.chapterStart === seg.chapterEnd
+            ? chapterVerses.filter(
+                (v) =>
+                  v.verse >= (seg.verseStart as number) &&
+                  v.verse <= (seg.verseEnd ?? (seg.verseStart as number)),
+              )
+            : chapterVerses;
+
+        if (inRange.length > 0) {
+          setVerses(inRange);
+          setReference(ref);
+          return;
+        }
+        // Capítulo vazio nesta tradução → cai para a busca híbrida abaixo.
+      }
+
+      // Fallback: referência não reconhecida (ou sem texto local) →
+      // busca híbrida. CONFIG.API_BASE_URL já contém /api/v1.
       const result = await api.get<any>(
         `search/verses?q=${encodeURIComponent(ref)}&limit=50`,
       );
       if (result.success && result.data) {
-        // Deduplicate and filter: keep only Portuguese, one version per verse number
+        // Dedup: mantém uma versão por número de versículo, apenas português
         const seenVerses = new Set<number>();
         const filtered = result.data.reduce((acc: VerseData[], v: any) => {
           const vNum = v.verse;
@@ -285,7 +211,7 @@ export default function PassageGuide({
         setReference(ref);
       }
     } catch (err) {
-      console.error("Erro ao buscar passagem localmente:", err);
+      console.error("Erro ao buscar passagem:", err);
     } finally {
       setLoading(false);
     }
@@ -312,11 +238,10 @@ export default function PassageGuide({
     [verses],
   );
 
-  /* ── Normalized context for matching ──────────────────── */
-  const normalizedRef = useMemo(
-    () => normalizeRefToEnglish(reference),
-    [reference],
-  );
+  /* ── Structural segments for matching ─────────────────── */
+  // Comparação estrutural (livro + capítulo + versículos) em vez de
+  // igualdade/substring de strings — funciona com PT, EN e faixas.
+  const currentSegs = useMemo(() => parsePassage(reference), [reference]);
 
   /* ── Contextual Datasets (Memoized for Performance) ── */
   const relatedPeople = useMemo(() => {
@@ -332,33 +257,40 @@ export default function PassageGuide({
   }, [fullText]);
 
   const relatedEvents = useMemo(() => {
-    return BIBLICAL_EVENTS.filter((e) => {
-      const normalizedBase = normalizeRefToEnglish(e.scriptureBase);
-      return (
-        normalizedBase.toLowerCase().includes(normalizedRef.toLowerCase()) ||
-        normalizedRef.toLowerCase().includes(normalizedBase.toLowerCase()) ||
-        (normalizedRef.split(":")[0] === normalizedBase.split(":")[0] &&
-          normalizedRef.split(":")[0].length > 0)
-      );
-    });
-  }, [normalizedRef]);
+    if (currentSegs.length === 0) return [];
+    return BIBLICAL_EVENTS.filter((e) =>
+      passagesOverlap(currentSegs, parsePassage(e.scriptureBase)),
+    );
+  }, [currentSegs]);
 
   const relatedTopics = useMemo(() => {
+    if (currentSegs.length === 0) return [];
     return THEOLOGICAL_TOPICS.filter((t) =>
-      t.keyVerses.some((v) => {
-        const normalizedV = normalizeRefToEnglish(v);
-        return (
-          normalizedV.toLowerCase().includes(normalizedRef.toLowerCase()) ||
-          normalizedRef
-            .toLowerCase()
-            .includes(normalizedV.toLowerCase().split(":")[0])
-        );
-      }),
+      t.keyVerses.some((v) => passagesOverlap(currentSegs, parsePassage(v))),
     );
-  }, [normalizedRef]);
+  }, [currentSegs]);
 
-  const crossRefs = findRelatedReferences(normalizedRef);
-  const commentaries = getCommentariesForReference(normalizedRef);
+  const crossRefs = useMemo(() => {
+    if (currentSegs.length === 0) return [];
+    const related: string[] = [];
+    for (const cr of CROSS_REFERENCES) {
+      if (passagesOverlap(currentSegs, parsePassage(cr.from))) {
+        related.push(...cr.to);
+      } else if (
+        cr.to.some((t) => passagesOverlap(currentSegs, parsePassage(t)))
+      ) {
+        related.push(cr.from);
+      }
+    }
+    return [...new Set(related)];
+  }, [currentSegs]);
+
+  const commentaries = useMemo(() => {
+    if (currentSegs.length === 0) return [];
+    return COMMENTARIES.filter((c) =>
+      passagesOverlap(currentSegs, parsePassage(c.reference)),
+    );
+  }, [currentSegs]);
 
   // Simulated dictionary extraction (would use NLP in real world)
   const dictionaryMatches = useMemo(() => {

@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 
 interface DashboardCardProps {
   title: string;
@@ -16,6 +17,10 @@ export function DashboardCard({
   children,
   className = "",
 }: DashboardCardProps) {
+  // Fix 2026-07-20: o botão "..." era decorativo (sem onClick).
+  // Agora recolhe/expande o conteúdo do card.
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -33,11 +38,30 @@ export function DashboardCard({
             </p>
           )}
         </div>
-        <button className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-white/5 text-gray-400 dark:text-white/20 hover:text-gray-600 dark:hover:text-white/60 transition-all">
-          <MoreHorizontal className="w-4 h-4" />
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? `Expandir ${title}` : `Recolher ${title}`}
+          aria-expanded={!collapsed}
+          className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-white/5 text-gray-400 dark:text-white/20 hover:text-gray-600 dark:hover:text-white/60 transition-all cursor-pointer"
+        >
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${collapsed ? "-rotate-90" : ""}`}
+          />
         </button>
       </div>
-      <div className="p-5 flex-grow">{children}</div>
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-grow"
+          >
+            <div className="p-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

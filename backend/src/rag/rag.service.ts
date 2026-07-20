@@ -238,6 +238,28 @@ export class RagService {
     // ═══ Rastreamento de fontes utilizadas ═══
     const collectedSources: RagSource[] = [];
 
+    // ═══ ETAPA 1.55: Biblioteca RAG do Drive — FONTE PRIORITÁRIA ═══
+    // Regra do produto (2026-07-20): sempre buscar primeiro na biblioteca
+    // ingerida do Google Drive (usuário + acervo compartilhado). Com hits,
+    // a IA responde ancorada nesses trechos; sem hits, aciona a IA com
+    // conhecimento geral (fluxo tradicional abaixo).
+    const driveLibraryContext = await this.buildDriveLibraryContext(
+      sanitizedQuery,
+      userId,
+      collectedSources,
+    );
+    const libraryHasHits = driveLibraryContext.length > 0;
+    if (!libraryHasHits) {
+      this.logger.log(
+        '[RAG] Biblioteca do Drive sem resultados relevantes — acionando IA com conhecimento geral.',
+      );
+    }
+
+    // ═══ ETAPA 1.57: Respostas validadas (👍) — contexto SECUNDÁRIO ═══
+    const validatedQaContext = jsonMode
+      ? ''
+      : await this.buildValidatedQaContext(sanitizedQuery, collectedSources);
+
     // ═══ ETAPA 1.6: Busca Híbrida (Open Source + Cross-Reference no Drive) ═══
     let openSourceContext = '';
     let hybridUserContext = '';
@@ -370,8 +392,12 @@ export class RagService {
             ];
 
             const systemMessage = jsonMode
-              ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${theologicalContext}\n${bibleContext}\n${userContextText}`
-              : `${THEO_AI_SYSTEM_PROMPT}\n\nCONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
+              ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${driveLibraryContext}\n${theologicalContext}\n${bibleContext}\n${userContextText}`
+              : `${THEO_AI_SYSTEM_PROMPT}\n\n${
+                  libraryHasHits
+                    ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
+                    : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
+                }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
 
             // 30s Timeout + Race for resilience (DT-9)
             const timeoutPromise = new Promise<never>((_, reject) =>
@@ -439,7 +465,11 @@ export class RagService {
               ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
               : THEO_AI_SYSTEM_PROMPT;
 
-            const fullPrompt = `CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
+            const fullPrompt = `${
+              libraryHasHits
+                ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
+                : ''
+            }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
 
             const res = await this.openai!.chat.completions.create({
               model: 'gpt-4o-mini',
@@ -512,6 +542,7 @@ export class RagService {
     // Calcula custo estimado Gemini (Flash 1.5: $0.075/1M tokens)
     const totalInputTokens = this.estimateTokens(
       THEO_AI_SYSTEM_PROMPT +
+        driveLibraryContext +
         userContextText +
         theologicalContext +
         bibleContext +
@@ -1335,6 +1366,72 @@ export class RagService {
    * nuances que bi-encoders perdem (ex: negação, relação entre conceitos).
    * Fallback automático para keyword-overlap se Gemini estiver indisponível.
    */
+  /**
+   * Monta o bloco SECUNDÁRIO de respostas validadas por humanos (👍).
+   * Sempre rotulado como resposta anterior do TheoAI e nunca com a mesma
+   * autoridade da Biblioteca — mitiga o feedback loop de auto-aprendizado.
+   */
+  private async buildValidatedQaContext(
+    query: string,
+    sources: RagSource[],
+  ): Promise<string> {
+    const hits = await this.userContext.searchValidatedQa(query);
+    if (hits.length === 0) return '';
+
+    for (const h of hits) {
+      sources.push({
+        type: 'theology',
+        title: 'TheoAI — Resposta validada',
+        reference: h.question.slice(0, 80),
+        snippet: h.answer.slice(0, 150),
+        score: h.similarity,
+      });
+    }
+
+    return [
+      '=== RESPOSTAS ANTERIORES VALIDADAS DO THEOAI (CONTEXTO SECUNDÁRIO) ===',
+      'Material auxiliar validado por usuários. NUNCA sobrepõe a Biblioteca do Drive nem as fontes acadêmicas; use apenas como apoio de consistência.',
+      ...hits.map(
+        (h) =>
+          `[Pergunta anterior: "${h.question}" | relevância: ${(h.similarity * 100).toFixed(0)}%]\n${h.answer}`,
+      ),
+      '=== FIM DAS RESPOSTAS VALIDADAS ===',
+    ].join('\n\n');
+  }
+
+  /**
+   * Monta o bloco de contexto prioritário da Biblioteca RAG do Drive.
+   * Sempre consultada antes da IA (regra 2026-07-20): com hits, a resposta
+   * é ancorada nas obras ingeridas; string vazia = sem material relevante.
+   * Também registra cada obra encontrada em `sources` (type 'classic').
+   */
+  private async buildDriveLibraryContext(
+    query: string,
+    userId: string | undefined,
+    sources: RagSource[],
+  ): Promise<string> {
+    const hits = await this.userContext.searchDriveLibrary(query, userId);
+    if (hits.length === 0) return '';
+
+    for (const h of hits) {
+      sources.push({
+        type: 'classic',
+        title: h.title,
+        snippet: h.content.slice(0, 150),
+        score: h.similarity,
+      });
+    }
+
+    return [
+      '=== BIBLIOTECA RAG (GOOGLE DRIVE) — FONTE PRIORITÁRIA ===',
+      ...hits.map(
+        (h) =>
+          `[Obra: ${h.title} | relevância: ${(h.similarity * 100).toFixed(0)}%]\n${h.content}`,
+      ),
+      '=== FIM DA BIBLIOTECA ===',
+    ].join('\n\n');
+  }
+
   private async rerankContext(
     query: string,
     documents: any[],
@@ -1611,13 +1708,15 @@ export class RagService {
 
     const startTime = Date.now();
 
+    // UX 2026-07-20: status único e limpo durante toda a preparação —
+    // o usuário vê apenas "Consultando biblioteca..." até o texto começar.
+    yield {
+      type: 'status',
+      data: { step: 'library', message: 'Consultando biblioteca...' },
+    };
+
     // ═══ ETAPA 1: Semantic Cache ═══
     if (!jsonMode) {
-      yield {
-        type: 'status',
-        data: { step: 'cache', message: 'Verificando cache semântico...' },
-      };
-
       const cached = await this.semanticCache.findSimilarResponse(
         sanitizedQuery,
         userId,
@@ -1652,12 +1751,25 @@ export class RagService {
     // ═══ Rastreamento de fontes utilizadas (streaming) ═══
     const streamSources: RagSource[] = [];
 
-    // ═══ ETAPA 1.6: Busca Híbrida ═══
-    yield {
-      type: 'status',
-      data: { step: 'context', message: 'Coletando contexto teológico...' },
-    };
+    // ═══ ETAPA 1.55: Biblioteca RAG do Drive — FONTE PRIORITÁRIA ═══
+    const driveLibraryContext = await this.buildDriveLibraryContext(
+      sanitizedQuery,
+      userId,
+      streamSources,
+    );
+    const libraryHasHits = driveLibraryContext.length > 0;
+    if (!libraryHasHits) {
+      this.logger.log(
+        '[RAG Stream] Biblioteca do Drive sem resultados — acionando IA com conhecimento geral.',
+      );
+    }
 
+    // ═══ ETAPA 1.57: Respostas validadas (👍) — contexto SECUNDÁRIO ═══
+    const validatedQaContext = jsonMode
+      ? ''
+      : await this.buildValidatedQaContext(sanitizedQuery, streamSources);
+
+    // ═══ ETAPA 1.6: Busca Híbrida ═══
     let openSourceContext = '';
     let hybridUserContext = '';
     try {
@@ -1760,11 +1872,7 @@ export class RagService {
     }
 
     // ═══ ETAPA 4: Stream da IA ═══
-    yield {
-      type: 'status',
-      data: { step: 'generating', message: 'Gerando exegese...' },
-    };
-
+    // (sem novo status — mantém "Consultando biblioteca..." até o 1º chunk)
     let fullResponse = '';
 
     if (this.genAI) {
@@ -1780,8 +1888,12 @@ export class RagService {
         ];
 
         const systemMessage = jsonMode
-          ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${theologicalContext}\n${bibleContext}\n${userContextText}`
-          : `${THEO_AI_SYSTEM_PROMPT}\n\nCONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
+          ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${driveLibraryContext}\n${theologicalContext}\n${bibleContext}\n${userContextText}`
+          : `${THEO_AI_SYSTEM_PROMPT}\n\n${
+              libraryHasHits
+                ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
+                : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
+            }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
 
         const stream = await this.genAI.models.generateContentStream({
           model: 'gemini-2.5-flash',
@@ -1833,7 +1945,11 @@ export class RagService {
         const systemMsg = jsonMode
           ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
           : THEO_AI_SYSTEM_PROMPT;
-        const fullPrompt = `CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
+        const fullPrompt = `${
+          libraryHasHits
+            ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
+            : ''
+        }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
         const res = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
@@ -1878,6 +1994,7 @@ export class RagService {
 
     const totalInputTokens = this.estimateTokens(
       THEO_AI_SYSTEM_PROMPT +
+        driveLibraryContext +
         userContextText +
         theologicalContext +
         bibleContext +

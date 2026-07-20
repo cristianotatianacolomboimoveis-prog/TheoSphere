@@ -150,7 +150,12 @@ export default function TheologicalLibrary({
 }: {
   onClose: () => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
+  // Deep-link 2026-07-20: aceita /library?q=Agostinho (dashboard).
+  // Client-only (dynamic ssr:false) — window disponível no primeiro render.
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
   const [activeCategory, setActiveCategory] = useState("all");
   const [indexingStatus, setIndexingStatus] = useState<
     Record<string, "idle" | "loading" | "success" | "error">

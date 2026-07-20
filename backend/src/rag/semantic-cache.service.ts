@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { EmbeddingService } from './embedding.service';
@@ -38,12 +39,33 @@ export class SemanticCacheService {
 
   // 0.9 similarity ≈ 0.1 cosine distance
   private readonly SIMILARITY_THRESHOLD = 0.9;
-  private readonly TTL_SECONDS = 24 * 60 * 60; // 24h
+
+  /**
+   * Aprendizado contínuo (2026-07-20): TTL e teto de entradas configuráveis
+   * por env var. Default: 30 dias / 100k entradas — em servidor próprio o
+   * cache vira memória de longo prazo; o teto protege a latência do índice
+   * HNSW descartando as entradas menos usadas (menor hitCount) primeiro.
+   */
+  private readonly TTL_SECONDS: number;
+  private readonly MAX_ENTRIES: number;
 
   constructor(
     private readonly embeddingService: EmbeddingService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    const ttlHours = Number(
+      this.config.get<string>('SEMANTIC_CACHE_TTL_HOURS') ?? 720,
+    );
+    this.TTL_SECONDS =
+      (Number.isFinite(ttlHours) && ttlHours > 0 ? ttlHours : 720) * 60 * 60;
+
+    const maxEntries = Number(
+      this.config.get<string>('SEMANTIC_CACHE_MAX_ENTRIES') ?? 100_000,
+    );
+    this.MAX_ENTRIES =
+      Number.isFinite(maxEntries) && maxEntries > 0 ? maxEntries : 100_000;
+  }
 
   /**
    * Returns the most similar cached response if cosine similarity ≥ threshold.
@@ -139,9 +161,60 @@ export class SemanticCacheService {
   async scheduledPrune(): Promise<void> {
     try {
       await this.pruneExpired();
+      await this.pruneOverflow();
     } catch (err) {
       this.logger.warn(`scheduledPrune failed: ${(err as Error).message}`);
     }
+  }
+
+  /**
+   * Mantém a tabela dentro de MAX_ENTRIES descartando primeiro as entradas
+   * menos aproveitadas (menor hitCount) e mais antigas — política LRU-like
+   * que preserva as respostas mais reutilizadas ("aprendizado" consolidado).
+   */
+  async pruneOverflow(): Promise<number> {
+    const total = await this.prisma.semanticCacheEntry.count();
+    const excess = total - this.MAX_ENTRIES;
+    if (excess <= 0) return 0;
+
+    const result = await this.prisma.$executeRaw`
+      DELETE FROM "SemanticCacheEntry"
+      WHERE id IN (
+        SELECT id FROM "SemanticCacheEntry"
+        ORDER BY "hitCount" ASC, "createdAt" ASC
+        LIMIT ${excess}
+      );
+    `;
+    this.logger.log(
+      `Pruned ${result} low-value cache entries (cap=${this.MAX_ENTRIES})`,
+    );
+    return Number(result);
+  }
+
+  /**
+   * Remove do cache toda entrada quase idêntica à query (similaridade ≥ 0.95).
+   * Usado pelo feedback negativo (👎): uma resposta ruim para de ser servida
+   * imediatamente, em vez de esperar o TTL.
+   */
+  async invalidateSimilar(query: string): Promise<number> {
+    let embedding: number[];
+    try {
+      embedding = await this.embeddingService.createEmbedding(query);
+    } catch (err) {
+      this.logger.warn(
+        `Embedding failed; invalidateSimilar skipped: ${(err as Error).message}`,
+      );
+      return 0;
+    }
+    const literal = this.toVectorLiteral(embedding);
+    const result = await this.prisma.$executeRaw`
+      DELETE FROM "SemanticCacheEntry"
+      WHERE (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) <= 0.05;
+    `;
+    if (Number(result) > 0) {
+      this.logger.log(`[Feedback 👎] Invalidated ${result} cache entries`);
+    }
+    return Number(result);
   }
 
   /** Drops every entry whose expiresAt is in the past. Run from a cron. */

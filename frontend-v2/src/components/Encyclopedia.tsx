@@ -36,9 +36,21 @@ type SelectedItem = {
   data: BiblicalPerson | BiblicalEvent | GeoLocation3D | TheologicalTopic;
 };
 
+const VALID_TABS: Tab[] = ["people", "places", "events", "topics"];
+
 export default function Encyclopedia({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<Tab>("people");
-  const [query, setQuery] = useState("");
+  // Deep-link 2026-07-20: aceita /encyclopedia?tab=topics&q=Trindade
+  // (usado pelos cards do dashboard). Inicializadores lazy: componente é
+  // client-only (dynamic ssr:false), então window está disponível.
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "people";
+    const t = new URLSearchParams(window.location.search).get("tab") as Tab;
+    return VALID_TABS.includes(t) ? t : "people";
+  });
+  const [query, setQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
   const [selected, setSelected] = useState<SelectedItem | null>(null);
 
   const { chat } = useRAG();

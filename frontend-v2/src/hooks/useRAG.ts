@@ -437,6 +437,8 @@ export function useRAG() {
               switch (event.type) {
                 case 'chunk':
                   if (event.data.text) {
+                    // Primeiro chunk: limpa o status ("Consultando biblioteca...")
+                    if (fullText === '') setStatusMessage('');
                     fullText += event.data.text;
                     setStreamingText(fullText);
                   }

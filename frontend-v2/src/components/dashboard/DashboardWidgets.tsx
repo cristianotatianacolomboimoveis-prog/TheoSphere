@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CheckCircle2, ChevronRight, BookOpen, ScrollText } from "lucide-react";
 import { BIBLE_BOOKS } from "@/data/bibleBooks";
 import { useTheoStore } from "@/store/useTheoStore";
@@ -150,6 +151,12 @@ export function ReadingPlanWidget() {
   );
 }
 
+/**
+ * Fix 2026-07-20: os cards eram decorativos (cursor-pointer sem onClick).
+ * Agora cada card abre o tópico correspondente na Enciclopédia (aba Tópicos)
+ * e as tags abrem busca na Biblioteca — termos escolhidos entre os que
+ * existem de fato nos dados (theologicalTopics / PUBLIC_BOOKS).
+ */
 export function TheologicalInsightsWidget() {
   const insights = [
     {
@@ -157,41 +164,56 @@ export function TheologicalInsightsWidget() {
       category: "Teologia Sistemática",
       summary:
         "Estudo sobre a consubstancialidade (homoousios) e o impacto nas controvérsias arianas do século IV.",
+      topic: "Trindade",
     },
     {
       title: "Graça nas Epístolas Paulinas",
       category: "Exegese Acadêmica",
       summary:
         "Análise da terminologia 'charis' em Romanos, destacando a justificação forense vs. transformativa.",
+      topic: "Justificação",
     },
+  ];
+
+  const tags = [
+    { label: "Patrística", href: "/library?q=Patr%C3%ADstica" },
+    { label: "Agostinho", href: "/library?q=Agostinho" },
   ];
 
   return (
     <div className="space-y-4">
-      {insights.map((insight, i) => (
+      {insights.map((insight) => (
         <div
           key={insight.title}
-          className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-blue-500/30 transition-all group cursor-pointer shadow-sm"
+          className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-blue-500/30 transition-all group shadow-sm"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-              {insight.category}
-            </span>
-            <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600" />
-          </div>
-          <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-2 font-serif">
-            {insight.title}
-          </h4>
-          <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed line-clamp-2 italic">
-            "{insight.summary}"
-          </p>
+          <Link
+            href={`/encyclopedia?tab=topics&q=${encodeURIComponent(insight.topic)}`}
+            className="block cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                {insight.category}
+              </span>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600" />
+            </div>
+            <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-2 font-serif group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {insight.title}
+            </h4>
+            <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed line-clamp-2 italic">
+              "{insight.summary}"
+            </p>
+          </Link>
           <div className="mt-4 flex gap-2">
-            <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[8px] font-bold text-gray-400 uppercase">
-              Patrística
-            </span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[8px] font-bold text-gray-400 uppercase">
-              Agostinho
-            </span>
+            {tags.map((tag) => (
+              <Link
+                key={tag.label}
+                href={tag.href}
+                className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[8px] font-bold text-gray-400 uppercase hover:text-blue-600 hover:border-blue-500/30 transition-colors"
+              >
+                {tag.label}
+              </Link>
+            ))}
           </div>
         </div>
       ))}
@@ -240,13 +262,22 @@ export function WordOfTheDayWidget() {
           <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
             Conexões
           </h5>
+          {/* Fix 2026-07-20: botões eram decorativos ("Humanismo"/"Erasmo" não
+              existem nos dados — a busca voltaria vazia). Conexões agora
+              apontam para destinos reais e fiéis ao lema Ad Fontes. */}
           <div className="flex gap-2">
-            <button className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm">
-              Humanismo
-            </button>
-            <button className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm">
-              Erasmo
-            </button>
+            <Link
+              href="/study"
+              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm"
+            >
+              Interlinear Grego & Hebraico
+            </Link>
+            <Link
+              href="/library"
+              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm"
+            >
+              Clássicos da Fé
+            </Link>
           </div>
         </div>
       </div>
