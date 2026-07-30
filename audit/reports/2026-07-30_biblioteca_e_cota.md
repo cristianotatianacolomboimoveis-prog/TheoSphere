@@ -24,8 +24,31 @@ resposta da plataforma veio do conhecimento geral do Gemini. A regra
 prefixo `/api/v1` e recebia 404 silencioso. Corrigido ontem (`c35d6dd`), mas
 até então nenhuma pasta jamais foi indexada.
 
-**2. `GOOGLE_PRIVATE_KEY` está truncado.** O valor no `.env` tem **27
-caracteres** e começa com `-----BEGIN PRIVATE KEY-----`. Uma chave RSA real
+**2. ~~`GOOGLE_PRIVATE_KEY` está truncado~~ — CORRIGIDO, era erro meu.**
+
+Eu havia concluído que a chave tinha 27 caracteres e estava quebrada. **Estava
+errado.** Meu script de inspeção lia o `.env` linha a linha; a chave é
+multilinha e ele capturou só a primeira. O `dotenv`, que o backend usa de
+fato, lê o valor completo.
+
+Verificação real, com autenticação contra o Google:
+
+```
+private_key  : 1704 caracteres
+✅ autenticou no Google
+📁 pasta 1prLd1VZAE0NVnNiZqlIgkGqsWmrM_mPp: 20 arquivos
+   Teologia Sistemática — Grudem · Comentário Romanos — Sproul
+   Deus e seu Decreto — Renihan · O Problema do Sofrimento — C.S. Lewis ...
+```
+
+A credencial está correta e a service account enxerga o acervo. **A causa da
+biblioteca vazia é só a primeira: a ingestão nunca rodou com sucesso**, porque
+o `syncDrive` batia em 404 até 29/07.
+
+Diagnóstico com `node backend/scratch/inspect-google-key.js` — ele mostra a
+forma do valor e faz autenticação real, sem expor o segredo.
+
+-----BEGIN PRIVATE KEY-----`. Uma chave RSA real
 tem ~1.700. A chave foi cortada na primeira quebra de linha — problema
 clássico de valor multilinha em arquivo `.env`.
 
