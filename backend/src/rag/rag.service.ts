@@ -685,12 +685,22 @@ export class RagService {
     }
 
     // ═══ ETAPA 5: Salvar no cache ═══
-    await this.semanticCache.cacheResponse(
-      sanitizedQuery,
-      responseContent,
-      userId,
-      tradition,
-    );
+    // Resposta degradada NÃO entra no cache. Em 29/07/2026 o texto de
+    // fallback foi cacheado durante a queda de cota e passou a ser servido
+    // com `cached: true` mesmo depois da IA voltar — o TTL padrão é de 30
+    // dias, então a plataforma continuaria mentindo por um mês.
+    if (!degraded) {
+      await this.semanticCache.cacheResponse(
+        sanitizedQuery,
+        responseContent,
+        userId,
+        tradition,
+      );
+    } else {
+      this.logger.warn(
+        '[RAG] Resposta degradada não cacheada (evita envenenar o cache).',
+      );
+    }
 
     // Adiciona XP ao usuário
     await this.addUserXP(userId, 15);
@@ -1908,6 +1918,8 @@ export class RagService {
     // ═══ ETAPA 4: Stream da IA ═══
     // (sem novo status — mantém "Consultando biblioteca..." até o 1º chunk)
     let fullResponse = '';
+    // Marca quando o texto veio do fallback pré-escrito e não da IA.
+    let streamDegraded = false;
 
     if (this.genAI) {
       try {
@@ -1941,9 +1953,11 @@ export class RagService {
         }
       } catch (error: any) {
         this.logger.error(`[RAG Stream Erro Gemini]: ${error.message}`);
+        this.recordAiFailure('gemini', error as Error);
         // Fallback: tenta resposta não-streaming
         if (!fullResponse) {
           fullResponse = generateFallbackResponse(query, jsonMode);
+          streamDegraded = true;
           yield { type: 'chunk', data: { text: fullResponse } };
         }
       }
@@ -1967,12 +1981,14 @@ export class RagService {
         yield { type: 'chunk', data: { text: fullResponse } };
       } catch (error: any) {
         this.logger.error(`[RAG Stream Erro OpenAI]: ${error.message}`);
+        this.recordAiFailure('openai', error as Error);
       }
     }
 
     // Fallback final se nenhuma IA respondeu
     if (!fullResponse) {
       fullResponse = generateFallbackResponse(query, jsonMode);
+      streamDegraded = true;
       yield { type: 'chunk', data: { text: fullResponse } };
     }
 
@@ -1987,12 +2003,16 @@ export class RagService {
     }
 
     // ═══ ETAPA 5: Salvar no cache e calcular custos ═══
-    await this.semanticCache.cacheResponse(
-      sanitizedQuery,
-      fullResponse,
-      userId,
-      tradition,
-    );
+    // Mesma regra do chat(): texto de fallback não entra no cache, senão
+    // continua sendo servido por 30 dias depois da IA voltar.
+    if (!streamDegraded) {
+      await this.semanticCache.cacheResponse(
+        sanitizedQuery,
+        fullResponse,
+        userId,
+        tradition,
+      );
+    }
     await this.addUserXP(userId, 15);
 
     const totalInputTokens = this.estimateTokens(
