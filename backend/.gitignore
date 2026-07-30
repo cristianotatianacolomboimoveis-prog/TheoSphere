@@ -55,3 +55,11 @@ prisma.config.d.ts
 check-db.*
 scratch-check.*
 .vercel
+
+# Saída do tsc para scripts avulsos: o .js as vezes E a fonte (jest.config.js,
+# clear-cache.js), mas .d.ts e .js.map nunca sao — sao sempre gerados.
+# Limpeza 2026-07-29: 20 desses estavam versionados.
+*.d.ts
+!src/**/*.d.ts
+*.js.map
+*.ts.bak
