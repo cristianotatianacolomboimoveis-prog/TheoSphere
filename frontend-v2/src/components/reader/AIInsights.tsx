@@ -15,7 +15,8 @@ import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
 
 export const AIInsights: React.FC = () => {
-  const { activeBook, activeChapter, activeVerseId } = useTheoStore();
+  const { activeBook, activeChapter, activeVerseId, setActiveTool } =
+    useTheoStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
@@ -122,11 +123,18 @@ export const AIInsights: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Ambos os botões estavam sem onClick (varredura 2026-07-29) */}
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-bold text-white/60 transition-all">
+                  <button
+                    onClick={() => setActiveTool("exegesis")}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-bold text-white/60 hover:text-white transition-all"
+                  >
                     <BookOpen className="w-3 h-3" /> Exegese
                   </button>
-                  <button className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-bold text-white/60 transition-all">
+                  <button
+                    onClick={() => setActiveTool("ai")}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-bold text-white/60 hover:text-white transition-all"
+                  >
                     <MessageSquare className="w-3 h-3" /> Perguntar
                   </button>
                 </div>

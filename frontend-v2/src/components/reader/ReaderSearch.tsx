@@ -63,13 +63,13 @@ export const ReaderSearch: React.FC<ReaderSearchProps> = ({
             }}
             placeholder={
               isGlobalSearch
-                ? 'Busca global… (ex: book:John "in the beginning")'
+                ? "Busca global… (ex: strong:G26 book:João, graça NEAR/3 fé)"
                 : "Buscar neste capitulo…"
             }
             className="flex-grow bg-transparent text-sm text-foreground/90 placeholder-foreground/30 outline-none"
             title={
               isGlobalSearch
-                ? 'Sintaxe avançada: AND, OR, "frase exata", book:Nome, chapter:1-3, -excluir'
+                ? 'Sintaxe avançada: AND, OR, "frase exata", book:Nome, chapter:1-3, -excluir, strong:G26, morph:V-AAI, lemma:ἀγαπάω, termo1 NEAR/3 termo2'
                 : "Filtro simples no capitulo atual"
             }
           />

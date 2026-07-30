@@ -8,6 +8,7 @@ export default function NoteEditor({ reference }: { reference: string }) {
   const [history, setHistory] = useState<
     { ref: string; text: string; date: string }[]
   >([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -84,16 +85,26 @@ export default function NoteEditor({ reference }: { reference: string }) {
         <h3 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] flex items-center gap-2">
           <Clock className="w-3 h-3" /> Histórico Recente
         </h3>
+        {/* Os itens tinham cursor-pointer e hover sem handler nenhum
+            (varredura 2026-07-29). Agora expandem o texto da nota. */}
         <div className="space-y-2">
           {history.map((h, i) => (
-            <div
-              key={i}
-              className="p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] flex justify-between items-center group cursor-pointer hover:bg-white/[0.03]"
-            >
-              <span className="text-[10px] font-bold text-white/40 group-hover:text-emerald-400">
-                {h.ref}
-              </span>
-              <span className="text-[8px] text-white/10">{h.date}</span>
+            <div key={i}>
+              <button
+                onClick={() => setExpanded(expanded === i ? null : i)}
+                aria-expanded={expanded === i}
+                className="w-full p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] flex justify-between items-center group hover:bg-white/[0.03] transition-colors text-left"
+              >
+                <span className="text-[10px] font-bold text-white/40 group-hover:text-emerald-400">
+                  {h.ref}
+                </span>
+                <span className="text-[8px] text-white/10">{h.date}</span>
+              </button>
+              {expanded === i && (
+                <p className="px-3 py-2 text-[11px] text-white/50 whitespace-pre-wrap leading-relaxed">
+                  {h.text || "(nota vazia)"}
+                </p>
+              )}
             </div>
           ))}
         </div>

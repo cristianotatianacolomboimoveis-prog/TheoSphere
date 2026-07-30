@@ -1,0 +1,46 @@
+{
+  "_leia_antes_de_editar": "Cada item aqui é um achado JÁ INVESTIGADO e considerado aceitável. Nunca adicione uma entrada só para silenciar o relatório — sem a justificativa escrita, o check inteiro perde o valor. Use line: '*' apenas quando o arquivo todo estiver isento por natureza.",
+
+  "handlers": [
+    {
+      "file": "frontend-v2/src/components/ui/ThemeToggle.tsx",
+      "line": 23,
+      "motivo": "Placeholder renderizado antes da hidratação, com opacity-0, só para evitar hydration mismatch. Nunca é clicável para o usuário — o botão real vem logo abaixo com onClick."
+    },
+    {
+      "file": "frontend-v2/src/components/visualizer/RouteControlPanel.tsx",
+      "line": 147,
+      "motivo": "Chevron puramente indicativo: o onClick={onToggleLegend} está no <div> pai que envolve o cabeçalho inteiro, então clicar no ícone funciona."
+    }
+  ],
+
+  "routes": [],
+
+  "silence": [
+    {
+      "file": "frontend-v2/src/components/SWRegistrar.tsx",
+      "line": "*",
+      "motivo": "Registro do service worker: roda em background, não tem UI e falhar não deve incomodar o usuário. O app funciona sem PWA."
+    },
+    {
+      "file": "frontend-v2/src/components/StrongOverlay.tsx",
+      "line": "*",
+      "motivo": "Degradação graciosa deliberada e documentada no próprio catch: se o lookup na biblioteca falhar (401 de visitante, 404 de backend antigo, rede), o popover continua útil com os dados do Strong's local."
+    },
+    {
+      "file": "frontend-v2/src/components/CesiumGlobe.tsx",
+      "line": "*",
+      "motivo": "Inicialização de WebGL/Cesium com fallback próprio de renderização. Erro aqui já cai no caminho alternativo visível."
+    },
+    {
+      "file": "frontend-v2/src/components/visualizer/TheoSphere3D.tsx",
+      "line": "*",
+      "motivo": "Mesmo caso do Cesium: os 9 catches cobrem carregamento de recursos 3D, cada um com fallback visual próprio."
+    },
+    {
+      "file": "frontend-v2/src/components/dashboard/DashboardWidgets.tsx",
+      "line": "*",
+      "motivo": "Os dois catches leem/escrevem o progresso do plano de leitura no localStorage e já devolvem lista vazia como fallback. Nada de rede, nada que o usuário precise saber."
+    }
+  ]
+}

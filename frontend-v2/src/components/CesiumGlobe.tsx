@@ -12,8 +12,9 @@ import {
 import * as Cesium from "cesium";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
 import { useTheoStore } from "@/store/useTheoStore";
-import { CONFIG } from "@/lib/config";
+import { api } from "@/lib/api";
 import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
+import { logger } from "@/lib/logger";
 
 // Set the base URL for Cesium assets
 if (typeof window !== "undefined") {
@@ -96,16 +97,14 @@ export default function CesiumGlobe({
     const controller = new AbortController();
     (async () => {
       try {
-        const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
-        const res = await fetch(`${baseUrl}/archaeology?limit=200`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const json = (await res.json()) as {
+        const json = await api.get<{
           success: boolean;
           data: { items: ArchaeologicalFind[] };
-        };
-        if (json.success) {
+        }>("/archaeology?limit=200", {
+          signal: controller.signal,
+          throwOnError: false,
+        });
+        if (json?.success) {
           setArchFinds(
             json.data.items.filter(
               (f) => f.latitude != null && f.longitude != null,
@@ -149,11 +148,13 @@ export default function CesiumGlobe({
           if (!start || !end) continue;
 
           try {
-            const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
-            const res = await fetch(
-              `${baseUrl}/geo/route-path?startLat=${start[0]}&startLng=${start[1]}&endLat=${end[0]}&endLng=${end[1]}&costing=pedestrian`,
+            const data = await api.get<{
+              success: boolean;
+              coordinates?: [number, number][];
+            }>(
+              `/geo/route-path?startLat=${start[0]}&startLng=${start[1]}&endLat=${end[0]}&endLng=${end[1]}&costing=pedestrian`,
+              { throwOnError: false },
             );
-            const data = await res.json();
 
             if (data && data.success && data.coordinates) {
               allSegments.push(...data.coordinates);
@@ -167,7 +168,7 @@ export default function CesiumGlobe({
 
         setRoutePaths((prev) => ({ ...prev, [routeId]: allSegments }));
       } catch (err) {
-        console.error(`Error loading path for route ${routeId}:`, err);
+        logger.error(`Error loading path for route ${routeId}:`, err);
       } finally {
         setLoadingRoutes((prev) => ({ ...prev, [routeId]: false }));
       }

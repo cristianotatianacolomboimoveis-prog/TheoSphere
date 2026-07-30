@@ -1,6 +1,7 @@
 "use client";
 
 import * as webllm from "@mlc-ai/web-llm";
+import { logger } from "@/lib/logger";
 
 /**
  * EdgeAIService — Motor de IA Local via WebGPU (v2).
@@ -145,7 +146,7 @@ class EdgeAIService {
       typeof limits.maxStorageBuffersPerShaderStage === "number" &&
       limits.maxStorageBuffersPerShaderStage < requiredBuffers
     ) {
-      console.warn(
+      logger.warn(
         `[EdgeAI] maxStorageBuffersPerShaderStage=${limits.maxStorageBuffersPerShaderStage} < ${requiredBuffers}`,
       );
       return null;
@@ -165,7 +166,7 @@ class EdgeAIService {
 
     // Estimate available VRAM (heuristic: maxBufferSize as proxy)
     const maxBuffer = Number(limits?.maxBufferSize ?? 0);
-    const estimatedVRAM = maxBuffer > 0 ? maxBuffer / (1024 ** 3) : 4; // fallback: assume 4GB
+    const estimatedVRAM = maxBuffer > 0 ? maxBuffer / 1024 ** 3 : 4; // fallback: assume 4GB
 
     // Pick the best model that fits
     for (const candidate of MODEL_CANDIDATES) {
@@ -218,7 +219,7 @@ class EdgeAIService {
       this.selectedModel = model;
       this.setStatus("downloading");
 
-      console.log(`[EdgeAI] Initializing ${model.label} (${model.id})`);
+      logger.debug(`[EdgeAI] Initializing ${model.label} (${model.id})`);
 
       this.engine = await webllm.CreateMLCEngine(model.id, {
         initProgressCallback: (report) => {
@@ -230,10 +231,10 @@ class EdgeAIService {
       });
 
       this.setStatus("ready");
-      console.log(`[EdgeAI] ${model.label} ready`);
+      logger.debug(`[EdgeAI] ${model.label} ready`);
       return true;
     } catch (err) {
-      console.warn("[EdgeAI] Initialization failed:", err);
+      logger.warn("[EdgeAI] Initialization failed:", err);
       this.setStatus("error");
       return false;
     }
@@ -317,10 +318,13 @@ class EdgeAIService {
     const maxInputChars = (this.contextLength - 1000) * 3; // ~3 chars/token for Portuguese
     if (text.length <= maxInputChars) return text;
 
-    console.warn(
+    logger.warn(
       `[EdgeAI] Truncating input from ${text.length} to ${maxInputChars} chars`,
     );
-    return text.slice(0, maxInputChars) + "\n\n[Texto truncado por limite de contexto]";
+    return (
+      text.slice(0, maxInputChars) +
+      "\n\n[Texto truncado por limite de contexto]"
+    );
   }
 
   isReady(): boolean {

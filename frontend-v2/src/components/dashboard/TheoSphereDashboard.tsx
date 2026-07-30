@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { MapAdapter } from "@/lib/BibleMapAdapter";
+import { logger } from "@/lib/logger";
 
 interface Note {
   id: string;
@@ -42,7 +43,7 @@ export function TheoSphereDashboard() {
     let unsub: (() => void) | undefined;
     if (MapAdapter) {
       unsub = MapAdapter.events.subscribe("onLocationSelected", (loc: any) => {
-        console.log("[TheoSphereDashboard] Local selecionado no mapa:", loc);
+        logger.debug("[TheoSphereDashboard] Local selecionado no mapa:", loc);
         // Atualiza UI com base no clique do mapa
         setVerseOfDay((prev) => ({
           ...prev,

@@ -7,7 +7,6 @@ import {
   Layout,
   Settings,
   User,
-  Bell,
   ChevronDown,
   Menu,
   BookOpen,
@@ -102,11 +101,9 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         />
       </div>
 
+      {/* O sino de notificações foi removido: não existe sistema de
+          notificações e o botão nunca teve handler (varredura 2026-07-29). */}
       <div className="ml-auto flex items-center gap-2 md:gap-3 relative">
-        <button className="hidden md:block p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
-          <Bell className="w-4 h-4 text-gray-500" />
-        </button>
-
         {isAuthenticated ? (
           <div className="relative">
             <button

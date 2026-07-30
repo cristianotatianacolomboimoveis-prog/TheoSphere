@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Quote, Minus, Plus } from "lucide-react";
+import { Filter, Quote, Minus, Plus, Languages } from "lucide-react";
 import type { ParsedAdvanced } from "@/hooks/useAdvancedSearch";
 
 interface Props {
@@ -66,6 +66,35 @@ export function QueryChips({ parsed, hitsCount }: Props) {
       tone: "red",
     });
   }
+  // Filtros de língua original (strong:/morph:/lemma:) e proximidade —
+  // paridade com o parser do backend (2026-07-21).
+  if (parsed.strongId) {
+    chips.push({
+      icon: Languages,
+      label: `Strong's: ${parsed.strongId}`,
+      tone: "amber",
+    });
+  }
+  if (parsed.morph) {
+    chips.push({
+      icon: Languages,
+      label: `Morfologia: ${parsed.morph}`,
+      tone: "amber",
+    });
+  }
+  if (parsed.lemma) {
+    chips.push({
+      icon: Languages,
+      label: `Lema: ${parsed.lemma}`,
+      tone: "amber",
+    });
+  }
+  for (const [a, b, n] of parsed.nearPairs ?? []) {
+    chips.push({
+      label: `${a} ⇄${n} ${b}`,
+      tone: "indigo",
+    });
+  }
 
   if (chips.length === 0) return null;
 
@@ -75,6 +104,7 @@ export function QueryChips({ parsed, hitsCount }: Props) {
     emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
     indigo: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
     red: "bg-red-500/10 text-red-300 border-red-500/20",
+    amber: "bg-amber-500/10 text-amber-300 border-amber-500/20",
   };
 
   return (

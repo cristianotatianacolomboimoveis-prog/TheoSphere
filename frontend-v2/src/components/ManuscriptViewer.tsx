@@ -102,7 +102,13 @@ export default function ManuscriptViewer({ reference }: { reference: string }) {
             <ZoomIn className="w-4 h-4" />
           </button>
           <div className="w-[1px] h-4 bg-white/10" />
-          <button className="p-2 hover:bg-white/10 rounded-lg">
+          {/* Sem onClick até 2026-07-29 — agora reseta o zoom. */}
+          <button
+            onClick={() => setZoom(1)}
+            title="Restaurar zoom"
+            aria-label="Restaurar zoom"
+            className="p-2 hover:bg-white/10 rounded-lg"
+          >
             <Maximize className="w-4 h-4" />
           </button>
         </div>

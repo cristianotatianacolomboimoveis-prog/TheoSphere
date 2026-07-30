@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export default function SWRegistrar() {
   useEffect(() => {
@@ -22,7 +23,7 @@ export default function SWRegistrar() {
       .register("/sw.js")
       .then((registration) => {})
       .catch((error) => {
-        console.error("TheoSphere: Falha no Service Worker", error);
+        logger.error("TheoSphere: Falha no Service Worker", error);
       });
   }, []);
 

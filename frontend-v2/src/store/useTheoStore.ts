@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export type ToolId =
   | "dashboard"
@@ -124,10 +125,7 @@ export const useTheoStore = create<TheoState>()(
             set({ books: res.data });
           }
         } catch (err) {
-          console.warn(
-            "[Store] API offline, using cached or empty books:",
-            err,
-          );
+          logger.warn("[Store] API offline, using cached or empty books:", err);
         }
       },
     }),

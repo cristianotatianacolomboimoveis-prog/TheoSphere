@@ -23,6 +23,12 @@ export interface ParsedAdvanced {
   phrases: string[];
   shouldGroups: string[][];
   hasStructure: boolean;
+  /** Filtros de língua original (backend 2026-07-21). */
+  strongId?: string | null;
+  morph?: string | null;
+  lemma?: string | null;
+  /** Pares de proximidade [termo1, termo2, distância]. */
+  nearPairs?: Array<[string, string, number]> | null;
 }
 
 export interface AdvancedHit {

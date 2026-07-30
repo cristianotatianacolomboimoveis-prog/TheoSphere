@@ -1,11 +1,29 @@
 "use client";
 
-import React from "react";
-import { User, Bell, Lock, Globe, Moon, Shield } from "lucide-react";
+import React, { useState } from "react";
+import { User, Bell, Lock, Globe, Moon, Shield, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useTrackContext } from "@/hooks/useTrackContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { logout, isAuthenticated } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // O botão existia sem onClick desde sempre — o usuário não conseguia
+  // encerrar a sessão pela interface (varredura 2026-07-29).
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.push("/login");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   useTrackContext({
     pageId: "settings",
     title: "Configurações",
@@ -57,9 +75,9 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="flex items-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer group"
+            className="flex items-center p-6 rounded-2xl bg-white/5 border border-white/10 opacity-60"
           >
-            <div className="w-12 h-12 rounded-xl bg-blue-600/10 flex items-center justify-center mr-6 group-hover:bg-blue-600/20 transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-blue-600/10 flex items-center justify-center mr-6">
               <setting.icon className="w-6 h-6 text-blue-500" />
             </div>
             <div className="flex-grow">
@@ -68,7 +86,12 @@ export default function SettingsPage() {
               </h3>
               <p className="text-sm text-gray-400">{setting.desc}</p>
             </div>
-            <div className="text-gray-600 group-hover:text-white transition-colors">
+            {/* Estes painéis ainda não existem. Antes tinham hover e
+                cursor-pointer, aparentando estar prontos. */}
+            <div className="flex items-center gap-2 text-gray-600 shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                Em breve
+              </span>
               <Lock className="w-4 h-4" />
             </div>
           </motion.div>
@@ -76,8 +99,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-12 pt-12 border-t border-white/5 flex justify-between items-center">
-        <button className="text-red-500 text-sm font-medium hover:underline">
-          Sair da Conta
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut || !isAuthenticated}
+          className="text-red-500 text-sm font-medium hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {loggingOut && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          {loggingOut ? "Saindo..." : "Sair da Conta"}
         </button>
         <div className="text-xs text-gray-600">
           TheoSphere OS v2.0.4 - Silicon Valley Edition

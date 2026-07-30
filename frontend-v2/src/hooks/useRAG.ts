@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { edgeAI } from "../lib/edge-ai";
 import { api, ApiError } from "../lib/api";
 import { logger } from "../lib/logger";
+import { CONFIG } from "../lib/config";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -24,7 +25,14 @@ interface RagMeta {
 
 /** Fonte utilizada na composição da resposta RAG. */
 export interface RagSource {
-  type: 'bible' | 'theology' | 'lexicon' | 'commentary' | 'classic' | 'personal' | 'sefaria';
+  type:
+    | "bible"
+    | "theology"
+    | "lexicon"
+    | "commentary"
+    | "classic"
+    | "personal"
+    | "sefaria";
   title: string;
   reference?: string;
   snippet: string;
@@ -38,7 +46,7 @@ interface RagResponse {
 }
 
 interface StreamEvent {
-  type: 'status' | 'chunk' | 'done' | 'error' | 'sources';
+  type: "status" | "chunk" | "done" | "error" | "sources";
   data: {
     text?: string;
     message?: string;
@@ -46,7 +54,7 @@ interface StreamEvent {
     cached?: boolean;
     tokens?: number;
     similarity?: number;
-    cacheSource?: 'global' | 'user';
+    cacheSource?: "global" | "user";
     sources?: RagSource[];
   };
 }
@@ -74,7 +82,7 @@ interface RagStats {
 
 /* ─── Config ─────────────────────────────────────────────── */
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === "production" ? "https://theosphere.onrender.com" : "http://localhost:3002");
+const API_BASE = CONFIG.BACKEND_URL;
 const USER_ID_KEY = "theosphere-user-id";
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 const LAST_SYNC_KEY = "theosphere-last-rag-sync";
@@ -158,8 +166,8 @@ export function useRAG() {
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [userId] = useState(() => getUserId());
 
-  const [streamingText, setStreamingText] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
+  const [streamingText, setStreamingText] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
   const [sources, setSources] = useState<RagSource[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -371,22 +379,25 @@ export function useRAG() {
       jsonMode: boolean = false,
     ): Promise<RagResponse> => {
       // Se IA local estiver ativa ou offline, delega para o chat padrão
-      if (localAiMode || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      if (
+        localAiMode ||
+        (typeof navigator !== "undefined" && !navigator.onLine)
+      ) {
         return chat(query, history, tradition, jsonMode);
       }
 
       setIsStreaming(true);
-      setStreamingText('');
-      setStatusMessage('');
+      setStreamingText("");
+      setStatusMessage("");
       setSources([]);
 
       const token = getAuthToken();
 
       try {
         const res = await fetch(`${API_BASE}/api/v1/rag/chat/stream`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
@@ -403,12 +414,12 @@ export function useRAG() {
 
         const reader = res.body?.getReader();
         if (!reader) {
-          throw new Error('ReadableStream not supported');
+          throw new Error("ReadableStream not supported");
         }
 
         const decoder = new TextDecoder();
-        let fullText = '';
-        let buffer = '';
+        let fullText = "";
+        let buffer = "";
         let meta: Partial<RagMeta> = {
           cached: false,
           contextUsed: true,
@@ -424,33 +435,33 @@ export function useRAG() {
           buffer += decoder.decode(value, { stream: true });
 
           // Processa linhas SSE completas do buffer
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           // Mantém a última linha incompleta no buffer
-          buffer = lines.pop() || '';
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
+            if (!line.startsWith("data: ")) continue;
 
             try {
               const event: StreamEvent = JSON.parse(line.slice(6));
 
               switch (event.type) {
-                case 'chunk':
+                case "chunk":
                   if (event.data.text) {
                     // Primeiro chunk: limpa o status ("Consultando biblioteca...")
-                    if (fullText === '') setStatusMessage('');
+                    if (fullText === "") setStatusMessage("");
                     fullText += event.data.text;
                     setStreamingText(fullText);
                   }
                   break;
 
-                case 'status':
+                case "status":
                   if (event.data.message) {
                     setStatusMessage(event.data.message);
                   }
                   break;
 
-                case 'done':
+                case "done":
                   meta = {
                     cached: event.data.cached ?? false,
                     similarity: event.data.similarity,
@@ -465,32 +476,38 @@ export function useRAG() {
                   }
                   break;
 
-                case 'sources':
+                case "sources":
                   if (event.data.sources) {
                     setSources(event.data.sources);
                   }
                   break;
 
-                case 'error':
-                  logger.error('[RAG Stream] Erro do servidor:', event.data.message);
+                case "error":
+                  logger.error(
+                    "[RAG Stream] Erro do servidor:",
+                    event.data.message,
+                  );
                   break;
               }
             } catch (parseErr) {
               // Linha SSE malformada — ignora e continua
-              logger.debug('[RAG Stream] SSE parse error:', parseErr);
+              logger.debug("[RAG Stream] SSE parse error:", parseErr);
             }
           }
         }
 
-        setStatusMessage('');
+        setStatusMessage("");
         return {
           content: fullText,
           meta: meta as RagMeta,
         };
       } catch (error) {
-        logger.warn('[RAG Stream] Falha no streaming, tentando fallback não-streaming...', error);
-        setStreamingText('');
-        setStatusMessage('');
+        logger.warn(
+          "[RAG Stream] Falha no streaming, tentando fallback não-streaming...",
+          error,
+        );
+        setStreamingText("");
+        setStatusMessage("");
         // Fallback gracioso para o chat padrão
         return chat(query, history, tradition, jsonMode);
       } finally {
@@ -533,13 +550,19 @@ export function useRAG() {
   const syncDrive = useCallback(
     async (folderId?: string, tradition?: string): Promise<unknown> => {
       try {
-        // /drive-library/* não tem o prefixo /api/v1 — usar URL absoluta.
+        // O controller é @Controller('api/v1/drive-library'). O comentário
+        // anterior afirmava o contrário e montava a URL a partir de
+        // CONFIG.BACKEND_URL (sem /api/v1), gerando 404 silencioso — a
+        // ingestão de pasta nunca funcionou (varredura 2026-07-29).
+        // Path relativo: lib/api.ts prefixa com CONFIG.API_BASE_URL.
         return await api.post(
-          `${API_BASE}/drive-library/ingest`,
+          "drive-library/ingest",
           { folderId: folderId || "", tradition: tradition || "Geral" },
           { timeoutMs: 60_000 * 5 },
         );
       } catch (error) {
+        // Não relança: o call site dispara em fire-and-forget e um throw
+        // viraria unhandled rejection. O null sinaliza a falha.
         logger.warn("[RAG Drive] Falha na ingestão do Drive:", error);
       }
       return null;

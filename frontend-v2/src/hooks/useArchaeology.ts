@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CONFIG } from "@/lib/config";
+import { api } from "@/lib/api";
 import { BIBLE_BOOKS } from "@/data/bibleBooks";
 
 /**
@@ -49,16 +49,15 @@ export function useArchaeology(bookNamePt: string, chapter: number) {
     const controller = new AbortController();
 
     const fetchRef = async (ref: string) => {
-      const res = await fetch(
-        `${CONFIG.API_BASE_URL}/archaeology/by-ref?ref=${encodeURIComponent(ref)}`,
-        { signal: controller.signal },
-      );
-      if (!res.ok) return [] as ArchaeologicalFind[];
-      const json = (await res.json()) as {
+      // Client central: timeout, refresh-on-401 e signal externo de graça.
+      const json = await api.get<{
         success: boolean;
         data: ArchaeologicalFind[];
-      };
-      return json.success ? json.data : [];
+      }>(`/archaeology/by-ref?ref=${encodeURIComponent(ref)}`, {
+        signal: controller.signal,
+        throwOnError: false,
+      });
+      return json?.success ? json.data : [];
     };
 
     // Todo o fluxo (incl. reset de estado) roda assíncrono para não

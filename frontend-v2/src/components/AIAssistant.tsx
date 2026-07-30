@@ -30,6 +30,7 @@ import { api } from "@/lib/api";
 import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
 import { useTheoStore } from "@/store/useTheoStore";
+import { logger } from "@/lib/logger";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -189,7 +190,16 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
           prev.totalSavedFromCache + (response.meta.cached ? 0.015 : 0),
       }));
     } catch (error) {
-      console.error("Erro no chat:", error);
+      // O erro só ia para o console: o "digitando..." sumia e a pergunta
+      // ficava sem resposta, como se a IA tivesse ignorado (varredura
+      // 2026-07-29). Agora a falha entra na conversa.
+      logger.error("Erro no chat:", error);
+      setMessages((prev) => [
+        ...prev,
+        createAssistantMessage(
+          "Não consegui responder agora — falha ao falar com o servidor. Se ele estava dormindo, a primeira chamada pode levar até um minuto. Tente enviar de novo.",
+        ),
+      ]);
     }
 
     setIsTyping(false);
@@ -218,7 +228,7 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       );
     } catch (err) {
       // Não bloqueia a UX — feedback é best-effort
-      console.warn("Falha ao enviar feedback:", err);
+      logger.warn("Falha ao enviar feedback:", err);
     }
   };
 

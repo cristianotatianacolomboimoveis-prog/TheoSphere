@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
-import { CONFIG } from "@/lib/config";
 import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
 import { TimeController } from "../atlas/TimeController";
 import { getRouteColor, getRouteInfo, getCategoryLabel } from "./routeConfig";
@@ -115,6 +114,7 @@ interface ViewState {
 }
 
 import { MapAdapter } from "@/lib/BibleMapAdapter";
+import { logger } from "@/lib/logger";
 
 // ─── Map Error Boundary to catch maplibre / WebGL / deck.gl crashes ───
 class MapErrorBoundary extends React.Component<
@@ -131,7 +131,7 @@ class MapErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error("[TheoSphere3D] Map component crashed:", error, errorInfo);
+    logger.error("[TheoSphere3D] Map component crashed:", error, errorInfo);
   }
 
   render() {
@@ -148,7 +148,7 @@ function DeckGLOverlay(props: any) {
     try {
       return new MapboxOverlay(props);
     } catch (err) {
-      console.error("[TheoSphere3D] Failed to create MapboxOverlay:", err);
+      logger.error("[TheoSphere3D] Failed to create MapboxOverlay:", err);
       // Fallback object to prevent crashing standard react-map-gl operations
       return {
         setProps: () => {},
@@ -163,7 +163,7 @@ function DeckGLOverlay(props: any) {
       try {
         overlay.setProps(props);
       } catch (err) {
-        console.error(
+        logger.error(
           "[TheoSphere3D] Failed to update MapboxOverlay props:",
           err,
         );
@@ -202,12 +202,13 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     const controller = new AbortController();
     (async () => {
       try {
-        const baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, "");
-        const res = await fetch(`${baseUrl}/archaeology?limit=200`, {
+        const json = await api.get<{
+          success: boolean;
+          data: { items: ArchaeologicalFind[] };
+        }>("/archaeology?limit=200", {
           signal: controller.signal,
+          throwOnError: false,
         });
-        if (!res.ok) return;
-        const json = await res.json();
         if (json?.success) {
           setArchFinds(
             (json.data.items as ArchaeologicalFind[]).filter(
@@ -293,7 +294,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           setRawLibertyStyle(styleJson);
         }
       } catch (err) {
-        console.error(
+        logger.error(
           "[TheoSphere3D] Failed to fetch Liberty style, falling back to raster:",
           err,
         );
@@ -421,7 +422,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
 
       return style;
     } catch (e) {
-      console.error(
+      logger.error(
         "[TheoSphere3D] Error parsing/localizing style, falling back:",
         e,
       );
@@ -459,7 +460,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           setLocations([]);
         }
       } catch (e) {
-        console.error("Failed to fetch 3D locations:", e);
+        logger.error("Failed to fetch 3D locations:", e);
         setLocations([]);
       }
     };
@@ -480,10 +481,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
                   return detailedRes.data;
                 }
               } catch (err) {
-                console.error(
-                  `Failed to fetch route details for ${r.id}:`,
-                  err,
-                );
+                logger.error(`Failed to fetch route details for ${r.id}:`, err);
               }
               return null;
             }),
@@ -491,7 +489,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           setRoutes(detailedRoutes.filter(Boolean));
         }
       } catch (e) {
-        console.error("Failed to fetch 3D routes:", e);
+        logger.error("Failed to fetch 3D routes:", e);
       }
     };
     fetchRoutes();

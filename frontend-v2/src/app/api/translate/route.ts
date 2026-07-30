@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * /api/translate — server-side proxy to Google Translate (free public endpoint).
@@ -101,7 +102,7 @@ async function translateChunk(
       `&q=${encodeURIComponent(text)}`;
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) {
-      console.error(`[translate] upstream ${response.status}`);
+      logger.error(`[translate] upstream ${response.status}`);
       return text;
     }
     const data = (await response.json()) as unknown;
@@ -113,9 +114,9 @@ async function translateChunk(
       .join("");
   } catch (err) {
     if ((err as Error).name === "AbortError") {
-      console.error("[translate] upstream timeout");
+      logger.error("[translate] upstream timeout");
     } else {
-      console.error("[translate] failed:", (err as Error).message);
+      logger.error("[translate] failed:", (err as Error).message);
     }
     return text;
   } finally {
@@ -194,7 +195,7 @@ export async function POST(req: Request) {
     );
     return NextResponse.json({ translated: translated.join("") });
   } catch (err) {
-    console.error("[translate] internal error:", (err as Error).message);
+    logger.error("[translate] internal error:", (err as Error).message);
     return NextResponse.json({ error: "Falha na tradução" }, { status: 500 });
   }
 }

@@ -24,6 +24,7 @@ import { motion } from "framer-motion";
 
 import { useTrackContext } from "@/hooks/useTrackContext";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 /* ─── Types & Categories ────────────────────────────────── */
 
@@ -183,7 +184,7 @@ export default function TheologicalLibrary({
           setIndexingStatus(JSON.parse(stored));
         }
       } catch (e) {
-        console.error("Erro ao carregar cache de indexação:", e);
+        logger.error("Erro ao carregar cache de indexação:", e);
       }
     }, 0);
     return () => clearTimeout(timer);
@@ -218,7 +219,7 @@ export default function TheologicalLibrary({
         text: `"${book.title}" foi indexado com sucesso na memória da sua IA! (${res.chunksIndexed || 0} trechos adicionados).`,
       });
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       setIndexingStatus((prev) => ({ ...prev, [book.id]: "error" }));
       setMessageToast({
         type: "error",

@@ -11,6 +11,7 @@ import {
   Lock,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 /**
  * Painel de moderação das Q&A validadas (aprendizado contínuo).
@@ -60,7 +61,10 @@ export default function ValidatedQaAdminPage() {
         setPageSize(res.data.pageSize);
       }
     } catch (err) {
-      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+      if (
+        err instanceof ApiError &&
+        (err.status === 401 || err.status === 403)
+      ) {
         setForbidden(true);
       }
       setItems([]);
@@ -89,7 +93,7 @@ export default function ValidatedQaAdminPage() {
       await api.delete(`rag/validated-qa/${id}`, { withAuth: true });
       await load(page);
     } catch (err) {
-      console.error("Falha ao remover:", err);
+      logger.error("Falha ao remover:", err);
     } finally {
       setDeleting(null);
     }
@@ -106,8 +110,8 @@ export default function ValidatedQaAdminPage() {
             Acesso restrito
           </h1>
           <p className="text-sm text-gray-500 dark:text-white/40 max-w-sm">
-            Este painel de moderação exige perfil de administrador ou
-            moderador. Faça login com uma conta autorizada.
+            Este painel de moderação exige perfil de administrador ou moderador.
+            Faça login com uma conta autorizada.
           </p>
         </div>
       </div>
@@ -147,8 +151,8 @@ export default function ValidatedQaAdminPage() {
           </div>
         ) : items.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-white/30 text-center py-16">
-            Nenhuma resposta validada ainda. Elas surgem quando usuários
-            avaliam respostas do TheoAI com 👍.
+            Nenhuma resposta validada ainda. Elas surgem quando usuários avaliam
+            respostas do TheoAI com 👍.
           </p>
         ) : (
           <div className="space-y-3">

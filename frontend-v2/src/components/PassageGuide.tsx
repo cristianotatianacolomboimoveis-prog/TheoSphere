@@ -39,6 +39,7 @@ import { THEOLOGICAL_TOPICS } from "@/data/theologicalTopics";
 import { COMMENTARIES } from "@/data/commentaries";
 import { DICTIONARIES } from "@/data/dictionaries";
 import { parsePassage, passagesOverlap } from "@/lib/passageRef";
+import { logger } from "@/lib/logger";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -107,7 +108,7 @@ export default function PassageGuide({
         try {
           setUserNotes(JSON.parse(saved));
         } catch (e) {
-          console.error("Erro ao carregar notas", e);
+          logger.error("Erro ao carregar notas", e);
         }
       }
     }, 0);
@@ -211,7 +212,7 @@ export default function PassageGuide({
         setReference(ref);
       }
     } catch (err) {
-      console.error("Erro ao buscar passagem:", err);
+      logger.error("Erro ao buscar passagem:", err);
     } finally {
       setLoading(false);
     }

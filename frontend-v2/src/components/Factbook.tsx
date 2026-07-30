@@ -19,16 +19,22 @@ import {
   Share2,
   Printer,
   Copy,
+  Check,
+  AlertTriangle,
+  RotateCw,
   ScrollText,
   Clock,
   Hash,
   Library,
-  MoreHorizontal,
   ArrowLeft,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
+import { useRouter } from "next/navigation";
 import { useRAG } from "@/hooks/useRAG";
+import { logger } from "@/lib/logger";
+import { useTheoStore } from "@/store/useTheoStore";
+import { parseBibleRef, verseIdOf } from "@/lib/bibleRef";
 
 interface FactbookSection {
   id: string;
@@ -36,7 +42,6 @@ interface FactbookSection {
   icon: string;
   content?: string;
   items?: string[];
-  images?: string[];
   verses?: string[];
   tags?: string[];
   links?: string[];
@@ -45,7 +50,6 @@ interface FactbookSection {
 interface FactbookData {
   title: string;
   subtitle: string;
-  headerImage?: string;
   sections: FactbookSection[];
 }
 
@@ -53,9 +57,13 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<FactbookData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [history, setHistory] = useState<string[]>([]);
   const { chat } = useRAG();
+  const router = useRouter();
+  const { setBibleReference, setActiveVerse, setActiveTool } = useTheoStore();
 
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
@@ -63,21 +71,23 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
   const handleSearch = async (term: string) => {
     if (!term.trim()) return;
     setLoading(true);
+    setError(null);
     setQuery(term);
 
-    // Improved Prompt for Logos-style data
-    const prompt = `Gere um dossiê Factbook acadêmico profissional (estilo Logos Bible Software) para o termo "${term}". 
+    // O prompt não pede mais "headerImage" nem "images": o componente não
+    // renderiza imagem nenhuma, então eram tokens gastos em URLs alucinadas
+    // que iam para o lixo (varredura 2026-07-29).
+    const prompt = `Gere um dossiê Factbook acadêmico profissional (estilo Logos Bible Software) para o termo "${term}".
     O conteúdo deve ser profundo, exegético e histórico.
+    Nas "verses", use referências bíblicas no formato "Livro Capítulo:Versículo" em português (ex: "Gênesis 14:18").
     Retorne um JSON estritamente com a seguinte estrutura:
     {
       "title": "${term}",
       "subtitle": "Categoria Acadêmica (Pessoa, Lugar, Evento, etc)",
-      "headerImage": "URL de placeholder realista (ex: unsplash)",
       "sections": [
         { "id": "overview", "title": "Visão Geral", "icon": "Info", "content": "Resumo enciclopédico profundo..." },
         { "id": "key-articles", "title": "Artigos Principais", "icon": "BookOpen", "items": ["Artigo 1 de dicionário", "Artigo 2"] },
-        { "id": "media", "title": "Mídia & Arqueologia", "icon": "ImageIcon", "images": ["url1", "url2"] },
-        { "id": "passages", "title": "Passagens Chave", "icon": "ScrollText", "verses": ["Referência 1", "Referência 2"] },
+        { "id": "passages", "title": "Passagens Chave", "icon": "ScrollText", "verses": ["Gênesis 14:18", "Hebreus 7:1"] },
         { "id": "events", "title": "Eventos Relacionados", "icon": "Calendar", "items": ["Evento 1", "Evento 2"] },
         { "id": "related", "title": "Tópicos Relacionados", "icon": "Link2", "tags": ["Tópico A", "Tópico B"] },
         { "id": "further-reading", "title": "Leitura Adicional", "icon": "ExternalLink", "links": ["Referência Bibliográfica 1", "Referência 2"] }
@@ -86,7 +96,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
     try {
       const res = await chat(prompt, [], undefined, true);
-      let content = res.content;
+      const content = res.content;
 
       // Parse JSON from AI response
       let parsedData: FactbookData | null = null;
@@ -103,16 +113,97 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
         }
       }
 
+      // Valida o formato antes de renderizar — a IA pode devolver JSON válido
+      // porém sem o array "sections", o que derrubava o app no data.sections.map
+      if (parsedData && !Array.isArray(parsedData.sections)) {
+        logger.error(
+          "Factbook: resposta da IA sem 'sections' válido — descartada",
+          parsedData,
+        );
+        parsedData = null;
+      }
+
       if (parsedData) {
         setData(parsedData);
         if (!history.includes(term)) setHistory([term, ...history.slice(0, 4)]);
+      } else {
+        // Antes o dossiê inválido só virava log e a tela voltava ao estado
+        // inicial — indistinguível de "o clique não fez nada".
+        setError(
+          "A IA respondeu, mas não no formato de dossiê. Tente de novo ou reformule o termo.",
+        );
       }
     } catch (e) {
-      console.error("Factbook Error:", e);
+      logger.error("Factbook Error:", e);
+      setError(
+        "Não foi possível falar com o servidor. Se o backend estava dormindo, a primeira chamada pode levar até um minuto — tente novamente.",
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  /** Abre a referência no leitor. Não navega se a referência não for válida. */
+  const openReference = (ref: string) => {
+    const parsed = parseBibleRef(ref);
+    if (!parsed) {
+      logger.warn("Factbook: referência não reconhecida:", ref);
+      return;
+    }
+    setBibleReference(parsed.book.namePt, parsed.chapter);
+    const verseId = verseIdOf(parsed);
+    if (verseId) setActiveVerse(verseId);
+    router.push("/study");
+    onClose();
+  };
+
+  /** Serializa o dossiê para texto — usado por copiar e compartilhar. */
+  const asPlainText = (): string => {
+    if (!data) return "";
+    const body = (data.sections ?? [])
+      .map((s) => {
+        const parts = [`## ${s.title}`];
+        if (s.content) parts.push(s.content);
+        if (s.items?.length)
+          parts.push(s.items.map((i) => `- ${i}`).join("\n"));
+        if (s.verses?.length) parts.push(s.verses.join(" · "));
+        if (s.tags?.length) parts.push(s.tags.join(", "));
+        if (s.links?.length)
+          parts.push(s.links.map((l) => `- ${l}`).join("\n"));
+        return parts.join("\n");
+      })
+      .join("\n\n");
+    return `# ${data.title}\n${data.subtitle}\n\n${body}\n\n— Dossiê gerado no TheoSphere`;
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(asPlainText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      logger.warn("Factbook: clipboard indisponível", e);
+      setError("Seu navegador bloqueou o acesso à área de transferência.");
+    }
+  };
+
+  const handleShare = async () => {
+    const text = asPlainText();
+    // Web Share API só existe em contexto seguro e nem todo desktop tem.
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: `Factbook — ${data?.title}`, text });
+        return;
+      } catch (e) {
+        // Cancelamento do usuário não é erro.
+        if ((e as Error)?.name === "AbortError") return;
+        logger.warn("Factbook: share falhou, caindo para cópia", e);
+      }
+    }
+    await handleCopy();
+  };
+
+  const handlePrint = () => window.print();
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
@@ -167,7 +258,16 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
       {/* Logos Style Top Bar */}
       <div className="h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/30 flex items-center px-2 justify-between z-30 shrink-0">
         <div className="flex items-center gap-1 overflow-hidden">
-          <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded shrink-0">
+          <button
+            onClick={() => {
+              setActiveTool("library");
+              router.push("/library");
+              onClose();
+            }}
+            title="Abrir biblioteca"
+            aria-label="Abrir biblioteca"
+            className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded shrink-0"
+          >
             <Library className="w-3.5 h-3.5 text-gray-500" />
           </button>
           <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-1 shrink-0" />
@@ -187,10 +287,22 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
+          <button
+            onClick={handleShare}
+            disabled={!data}
+            title="Compartilhar dossiê"
+            aria-label="Compartilhar dossiê"
+            className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+          >
             <Share2 className="w-3.5 h-3.5 text-gray-500" />
           </button>
-          <button className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded">
+          <button
+            onClick={handlePrint}
+            disabled={!data}
+            title="Imprimir dossiê"
+            aria-label="Imprimir dossiê"
+            className="p-1.5 hover:bg-gray-300 dark:hover:bg-white/5 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+          >
             <Printer className="w-3.5 h-3.5 text-gray-500" />
           </button>
           <button
@@ -223,7 +335,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
           <div className="flex-grow overflow-y-auto py-2 px-1 space-y-0.5 custom-scrollbar">
             {data ? (
-              data.sections.map((section) => (
+              (data.sections ?? []).map((section) => (
                 <button
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
@@ -304,6 +416,44 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
               </motion.div>
             ) : null}
 
+            {/* Banner de erro — antes a falha era só um log no console e a
+                tela voltava ao estado inicial (varredura 2026-07-29). */}
+            {error && !loading && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-4xl mx-auto px-12 pt-8 print:hidden"
+              >
+                <div
+                  role="alert"
+                  className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10"
+                >
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="flex-grow space-y-2">
+                    <p className="text-[13px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                      {error}
+                    </p>
+                    {query && (
+                      <button
+                        onClick={() => handleSearch(query)}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline"
+                      >
+                        <RotateCw className="w-3 h-3" /> Tentar novamente
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    aria-label="Dispensar aviso"
+                    className="p-1 rounded hover:bg-amber-500/10 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5 text-amber-600" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {data ? (
               <motion.div
                 key={data.title}
@@ -328,12 +478,30 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1.5 border border-gray-200 dark:border-white/10 rounded text-[11px] font-bold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                        <Copy className="w-3.5 h-3.5 text-gray-400" /> Copiar
+                    {/* "Ferramentas" foi removido: era um botão sem handler e
+                        sem menu por trás. Copiar e Imprimir agora funcionam. */}
+                    <div className="flex gap-2 print:hidden">
+                      <button
+                        onClick={handleCopy}
+                        className="px-3 py-1.5 border border-gray-200 dark:border-white/10 rounded text-[11px] font-bold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-green-600" />{" "}
+                            Copiado
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-gray-400" />{" "}
+                            Copiar
+                          </>
+                        )}
                       </button>
-                      <button className="px-3 py-1.5 bg-blue-600 text-white rounded text-[11px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all">
-                        <Sparkles className="w-3.5 h-3.5" /> Ferramentas
+                      <button
+                        onClick={handlePrint}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-[11px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> Imprimir
                       </button>
                     </div>
                   </div>
@@ -341,7 +509,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
                 {/* Sections Grid/List */}
                 <div className="space-y-16">
-                  {data.sections.map((section) => (
+                  {(data.sections ?? []).map((section) => (
                     <section
                       key={section.id}
                       ref={(el) => {
@@ -357,9 +525,8 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           {section.title}
                         </h2>
                         <div className="flex-grow h-px bg-gray-100 dark:bg-white/5" />
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                        </button>
+                        {/* O menu "…" por seção não tinha handler nem menu —
+                            removido em vez de simulado. */}
                       </div>
 
                       <div className="pl-11">
@@ -369,15 +536,15 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           </p>
                         )}
 
+                        {/* Artigos e eventos são frases descritivas, não
+                            entidades — o cursor-pointer prometia um clique que
+                            nunca existiu (varredura 2026-07-29). */}
                         {section.items && (
                           <ul className="space-y-2">
                             {section.items.map((item, i) => (
-                              <li
-                                key={i}
-                                className="flex items-start gap-3 group/item cursor-pointer"
-                              >
-                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 group-hover/item:bg-blue-600 transition-colors" />
-                                <span className="text-[13px] text-gray-600 dark:text-gray-400 group-hover/item:text-blue-600 transition-colors">
+                              <li key={i} className="flex items-start gap-3">
+                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 shrink-0" />
+                                <span className="text-[13px] text-gray-600 dark:text-gray-400">
                                   {item}
                                 </span>
                               </li>
@@ -385,48 +552,52 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           </ul>
                         )}
 
+                        {/* Cada referência abre o versículo no leitor. Se a IA
+                            devolver algo que não é referência válida, o item
+                            fica como texto em vez de virar botão morto. */}
                         {section.verses && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {section.verses.map((v) => (
-                              <button
-                                key={v}
-                                className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all text-left group/verse"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
-                                  <span className="text-sm font-bold text-blue-600">
-                                    {v}
-                                  </span>
-                                </div>
-                                <ArrowLeft className="w-3.5 h-3.5 text-gray-300 rotate-180 opacity-0 group-hover/verse:opacity-100 transition-all" />
-                              </button>
-                            ))}
+                            {section.verses.map((v) => {
+                              const navigable = parseBibleRef(v) !== null;
+                              return (
+                                <button
+                                  key={v}
+                                  onClick={() => openReference(v)}
+                                  disabled={!navigable}
+                                  title={
+                                    navigable
+                                      ? `Abrir ${v} no leitor`
+                                      : "Referência não reconhecida"
+                                  }
+                                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-blue-500/30 enabled:hover:bg-blue-50/30 dark:enabled:hover:bg-blue-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
+                                    <span className="text-sm font-bold text-blue-600">
+                                      {v}
+                                    </span>
+                                  </div>
+                                  {navigable && (
+                                    <ArrowLeft className="w-3.5 h-3.5 text-gray-300 rotate-180 opacity-0 group-hover/verse:opacity-100 transition-all" />
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
 
-                        {section.images && (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {section.images.map((img, i) => (
-                              <div
-                                key={i}
-                                className="aspect-square bg-gray-100 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 flex items-center justify-center group/img overflow-hidden relative"
-                              >
-                                <ImageIcon className="w-6 h-6 text-gray-300 group-hover/img:scale-125 transition-transform" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                  <span className="text-[10px] text-white font-bold truncate">
-                                    Mídia Arqueológica
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
+                        {/* Cada tópico relacionado gera um novo dossiê — é a
+                            navegação que define um Factbook. */}
                         {section.tags && (
                           <div className="flex flex-wrap gap-2">
                             {section.tags.map((tag) => (
                               <button
                                 key={tag}
+                                onClick={() => {
+                                  contentRef.current?.scrollTo({ top: 0 });
+                                  void handleSearch(tag);
+                                }}
+                                title={`Gerar dossiê sobre ${tag}`}
                                 className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
                               >
                                 {tag}
@@ -435,18 +606,20 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           </div>
                         )}
 
+                        {/* Referências bibliográficas: são citações, não URLs.
+                            O cursor-pointer sugeria um link que nunca existiu. */}
                         {section.links && (
-                          <div className="space-y-1.5">
+                          <ul className="space-y-1.5">
                             {section.links.map((link, i) => (
-                              <div
+                              <li
                                 key={i}
-                                className="flex items-center gap-2 text-[11px] text-gray-400 hover:text-blue-600 cursor-pointer"
+                                className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400"
                               >
-                                <ExternalLink className="w-3 h-3" />
+                                <ExternalLink className="w-3 h-3 mt-0.5 shrink-0 text-gray-400" />
                                 <span>{link}</span>
-                              </div>
+                              </li>
                             ))}
-                          </div>
+                          </ul>
                         )}
                       </div>
                     </section>

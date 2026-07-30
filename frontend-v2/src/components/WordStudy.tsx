@@ -28,6 +28,10 @@ import { STRONGS_HEBREW, searchStrongsHebrew } from "@/data/strongsHebrew";
 import { TranslationRing } from "./word-study/TranslationRing";
 import { ExegeticalConcordance } from "./word-study/ExegeticalConcordance";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import { useRouter } from "next/navigation";
+import { useTheoStore } from "@/store/useTheoStore";
+import { parseBibleRef, verseIdOf } from "@/lib/bibleRef";
 
 interface LibraryExcerpt {
   content: string;
@@ -53,8 +57,26 @@ export default function WordStudy({
   const [loadingOccurrences, setLoadingOccurrences] = useState(false);
   const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { setBibleReference, setActiveVerse } = useTheoStore();
+
+  /** Leva a ocorrência da concordância para o leitor. */
+  const openOccurrence = (reference: string) => {
+    const parsed = parseBibleRef(reference);
+    if (!parsed) {
+      logger.warn("WordStudy: referência não reconhecida:", reference);
+      return;
+    }
+    setBibleReference(parsed.book.namePt, parsed.chapter);
+    const verseId = verseIdOf(parsed);
+    if (verseId) setActiveVerse(verseId);
+    router.push("/study");
+    onClose();
+  };
 
   const fetchLexicalAnalysis = async (strongId: string) => {
+    setError(null);
     setLoadingLexical(true);
     setLoadingOccurrences(true);
     try {
@@ -63,7 +85,11 @@ export default function WordStudy({
       const jsonOcc = await api.get<any>(`linguistics/search-root/${strongId}`);
       if (jsonOcc.success) setOccurrences(jsonOcc.data);
     } catch (e) {
-      console.error(e);
+      // Antes o painel simplesmente ficava vazio (varredura 2026-07-29).
+      logger.error(e);
+      setError(
+        "Não foi possível carregar o léxico e as ocorrências deste termo.",
+      );
     } finally {
       setLoadingLexical(false);
       setLoadingOccurrences(false);
@@ -81,7 +107,7 @@ export default function WordStudy({
       const res = await api.get<any>(`library/lookup?${qs.toString()}`);
       if (res.success) setLibraryExcerpts(res.data.excerpts);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoadingLibrary(false);
     }
@@ -302,10 +328,20 @@ export default function WordStudy({
                 </div>
               </div>
 
+              {error && (
+                <div
+                  role="alert"
+                  className="mb-4 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-[12px] text-amber-300 leading-relaxed"
+                >
+                  {error}
+                </div>
+              )}
+
               <ExegeticalConcordance
                 loading={loadingOccurrences}
                 occurrences={occurrences}
                 lexicalData={lexicalData}
+                onSelectReference={openOccurrence}
               />
             </motion.div>
           ) : (

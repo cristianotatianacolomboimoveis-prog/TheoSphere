@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { CONFIG } from "../lib/config";
+import { logger } from "@/lib/logger";
 
 type WorkerMessageType =
   | "FILTER_BY_TIME"
@@ -25,15 +26,15 @@ function getOrCreateWorker(): Worker | null {
           try {
             listener(type, payload);
           } catch (e) {
-            console.error("[useTheoWorker] Listener error:", e);
+            logger.error("[useTheoWorker] Listener error:", e);
           }
         });
       };
       globalWorker.onerror = (err: any) => {
         const errorDetails = `Msg: ${err.message} | File: ${err.filename} | Line: ${err.lineno}`;
-        console.error("[useTheoWorker] Global worker error:", errorDetails);
+        logger.error("[useTheoWorker] Global worker error:", errorDetails);
         if (err.error)
-          console.error("[useTheoWorker] Underlying error:", err.error);
+          logger.error("[useTheoWorker] Underlying error:", err.error);
       };
 
       // Inicializa o worker com as configurações de ambiente
@@ -45,7 +46,7 @@ function getOrCreateWorker(): Worker | null {
         },
       });
     } catch (e: any) {
-      console.error("[useTheoWorker] Failed to create worker:", e.message || e);
+      logger.error("[useTheoWorker] Failed to create worker:", e.message || e);
     }
   }
   return globalWorker;

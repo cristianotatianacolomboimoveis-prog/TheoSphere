@@ -8,7 +8,6 @@ import {
   Minimize2,
   ZoomIn,
   ZoomOut,
-  Filter,
   Share2,
   Layers,
   BookOpen,
@@ -22,6 +21,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 // Carregamento dinâmico para evitar erros de SSR com Three.js
 const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
@@ -37,11 +37,58 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
   const { activeBook, activeChapter } = useTheoStore();
   const [data, setData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const graphRef = useRef<any>(null);
 
   const currentRef = `${activeBook} ${activeChapter}`;
+
+  /**
+   * Vizinhos diretos de um nó, lidos dos links do próprio grafo. O ForceGraph
+   * substitui source/target por objetos após a simulação — daí o normalizeId.
+   */
+  const neighborsOf = (node: any) => {
+    if (!node) return [];
+    const normalizeId = (end: any) =>
+      typeof end === "object" && end !== null ? end.id : end;
+    const ids = new Set<string>();
+    for (const link of data.links ?? []) {
+      const source = normalizeId(link.source);
+      const target = normalizeId(link.target);
+      if (source === node.id) ids.add(target);
+      else if (target === node.id) ids.add(source);
+    }
+    return (data.nodes ?? []).filter((n: any) => ids.has(n.id));
+  };
+
+  /** Seleciona um nó e centraliza a câmera nele. */
+  const focusNode = (node: any) => {
+    setSelectedNode(node);
+    const graph = graphRef.current;
+    if (!graph?.cameraPosition || typeof node.x !== "number") return;
+    const distRatio = 1 + 45 / Math.hypot(node.x, node.y, node.z);
+    graph.cameraPosition(
+      { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+      node,
+      1200,
+    );
+  };
+
+  /**
+   * Aproxima (fator < 1) ou afasta (fator > 1) escalando a posição da câmera
+   * em relação à origem do grafo.
+   */
+  const zoomBy = (factor: number) => {
+    const graph = graphRef.current;
+    if (!graph?.cameraPosition) return;
+    const { x, y, z } = graph.cameraPosition();
+    graph.cameraPosition(
+      { x: x * factor, y: y * factor, z: z * factor },
+      undefined,
+      400,
+    );
+  };
 
   const getNodeIcon = (type: string) => {
     switch (type) {
@@ -80,6 +127,7 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     async function fetchGraph() {
       setLoading(true);
+      setError(null);
       try {
         const result = await api.get<any>(
           `enterprise/graph?q=${encodeURIComponent(currentRef)}`,
@@ -88,7 +136,10 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
           setData(result.data);
         }
       } catch (err) {
-        console.error("Erro ao carregar grafo:", err);
+        // Sem isto o grafo ficava simplesmente vazio, sem explicação
+        // (varredura 2026-07-29).
+        logger.error("Erro ao carregar grafo:", err);
+        setError("Não foi possível carregar o grafo de conhecimento.");
       } finally {
         setLoading(false);
       }
@@ -194,7 +245,18 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {!loading && (
+        {!loading && error && (
+          <div
+            role="alert"
+            className="absolute inset-0 flex flex-col items-center justify-center z-20 px-8 text-center"
+          >
+            <p className="text-sm text-amber-300/90 max-w-sm leading-relaxed">
+              {error}
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && (
           <ForceGraph3D
             ref={graphRef}
             graphData={data}
@@ -237,15 +299,25 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
               {currentRef}
             </span>
           </div>
+          {/* Os três botões não tinham onClick (varredura 2026-07-29).
+              Zoom passou a mover a câmera; o filtro foi removido porque não
+              existe mecanismo de filtragem por trás dele. */}
           <div className="flex gap-2">
-            <button className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 transition-all">
+            <button
+              onClick={() => zoomBy(0.75)}
+              title="Aproximar"
+              aria-label="Aproximar"
+              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-all"
+            >
               <ZoomIn className="w-4 h-4" />
             </button>
-            <button className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 transition-all">
+            <button
+              onClick={() => zoomBy(1.35)}
+              title="Afastar"
+              aria-label="Afastar"
+              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-all"
+            >
               <ZoomOut className="w-4 h-4" />
-            </button>
-            <button className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 transition-all">
-              <Filter className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -322,42 +394,51 @@ export default function TheoSGraph({ onClose }: { onClose: () => void }) {
                   </div>
                 )}
 
-                {selectedNode.type === "verse" && (
-                  <div className="p-4 rounded-xl bg-teal-500/10 border border-teal-500/20 italic">
-                    <div className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-2">
-                      Texto Bíblico
+                {/* Antes este bloco imprimia Gênesis 1:1-2 fixo para QUALQUER
+                    nó de versículo, e as correlações eram "Justificação" e
+                    "Apóstolo Paulo" hardcoded (varredura 2026-07-29). Agora
+                    ambos vêm do grafo; sem dado, o bloco não aparece. */}
+                {selectedNode.type === "verse" &&
+                  (selectedNode.text || selectedNode.metadata?.text) && (
+                    <div className="p-4 rounded-xl bg-teal-500/10 border border-teal-500/20 italic">
+                      <div className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-2">
+                        Texto Bíblico
+                      </div>
+                      <p className="text-sm font-serif text-gray-300 leading-relaxed">
+                        &ldquo;
+                        {selectedNode.text || selectedNode.metadata?.text}
+                        &rdquo;
+                      </p>
                     </div>
-                    <p className="text-sm font-serif text-gray-300 leading-relaxed">
-                      "No princípio, criou Deus os céus e a terra. E a terra era
-                      sem forma e vazia; e havia trevas sobre a face do abismo;
-                      e o Espírito de Deus se movia sobre a face das águas."
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                {/* Connections list */}
+                {/* Connections list — vizinhos reais do nó no grafo */}
                 <div className="space-y-3">
                   <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                     Correlações Semânticas
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl text-xs hover:bg-white/10 cursor-pointer transition-all">
-                      <span className="font-bold text-gray-300">
-                        Justificação
-                      </span>
-                      <span className="text-[9px] uppercase font-bold text-blue-400 bg-blue-400/10 border border-blue-400/20 px-1.5 py-0.5 rounded">
-                        Doutrina
-                      </span>
+                  {neighborsOf(selectedNode).length > 0 ? (
+                    <div className="space-y-2">
+                      {neighborsOf(selectedNode).map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => focusNode(n)}
+                          className="w-full flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl text-xs hover:bg-white/10 transition-all text-left"
+                        >
+                          <span className="font-bold text-gray-300">
+                            {n.label}
+                          </span>
+                          <span className="text-[9px] uppercase font-bold text-blue-400 bg-blue-400/10 border border-blue-400/20 px-1.5 py-0.5 rounded shrink-0 ml-2">
+                            {getNodeTypeLabel(n.type)}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl text-xs hover:bg-white/10 cursor-pointer transition-all">
-                      <span className="font-bold text-gray-300">
-                        Apóstolo Paulo
-                      </span>
-                      <span className="text-[9px] uppercase font-bold text-pink-400 bg-pink-400/10 border border-pink-400/20 px-1.5 py-0.5 rounded">
-                        Pessoa
-                      </span>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-[11px] text-white/30">
+                      Nenhuma correlação registrada para este nó.
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.div>

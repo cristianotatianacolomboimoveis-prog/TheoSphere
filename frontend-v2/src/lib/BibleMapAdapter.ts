@@ -5,6 +5,8 @@
  * e o Dashboard Logos. Implementa um padrão Mediator com Event Bus.
  */
 
+import { logger } from "@/lib/logger";
+
 export type MapEventType =
   | "onLocationSelected"
   | "onRegionChanged"
@@ -48,7 +50,7 @@ class BibleMapEventBus {
       try {
         fn(payload);
       } catch (err) {
-        console.error(
+        logger.error(
           `[BibleMap:EventBus] Error in subscriber for ${event}:`,
           err,
         );
@@ -99,7 +101,7 @@ class BibleMapIntegrationFacade {
       }
       action();
     } catch (err) {
-      console.error(
+      logger.error(
         `[BibleMap:Facade] Fallback ativado para comando ${command}:`,
         err,
       );

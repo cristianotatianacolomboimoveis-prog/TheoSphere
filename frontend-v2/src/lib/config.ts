@@ -10,6 +10,12 @@ const DEFAULT_BACKEND =
     : "http://localhost:3002";
 
 export const CONFIG = {
+  /**
+   * Base do backend SEM o prefixo /api/v1 (para callers que montam o path
+   * completo, ex: useAuth/useRAG). Fonte única — antes cada hook duplicava
+   * esta expressão com fallbacks próprios (auditoria 2026-07-21).
+   */
+  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND,
   API_BASE_URL:
     process.env.NEXT_PUBLIC_API_URL ||
     (process.env.NEXT_PUBLIC_BACKEND_URL

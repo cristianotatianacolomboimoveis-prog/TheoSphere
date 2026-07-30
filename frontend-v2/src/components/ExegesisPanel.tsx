@@ -20,8 +20,8 @@ import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
 import { useRAG } from "@/hooks/useRAG";
 import { api } from "@/lib/api";
-import { CONFIG } from "@/lib/config";
 import { BIBLE_BOOKS } from "@/data/bibleBooks";
+import { logger } from "@/lib/logger";
 
 interface InterlinearWord {
   word: string;
@@ -74,6 +74,7 @@ export default function ExegesisPanel({
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ExegesisData | null>(null);
   const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
   // Interlinear REAL (STEP Bible via backend) — substitui a saída da IA,
   // que podia vir mockada/incompleta (QA 2026-07-14).
@@ -96,12 +97,12 @@ export default function ExegesisPanel({
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await fetch(
-          `${CONFIG.API_BASE_URL}/linguistics/interlinear/${book.id}/${chapter}`,
-          { signal: controller.signal },
-        );
-        if (!res.ok) return;
-        const json = await res.json();
+        const json = await api.get<{
+          data?: { verses?: Record<number, unknown[]> };
+        }>(`/linguistics/interlinear/${book.id}/${chapter}`, {
+          signal: controller.signal,
+          throwOnError: false,
+        });
         const words = json?.data?.verses?.[verseNum];
         if (Array.isArray(words) && words.length > 0) {
           setRealInterlinear(
@@ -131,6 +132,7 @@ export default function ExegesisPanel({
       const language = isNT ? "Grego" : "Hebraico";
       const prompt = `Análise PhD para ${verse}. Idioma: ${language}. JSON Schema: { "verse": "${verse}", "original_language": "${language}", "interlinear": [{ "word": "...", "transliteration": "...", "strong": "...", "morphology": "...", "translation": "..." }], "lexical_analysis": [{ "word": "...", "bdag_halot_sense": "...", "academic_discussion": "..." }], "syntactic_notes": "...", "technical_commentary": [{ "source": "...", "view": "..." }], "systematic_connection": { "locus": "...", "explanation": "..." } }`;
 
+      setError(null);
       try {
         const response = await chat(prompt, [], undefined, true);
         const content = response?.content;
@@ -147,7 +149,13 @@ export default function ExegesisPanel({
           }
         }
       } catch (err) {
-        console.error(err);
+        // Antes só ia para o console: o painel ficava vazio e o usuário não
+        // tinha como saber se era rede, cold start ou resposta inválida
+        // (varredura 2026-07-29).
+        logger.error(err);
+        setError(
+          "Não foi possível gerar a exegese. Se o servidor estava dormindo, a primeira chamada pode levar até um minuto.",
+        );
       } finally {
         setLoading(false);
       }
@@ -196,6 +204,13 @@ export default function ExegesisPanel({
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
               Sincronizando Léxicos Acadêmicos...
             </p>
+          </div>
+        ) : error ? (
+          <div
+            role="alert"
+            className="m-6 p-4 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-[13px] text-amber-900 dark:text-amber-200 leading-relaxed"
+          >
+            {error}
           </div>
         ) : (
           <>
@@ -246,7 +261,7 @@ export default function ExegesisPanel({
               defaultOpen
             >
               <div className="space-y-6">
-                {data?.lexical_analysis.map((l, i) => (
+                {(data?.lexical_analysis ?? []).map((l, i) => (
                   <div
                     key={i}
                     className="relative pl-6 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:bg-blue-600/30"
@@ -272,7 +287,7 @@ export default function ExegesisPanel({
 
             <StudySection title="Comentários Técnicos" icon={Info}>
               <div className="space-y-4">
-                {data?.technical_commentary.map((c, i) => (
+                {(data?.technical_commentary ?? []).map((c, i) => (
                   <div
                     key={i}
                     className="p-5 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-sm"
@@ -291,10 +306,10 @@ export default function ExegesisPanel({
             <StudySection title="Loci Theologici" icon={LibraryIcon}>
               <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-sm">
                 <h5 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">
-                  {data?.systematic_connection.locus}
+                  {data?.systematic_connection?.locus}
                 </h5>
                 <p className="text-sm font-serif text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {data?.systematic_connection.explanation}
+                  {data?.systematic_connection?.explanation}
                 </p>
               </div>
             </StudySection>

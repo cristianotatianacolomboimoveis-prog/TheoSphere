@@ -159,9 +159,18 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
           })}
         </nav>
 
-        {/* User / Help */}
+        {/* User / Help — a engrenagem não tinha onClick (varredura 2026-07-29) */}
         <div className="mt-auto flex flex-col gap-2">
-          <button className="w-8 h-8 rounded hover:bg-gray-300 dark:hover:bg-white/5 flex items-center justify-center text-gray-500">
+          <button
+            onClick={() => handleSelectTool("settings")}
+            title="Ajustes"
+            aria-label="Ajustes"
+            className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
+              activeTool === "settings"
+                ? "bg-blue-600 text-white"
+                : "text-gray-500 hover:bg-gray-300 dark:hover:bg-white/5"
+            }`}
+          >
             <Settings className="w-4 h-4" />
           </button>
         </div>

@@ -28,10 +28,11 @@ export function useCollaboration(
   }, [onUpdate]);
 
   useEffect(() => {
-    // Use centralized config for backend URL
-    const backendUrl =
-      CONFIG.API_BASE_URL.replace("/api", "") + "/collaboration";
-    const s = io(backendUrl, {
+    // O @WebSocketGateway do backend não declara namespace — escuta na raiz.
+    // O código anterior montava ".../v1/collaboration" (replace("/api","")
+    // sobre a base que já inclui /api/v1) e nunca conectava, sem erro
+    // visível (varredura 2026-07-29). Socket.io usa a origem do backend.
+    const s = io(CONFIG.WS_URL, {
       transports: ["websocket"],
     });
 

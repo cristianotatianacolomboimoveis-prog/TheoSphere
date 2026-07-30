@@ -10,12 +10,19 @@ interface ExegeticalConcordanceProps {
     text: string;
   }>;
   lexicalData?: any;
+  /**
+   * Abre a ocorrência no leitor. Sem ela as linhas ficam informativas — antes
+   * tinham cursor-pointer e ChevronRight sem handler nenhum, prometendo uma
+   * navegação inexistente (varredura 2026-07-29).
+   */
+  onSelectReference?: (reference: string) => void;
 }
 
 export const ExegeticalConcordance: React.FC<ExegeticalConcordanceProps> = ({
   loading,
   occurrences,
   lexicalData,
+  onSelectReference,
 }) => (
   <div className="glass rounded-xl border border-border-subtle p-4 mb-4">
     <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400 mb-3 flex items-center justify-between">
@@ -37,20 +44,31 @@ export const ExegeticalConcordance: React.FC<ExegeticalConcordanceProps> = ({
     ) : occurrences.length > 0 ? (
       <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
         {occurrences.map((occ, i) => (
-          <div
+          <button
             key={i}
-            className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all cursor-pointer group"
+            onClick={
+              onSelectReference
+                ? () => onSelectReference(occ.reference)
+                : undefined
+            }
+            disabled={!onSelectReference}
+            title={
+              onSelectReference ? `Abrir ${occ.reference} no leitor` : undefined
+            }
+            className="w-full text-left p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] enabled:hover:bg-white/[0.04] transition-all group disabled:cursor-default"
           >
             <div className="flex justify-between items-center mb-1">
               <span className="text-[10px] font-black text-blue-400 group-hover:text-blue-300">
                 {occ.reference}
               </span>
-              <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30" />
+              {onSelectReference && (
+                <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30" />
+              )}
             </div>
             <p className="text-[11px] text-white/50 leading-relaxed font-serif line-clamp-2">
               {occ.text}
             </p>
-          </div>
+          </button>
         ))}
       </div>
     ) : (

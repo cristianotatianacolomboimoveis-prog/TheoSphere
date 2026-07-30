@@ -15,6 +15,7 @@
  */
 
 import { CONFIG } from "./config";
+import { logger } from "@/lib/logger";
 
 const TOKEN_STORAGE_KEY = "theosphere-access-token";
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -94,7 +95,7 @@ export async function request<T = unknown>(
   let normalizedPath = path;
   if (!path.startsWith("http") && /^\/?api\/v1\//.test(path)) {
     if (process.env.NODE_ENV !== "production") {
-      console.warn(
+      logger.warn(
         `[lib/api] Path "${path}" includes /api/v1/ but the base URL already does — stripping. Use a relative path like "${path.replace(/^\/?api\/v1\//, "")}" instead.`,
       );
     }
@@ -108,13 +109,27 @@ export async function request<T = unknown>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  // Merge do signal externo (abort-on-unmount dos componentes) com o
+  // timeout interno. AbortSignal.any é baseline 2024+; sem ele, o signal
+  // externo é encadeado manualmente.
+  let signal: AbortSignal = controller.signal;
+  const external = rest.signal;
+  if (external) {
+    if (typeof AbortSignal.any === "function") {
+      signal = AbortSignal.any([controller.signal, external]);
+    } else {
+      if ((external as AbortSignal).aborted) controller.abort();
+      else external.addEventListener("abort", () => controller.abort());
+    }
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...rest,
       headers: buildHeaders(headers, withAuth),
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
+      signal,
       credentials: "include",
     });
   } catch (err) {
@@ -154,7 +169,7 @@ export async function request<T = unknown>(
           return request<T>(path, opts);
         }
       } catch (err) {
-        console.error("Token refresh failed:", err);
+        logger.error("Token refresh failed:", err);
       } finally {
         isRefreshing = false;
       }
