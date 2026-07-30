@@ -18,6 +18,7 @@
 #
 # Uso:
 #   bash audit/scripts/clear-rag-cache.sh
+#   bash audit/scripts/clear-rag-cache.sh voce@email.com     # e-mail como argumento
 #   BASE_URL=http://localhost:3002 bash audit/scripts/clear-rag-cache.sh
 #
 set -euo pipefail
@@ -27,9 +28,44 @@ BASE="${BASE_URL:-https://theosphere.onrender.com}"
 echo "Limpeza do cache semântico — $BASE"
 echo
 
-read -r -p "E-mail (usuário ADMIN): " EMAIL
-read -r -s -p "Senha: " PASSWORD
+# As leituras vêm de /dev/tty, não de stdin. Rodando `bash script.sh` logo
+# após colar um comando, uma quebra de linha residual no buffer era consumida
+# pelo primeiro `read`, que voltava vazio — e o script seguia adiante mandando
+# e-mail e senha em branco para a API (30/07/2026).
+if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+  echo "✗ Sem terminal interativo disponível para ler as credenciais."
+  exit 1
+fi
+
+# E-mail: aceita como argumento ou pergunta até vir algo válido.
+EMAIL="${1:-}"
+while true; do
+  if [ -z "$EMAIL" ]; then
+    printf 'E-mail (usuário ADMIN): ' > /dev/tty
+    IFS= read -r EMAIL < /dev/tty || EMAIL=""
+  fi
+  # Remove espaços das pontas (paste costuma trazer).
+  EMAIL="$(printf '%s' "$EMAIL" | tr -d '[:space:]')"
+  case "$EMAIL" in
+    ?*@?*.?*) break ;;
+    "") echo "  (vazio — digite o e-mail e pressione Enter)" > /dev/tty ;;
+    *) echo "  (não parece um e-mail válido: '$EMAIL')" > /dev/tty; EMAIL="" ;;
+  esac
+done
+
+# Senha: não ecoa. Repete se vier vazia.
+while true; do
+  printf 'Senha (não aparece na tela): ' > /dev/tty
+  stty -echo < /dev/tty
+  IFS= read -r PASSWORD < /dev/tty || PASSWORD=""
+  stty echo < /dev/tty
+  echo > /dev/tty
+  [ -n "$PASSWORD" ] && break
+  echo "  (vazia — digite a senha e pressione Enter)" > /dev/tty
+done
+
 echo
+echo "  e-mail: $EMAIL"
 echo
 
 # ─── 1. Login ───────────────────────────────────────────────────────────────
@@ -38,9 +74,12 @@ LOGIN_BODY=$(printf '{"email":%s,"password":%s}' \
   "$(printf '%s' "$EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" \
   "$(printf '%s' "$PASSWORD" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")
 
-LOGIN_RES=$(curl -s --max-time 90 -X POST "$BASE/api/v1/auth/login" \
+# --data-binary @- : o corpo vai por stdin, então a senha nunca aparece na
+# lista de processos (`ps aux` mostraria o -d '{"password":"..."}').
+LOGIN_RES=$(printf '%s' "$LOGIN_BODY" | curl -s --max-time 90 \
+  -X POST "$BASE/api/v1/auth/login" \
   -H 'Content-Type: application/json' \
-  -d "$LOGIN_BODY")
+  --data-binary @-)
 unset PASSWORD LOGIN_BODY
 
 TOKEN=$(printf '%s' "$LOGIN_RES" | python3 -c '
