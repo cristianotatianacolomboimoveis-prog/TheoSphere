@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -80,6 +81,17 @@ export class SemanticCacheService {
     similarity: number;
     source: 'global' | 'user';
   } | null> {
+    // ── Passo 0: acerto exato, sem custo de API ────────────────────────────
+    // Antes de 30/07/2026 o lookup começava direto no createEmbedding, então
+    // repetir a mesma pergunta gastava uma chamada faturada para redescobrir
+    // algo que já estava no banco. Cada pergunta custava 2 requisições
+    // (embedding + geração) e consumia a cota diária no dobro da velocidade.
+    const exact = await this.queryExact({ query, userId, tradition });
+    if (exact) {
+      this.logger.debug('[Cache] acerto exato (sem embedding)');
+      return exact;
+    }
+
     let embedding: number[];
     try {
       embedding = await this.embeddingService.createEmbedding(query);
@@ -260,6 +272,78 @@ export class SemanticCacheService {
 
   // ─── internals ──────────────────────────────────────────────────────────
 
+  /**
+   * Normaliza a pergunta para o hash: minúsculas, acentos removidos, espaços
+   * colapsados e pontuação final descartada. "Quem foi Nínive?" e
+   * "quem foi ninive" viram a mesma chave.
+   */
+  private hashQuery(query: string): string {
+    const normalized = query
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/[.?!]+$/, '')
+      .trim();
+    return createHash('sha256').update(normalized).digest('hex');
+  }
+
+  /**
+   * Acerto exato por hash — uma consulta indexada, zero chamadas de API.
+   * Devolve `similarity: 1` porque o texto é literalmente o mesmo.
+   */
+  private async queryExact(params: {
+    query: string;
+    userId?: string;
+    tradition?: string;
+  }): Promise<{
+    response: string;
+    similarity: number;
+    source: 'global' | 'user';
+  } | null> {
+    const { query, userId, tradition } = params;
+    const hash = this.hashQuery(query);
+
+    try {
+      // Escopo do usuário primeiro (mais relevante), depois o global.
+      const rows = await this.prisma.$queryRaw<
+        { response: string; scope: string; id: string }[]
+      >`
+        SELECT id, response, scope
+        FROM "SemanticCacheEntry"
+        WHERE "queryHash" = ${hash}
+          AND "expiresAt" > NOW()
+          AND (
+            (scope = 'user' AND "userId" = ${userId ?? null})
+            OR scope = 'global'
+          )
+          AND (${tradition ?? null}::text IS NULL OR tradition IS NULL OR tradition = ${tradition ?? null})
+        ORDER BY CASE WHEN scope = 'user' THEN 0 ELSE 1 END
+        LIMIT 1;
+      `;
+
+      const hit = rows[0];
+      if (!hit) return null;
+
+      // hitCount alimenta a política de prune (LRU-like) — manter atualizado.
+      await this.prisma.$executeRaw`
+        UPDATE "SemanticCacheEntry" SET "hitCount" = "hitCount" + 1 WHERE id = ${hit.id};
+      `;
+
+      return {
+        response: hit.response,
+        similarity: 1,
+        source: hit.scope === 'user' ? 'user' : 'global',
+      };
+    } catch (err) {
+      // Banco antigo sem a coluna: segue para a busca vetorial.
+      this.logger.debug(
+        `[Cache] match exato indisponível: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
   private async queryNearest(params: {
     embedding: number[];
     scope: 'global' | 'user';
@@ -326,13 +410,14 @@ export class SemanticCacheService {
     try {
       await this.prisma.$executeRaw`
         INSERT INTO "SemanticCacheEntry"
-          (id, scope, "userId", tradition, "queryText", response, embedding, "hitCount", "expiresAt", "createdAt")
+          (id, scope, "userId", tradition, "queryText", "queryHash", response, embedding, "hitCount", "expiresAt", "createdAt")
         VALUES (
           gen_random_uuid()::text,
           ${scope},
           ${userId},
           ${tradition},
           ${query},
+          ${this.hashQuery(query)},
           ${response},
           ${Prisma.raw(`'${literal}'::vector`)},
           0,

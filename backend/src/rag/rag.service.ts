@@ -169,6 +169,36 @@ export class RagService {
   // Fonte única aqui; os call sites decidem apenas entre generateContent
   // e generateContentStream (ou stream vs completions no OpenAI).
 
+  /**
+   * Teto por bloco de contexto. Trechos recuperados podem vir longos e o
+   * modelo raramente aproveita o excedente — mas ele é cobrado por token
+   * de entrada em toda chamada.
+   */
+  private static readonly MAX_CONTEXT_CHARS = 4000;
+
+  /** Corta um bloco de contexto no limite, sem partir palavra. */
+  private static trimContext(text: string): string {
+    const clean = (text ?? '').trim();
+    if (clean.length <= RagService.MAX_CONTEXT_CHARS) return clean;
+    const cut = clean.slice(0, RagService.MAX_CONTEXT_CHARS);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${lastSpace > 0 ? cut.slice(0, lastSpace) : cut}…`;
+  }
+
+  /**
+   * Monta os blocos rotulados, descartando os vazios. Um rótulo sem conteúdo
+   * é custo puro: ocupa tokens de entrada e não informa nada.
+   */
+  private static composeContext(blocks: [string, string][]): string {
+    return blocks
+      .map(([label, body]) => {
+        const trimmed = RagService.trimContext(body);
+        return trimmed ? `${label}:\n${trimmed}` : '';
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
   private buildGeminiRequest(p: {
     conversationHistory: ChatMessage[];
     sanitizedQuery: string;
@@ -192,17 +222,44 @@ export class RagService {
       { role: 'user', parts: [{ text: p.sanitizedQuery }] },
     ];
 
+    // Blocos vazios não entram mais no prompt. Antes os rótulos iam sempre —
+    // "CONTEÚDO PESSOAL (GOOGLE DRIVE):" seguido de nada — e o modelo pagava
+    // por tokens que não carregavam informação (economia 2026-07-30).
     const systemMessage = p.jsonMode
-      ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${p.driveLibraryContext}\n${p.theologicalContext}\n${p.bibleContext}\n${p.userContextText}`
-      : `${THEO_AI_SYSTEM_PROMPT}\n\n${
+      ? [
+          'VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.',
+          RagService.composeContext([
+            ['BIBLIOTECA', p.driveLibraryContext],
+            ['TEOLÓGICO', p.theologicalContext],
+            ['BÍBLICO', p.bibleContext],
+            ['PESSOAL', p.userContextText],
+          ]),
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      : [
+          THEO_AI_SYSTEM_PROMPT,
           p.libraryHasHits
-            ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${p.driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
-            : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
-        }${p.validatedQaContext ? `${p.validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${p.openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${p.userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${p.theologicalContext}\n\nCONTEXTO BÍBLICO:\n${p.bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${p.tradition || 'Geral'}`;
+            ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${RagService.trimContext(p.driveLibraryContext)}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.`
+            : 'NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.',
+          p.validatedQaContext,
+          RagService.composeContext([
+            ['CONTEÚDO ACADÊMICO (OPEN SOURCE)', p.openSourceContext],
+            ['CONTEÚDO PESSOAL (GOOGLE DRIVE)', p.userContextText],
+            ['CONTEXTO TEOLÓGICO LOCAL', p.theologicalContext],
+            ['CONTEXTO BÍBLICO', p.bibleContext],
+          ]),
+          `TRADIÇÃO PREFERIDA: ${p.tradition || 'Geral'}`,
+        ]
+          .filter(Boolean)
+          .join('\n\n');
 
     const config = {
       temperature: p.jsonMode ? 0.2 : 0.7,
-      maxOutputTokens: 3000,
+      // O dossiê do Factbook e a exegese precisam de espaço; uma resposta de
+      // chat raramente passa de ~700 tokens e o teto de 3000 só servia para
+      // permitir respostas longas demais.
+      maxOutputTokens: p.jsonMode ? 3000 : 1500,
       responseMimeType: p.jsonMode ? 'application/json' : 'text/plain',
       systemInstruction: systemMessage,
       safetySettings: [
@@ -243,11 +300,21 @@ export class RagService {
       ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
       : THEO_AI_SYSTEM_PROMPT;
 
-    const fullPrompt = `${
+    // Mesma regra do builder do Gemini: bloco vazio não vai para o prompt.
+    const fullPrompt = [
       p.libraryHasHits
-        ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${p.driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
-        : ''
-    }${p.validatedQaContext ? `${p.validatedQaContext}\n\n` : ''}CONTEXTO:\n${p.userContextText}\n${p.theologicalContext}\n${p.bibleContext}\n\nPERGUNTA: ${p.sanitizedQuery}`;
+        ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${RagService.trimContext(p.driveLibraryContext)}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.`
+        : '',
+      p.validatedQaContext,
+      RagService.composeContext([
+        ['CONTEXTO PESSOAL', p.userContextText],
+        ['CONTEXTO TEOLÓGICO', p.theologicalContext],
+        ['CONTEXTO BÍBLICO', p.bibleContext],
+      ]),
+      `PERGUNTA: ${p.sanitizedQuery}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
     return {
       model: 'gpt-4o-mini' as const,

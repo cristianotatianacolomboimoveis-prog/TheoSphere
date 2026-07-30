@@ -115,6 +115,9 @@ model SemanticCacheEntry {
   userId    String? // populated when scope = 'user'
   tradition String?
   queryText String
+  /// SHA-256 da pergunta normalizada. Permite acerto exato sem gastar uma
+  /// chamada de embedding — ver migration 20260730160000_cache_query_hash.
+  queryHash String?
   response  String
   embedding Unsupported("vector(768)")
   hitCount  Int                        @default(0)
