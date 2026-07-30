@@ -89,6 +89,106 @@ export class RagService {
   /**
    * Pipeline principal de chat com RAG.
    */
+  // ─── Builders compartilhados chat/chatStream (refactor 2026-07-21) ────
+  // chat() e chatStream() montavam contents, system prompt e config do
+  // Gemini (e as messages do OpenAI) em blocos duplicados de ~90 linhas.
+  // Fonte única aqui; os call sites decidem apenas entre generateContent
+  // e generateContentStream (ou stream vs completions no OpenAI).
+
+  private buildGeminiRequest(p: {
+    conversationHistory: ChatMessage[];
+    sanitizedQuery: string;
+    jsonMode: boolean;
+    driveLibraryContext: string;
+    theologicalContext: string;
+    bibleContext: string;
+    userContextText: string;
+    openSourceContext: string;
+    libraryHasHits: boolean;
+    validatedQaContext: string;
+    tradition?: string;
+  }) {
+    const history: Content[] = p.conversationHistory.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+    const contents: Content[] = [
+      ...history,
+      { role: 'user', parts: [{ text: p.sanitizedQuery }] },
+    ];
+
+    const systemMessage = p.jsonMode
+      ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${p.driveLibraryContext}\n${p.theologicalContext}\n${p.bibleContext}\n${p.userContextText}`
+      : `${THEO_AI_SYSTEM_PROMPT}\n\n${
+          p.libraryHasHits
+            ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${p.driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
+            : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
+        }${p.validatedQaContext ? `${p.validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${p.openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${p.userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${p.theologicalContext}\n\nCONTEXTO BÍBLICO:\n${p.bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${p.tradition || 'Geral'}`;
+
+    const config = {
+      temperature: p.jsonMode ? 0.2 : 0.7,
+      maxOutputTokens: 3000,
+      responseMimeType: p.jsonMode ? 'application/json' : 'text/plain',
+      systemInstruction: systemMessage,
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HARASSMENT' as any,
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
+        },
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH' as any,
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
+        },
+      ],
+    };
+
+    return { contents, config };
+  }
+
+  private buildOpenAiRequest(p: {
+    conversationHistory: ChatMessage[];
+    sanitizedQuery: string;
+    jsonMode: boolean;
+    driveLibraryContext: string;
+    theologicalContext: string;
+    bibleContext: string;
+    userContextText: string;
+    libraryHasHits: boolean;
+    validatedQaContext: string;
+  }) {
+    const systemMsg = p.jsonMode
+      ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
+      : THEO_AI_SYSTEM_PROMPT;
+
+    const fullPrompt = `${
+      p.libraryHasHits
+        ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${p.driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
+        : ''
+    }${p.validatedQaContext ? `${p.validatedQaContext}\n\n` : ''}CONTEXTO:\n${p.userContextText}\n${p.theologicalContext}\n${p.bibleContext}\n\nPERGUNTA: ${p.sanitizedQuery}`;
+
+    return {
+      model: 'gpt-4o-mini' as const,
+      messages: [
+        { role: 'system', content: systemMsg },
+        ...(p.conversationHistory as any),
+        { role: 'user', content: fullPrompt },
+      ],
+      temperature: p.jsonMode ? 0.1 : 0.7,
+      response_format: p.jsonMode
+        ? ({ type: 'json_object' } as const)
+        : undefined,
+    };
+  }
+
   async chat(
     query: string,
     userId?: string,
@@ -159,7 +259,9 @@ export class RagService {
       };
     }
 
-    if (!this.isTheologicalDomain(sanitizedQuery, conversationHistory)) {
+    if (
+      !this.isTheologicalDomain(sanitizedQuery, conversationHistory, jsonMode)
+    ) {
       this.logger.log(
         `[RAG] Query out of domain rejected: "${sanitizedQuery.slice(0, 60)}..."`,
       );
@@ -379,25 +481,20 @@ export class RagService {
           },
           async () => {
             // @google/genai 2.x: chamada unificada `models.generateContent`.
-            // `contents` carrega o histórico + a query atual; `config` recebe
-            // generationConfig (achatado), systemInstruction e safetySettings.
-            const history: Content[] = conversationHistory.map((m) => ({
-              role: m.role === 'assistant' ? 'model' : 'user',
-              parts: [{ text: m.content }],
-            }));
-
-            const contents: Content[] = [
-              ...history,
-              { role: 'user', parts: [{ text: sanitizedQuery }] },
-            ];
-
-            const systemMessage = jsonMode
-              ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${driveLibraryContext}\n${theologicalContext}\n${bibleContext}\n${userContextText}`
-              : `${THEO_AI_SYSTEM_PROMPT}\n\n${
-                  libraryHasHits
-                    ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
-                    : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
-                }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
+            // Request montado pelo builder compartilhado com chatStream.
+            const { contents, config } = this.buildGeminiRequest({
+              conversationHistory,
+              sanitizedQuery,
+              jsonMode,
+              driveLibraryContext,
+              theologicalContext,
+              bibleContext,
+              userContextText,
+              openSourceContext,
+              libraryHasHits,
+              validatedQaContext,
+              tradition,
+            });
 
             // 30s Timeout + Race for resilience (DT-9)
             const timeoutPromise = new Promise<never>((_, reject) =>
@@ -411,32 +508,7 @@ export class RagService {
               this.genAI!.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents,
-                config: {
-                  temperature: jsonMode ? 0.2 : 0.7,
-                  maxOutputTokens: 3000,
-                  responseMimeType: jsonMode
-                    ? 'application/json'
-                    : 'text/plain',
-                  systemInstruction: systemMessage,
-                  safetySettings: [
-                    {
-                      category: 'HARM_CATEGORY_HARASSMENT' as any,
-                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-                    },
-                    {
-                      category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-                    },
-                    {
-                      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-                    },
-                    {
-                      category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-                      threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-                    },
-                  ],
-                },
+                config,
               }),
               timeoutPromise,
             ]);
@@ -461,26 +533,19 @@ export class RagService {
             userId,
           },
           async () => {
-            const systemMsg = jsonMode
-              ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
-              : THEO_AI_SYSTEM_PROMPT;
-
-            const fullPrompt = `${
-              libraryHasHits
-                ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
-                : ''
-            }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
-
-            const res = await this.openai!.chat.completions.create({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: systemMsg },
-                ...(conversationHistory as any),
-                { role: 'user', content: fullPrompt },
-              ],
-              temperature: jsonMode ? 0.1 : 0.7,
-              response_format: jsonMode ? { type: 'json_object' } : undefined,
-            });
+            const res = await this.openai!.chat.completions.create(
+              this.buildOpenAiRequest({
+                conversationHistory,
+                sanitizedQuery,
+                jsonMode,
+                driveLibraryContext,
+                theologicalContext,
+                bibleContext,
+                userContextText,
+                libraryHasHits,
+                validatedQaContext,
+              }),
+            );
             outputTokens = res.usage?.completion_tokens || 0;
             return res.choices[0].message.content || '';
           },
@@ -602,6 +667,7 @@ export class RagService {
   private isTheologicalDomain(
     query: string,
     conversationHistory: ChatMessage[] = [],
+    structuredMode = false,
   ): boolean {
     // Sempre verifica a query atual contra o filtro de domínio,
     // independentemente do histórico de conversa (previne bypass por contexto).
@@ -630,6 +696,14 @@ export class RagService {
     );
     if (hasBlacklistKeyword) {
       return false;
+    }
+
+    // Prompts estruturados (Factbook, Exegese) são montados pela própria aplicação,
+    // não digitados livremente pelo usuário. A whitelist de palavras-chave não cobre
+    // nomes próprios bíblicos (Melquisedeque, Nínive, Filemom...) e rejeitava dossiês
+    // legítimos. A blacklist acima continua valendo para o termo inserido pelo usuário.
+    if (structuredMode) {
+      return true;
     }
 
     // 2. Whitelist abrangente de termos teológicos, bíblicos, apologéticos e filosóficos
@@ -887,146 +961,6 @@ export class RagService {
    */
   async indexUserContent(userId: string, documents: UserDocument[]) {
     return this.userContext.indexUserDocuments(userId, documents);
-  }
-
-  /**
-   * Busca contexto na base teológica (TheologyEmbedding com pgvector).
-   */
-  private async getTheologicalContext(
-    query: string,
-    tradition?: string,
-  ): Promise<string> {
-    const queryEmbedding = await this.embeddingService.createEmbedding(query);
-
-    try {
-      let docs: any[];
-
-      if (tradition) {
-        docs = await this.prisma.$queryRaw`
-          SELECT content, tradition, 
-                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
-          FROM "TheologyEmbedding"
-          WHERE tradition = ${tradition}
-          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-          LIMIT 12;
-        `;
-      } else {
-        docs = await this.prisma.$queryRaw`
-          SELECT content, tradition,
-                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
-          FROM "TheologyEmbedding"
-          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-          LIMIT 15;
-        `;
-      }
-
-      // Aplica Semantic Reranking (Cross-Check)
-      const topDocs = await this.rerankContext(query, docs, 4);
-
-      if (!topDocs || topDocs.length === 0) {
-        this.logger.debug(
-          '[RAG] Vector search returned empty — using classic commentary fallback',
-        );
-        return this.getFallbackCommentaryContext(query);
-      }
-
-      return [
-        '=== BASE DE CONHECIMENTO TEOLÓGICO ===',
-        ...topDocs.map(
-          (d: any) =>
-            `[${d.tradition}] (relevância: ${(d.similarity * 100).toFixed(0)}%)\n${d.content}`,
-        ),
-        '=== FIM DA BASE DE CONHECIMENTO ===',
-      ].join('\n\n');
-    } catch (err: any) {
-      this.logger.debug(
-        `[RAG] Vector search failed: ${err.message} — using classic commentary fallback`,
-      );
-      return this.getFallbackCommentaryContext(query);
-    }
-  }
-
-  /**
-   * Busca versículos relevantes na base bíblica local (pgvector).
-   */
-  private async getBibleContext(query: string): Promise<string> {
-    try {
-      const hits = await this.search.hybridSearchVerses(query, { limit: 10 });
-      const topHits = await this.rerankContext(query, hits, 4);
-
-      if (topHits.length === 0) return '';
-
-      return [
-        '=== VERSÍCULOS BÍBLICOS RELEVANTES ===',
-        ...topHits.map((h) => {
-          const ranks: string[] = [];
-          if (h.vectorRank !== null) ranks.push(`vec#${h.vectorRank}`);
-          if (h.keywordRank !== null) ranks.push(`kw#${h.keywordRank}`);
-          const meta = `[${h.translation}] ${h.bookId}:${h.chapter}:${h.verse} (${ranks.join(', ')})`;
-          return `${meta}\n${h.text}`;
-        }),
-        '=== FIM DOS VERSÍCULOS ===',
-      ].join('\n\n');
-    } catch (err) {
-      this.logger.error(
-        `Bible hybrid search failed: ${(err as Error).message}`,
-      );
-      return '';
-    }
-  }
-
-  /**
-   * Busca dados léxicos (BDAG/HALOT) no banco de dados.
-   */
-  private async getLexicalContext(query: string): Promise<string> {
-    try {
-      const entries = await this.prisma.lexicalEntry.findMany({
-        where: {
-          OR: [
-            { word: { contains: query, mode: 'insensitive' } },
-            { definition: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        take: 3,
-      });
-
-      if (entries.length === 0) return '';
-
-      return [
-        '=== DADOS LÉXICOS ACADÊMICOS ===',
-        ...entries.map(
-          (e) =>
-            `[${e.strongId}] ${e.word}: ${e.definition} (Ref: ${e.academicRef})`,
-        ),
-        '=== FIM DOS DADOS LÉXICOS ===',
-      ].join('\n');
-    } catch {
-      return '';
-    }
-  }
-
-  /**
-   * Busca comentários técnicos e críticos.
-   */
-  private async getTechnicalCommentaryContext(query: string): Promise<string> {
-    try {
-      const commentaries = await this.prisma.technicalCommentary.findMany({
-        where: {
-          content: { contains: query, mode: 'insensitive' },
-        },
-        take: 2,
-      });
-
-      if (commentaries.length === 0) return '';
-
-      return [
-        '=== COMENTÁRIOS TÉCNICOS/CRÍTICOS ===',
-        ...commentaries.map((c) => `[${c.author} - ${c.source}] ${c.content}`),
-        '=== FIM DOS COMENTÁRIOS ===',
-      ].join('\n');
-    } catch {
-      return '';
-    }
   }
 
   // ═══ Wrappers que delegam ao método original e coletam fontes ═══
@@ -1681,7 +1615,9 @@ export class RagService {
       return;
     }
 
-    if (!this.isTheologicalDomain(sanitizedQuery, conversationHistory)) {
+    if (
+      !this.isTheologicalDomain(sanitizedQuery, conversationHistory, jsonMode)
+    ) {
       yield {
         type: 'chunk',
         data: {
@@ -1877,51 +1813,25 @@ export class RagService {
 
     if (this.genAI) {
       try {
-        const history: Content[] = conversationHistory.map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        }));
-
-        const contents: Content[] = [
-          ...history,
-          { role: 'user', parts: [{ text: sanitizedQuery }] },
-        ];
-
-        const systemMessage = jsonMode
-          ? `VOCÊ É UM EXTRATOR DE DADOS JSON. RETORNE APENAS O OBJETO JSON SOLICITADO, SEM TEXTO ADICIONAL.\n\nCONTEXTO:\n${driveLibraryContext}\n${theologicalContext}\n${bibleContext}\n${userContextText}`
-          : `${THEO_AI_SYSTEM_PROMPT}\n\n${
-              libraryHasHits
-                ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.\n\n`
-                : `NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.\n\n`
-            }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO HÍBRIDO:\nEste é um cruzamento entre o conhecimento acadêmico global e o conteúdo pessoal do usuário. Priorize a síntese entre ambos.\n\nCONTEÚDO ACADÊMICO (OPEN SOURCE):\n${openSourceContext}\n\nCONTEÚDO PESSOAL (GOOGLE DRIVE):\n${userContextText}\n\nCONTEXTO TEOLÓGICO LOCAL:\n${theologicalContext}\n\nCONTEXTO BÍBLICO:\n${bibleContext}\n\nINSTRUÇÃO: Compare o conhecimento acadêmico com a experiência pessoal do usuário. Se houver divergência, apresente ambas. Se houver harmonia, reforce o ponto.\n\nTRADIÇÃO PREFERIDA: ${tradition || 'Geral'}`;
+        // Request montado pelo builder compartilhado com chat()
+        const { contents, config } = this.buildGeminiRequest({
+          conversationHistory,
+          sanitizedQuery,
+          jsonMode,
+          driveLibraryContext,
+          theologicalContext,
+          bibleContext,
+          userContextText,
+          openSourceContext,
+          libraryHasHits,
+          validatedQaContext,
+          tradition,
+        });
 
         const stream = await this.genAI.models.generateContentStream({
           model: 'gemini-2.5-flash',
           contents,
-          config: {
-            temperature: jsonMode ? 0.2 : 0.7,
-            maxOutputTokens: 3000,
-            responseMimeType: jsonMode ? 'application/json' : 'text/plain',
-            systemInstruction: systemMessage,
-            safetySettings: [
-              {
-                category: 'HARM_CATEGORY_HARASSMENT' as any,
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-              },
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-              },
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE' as any,
-              },
-            ],
-          },
+          config,
         });
 
         for await (const chunk of stream) {
@@ -1942,24 +1852,19 @@ export class RagService {
     } else if (this.openai) {
       // Fallback OpenAI (sem streaming por enquanto, envia resposta inteira)
       try {
-        const systemMsg = jsonMode
-          ? 'Você é um servidor de dados teológicos. Responda APENAS em JSON válido conforme o esquema solicitado.'
-          : THEO_AI_SYSTEM_PROMPT;
-        const fullPrompt = `${
-          libraryHasHits
-            ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${driveLibraryContext}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.\n\n`
-            : ''
-        }${validatedQaContext ? `${validatedQaContext}\n\n` : ''}CONTEXTO:\n${userContextText}\n${theologicalContext}\n${bibleContext}\n\nPERGUNTA: ${sanitizedQuery}`;
-        const res = await this.openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemMsg },
-            ...(conversationHistory as any),
-            { role: 'user', content: fullPrompt },
-          ],
-          temperature: jsonMode ? 0.1 : 0.7,
-          response_format: jsonMode ? { type: 'json_object' } : undefined,
-        });
+        const res = await this.openai.chat.completions.create(
+          this.buildOpenAiRequest({
+            conversationHistory,
+            sanitizedQuery,
+            jsonMode,
+            driveLibraryContext,
+            theologicalContext,
+            bibleContext,
+            userContextText,
+            libraryHasHits,
+            validatedQaContext,
+          }),
+        );
         fullResponse = res.choices[0].message.content || '';
         yield { type: 'chunk', data: { text: fullResponse } };
       } catch (error: any) {

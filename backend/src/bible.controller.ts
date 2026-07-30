@@ -9,7 +9,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 import { BibleIngestionService } from './bible-ingestion.service';
+import { PassageGuideService } from './bible/passage-guide.service';
 import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
 import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
@@ -73,7 +76,41 @@ const VERSION_METADATA: Record<
 export class BibleController {
   private readonly logger = new Logger(BibleController.name);
 
-  constructor(private ingestionService: BibleIngestionService) {}
+  constructor(
+    private ingestionService: BibleIngestionService,
+    private passageGuide: PassageGuideService,
+  ) {}
+
+  /**
+   * Passage Guide — agrega texto, interlinear, cross-refs TSK, léxico,
+   * comentários e arqueologia numa única chamada (estilo Logos).
+   * `verse` opcional via query: com ele o guide é focado no versículo.
+   */
+  @Get('passage-guide/:translation/:bookId/:chapter')
+  @UseInterceptors(new CacheControlInterceptor(3600))
+  async getPassageGuide(
+    @Param('translation') translation: string,
+    @Param('bookId') bookId: string,
+    @Param('chapter') chapter: string,
+    @Query('verse') verse?: string,
+  ) {
+    const b = parseInt(bookId, 10);
+    const c = parseInt(chapter, 10);
+    const v = verse ? parseInt(verse, 10) : undefined;
+    if (
+      !Number.isInteger(b) ||
+      b < 1 ||
+      b > 66 ||
+      !Number.isInteger(c) ||
+      c < 1 ||
+      c > 176 ||
+      (verse !== undefined && (!Number.isInteger(v) || v! < 1 || v! > 200))
+    ) {
+      throw new BadRequestException('Referência inválida.');
+    }
+    const data = await this.passageGuide.getGuide(translation, b, c, v);
+    return { success: true, data };
+  }
 
   @Get('versions')
   @UseInterceptors(new CacheControlInterceptor(86400))
@@ -212,7 +249,11 @@ export class BibleController {
     return { success: true, data: entry };
   }
 
-  @UseGuards(JwtAuthGuard)
+  // Operação cara (chamadas em massa à API de embeddings) — restrita a ADMIN
+  // para impedir que qualquer usuário FREE dispare custo/DoS (achado da
+  // auditoria 2026-07-21).
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @Get('ingest-embeddings')
   async ingestEmbeddings(
     @Query('translation') translation: string,

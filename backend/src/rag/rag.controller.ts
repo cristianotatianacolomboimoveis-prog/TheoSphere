@@ -255,6 +255,9 @@ export class RagController {
     res.end();
   }
 
+  // Custa tokens de LLM por chamada — exige autenticação (auditoria
+  // 2026-07-21); o throttle continua como segunda camada.
+  @UseGuards(JwtAuthGuard)
   @Post('dictate')
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   async dictate(@Body() body: DictateDto, @Req() req: Request) {

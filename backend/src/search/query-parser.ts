@@ -18,9 +18,10 @@
  *   • Exclusions:
  *       repent -hell                 (must contain repent, must not contain hell)
  *
- * Out of scope for now (intentional — data not in schema):
- *   • strong:G26 — requires per-word Strong's mapping on every verse
- *   • morph:verb — requires parsed morphology
+ *   • Original-language filters (backed by InterlinearWord / STEP Bible):
+ *       strong:G26                   (versículos contendo a palavra Strong G26)
+ *       morph:V-AAI                  (prefixo do código morfológico)
+ *       strong:G25 morph:V           (combináveis entre si e com book:/chapter:)
  *
  * The parser is permissive: malformed tokens become free terms. Worst
  * case: result set is wider, never wrong.
@@ -39,6 +40,14 @@ export interface ParsedQuery {
   bookName?: string;
   chapterMin?: number;
   chapterMax?: number;
+  /** Strong's ID normalizado (ex: G26, H3068) — filtro via InterlinearWord. */
+  strongId?: string;
+  /** Prefixo de código morfológico (ex: V-AAI, N-NSF) — filtro via InterlinearWord. */
+  morph?: string;
+  /** Lema no original (ex: ἀγαπάω, אָהַב) — filtro via InterlinearWord. */
+  lemma?: string;
+  /** Pares de proximidade: [termo1, termo2, distância máx em palavras]. */
+  nearPairs?: Array<[string, string, number]>;
   /** Did the user actually use any structured filter? */
   hasStructure: boolean;
   /** Re-emitted plain-text query (for fallback hybrid search). */
@@ -92,11 +101,31 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
         }
         break;
       }
+      case 'strong': {
+        // Normaliza: g26 → G26; aceita apenas [GH] + dígitos (com sufixo
+        // opcional de letra, ex: G5921a no padrão STEP).
+        const strongMatch = v.toUpperCase().match(/^([GH]\d{1,5}[A-Z]?)$/);
+        if (strongMatch) {
+          result.strongId = strongMatch[1];
+          result.hasStructure = true;
+        } else {
+          result.must.push(v); // malformado → termo livre (parser permissivo)
+        }
+        break;
+      }
+      case 'morph': {
+        // Prefixo morfológico: só caracteres seguros (letras, dígitos, hífen).
+        const morphClean = v.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+        if (morphClean) {
+          result.morph = morphClean;
+          result.hasStructure = true;
+        }
+        break;
+      }
       case 'lemma':
-        // Lemma filtering without a word-Strong's table degenerates to a
-        // literal term match — still useful for Greek/Hebrew strings that
-        // appear in the source-language translations (TR, WLC).
-        result.must.push(v);
+        // 2026-07-21: agora resolvido contra InterlinearWord.lemma (grafia
+        // original, ex: ἀγαπάω). Antes degradava para termo literal.
+        result.lemma = v;
         result.hasStructure = true;
         break;
       default:
@@ -119,6 +148,18 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
 
     if (upper === 'AND') {
       i++;
+      continue;
+    }
+
+    // Proximidade: TERM NEAR/3 TERM → par de proximidade (tsquery <N>).
+    const nearMatch = upper.match(/^NEAR\/(\d{1,2})$/);
+    if (nearMatch && result.must.length > 0 && i + 1 < tokens.length) {
+      const left = result.must.pop()!;
+      const right = tokens[i + 1];
+      const dist = Math.max(1, parseInt(nearMatch[1], 10));
+      (result.nearPairs ??= []).push([left, right, dist]);
+      result.hasStructure = true;
+      i += 2;
       continue;
     }
 
@@ -153,6 +194,7 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
     ...result.phrases,
     ...result.must,
     ...result.shouldGroups.flat(),
+    ...(result.nearPairs ?? []).flatMap(([a, b]) => [a, b]),
   ]
     .join(' ')
     .trim();
@@ -202,6 +244,20 @@ export function toTsQuery(p: ParsedQuery): string | null {
   for (const neg of p.mustNot) {
     const t = escape(neg);
     if (t) parts.push(`!${t}`);
+  }
+  // Proximidade NEAR/n: tsquery `<N>` casa distância EXATA de N palavras,
+  // então "dentro de n" vira OR de <1>..<n> nas duas direções. n é limitado
+  // a 9 no parser prático (2n alternativas por par — barato para o planner).
+  for (const [a, b, n] of p.nearPairs ?? []) {
+    const ea = escape(a);
+    const eb = escape(b);
+    if (!ea || !eb) continue;
+    const dist = Math.min(n, 9);
+    const alts: string[] = [];
+    for (let d = 1; d <= dist; d++) {
+      alts.push(`${ea} <${d}> ${eb}`, `${eb} <${d}> ${ea}`);
+    }
+    parts.push(`(${alts.join(' | ')})`);
   }
 
   if (parts.length === 0) return null;

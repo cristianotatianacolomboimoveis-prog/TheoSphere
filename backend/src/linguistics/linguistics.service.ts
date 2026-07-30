@@ -127,26 +127,48 @@ export class LinguisticsService {
   /**
    * Encontra todas as ocorrências de uma raiz no texto bíblico.
    * Essencial para a funcionalidade 'Search by Root' estilo Accordance.
+   *
+   * Reescrito na auditoria 2026-07-21: a versão anterior fazia
+   * `text contains strongId` — um full scan em BibleVerse que era também
+   * semanticamente errado (o texto dos versículos não contém Strong IDs).
+   * Agora delega à tabela InterlinearWord (índice em strongId) e anexa o
+   * texto do versículo na tradução pedida.
    */
-  async findOccurrencesByRoot(strongId: string) {
-    this.logger.log(`Buscando todas as ocorrências da raiz: ${strongId}`);
-
-    // Busca versículos que mencionam este Strong ID em seus metadados ou interlinear
-    // No schema atual, assumimos que as palavras estão indexadas ou buscamos via texto
-    const verses = await this.prisma.bibleVerse.findMany({
-      where: {
-        text: { contains: strongId }, // Fallback de busca textual para Strong IDs se indexados no texto
-      },
-      take: 50, // Limite para performance PhD
-      orderBy: { id: 'asc' },
+  async findOccurrencesByRoot(strongId: string, translation = 'BLIVRE') {
+    const normalized = strongId.toUpperCase().trim();
+    const words = await this.interlinear.findMany({
+      where: { strongId: normalized },
+      orderBy: [{ bookId: 'asc' }, { chapter: 'asc' }, { verse: 'asc' }],
+      take: 50,
     });
+    if (words.length === 0) return [];
 
-    return verses.map((v) => ({
-      reference: `${v.bookId} ${v.chapter}:${v.verse}`,
-      text: v.text,
-      bookId: v.bookId,
-      chapter: v.chapter,
-      verse: v.verse,
+    // Uma query única para os textos (evita N+1): OR de refs distintas.
+    const refs = Array.from(
+      new Map(
+        words.map((w) => [
+          `${w.bookId}:${w.chapter}:${w.verse}`,
+          { bookId: w.bookId, chapter: w.chapter, verse: w.verse },
+        ]),
+      ).values(),
+    );
+    const verses = await this.prisma.bibleVerse.findMany({
+      where: { translation, OR: refs },
+    });
+    const textByRef = new Map(
+      verses.map((v) => [`${v.bookId}:${v.chapter}:${v.verse}`, v.text]),
+    );
+
+    return words.map((w) => ({
+      reference: `${w.bookId} ${w.chapter}:${w.verse}`,
+      bookId: w.bookId,
+      chapter: w.chapter,
+      verse: w.verse,
+      word: w.word,
+      translit: w.translit,
+      gloss: w.gloss,
+      morph: w.morph,
+      text: textByRef.get(`${w.bookId}:${w.chapter}:${w.verse}`) ?? null,
     }));
   }
 

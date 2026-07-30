@@ -6,11 +6,22 @@ import { EmbeddingModule } from './rag/embedding.module';
 import { LinguisticsModule } from './linguistics/linguistics.module';
 import { CrossReferencesService } from './bible/cross-references.service';
 import { CrossReferencesController } from './bible/cross-references.controller';
+import { PassageGuideService } from './bible/passage-guide.service';
+import { ArchaeologyModule } from './archaeology/archaeology.module';
 
 @Module({
-  imports: [PrismaModule, EmbeddingModule, LinguisticsModule],
+  imports: [
+    PrismaModule,
+    EmbeddingModule,
+    LinguisticsModule,
+    ArchaeologyModule,
+  ],
   controllers: [BibleController, CrossReferencesController],
-  providers: [BibleIngestionService, CrossReferencesService],
+  providers: [
+    BibleIngestionService,
+    CrossReferencesService,
+    PassageGuideService,
+  ],
   exports: [BibleIngestionService],
 })
 export class BibleModule {}

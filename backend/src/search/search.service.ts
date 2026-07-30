@@ -7,6 +7,7 @@ import {
   toTsQuery,
   type ParsedQuery,
 } from './query-parser';
+import { resolveBookId } from '../common/book-map';
 
 export interface HybridSearchOptions {
   /** Limit returned results. Default 20, capped at 100. */
@@ -93,122 +94,9 @@ export class SearchService {
       const chapter = parseInt(refMatch[2]);
       const verse = refMatch[3] ? parseInt(refMatch[3]) : null;
 
-      const bookMap: Record<string, number> = {
-        gênesis: 1,
-        genesis: 1,
-        êxodo: 2,
-        exodus: 2,
-        levítico: 3,
-        leviticus: 3,
-        números: 4,
-        numbers: 4,
-        deuteronômio: 5,
-        deuteronomy: 5,
-        josué: 6,
-        joshua: 6,
-        juízes: 7,
-        judges: 7,
-        rute: 8,
-        ruth: 8,
-        '1 samuel': 9,
-        '2 samuel': 10,
-        '1 reis': 11,
-        '2 reis': 12,
-        '1 crônicas': 13,
-        '2 crônicas': 14,
-        esdras: 15,
-        ezra: 15,
-        neemias: 16,
-        nehemiah: 16,
-        ester: 17,
-        esther: 17,
-        jó: 18,
-        job: 18,
-        salmos: 19,
-        psalms: 19,
-        provérbios: 20,
-        proverbs: 20,
-        eclesiastes: 21,
-        ecclesiastes: 21,
-        cantares: 22,
-        'song of solomon': 22,
-        isaías: 23,
-        isaiah: 23,
-        jeremias: 24,
-        jeremiah: 24,
-        lamentações: 25,
-        lamentations: 25,
-        ezequiel: 26,
-        ezekiel: 26,
-        daniel: 27,
-        oséias: 28,
-        hosea: 28,
-        joel: 29,
-        amós: 30,
-        amos: 30,
-        obadias: 31,
-        obadiah: 31,
-        jonas: 32,
-        jonah: 32,
-        miquéias: 33,
-        micah: 33,
-        naum: 34,
-        nahum: 34,
-        habacuque: 35,
-        habakkuk: 35,
-        sofonias: 36,
-        zephaniah: 36,
-        ageu: 37,
-        haggai: 37,
-        zacarias: 38,
-        zechariah: 38,
-        malaquias: 39,
-        malachi: 39,
-        mateus: 40,
-        matthew: 40,
-        marcos: 41,
-        mark: 41,
-        lucas: 42,
-        luke: 42,
-        joão: 43,
-        john: 43,
-        atos: 44,
-        acts: 44,
-        romanos: 45,
-        romans: 45,
-        '1 coríntios': 46,
-        '2 coríntios': 47,
-        gálatas: 48,
-        galatians: 48,
-        efésios: 49,
-        ephesians: 49,
-        filipenses: 50,
-        philippians: 50,
-        colossenses: 51,
-        colossians: 51,
-        '1 tessalonicenses': 52,
-        '2 tessalonicenses': 53,
-        '1 timóteo': 54,
-        '2 timóteo': 55,
-        tito: 56,
-        titus: 56,
-        filemom: 57,
-        philemon: 57,
-        hebreus: 58,
-        hebrews: 58,
-        tiago: 59,
-        james: 59,
-        '1 pedro': 60,
-        '2 pedro': 61,
-        '1 joão': 62,
-        '2 joão': 63,
-        '3 joão': 64,
-        judas: 65,
-        apocalipse: 66,
-        revelation: 66,
-      };
+      // Mapa canônico compartilhado (common/book-map.ts)
 
-      const resolvedBookId = bookMap[bookName.toLowerCase()];
+      const resolvedBookId = resolveBookId(bookName);
       if (resolvedBookId) {
         const results = await this.prisma.bibleVerse.findMany({
           where: {
@@ -267,6 +155,8 @@ export class SearchService {
    *   advancedSearch("book:John chapter:1-3 grace")          → structured + FTS
    *   advancedSearch('book:Romans "by faith"')               → structured + phrase
    *   advancedSearch("repent -hell")                         → hybrid w/ NOT
+   *   advancedSearch("strong:G26 book:John")                 → interlinear join
+   *   advancedSearch("morph:V-AAI book:Romans chapter:5")    → morfológica
    *
    * Returns the parsed query alongside hits so the client can show chips
    * confirming what was interpreted.
@@ -286,7 +176,7 @@ export class SearchService {
     const limit = Math.min(opts.limit ?? 50, 200);
     const translation = opts.translation;
 
-    const bookId = parsed.bookName ? this.resolveBookId(parsed.bookName) : null;
+    const bookId = parsed.bookName ? resolveBookId(parsed.bookName) : null;
 
     const whereParts: Prisma.Sql[] = [];
     if (bookId) whereParts.push(Prisma.sql`"bookId" = ${bookId}`);
@@ -297,6 +187,35 @@ export class SearchService {
     }
     if (translation) {
       whereParts.push(Prisma.sql`"translation" = ${translation}`);
+    }
+
+    // ── Filtros de língua original (strong:/morph:) via InterlinearWord ──
+    // EXISTS correlacionado usa os índices (bookId, chapter) e (strongId)
+    // da tabela InterlinearWord; o morph é comparado por prefixo (V → todos
+    // os verbos, V-AAI → aoristo ativo indicativo, etc.).
+    if (parsed.strongId || parsed.morph || parsed.lemma) {
+      const iwConds: Prisma.Sql[] = [
+        Prisma.sql`iw."bookId" = "BibleVerse"."bookId"`,
+        Prisma.sql`iw."chapter" = "BibleVerse"."chapter"`,
+        Prisma.sql`iw."verse" = "BibleVerse"."verse"`,
+      ];
+      if (parsed.strongId) {
+        iwConds.push(Prisma.sql`iw."strongId" = ${parsed.strongId}`);
+      }
+      if (parsed.lemma) {
+        // Igualdade exata no lema original (ἀγαπάω, אָהַב). Parâmetro
+        // vinculado — sem interpolação de string.
+        iwConds.push(Prisma.sql`iw."lemma" = ${parsed.lemma}`);
+      }
+      if (parsed.morph) {
+        // parsed.morph já foi sanitizado no parser ([A-Z0-9-]); o escape de
+        // curingas abaixo é defesa extra para o LIKE.
+        const morphPrefix = parsed.morph.replace(/[%_]/g, '') + '%';
+        iwConds.push(Prisma.sql`iw."morph" LIKE ${morphPrefix}`);
+      }
+      whereParts.push(
+        Prisma.sql`EXISTS (SELECT 1 FROM "InterlinearWord" iw WHERE ${Prisma.join(iwConds, ' AND ')})`,
+      );
     }
 
     const tsQ = toTsQuery(parsed);
@@ -353,145 +272,6 @@ export class SearchService {
     }));
 
     return { parsed, hits };
-  }
-
-  /**
-   * Best-effort book-name → bookId resolver. Handles English and
-   * Portuguese names, with and without leading number tokens.
-   * Returns null if no match — caller falls back to ignoring the filter.
-   */
-  private resolveBookId(name: string): number | null {
-    const key = name.toLowerCase().replace(/\s+/g, ' ').trim();
-    // Subset of the map used in hybridSearchVerses' reference-detection
-    // branch. Kept inline so the search module has no circular dep on the
-    // bible module.
-    const bookMap: Record<string, number> = {
-      gênesis: 1,
-      genesis: 1,
-      êxodo: 2,
-      exodus: 2,
-      levítico: 3,
-      leviticus: 3,
-      números: 4,
-      numbers: 4,
-      deuteronômio: 5,
-      deuteronomy: 5,
-      josué: 6,
-      joshua: 6,
-      juízes: 7,
-      judges: 7,
-      rute: 8,
-      ruth: 8,
-      '1 samuel': 9,
-      '2 samuel': 10,
-      '1 reis': 11,
-      '2 reis': 12,
-      '1 crônicas': 13,
-      '2 crônicas': 14,
-      esdras: 15,
-      ezra: 15,
-      neemias: 16,
-      nehemiah: 16,
-      ester: 17,
-      esther: 17,
-      jó: 18,
-      job: 18,
-      salmos: 19,
-      psalms: 19,
-      provérbios: 20,
-      proverbs: 20,
-      eclesiastes: 21,
-      ecclesiastes: 21,
-      cantares: 22,
-      'song of solomon': 22,
-      isaías: 23,
-      isaiah: 23,
-      jeremias: 24,
-      jeremiah: 24,
-      lamentações: 25,
-      lamentations: 25,
-      ezequiel: 26,
-      ezekiel: 26,
-      daniel: 27,
-      oséias: 28,
-      hosea: 28,
-      joel: 29,
-      amós: 30,
-      amos: 30,
-      obadias: 31,
-      obadiah: 31,
-      jonas: 32,
-      jonah: 32,
-      miquéias: 33,
-      micah: 33,
-      naum: 34,
-      nahum: 34,
-      habacuque: 35,
-      habakkuk: 35,
-      sofonias: 36,
-      zephaniah: 36,
-      ageu: 37,
-      haggai: 37,
-      zacarias: 38,
-      zechariah: 38,
-      malaquias: 39,
-      malachi: 39,
-      mateus: 40,
-      matthew: 40,
-      marcos: 41,
-      mark: 41,
-      lucas: 42,
-      luke: 42,
-      joão: 43,
-      john: 43,
-      atos: 44,
-      acts: 44,
-      romanos: 45,
-      romans: 45,
-      '1 coríntios': 46,
-      '1 corinthians': 46,
-      '2 coríntios': 47,
-      '2 corinthians': 47,
-      gálatas: 48,
-      galatians: 48,
-      efésios: 49,
-      ephesians: 49,
-      filipenses: 50,
-      philippians: 50,
-      colossenses: 51,
-      colossians: 51,
-      '1 tessalonicenses': 52,
-      '1 thessalonians': 52,
-      '2 tessalonicenses': 53,
-      '2 thessalonians': 53,
-      '1 timóteo': 54,
-      '1 timothy': 54,
-      '2 timóteo': 55,
-      '2 timothy': 55,
-      tito: 56,
-      titus: 56,
-      filemom: 57,
-      philemon: 57,
-      hebreus: 58,
-      hebrews: 58,
-      tiago: 59,
-      james: 59,
-      '1 pedro': 60,
-      '1 peter': 60,
-      '2 pedro': 61,
-      '2 peter': 61,
-      '1 joão': 62,
-      '1 john': 62,
-      '2 joão': 63,
-      '2 john': 63,
-      '3 joão': 64,
-      '3 john': 64,
-      judas: 65,
-      jude: 65,
-      apocalipse: 66,
-      revelation: 66,
-    };
-    return bookMap[key] ?? null;
   }
 
   // ─── Retrievers ─────────────────────────────────────────────────────────
