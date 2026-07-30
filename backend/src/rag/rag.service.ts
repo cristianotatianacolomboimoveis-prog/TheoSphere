@@ -256,10 +256,22 @@ export class RagService {
 
     const config = {
       temperature: p.jsonMode ? 0.2 : 0.7,
-      // O dossiê do Factbook e a exegese precisam de espaço; uma resposta de
-      // chat raramente passa de ~700 tokens e o teto de 3000 só servia para
-      // permitir respostas longas demais.
-      maxOutputTokens: p.jsonMode ? 3000 : 1500,
+      /**
+       * O gemini-2.5-flash "pensa" antes de responder, e os tokens de
+       * raciocínio saem do MESMO maxOutputTokens da resposta. Medido em
+       * 30/07/2026 com uma pergunta exegética real:
+       *
+       *   raciocínio livre, teto 3000 → 1852 tok pensando, resposta CORTADA
+       *   raciocínio livre, teto 1500 →  57 tok de resposta (173 caracteres!)
+       *   raciocínio  = 0,  teto 2000 → resposta COMPLETA, 6242 caracteres
+       *
+       * Ou seja: a plataforma vinha truncando respostas mesmo com 3000, e o
+       * corte para 1500 (tentativa de economia) as destruiu. Desligar o
+       * raciocínio devolve resposta inteira, mais longa e ainda assim mais
+       * barata — 1812 tokens de saída contra 2996.
+       */
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: p.jsonMode ? 3000 : 2000,
       responseMimeType: p.jsonMode ? 'application/json' : 'text/plain',
       systemInstruction: systemMessage,
       safetySettings: [

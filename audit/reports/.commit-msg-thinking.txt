@@ -1,0 +1,30 @@
+fix(rag): desliga o raciocinio do modelo - respostas estavam sendo truncadas
+
+REGRESSAO INTRODUZIDA POR MIM em e5f8119 e corrigida aqui, mais um problema
+anterior que ela expos.
+
+O gemini-2.5-flash pensa antes de responder e os tokens de raciocinio saem do
+MESMO maxOutputTokens da resposta. Medido com pergunta exegetica real:
+
+  raciocinio livre, teto 3000 -> 1852 tok pensando, resposta CORTADA
+  raciocinio livre, teto 1500 ->   57 tok de resposta (173 caracteres)
+  raciocinio  = 0,  teto 2000 -> resposta COMPLETA, 6242 caracteres
+
+Ou seja: a plataforma ja truncava respostas com o teto de 3000 - o
+finishReason sempre foi MAX_TOKENS. Meu corte para 1500, feito para
+economizar, reduziu as respostas a 173 caracteres em producao.
+
+thinkingBudget=0 devolve resposta inteira, mais longa, e ainda assim mais
+barata: 1812 tokens de saida contra 2996. Vale para chat e para jsonMode -
+JSON truncado e JSON invalido, e isso pode explicar parte dos "dossie fora do
+formato" do Factbook.
+
+maxOutputTokens: 2000 no chat, 3000 no jsonMode.
+
+Tambem: system prompt enxugado de 6584 para 5356 chars (-18%). Saiu o bloco
+que listava "45 mil anotacoes, mapas e infograficos" e mandava sempre
+referenciar esse material - nada disso chega no prompt, era instrucao para
+citar fonte inexistente. E o schema JSON da exegese, que vivia no prompt
+usado apenas quando jsonMode e FALSO.
+
+105 testes.
