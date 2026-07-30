@@ -10,6 +10,7 @@ import { SearchService } from '../search/search.service';
 import { THEO_AI_SYSTEM_PROMPT } from './prompts';
 import { CLASSIC_COMMENTARIES } from './classic-commentaries';
 import { generateFallbackResponse } from './fallback-responses';
+import { AiQuotaService } from './ai-quota.service';
 import { TheologicalSourcesService } from './theological-sources.service';
 import { CURATED_GRAPHS } from './curated-graphs.registry';
 import { RerankerService } from './reranker.service';
@@ -81,6 +82,7 @@ export class RagService {
     private search: SearchService,
     private theologicalSources: TheologicalSourcesService,
     private reranker: RerankerService,
+    private aiQuota: AiQuotaService,
   ) {
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -469,6 +471,53 @@ export class RagService {
       );
     }
 
+    // ═══ ETAPA 1.2: Biblioteca do usuário responde sozinha? ═══
+    // Antes da IA, e antes de gastar cota: se o acervo do Drive tem trechos
+    // muito relevantes, entregamos os excertos citados. Custo zero, resposta
+    // ancorada nas obras do próprio usuário, sem risco de alucinação.
+    // Não vale em jsonMode — Factbook e Exegese precisam de estrutura.
+    if (!jsonMode) {
+      const daBiblioteca = await this.tentarRespostaDaBiblioteca(
+        sanitizedQuery,
+        userId,
+      );
+      if (daBiblioteca) {
+        await this.addUserXP(userId, 10);
+        return {
+          content: daBiblioteca.content,
+          cached: false,
+          contextUsed: true,
+          contextDocCount: daBiblioteca.sources.length,
+          tokensEstimated: 0,
+          costEstimated: 0,
+          sources: daBiblioteca.sources,
+        };
+      }
+    }
+
+    // ═══ ETAPA 1.3: Cota diária de IA ═══
+    // Daqui para baixo o caminho leva a uma chamada faturada. Cache e
+    // biblioteca já passaram — quem chega aqui vai realmente usar a IA.
+    if (userId && userId !== 'public-guest') {
+      const cota = await this.aiQuota.consultar(userId);
+      if (cota.excedeu) {
+        this.logger.warn(
+          `[RAG] Cota diária esgotada para ${userId} (${cota.usado}/${cota.limite}).`,
+        );
+        return {
+          content: `Você atingiu o limite de ${cota.limite} consultas à IA por dia. O limite existe para que a plataforma continue disponível para todos os testadores — ele reinicia à meia-noite.\n\nEnquanto isso, a busca bíblica, o léxico, as referências cruzadas e a sua biblioteca continuam liberados.`,
+          cached: false,
+          degraded: true,
+          degradedReason: `Cota diária atingida (${cota.usado}/${cota.limite})`,
+          contextUsed: false,
+          contextDocCount: 0,
+          tokensEstimated: 0,
+          costEstimated: 0,
+          sources: [],
+        };
+      }
+    }
+
     // ═══ ETAPA 1.5: Hard-Override para Exegese PhD (Passagens Base) ═══
     // Garante que passagens fundamentais sempre retornem dados reais, mesmo se a IA falhar ou for lenta.
     if (
@@ -714,6 +763,12 @@ export class RagService {
         this.logger.error(`[RAG Erro OpenAI]: ${(error as Error).message}`);
         this.recordAiFailure('openai', error as Error);
       }
+    }
+
+    // Cota: só conta quando a IA realmente produziu conteúdo. Falha de
+    // provedor não pode consumir a cota do usuário — ele não recebeu nada.
+    if (responseContent && userId && userId !== 'public-guest') {
+      await this.aiQuota.registrarUso(userId);
     }
 
     // Nenhum provedor respondeu: o conteúdo abaixo é texto pré-escrito, não
@@ -1532,6 +1587,67 @@ export class RagService {
    * é ancorada nas obras ingeridas; string vazia = sem material relevante.
    * Também registra cada obra encontrada em `sources` (type 'classic').
    */
+  /**
+   * Similaridade a partir da qual os trechos da biblioteca bastam sozinhos —
+   * sem acionar a IA. Configurável por env para calibrar com uso real.
+   */
+  private get LIBRARY_DIRECT_THRESHOLD(): number {
+    const v = Number(process.env.LIBRARY_DIRECT_THRESHOLD ?? 0.82);
+    return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.82;
+  }
+
+  /**
+   * Monta uma resposta usando SOMENTE os trechos da biblioteca do usuário,
+   * sem chamar a IA. Devolve null quando o acervo não tem nada suficientemente
+   * relevante.
+   *
+   * Racional (30/07/2026): responder do acervo custa zero chamadas ao Gemini,
+   * é 100% ancorado nas obras do usuário e não corre risco de alucinação —
+   * cada afirmação vem com autor e obra. É o comportamento de um software de
+   * pesquisa: entregar a fonte, não uma paráfrase.
+   */
+  private async tentarRespostaDaBiblioteca(
+    query: string,
+    userId: string | undefined,
+  ): Promise<{ content: string; sources: RagSource[] } | null> {
+    const hits = await this.userContext.searchDriveLibrary(query, userId);
+    const relevantes = hits.filter(
+      (h) => h.similarity >= this.LIBRARY_DIRECT_THRESHOLD,
+    );
+    if (relevantes.length === 0) return null;
+
+    const sources: RagSource[] = relevantes.map((h) => ({
+      type: 'classic',
+      title: h.title,
+      snippet: h.content.slice(0, 150),
+      score: h.similarity,
+    }));
+
+    const corpo = relevantes
+      .slice(0, 5)
+      .map(
+        (h, i) =>
+          `**${i + 1}. ${h.title}** _(relevância ${(h.similarity * 100).toFixed(0)}%)_\n\n> ${h.content.trim().replace(/\n+/g, '\n> ')}`,
+      )
+      .join('\n\n');
+
+    const content = [
+      '**Da sua biblioteca**',
+      '',
+      `Encontrei ${relevantes.length} trecho(s) do seu acervo que respondem diretamente a esta pergunta:`,
+      '',
+      corpo,
+      '',
+      '_Estes são excertos literais das suas obras, sem interpretação da IA. Para uma síntese redigida, refaça a pergunta pedindo uma análise._',
+    ].join('\n');
+
+    this.logger.log(
+      `[RAG] Respondido pela biblioteca (${relevantes.length} trechos) — nenhuma chamada de IA.`,
+    );
+
+    return { content, sources };
+  }
+
   private async buildDriveLibraryContext(
     query: string,
     userId: string | undefined,

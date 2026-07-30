@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RagService } from './rag.service';
+import { AiQuotaService } from './ai-quota.service';
 import { RagController } from './rag.controller';
 import { EmbeddingModule } from './embedding.module';
 import { SemanticCacheService } from './semantic-cache.service';
@@ -27,6 +28,7 @@ import { ConfigModule } from '@nestjs/config';
   controllers: [RagController, DriveRagController, LibraryController],
   providers: [
     RagService,
+    AiQuotaService,
     SemanticCacheService,
     UserContextService,
     DriveRagService,
@@ -35,6 +37,6 @@ import { ConfigModule } from '@nestjs/config';
     RerankerService,
     RolesGuard, // class-based guard used by @UseGuards(RolesGuard) — needs DI
   ],
-  exports: [RagService],
+  exports: [RagService, AiQuotaService],
 })
 export class RagModule {}
