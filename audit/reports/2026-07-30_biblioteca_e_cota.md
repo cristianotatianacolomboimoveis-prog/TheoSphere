@@ -48,30 +48,15 @@ o `syncDrive` batia em 404 até 29/07.
 Diagnóstico com `node backend/scratch/inspect-google-key.js` — ele mostra a
 forma do valor e faz autenticação real, sem expor o segredo.
 
------BEGIN PRIVATE KEY-----`. Uma chave RSA real
-tem ~1.700. A chave foi cortada na primeira quebra de linha — problema
-clássico de valor multilinha em arquivo `.env`.
+**Lição:** não inferir estado de credencial lendo arquivo de configuração.
+Um `.env` com valor multilinha engana qualquer parser ingênuo — inclusive o
+que eu tinha escrito. O teste que vale é autenticar.
 
-**Como corrigir:** a chave precisa ir em uma linha só, com os `\n` literais
-escapados e o valor entre aspas:
-
-```bash
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----\n"
-```
-
-O código já trata isso (`drive-rag.service.ts:31` faz o replace de `\n`). O
-mesmo vale para a variável no dashboard do Render — lá o campo aceita
-multilinha, mas o valor precisa estar completo.
-
-Depois de corrigir, popular o acervo:
+### Popular o acervo
 
 ```bash
-curl -X POST https://theosphere.onrender.com/api/v1/drive-library/ingest \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer SEU_TOKEN" \
-  -d '{"folderId":"","tradition":"Geral"}'
-
-node backend/scratch/inspect-library.js   # confere o que entrou
+bash audit/scripts/ingest-drive-library.sh    # login + ingestão + verificação
+node backend/scratch/inspect-library.js       # o que entrou, obra por obra
 ```
 
 ---
