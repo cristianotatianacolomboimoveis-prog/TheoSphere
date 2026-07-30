@@ -21,6 +21,13 @@ interface RagMeta {
   contextDocCount: number;
   tokensEstimated: number;
   costEstimated: number;
+  /**
+   * true quando o backend não conseguiu falar com a IA e devolveu texto
+   * pré-escrito. A interface precisa avisar: em 29/07/2026 a cota do Gemini
+   * estourou e a plataforma serviu um ensaio genérico como se fosse resposta.
+   */
+  degraded?: boolean;
+  degradedReason?: string;
 }
 
 /** Fonte utilizada na composição da resposta RAG. */

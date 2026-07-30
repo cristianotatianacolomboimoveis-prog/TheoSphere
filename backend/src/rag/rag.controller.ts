@@ -210,6 +210,9 @@ export class RagController {
           contextDocCount: response.contextDocCount,
           tokensEstimated: response.tokensEstimated,
           costEstimated: response.costEstimated,
+          // Sinaliza que o conteúdo é texto pré-escrito, não resposta da IA.
+          degraded: response.degraded ?? false,
+          degradedReason: response.degradedReason,
         },
       },
     };

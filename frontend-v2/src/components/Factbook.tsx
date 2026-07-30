@@ -96,6 +96,22 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
     try {
       const res = await chat(prompt, [], undefined, true);
+
+      // IA fora do ar: o backend devolve texto pré-escrito, que nunca tem o
+      // formato de dossiê. Sem este aviso o usuário lia "resposta da IA não
+      // veio no formato" e concluía que o Factbook estava quebrado, quando o
+      // problema era cota/indisponibilidade (varredura 2026-07-29).
+      if (res.meta?.degraded) {
+        setError(
+          `A IA está indisponível no momento, então o dossiê não pôde ser gerado.${
+            res.meta.degradedReason
+              ? ` Motivo: ${res.meta.degradedReason}.`
+              : ""
+          }`,
+        );
+        return;
+      }
+
       const content = res.content;
 
       // Parse JSON from AI response

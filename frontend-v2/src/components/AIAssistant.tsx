@@ -22,6 +22,7 @@ import {
   Info,
   ThumbsUp,
   ThumbsDown,
+  AlertTriangle,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
@@ -49,6 +50,8 @@ interface Message {
     contextDocCount: number;
     tokensEstimated: number;
     costEstimated: number;
+    degraded?: boolean;
+    degradedReason?: string;
   };
 }
 
@@ -298,6 +301,24 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
   /* ── Meta badge for cached/context responses ──────────── */
   const renderMetaBadge = (meta?: Message["meta"]) => {
     if (!meta) return null;
+
+    // Aviso de degradação vem antes de tudo: sem ele o usuário lê um texto
+    // genérico como se fosse a resposta à pergunta dele.
+    if (meta.degraded) {
+      return (
+        <div
+          role="alert"
+          className="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+          <span className="text-[11px] text-amber-200 leading-relaxed">
+            A IA está indisponível — o texto acima é conteúdo geral de apoio,
+            não uma resposta à sua pergunta.
+            {meta.degradedReason ? ` (${meta.degradedReason})` : ""}
+          </span>
+        </div>
+      );
+    }
 
     return (
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">

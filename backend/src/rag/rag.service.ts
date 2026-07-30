@@ -53,6 +53,18 @@ export interface RagResponse {
   tokensEstimated: number;
   costEstimated: number;
   sources: RagSource[]; // fontes utilizadas na resposta
+  /**
+   * true quando nenhum provedor de IA respondeu e o conteúdo veio do texto
+   * pré-escrito de fallback-responses.ts.
+   *
+   * Existe porque em 29/07/2026 a cota do Gemini estourou e a plataforma
+   * passou dias devolvendo um ensaio genérico sobre Calvinismo, com HTTP 200,
+   * para qualquer pergunta — indistinguível de uma resposta real, tanto para
+   * o usuário quanto para o monitoramento.
+   */
+  degraded?: boolean;
+  /** Motivo legível da degradação (ex.: cota excedida, timeout). */
+  degradedReason?: string;
 }
 
 @Injectable()
@@ -84,6 +96,68 @@ export class RagService {
         'Nenhuma API KEY (Gemini/OpenAI) configurada. Operando em modo Fallback Teológico.',
       );
     }
+  }
+
+  /**
+   * Última falha de provedor de IA. Alimenta GET /api/v1/health/ai e o campo
+   * `degradedReason` das respostas — sem isso o erro só existia numa linha de
+   * log do Render, invisível para quem usa e para o monitoramento.
+   */
+  private lastAiFailure: {
+    provider: string;
+    message: string;
+    friendly: string;
+    at: string;
+  } | null = null;
+
+  /** Traduz o erro do provedor para uma causa acionável. */
+  private recordAiFailure(provider: string, error: Error) {
+    const message = error?.message ?? String(error);
+    const lower = message.toLowerCase();
+
+    let friendly = 'IA indisponível no momento';
+    // Ausência de chave vem antes: a mensagem contém "API KEY" e cairia no
+    // ramo de chave inválida, que aponta para o diagnóstico errado.
+    if (provider === 'none' || lower.includes('nenhuma api key')) {
+      friendly = 'Nenhuma API KEY de IA configurada no ambiente';
+    } else if (lower.includes('spending cap') || lower.includes('spend')) {
+      friendly =
+        'Teto de gastos do projeto de IA atingido — ajuste em ai.studio/spend';
+    } else if (
+      lower.includes('quota') ||
+      lower.includes('resource_exhausted')
+    ) {
+      friendly = 'Cota da API de IA esgotada';
+    } else if (lower.includes('429')) {
+      friendly = 'Limite de requisições da API de IA atingido';
+    } else if (
+      lower.includes('api key') ||
+      lower.includes('unauthenticated') ||
+      lower.includes('permission')
+    ) {
+      friendly = 'Chave da API de IA inválida ou sem permissão';
+    } else if (lower.includes('timeout') || lower.includes('exceeded 30s')) {
+      friendly = 'Provedor de IA não respondeu a tempo';
+    } else if (lower.includes('not found') || lower.includes('model')) {
+      friendly = 'Modelo de IA indisponível ou renomeado';
+    }
+
+    this.lastAiFailure = {
+      provider,
+      message: message.slice(0, 300),
+      friendly,
+      at: new Date().toISOString(),
+    };
+  }
+
+  /** Estado do subsistema de IA — consumido por GET /api/v1/health/ai. */
+  getAiHealth() {
+    const provider = this.genAI ? 'gemini' : this.openai ? 'openai' : 'none';
+    return {
+      provider,
+      configured: provider !== 'none',
+      lastFailure: this.lastAiFailure,
+    };
   }
 
   /**
@@ -519,6 +593,7 @@ export class RagService {
         );
       } catch (error: any) {
         this.logger.error(`[RAG Erro Gemini]: ${(error as Error).message}`);
+        this.recordAiFailure('gemini', error as Error);
       }
     }
 
@@ -552,11 +627,27 @@ export class RagService {
         );
       } catch (error: any) {
         this.logger.error(`[RAG Erro OpenAI]: ${(error as Error).message}`);
+        this.recordAiFailure('openai', error as Error);
       }
     }
 
+    // Nenhum provedor respondeu: o conteúdo abaixo é texto pré-escrito, não
+    // uma resposta à pergunta. Marcamos para que a interface avise e para que
+    // a verificação diária consiga enxergar (antes isso era HTTP 200 mudo).
+    let degraded = false;
     if (!responseContent) {
       responseContent = generateFallbackResponse(query, jsonMode);
+      degraded = true;
+      if (!this.lastAiFailure) {
+        this.recordAiFailure(
+          this.genAI ? 'gemini' : this.openai ? 'openai' : 'none',
+          new Error(
+            this.genAI || this.openai
+              ? 'Provedor de IA não retornou conteúdo'
+              : 'Nenhuma API KEY de IA configurada',
+          ),
+        );
+      }
     }
 
     // ═══ ETAPA 4.5: Validação e Extração JSON (Anti-Crash) ═══
@@ -635,6 +726,13 @@ export class RagService {
     return {
       content: responseContent,
       cached: false,
+      ...(degraded
+        ? {
+            degraded: true,
+            degradedReason:
+              this.lastAiFailure?.friendly ?? 'IA indisponível no momento',
+          }
+        : {}),
       contextUsed: contextDocCount > 0,
       contextDocCount,
       tokensEstimated: totalInputTokens + totalOutputTokens,
