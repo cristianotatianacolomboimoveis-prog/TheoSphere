@@ -271,7 +271,13 @@ export class RagService {
        * barata — 1812 tokens de saída contra 2996.
        */
       thinkingConfig: { thinkingBudget: 0 },
-      maxOutputTokens: p.jsonMode ? 3000 : 2000,
+      /**
+       * maxOutputTokens é TETO, não reserva: você paga pelos tokens que o
+       * modelo realmente gera. Baixá-lo não economiza nada em resposta curta
+       * — só corta a longa no meio da frase. A economia veio de desligar o
+       * raciocínio (≈1850 tokens por chamada), não daqui.
+       */
+      maxOutputTokens: 3000,
       responseMimeType: p.jsonMode ? 'application/json' : 'text/plain',
       systemInstruction: systemMessage,
       safetySettings: [

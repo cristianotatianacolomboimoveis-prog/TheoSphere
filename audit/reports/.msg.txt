@@ -1,0 +1,13 @@
+fix(rag): restaura o teto de saida em 3000 — teto nao e reserva
+
+Corrige o raciocinio errado que me levou a baixar maxOutputTokens para
+economizar. O teto e LIMITE, nao reserva: cobra-se pelos tokens que o modelo
+realmente gera. Baixa-lo nao economiza nada numa resposta curta — apenas
+corta a longa no meio da frase.
+
+Medido em producao: com teto de 2000 e raciocinio desligado, uma resposta
+sobre Filipenses 2:6-11 chegou a 6948 caracteres e ainda terminou sem
+pontuacao final.
+
+A economia real ja veio do thinkingBudget=0 (~1850 tokens por chamada),
+nao daqui.
