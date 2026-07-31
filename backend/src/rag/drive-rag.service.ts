@@ -4,7 +4,11 @@ import { google } from 'googleapis';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
 import { v4 as uuidv4 } from 'uuid';
-import { findExtractor, SUPPORTED_MIME_QUERY } from './text-extractors';
+import {
+  findExtractor,
+  SUPPORTED_MIME_QUERY,
+  cleanExtractedText,
+} from './text-extractors';
 
 @Injectable()
 export class DriveRagService {
@@ -200,7 +204,10 @@ export class DriveRagService {
       let fileMeta: Record<string, unknown> = {};
       try {
         const result = await extractor.extract(buffer);
-        text = result.text;
+        // Limpa marcas de paginação e hifenização quebrada ANTES do chunking:
+        // depois de fatiado, o artefato já está dentro do trecho que vai ser
+        // citado ao usuário, e não há como removê-lo sem reindexar.
+        text = cleanExtractedText(result.text);
         fileMeta = result.meta ?? {};
       } catch (err) {
         this.logger.error(

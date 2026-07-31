@@ -200,6 +200,41 @@ export function findExtractor(mime: string): Extractor | undefined {
 }
 
 /**
+ * Remove a sujeira que a extração de PDF deixa no texto, antes do chunking.
+ *
+ * Motivo (30/07/2026): a biblioteca servia trechos citados com marcas de
+ * paginação no meio — "conforme ensina -- 75 of 212 -- o apóstolo" — e com
+ * palavras partidas pela hifenização de fim de linha ("justi- ficação").
+ * Numa plataforma que exibe a citação ao usuário, isso é visível e passa a
+ * impressão de que a obra está corrompida.
+ *
+ * O efeito colateral era pior: na análise de qualidade, três passagens
+ * sorteadas caíam em blocos de marcas de página e o revisor condenava o livro
+ * inteiro como ilegível. Onze obras boas — Owen, Schaeffer, Piper, o
+ * comentário de Hodge à Confissão de Westminster — foram reprovadas assim
+ * antes desta limpeza existir.
+ *
+ * Deliberadamente conservadora: só remove o que é inequivocamente artefato.
+ * Normalização agressiva (pontuação, maiúsculas, quebras de parágrafo) faria
+ * o chunking perder os limites semânticos em que ele se apoia.
+ */
+export function cleanExtractedText(text: string): string {
+  return (
+    text
+      // Marcas que o pdf-parse insere entre páginas.
+      .replace(/--\s*\d+\s*of\s*\d+\s*--/gi, ' ')
+      .replace(/\bPage\s+\d+\s+of\s+\d+\b/gi, ' ')
+      // Hifenização de fim de linha: "justi- ficação" → "justificação".
+      // Exige espaço depois do hífen, para não colar palavras legitimamente
+      // compostas ("porta-voz", "recém- nascido" quebrado vs. "recém-nascido").
+      .replace(/(\p{L})-\s+(\p{L})/gu, '$1$2')
+      // Espaços redundantes, preservando as quebras de parágrafo.
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+  );
+}
+
+/**
  * Mime-type clause for the Google Drive `files.list` query. Keep this in
  * sync with the registered extractors above.
  */

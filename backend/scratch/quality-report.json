@@ -1,0 +1,2122 @@
+[
+  {
+    "id": "1RPjccvAbxjALGqhpcRt5kjOkZHWpA_eK",
+    "nome": "Teologia Sistemática - Franklin Ferreira Alan Myatt.pdf",
+    "nota": 64,
+    "fidelidade": 55,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.16,
+      "inglês solto/1k": 0.32,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.28,
+      "hífen quebrado/1k": 0.06,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.57
+    },
+    "penalidades": ["nomes bíblicos em inglês"],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": false,
+    "caracteres": 4450655,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "O que os apavorou não foi apenas o terremoto, mas a aparição do anjo.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1wW1CA557-gZyf2eWIK31OJ8IbDKuYKxA",
+    "nome": "Teologia Sistemática - Wayne Gruden - Teologia Sistemática Atual e Exaustiva.pdf",
+    "nota": 40,
+    "fidelidade": 55,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.19,
+      "inglês solto/1k": 0.03,
+      "colagens (ea/eo)/1k": 0.34,
+      "paginação/1k": 0.54,
+      "hífen quebrado/1k": 0.08,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.51
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "paginação no meio do texto",
+      "tradução automática (IA, 95%)"
+    ],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": false,
+    "caracteres": 3917398,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 95,
+      "evidencia": "para ser óbvio para fora na assembleia cristã",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1GJg8P1A-dgJuDLJRPBLwyr05eI5WtHTW",
+    "nome": "Comentário expositivo Romanos - R. C. Sproul (m4ycqn) (Z-Library).pdf",
+    "nota": 40,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.05,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0.33,
+      "paginação/1k": 0.47,
+      "hífen quebrado/1k": 0.08,
+      "caractere inválido/1k": 0,
+      "português/1k": 18.58
+    },
+    "penalidades": [
+      "paginação no meio do texto",
+      "tradução automática (IA, 95%)"
+    ],
+    "graves": [],
+    "pirata": true,
+    "caracteres": 1112402,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 95,
+      "evidencia": "para que eles dividem a Bíblia para estes sete períodos de tempo",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1-Y-AnwA4dwlUO7b-QH2Ao-dqR3njn0qX",
+    "nome": "O poder da oração para transformar sua vida (Joseph Murphy) (Z-Library).pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0.01,
+      "paginação/1k": 0.51,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.23
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": true,
+    "caracteres": 192625,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Hoje em dia, as pessoas têm muitos ídolos, assim como tinham na Caldeia há milhares de anos.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1-WGn-1hFeSkcikfw9sBe-aUndsYUXrNE",
+    "nome": "PODER ATRAVÉS DA ORAÇÃO (E. M. Bounds) (Z-Library).pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.35,
+      "hífen quebrado/1k": 0.02,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.4
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": true,
+    "caracteres": 125983,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Nenhuma história mais sublime tem sido registrada nos anais terrestres do que a de Davi Brainerd",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1pggSpDo7itvG-o2jc-z_HKqEXMMio6VL",
+    "nome": "A anatomia de um luto (C.S. Lewis) (Z-Library).pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.07,
+      "inglês solto/1k": 0.06,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.69,
+      "hífen quebrado/1k": 0.03,
+      "caractere inválido/1k": 0,
+      "português/1k": 16.78
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": true,
+    "caracteres": 122382,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Eu falo de sua ancoragem, não de sua chegada.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "18WApy8MSsfAPw6ZYSuIe-kBsycplbjOP",
+    "nome": "Farsa da Boa Preguiça - Ariano Suassuna.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 2.06,
+      "hífen quebrado/1k": 0.03,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.95
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 204865,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Suas dores passarão, minhas angústias também! Venha, venha! Sim, assim!",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1W80gmeehVkUUTDdUfnBB1R8OGYTiKk8S",
+    "nome": "O Grande Abismo - C. S. Lewis.pdf",
+    "nota": 100,
+    "fidelidade": 100,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.29,
+      "hífen quebrado/1k": 0.08,
+      "caractere inválido/1k": 0,
+      "português/1k": 17.82
+    },
+    "penalidades": [],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 166708,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Não creio num Deus que separa mãe e filho.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1-j7zfdwjleSYLg3p2JZ_19P1ZNw5IVQw",
+    "nome": "O Problema do Sofrimento - C. S. Lewis.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.04,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.48,
+      "hífen quebrado/1k": 0.1,
+      "caractere inválido/1k": 0,
+      "português/1k": 16.88
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 246631,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "É perfeitamente justo associar esta noção com a estrutura social das primeiras comunidades",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1XEsDQXYo8uy18vJNwESsZ815cdwFwrGE",
+    "nome": "A Bíblia não tinha razão (Israel Finkelstein, Neil Asher Silberman) (Z-Library).pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0.01,
+      "paginação/1k": 0.43,
+      "hífen quebrado/1k": 0.06,
+      "caractere inválido/1k": 0,
+      "português/1k": 10.83
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": true,
+    "caracteres": 770342,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "A esteia de Mesha relata que Amri construiu duas cidades em Moab, Ataroth e Jahaz",
+      "votos": 3
+    }
+  },
+  {
+    "id": "193Y5yl5pY_isDSx1EgovR9_7zUni0Jqo",
+    "nome": "Quem Escreveu A Bíblia Porque Os Autores Da Bíblia Não São Quem Pensamos Que São (Bart D. Ehrman) (Z-Library).pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.11,
+      "inglês solto/1k": 0.29,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.52,
+      "hífen quebrado/1k": 0.05,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.26
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": true,
+    "caracteres": 581963,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Um sermão de Melito, um bispo cristão do século II, alega que os judeus",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1lR8LnLgDhC_4yoA0OMo6mGVTjmhSrqP6",
+    "nome": "Pregação e pregadores - D. Martin Lloyd-Jones.pdf",
+    "nota": 100,
+    "fidelidade": 100,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.04,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.17,
+      "hífen quebrado/1k": 0.21,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.12
+    },
+    "penalidades": [],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 791076,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Isso o ajudará a ilustrar e a dar conteúdo às suas mensagens, expostas diante do povo",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1hj_fhmrHd7gzjyWWAdNHo8OBdFlGHSd2",
+    "nome": "O Custo do Discipulado A doutrina da imitação de Cristo - Jonas Madureira.pdf",
+    "nota": 61,
+    "fidelidade": 55,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.21,
+      "inglês solto/1k": 0.12,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.63,
+      "hífen quebrado/1k": 0.07,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.14
+    },
+    "penalidades": ["nomes bíblicos em inglês", "paginação no meio do texto"],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": false,
+    "caracteres": 115050,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "O pastor que ama mais a grana do que a Jesus plasmará esse desejo em todos aqueles que o admirarem.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1S8FOSzz04sGEr8td0v3mhxTfdU66znId",
+    "nome": "A Bíblia através dos Séculos - António Gilberto.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.34,
+      "hífen quebrado/1k": 0.21,
+      "caractere inválido/1k": 0,
+      "português/1k": 8.96
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 335909,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "é um tesouro de história bíblica, como acabamos de ver. E, como livro de história, a Bíblia não tem comparação.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1oBexzflsvhhuYwLZF6iYFdLkv97cwlK7",
+    "nome": "Introduçãao e Sintese do Novo Testamento - Gerhard Horster.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.05,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.69,
+      "hífen quebrado/1k": 0.07,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.93
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 498930,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Paulo entra no assunto das acusações que foram feitas à sua pessoa e ao seu apostolado",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1jTvst2QTA1lI_gCun4rgbOwI19-knUO7",
+    "nome": "O Breve Catecismo de Westminster - Vários Autores.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.72,
+      "hífen quebrado/1k": 0.13,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.32
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 121406,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Era desprezado e o mais rejeitado entre os homens; homem de dores e que sabe o que é padecer",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1Uri-mJWVAzPuEORldpBtoL2D5mwytSib",
+    "nome": "A Mensagem da Epístola aos Hebreus - Albert Vanhoye.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.45,
+      "hífen quebrado/1k": 0.35,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.79
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 190602,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Em primeiro lugar, a constatação de que o autor do Apocalipse era um grande artista",
+      "votos": 3
+    }
+  },
+  {
+    "id": "19xaRpZh9R1pB9ExdwWwvGXW5S0WBfzl9",
+    "nome": "LOC - Livro de Oração Comum.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.6,
+      "hífen quebrado/1k": 1.25,
+      "caractere inválido/1k": 0,
+      "português/1k": 9.4
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 1071056,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Pai celestial, crianças sofreram às mãos de Herodes, embora nenhum mal tives- sem feito",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1NEzu87F-nUw_Zs4aE8nIEfdnusaywtLl",
+    "nome": "Teologia - As institutas das Religiões Cristãs - Editora Fiel.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.44,
+      "hífen quebrado/1k": 0.05,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.98
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 807454,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "O que resta, senão que o cego veja, o surdo ouça e até mesmo as criancinhas entendam essa abominação da missa?",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1mbfZ1RHXRyR2XEnkSXY4xHhKnX4tDCX5",
+    "nome": "Teologia - As Institutas - Volume 1 - Editora Cultura Cristã.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.04,
+      "inglês solto/1k": 0.06,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.34,
+      "hífen quebrado/1k": 1.94,
+      "caractere inválido/1k": 0,
+      "português/1k": 16.44
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 715646,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Pois bem, se algum blasfemo murmurar que Deus não merece grande louvor por Sua bondade",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1AjK2iK-DQ-QfFXmIxMNOqu67AR8tQ-9J",
+    "nome": "Teologia - As Institutas - Volume 3 - Editora Cultura Cristã.pdf.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.35,
+      "hífen quebrado/1k": 1.81,
+      "caractere inválido/1k": 0,
+      "português/1k": 17.42
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 564104,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Assim, não vemos Deus propor-nos alguma coisa que devemos esperar dele que, paralelamente, não nos mande pedir em oração.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1e6azxqtYViDoGql4Sp2o7ekaAVPtwLuW",
+    "nome": "A Logica da Fé.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.15,
+      "inglês solto/1k": 0.78,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.36,
+      "hífen quebrado/1k": 0.07,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.1
+    },
+    "penalidades": [
+      "palavras inglesas no meio do texto",
+      "paginação no meio do texto"
+    ],
+    "graves": ["palavras inglesas no meio do texto"],
+    "pirata": false,
+    "caracteres": 369510,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Ele é autor de 22 livros e de muitos de artigos publicados.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1BI7zId9DgwTYrqQZ2qBKzxiQNOk0u-5A",
+    "nome": "Fazendo o Melhor depois de Decisões.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.05,
+      "inglês solto/1k": 0.05,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.49,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 16.14
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 304665,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Em outras palavras, se tivermos dinheiro, podemos levar uma vida independente da igreja",
+      "votos": 3
+    }
+  },
+  {
+    "id": "14h5CPaQOLwx_dutWFloMap760xtvxzoo",
+    "nome": "A Dificil doutrina do Amor de Deus - D. A (2). Carson.pdf",
+    "nota": 40,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.05,
+      "inglês solto/1k": 0.15,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.65,
+      "hífen quebrado/1k": 0.18,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.61
+    },
+    "penalidades": [
+      "paginação no meio do texto",
+      "tradução automática (IA, 85%)"
+    ],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 151953,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 85,
+      "evidencia": "embo ra fazendo tais coisas em função de sua habilidade para fa zer tudo o que o Pai faz",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1cTEcqmkkF0uTkQsOp73ve0vwxmoQZAEb",
+    "nome": "@bibliotecabiblica Filipenses .pdf",
+    "nota": 40,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.55,
+      "hífen quebrado/1k": 0.14,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.42
+    },
+    "penalidades": [
+      "paginação no meio do texto",
+      "tradução automática (IA, 85%)"
+    ],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 285917,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 85,
+      "evidencia": "A compaixão deveria guardar aos cristãos da desunião.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1TSgfFDFOX3mr4h5QOHkMm3JJjr8RGknb",
+    "nome": "A Verdade Do Evangelho - John Stott.pdf",
+    "nota": 61,
+    "fidelidade": 55,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.18,
+      "inglês solto/1k": 0.2,
+      "colagens (ea/eo)/1k": 0.01,
+      "paginação/1k": 0.49,
+      "hífen quebrado/1k": 0.08,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.3
+    },
+    "penalidades": ["nomes bíblicos em inglês", "paginação no meio do texto"],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": false,
+    "caracteres": 276124,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "todas as promessas da graça foram, no meu batismo, legadas a mim, e seladas em mim",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1kV3nPgkvMlGQKrxzTVsHzPlfcMcsoMJw",
+    "nome": "_Momentos com Deus.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.08,
+      "inglês solto/1k": 0.06,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.64,
+      "hífen quebrado/1k": 0.11,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.24
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 447380,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Aconselho vocês a pensarem antes de pronunciar palavras indelicadas, que magoam e queimam na memória",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1S04v1Fx81U3-IV7wjKlq3wsboRWb67rj",
+    "nome": "_A segunda reforma_William A. Beckham.pdf",
+    "nota": 93,
+    "fidelidade": 100,
+    "limpeza": 65,
+    "sinais": {
+      "nomes em inglês/1k": 0.04,
+      "inglês solto/1k": 0.21,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.55,
+      "hífen quebrado/1k": 3.14,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.54
+    },
+    "penalidades": ["paginação no meio do texto", "hifenização quebrada"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 515460,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Não existe uma expectativa de experimentar a presença real e o poder de Cristo",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1txApNIbPPk58OLF1N2apOa-X4O0UOEKk",
+    "nome": "A Torá Frank Crusemann.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0.08,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.39,
+      "hífen quebrado/1k": 0.27,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.62
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 1285792,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Tais pessoas de modo algum podem, a priori e por princípio, ser equiparadas ao justo e ao ino cente.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1ijrKc6ASv_FBbVldE3Pzrnve4rUihh_D",
+    "nome": "cristianismo simplificado.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.59,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 16.13
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 273330,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Nossos atos de justiça são trapos imundos diante de Deus (Is 64.6).",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1hBbQcZNpnGsSIFM64hSNexgh2389S476",
+    "nome": "A Mente de Cristo Conversão e Cosmovisão Cristã.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.06,
+      "inglês solto/1k": 0.09,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.39,
+      "hífen quebrado/1k": 0.09,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.89
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 588700,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "voltando para o ponto de onde se desviou: o respeito incondicional ao sexto mandamento",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1fE9-N_1WRhA8ZetXKl21ToTdXh59EDT8",
+    "nome": "A Difícil Doutrina do Amor de Deus - D. A (1). Carson.pdf",
+    "nota": 40,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.05,
+      "inglês solto/1k": 0.15,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.65,
+      "hífen quebrado/1k": 0.18,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.61
+    },
+    "penalidades": [
+      "paginação no meio do texto",
+      "tradução automática (IA, 85%)"
+    ],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 151953,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 85,
+      "evidencia": "embo ra fazendo tais coisas em função de sua habilidade para fa zer tudo o que o Pai faz",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1MAGaro4tBdbYw3oqsEXcHHAAt3ZScM70",
+    "nome": "Louvor Análise Teológica e Prática.pdf",
+    "nota": 61,
+    "fidelidade": 55,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.17,
+      "inglês solto/1k": 0.42,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.41,
+      "hífen quebrado/1k": 0.03,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.04
+    },
+    "penalidades": ["nomes bíblicos em inglês", "paginação no meio do texto"],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": false,
+    "caracteres": 557306,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Ele usou imagens coloridas em uma placa de velcro para manter a atenção dos jovens",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1BbJM38UNJKoPqEEWkxMxSLWvRrjhIxpI",
+    "nome": "Lições aos Meus Alunos Volume 3.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.07,
+      "inglês solto/1k": 0.08,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.42,
+      "hífen quebrado/1k": 0.07,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.96
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 276127,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "que cânticos de júbilo elevaremos, não glorificando a nossa própria habilidade mas em louvor do prodigioso Capitão",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1nnNjiHoWjFPIxabX-Qz_-22DppQJXmnD",
+    "nome": "Lições aos Meus Alunos Volume 1.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.05,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0.02,
+      "paginação/1k": 0.43,
+      "hífen quebrado/1k": 0.1,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.97
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 477906,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Nosso objetivo não é vencê-los nas confrontações lógicas, mas salvar as suas almas.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1tcF1Iybx9WPTiR5gXLcx3g7xRRocXs0y",
+    "nome": "Lições aos Meus Alunos Volume 2.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.04,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.42,
+      "hífen quebrado/1k": 0.06,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.43
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 534173,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Se as pessoas não prestarem atenção, não lhes demos motivo para acharem desculpa em nossa comunicação defeituosa.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1cvN3JgEoTcNJ5vtkNqtBBf_slRYPLHgS",
+    "nome": "Cave Mais Fundo.pdf",
+    "nota": 40,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.14,
+      "inglês solto/1k": 0.17,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.76,
+      "hífen quebrado/1k": 2.91,
+      "caractere inválido/1k": 0.23,
+      "português/1k": 14.92
+    },
+    "penalidades": [
+      "paginação no meio do texto",
+      "tradução automática (IA, 80%)"
+    ],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 412827,
+    "juiz": {
+      "veredito": "automatica",
+      "confianca": 80,
+      "evidencia": "Ele recorda cada decisão má, cada insul- to, cada embaraço angustiante.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1uLw8hxNSPpOV0pQ30WxCZV4vvTFzMPmm",
+    "nome": "A Caminhada Cristã na História.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.09,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.64,
+      "hífen quebrado/1k": 0.2,
+      "caractere inválido/1k": 0,
+      "português/1k": 9.44
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 368330,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Essas aspirações começaram a ser satisfeitas fora da Nova Inglaterra, nas colônias centrais.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1R988EBqNVPA7jFEPjm4mSQZdmamb1X8g",
+    "nome": "8 Hábitos.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.54,
+      "hífen quebrado/1k": 0.01,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.19
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 68070,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Servir uma sopa para os pobres e sem teto. 13. Oferecer-se como “introdutores” na igreja",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1U88dn89FHadyYR7-xxhDYQdpX9anPsi1",
+    "nome": "Aliança - Alianças - Palmer Robertson.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.49,
+      "hífen quebrado/1k": 0.05,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.29
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 175760,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Um dos maiores problemas para as pessoas em aliança com Deus é encontrar o equilíbrio",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1T9QIk_PSshg3DEYOTp8kAtt5-zbT0VDm",
+    "nome": "Por quem Cristo Morreu - Angus Stewart.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.52,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.22
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 30656,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "O ensino ortodoxo da santa Trindade milita contra a idéia de que Cristo morreu por todos",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1r3fJJXjYhwgJt10N4jlOGMjyuRNZRJOU",
+    "nome": "Biblia de Jerusalém.pdf",
+    "nota": 100,
+    "fidelidade": 100,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.27,
+      "hífen quebrado/1k": 0.13,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.01
+    },
+    "penalidades": [],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 4545322,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Por minha vida, oráculo do Senhor Iahweh, eu juro certamente com mão forte e com braço estendido",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1miUTEK7O5gWnseuWWhx7KtAjvcCYOxhH",
+    "nome": "Grego - Chave Linguística - Chave Linguística do Novo Testamento Grego - Fritz Reinecker & Cleon Rogers - Editora Vida Nova.pdf",
+    "nota": 20,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 50.8,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 0
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto",
+      "texto ilegível (IA)"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 6732,
+    "juiz": {
+      "veredito": "erro"
+    }
+  },
+  {
+    "id": "14d6hYdpHm-3SIgXjfA2Na0QgvXOMUkyR",
+    "nome": "Léxico do Novo Testamento - Grego-Portugues - F. Wilbur Gingrich.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.31,
+      "hífen quebrado/1k": 2.18,
+      "caractere inválido/1k": 0,
+      "português/1k": 3.2
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 739685,
+    "juiz": {
+      "veredito": "erro"
+    }
+  },
+  {
+    "id": "1--BS33n0rD4c5n7fp-Y746hUZCOo0cw6",
+    "nome": "Grego - Grámatica Instrumental do Grego - Antônio Renato Gusso.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0.01,
+      "paginação/1k": 0.88,
+      "hífen quebrado/1k": 0.18,
+      "caractere inválido/1k": 0,
+      "português/1k": 6.09
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 380602,
+    "juiz": {
+      "veredito": "erro"
+    }
+  },
+  {
+    "id": "15R72XJ3aJweBBM29Nl4v92JI4l4hsOcO",
+    "nome": "Hebraico - Noções de Hebraico Bíblico - Harlan Graham.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (1413 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 1413
+  },
+  {
+    "id": "1JgU_ZZ8gWCQE8tighPdoCmJQfnFHjMiy",
+    "nome": "Grego - Gramática - Noções do Grego Bíblico.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.01,
+      "inglês solto/1k": 0.05,
+      "colagens (ea/eo)/1k": 0.02,
+      "paginação/1k": 0.76,
+      "hífen quebrado/1k": 0.41,
+      "caractere inválido/1k": 0,
+      "português/1k": 5.71
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 539051,
+    "juiz": {
+      "veredito": "erro"
+    }
+  },
+  {
+    "id": "1GO6gdOViIX3LWSIX0oQ8p2smbSH5evJU",
+    "nome": "o-anticristo_gritters.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.46,
+      "hífen quebrado/1k": 0.1,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.39
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 41491,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Quando a besta surgir do mar, o mundo todo a adora, enquanto ela vomita blasfêmias contra Deus",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1vg4aDS5rrI75niTPKe5135KofJkd5YQB",
+    "nome": "Anthony Hoekema - Linguas.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.06,
+      "inglês solto/1k": 0.22,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.31,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.13
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 268440,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Nossos amigos pentecostais sustentam que as referências às línguas que se encontram no livro dos Atos",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1synO-dsKfBwS8bwCjyhyWwCvlOM5U6Jm",
+    "nome": "Teologia - Bíblia e o Futuro - Anthony A Hoekema.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.14,
+      "inglês solto/1k": 0.54,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.41,
+      "hífen quebrado/1k": 0.07,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.89
+    },
+    "penalidades": [
+      "palavras inglesas no meio do texto",
+      "paginação no meio do texto"
+    ],
+    "graves": ["palavras inglesas no meio do texto"],
+    "pirata": false,
+    "caracteres": 958772,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "Pois a nossa pátria está nos céus, de onde também aguardamos o salvador, o Senhor Jesus Cristo",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1OgCkSylcoRCCszaAW53olubmdCAMclms",
+    "nome": "Ídolos do Coração & Feira das Vaidades - David Powlison.pdf",
+    "nota": 76,
+    "fidelidade": 70,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0.03,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.23,
+      "hífen quebrado/1k": 0.1,
+      "caractere inválido/1k": 0,
+      "português/1k": 11.1
+    },
+    "penalidades": ["pouco português — pode estar noutro idioma"],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 92701,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Comportamentos problemáticos estão enraizados no coração e dizem respeito a Deus.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1nVW07mEu6oZl_QuiH_IklJ71tAd7uKaL",
+    "nome": "O Conhecimento de Deus - J. I. Packer.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.03,
+      "inglês solto/1k": 0.08,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.43,
+      "hífen quebrado/1k": 0.09,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.92
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 612566,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "A quem muito foi dado, muito será exigido; e a quem muito foi confiado muito mais será pedido.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1E26QXs0KVUpuHd28YzuKbwKxj1plr4fC",
+    "nome": "Desceu ao Hades - 1ª Pedro (1Pe) 3.18-20 - Heber Carlos Campos.pdf",
+    "nota": 76,
+    "fidelidade": 70,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.13,
+      "inglês solto/1k": 0.96,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.28,
+      "hífen quebrado/1k": 0.12,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.25
+    },
+    "penalidades": ["palavras inglesas no meio do texto"],
+    "graves": ["palavras inglesas no meio do texto"],
+    "pirata": false,
+    "caracteres": 75106,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Essa interpretação é encontrada em um dos comentários bíblicos mais populares entre os pastores",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1OKgIQcfZgjzpsHmSe4SepE0rEQpRI1wN",
+    "nome": "Verdades Essênciais da Fé Cristã - 1º Caderno - R. C. Sproul.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.33,
+      "hífen quebrado/1k": 2.68,
+      "caractere inválido/1k": 0,
+      "português/1k": 15.01
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 180608,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 99,
+      "evidencia": "No plano redentivo de Deus, entretanto, o Filho voluntariamente assume um papel de subordinação ao Pai.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1xStWN9vcqDK9N2FZPj9r29DnMpQRm0jw",
+    "nome": "PAT - Gênesis.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 2.34,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 5.45
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 3852,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Yahweh definiu mais claramente o foco de Sua obra redentora (e restauradora de Sua soberania)",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1lUJmues4RDi-HIA86cPpeDMRBAelxbyY",
+    "nome": "O Grande Divórcio - C. S. Lewis.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.02,
+      "inglês solto/1k": 0.02,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.78,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 17.4
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 185954,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Lembrando-me do peso daquela folha que tentara levantar, não pude deixar de admirar essa criatura infeliz",
+      "votos": 3
+    }
+  },
+  {
+    "id": "19lp0OPpptQLat5t3-G29cXe8kjhaKT_-",
+    "nome": "Os Martires do Coliseu o Sofrimento dos Cristaos no Grande Anfiteatro Romano - A.J. OReilly.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0.01,
+      "paginação/1k": 0.32,
+      "hífen quebrado/1k": 0.11,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.16
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 685603,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "o senado, degradado e acovardado, preferiu adorar o orgulhoso e lascivo Cômodo, a expor-se ao perigo",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1ew03W884LmvksZ1RrtoSUPvlFXvFec0V",
+    "nome": "A Origem da Bíblia - Philip Wesley Comfort.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.06,
+      "inglês solto/1k": 0.12,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.66,
+      "hífen quebrado/1k": 0.05,
+      "caractere inválido/1k": 0,
+      "português/1k": 10.98
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 585445,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Outras evidências textuais podem ser obtidas de citações encontradas nos escritores primitivos, conhecidos como pais da Igreja.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "180HL3ZOveDsrTBKdzUv3I_W7QfEo8bR1",
+    "nome": "Teologia em Perguntas e Respostas - Geraldo Magela Campos.pdf",
+    "nota": 73,
+    "fidelidade": 70,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.01,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.86,
+      "hífen quebrado/1k": 0.08,
+      "caractere inválido/1k": 0,
+      "português/1k": 9.49
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "paginação no meio do texto"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 144723,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Título que nossa versão portuguesa traduz “que está servindo”, mas que com maior probabilidade deve ser traduzido “diaconisa”",
+      "votos": 3
+    }
+  },
+  {
+    "id": "17fSpY4eZRSsu8-kZAtJF5tP2MYrzuyKJ",
+    "nome": "@ Anti-Cristo-O-Messias-esperado-pelo-Isla.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.06,
+      "inglês solto/1k": 0.44,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0.52,
+      "hífen quebrado/1k": 0.04,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.31
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 478631,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "Pelo menos seiscentos anos antes do Islã existir, os profetas judeus e os apóstolos judeus descreveram o evento da volta de Jesus retornando a Israel",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1lYpyoHsb_YVNYzCnkmAiWldpoQqJz3eW",
+    "nome": "A Arte e a Bíblia - Francis A. Schaeffer.pdf",
+    "nota": 97,
+    "fidelidade": 100,
+    "limpeza": 85,
+    "sinais": {
+      "nomes em inglês/1k": 0.15,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 1.62,
+      "hífen quebrado/1k": 0.74,
+      "caractere inválido/1k": 0,
+      "português/1k": 13.28
+    },
+    "penalidades": ["paginação no meio do texto"],
+    "graves": [],
+    "pirata": false,
+    "caracteres": 6776,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 98,
+      "evidencia": "Ele libertou uma geração inteira de artistas ao mesmo tempo em que nos pôs debaixo do suave jugo da autoridade das Escrituras",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1fSIQRjcu3CcRm2zVC5uiRxW9oV4vqshG",
+    "nome": "God, Marriage, and Family Rebuilding the Biblical Foundation (Andreas Kostenberger, David W. Jones) (Z-Library).pdf",
+    "nota": 20,
+    "fidelidade": 0,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 1.7,
+      "inglês solto/1k": 16.38,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0.01,
+      "português/1k": 0
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "pirata": true,
+    "caracteres": 1010736,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "17m-lEEXrYJnk9mcFFU7VChvuwFibwaG8",
+    "nome": "Proverbs (Interpretation A Bible Commentary for Teaching and Preaching) (Leo G. Perdue) (Z-Library).pdf",
+    "nota": 52,
+    "fidelidade": 40,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.14,
+      "inglês solto/1k": 23.22,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 0
+    },
+    "penalidades": [
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "graves": [
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "pirata": true,
+    "caracteres": 750058,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1CI0u7nIjWavy1edz8WpQIJPyaFEennyf",
+    "nome": "Deus e seu Decreto (Samuel D. Renihan) (Z-Library).pdf",
+    "nota": 40,
+    "fidelidade": 25,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.18,
+      "inglês solto/1k": 0.75,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.85
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "pirata": true,
+    "caracteres": 288779,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1JCu2t55WXr8OeFo6REfpOgJzosJx1dsi",
+    "nome": "As boas novas em Rute Redenção nos campos do Senhor (Emilio Garofalo Neto) (Z-Library).pdf",
+    "nota": 58,
+    "fidelidade": 55,
+    "limpeza": 70,
+    "sinais": {
+      "nomes em inglês/1k": 0.21,
+      "inglês solto/1k": 0.03,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 2.22,
+      "português/1k": 16.26
+    },
+    "penalidades": ["nomes bíblicos em inglês", "caracteres corrompidos"],
+    "graves": ["nomes bíblicos em inglês"],
+    "pirata": true,
+    "caracteres": 266347,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1G4LW833Ej-LVOOm39vhx5HODH-v1TDEO",
+    "nome": "Compreender e interpretar os textos (E. Bechara) (Z-Library).pdf",
+    "nota": 76,
+    "fidelidade": 70,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0.09,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 9.98
+    },
+    "penalidades": ["pouco português — pode estar noutro idioma"],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": true,
+    "caracteres": 126944,
+    "sobrevivencia": 0.99,
+    "juiz": {
+      "veredito": "humana",
+      "confianca": 95,
+      "evidencia": "O primeiro piloto brasileiro foi o Coronel Luis Tenan, que assumiu o comando de uma das aeronaves em 1935.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1VfrWv9pfwSpBRnQBvZLdtmQU5SbbyvYl",
+    "nome": "Pregando Cristo a Partir do Antigo Testamento - Greidanus, Sidney.pdf",
+    "nota": 20,
+    "fidelidade": 0,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.18,
+      "inglês solto/1k": 0.73,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 10.8
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "pirata": false,
+    "caracteres": 1004759,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1S72Yq7dHj1zykPvW-pNlZbgLeyXEHFB-",
+    "nome": "Teologia Sistemática - Stanley Horton - Alan Chiamenti Mach.pdf",
+    "nota": 20,
+    "fidelidade": 0,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.16,
+      "inglês solto/1k": 0.79,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 10.86
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "pirata": false,
+    "caracteres": 1631829,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1_1jbYPGvr0qDlcxqOxJUyuLp1Z6ONuLL",
+    "nome": "Evidência que exige um veredito - Josh McDowell.pdf",
+    "nota": 40,
+    "fidelidade": 25,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.2,
+      "inglês solto/1k": 0.62,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 12.85
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "pirata": false,
+    "caracteres": 1191823,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1tgA8QPQMOX1NTX204j_bwhuQBy-iyhrE",
+    "nome": "Criados à Imagem de Deus - Anthony A. Hoekema.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1Ns2kJzRBcGhle16SuNs8WRmUcl_mFWX_",
+    "nome": "O Novo Testamento em seu Ambiente Social - David L. Balch.pdf",
+    "nota": 20,
+    "fidelidade": 0,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.16,
+      "inglês solto/1k": 0.72,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 9.55
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto",
+      "pouco português — pode estar noutro idioma"
+    ],
+    "pirata": false,
+    "caracteres": 449929,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1ebBT5xL5SPcUkK1h0em4ZvJBn34ecZpt",
+    "nome": "A Serpente do Paraíso - Erwin W. Lutzer.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1IS9dbD2a6aTJ9Rs14LrjNMjJvVjFhdIt",
+    "nome": "Evidências da Ressurreição - Josh McDowell.pdf",
+    "nota": 40,
+    "fidelidade": 25,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.23,
+      "inglês solto/1k": 0.75,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0,
+      "português/1k": 14.38
+    },
+    "penalidades": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "graves": [
+      "nomes bíblicos em inglês",
+      "palavras inglesas no meio do texto"
+    ],
+    "pirata": false,
+    "caracteres": 507030,
+    "sobrevivencia": 0.99
+  },
+  {
+    "id": "1LpH7QaG2XZc99tnId9XArXkHLw39EPI0",
+    "nome": "a história da teologia cristã (1).pdf",
+    "nota": 20,
+    "fidelidade": 70,
+    "limpeza": 100,
+    "sinais": {
+      "nomes em inglês/1k": 0.04,
+      "inglês solto/1k": 0.21,
+      "colagens (ea/eo)/1k": 0.07,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 0.01,
+      "português/1k": 7.05
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "texto ilegível (IA)"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 1941219,
+    "sobrevivencia": 0.99,
+    "juiz": {
+      "veredito": "ilegivel",
+      "confianca": 95,
+      "evidencia": "sse conceito, naturalm ente veria Jesus C risto com o o eterno Fi lho de D eus fingindo ser u m hom em",
+      "votos": 3
+    }
+  },
+  {
+    "id": "18MvIqcLuiu3g9tPOZkxgvapnebgK233B",
+    "nome": "_Purim.pdf",
+    "nota": 20,
+    "fidelidade": 70,
+    "limpeza": 70,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 4.45,
+      "português/1k": 6.15
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "caracteres corrompidos",
+      "texto ilegível (IA)"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 122276,
+    "sobrevivencia": 0.97,
+    "juiz": {
+      "veredito": "ilegivel",
+      "confianca": 95,
+      "evidencia": "(resposta truncada)",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1s5aMxf7xANj43E8qIwVY_KzJm1rIN65G",
+    "nome": "-Teologia-Do-Novo-Testamento.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1puTY3Z7L0k2IcpDojPlIdwOKuxDDX5Nz",
+    "nome": "A paixão de Cristo - John Piper.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1uRrEVRJeJLA3Ok3AVrO5hv41btXQbJ-i",
+    "nome": "Por Quem Cristo Morreu - John Owen.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1_ZpyhzPT6aKose-BAbdXn3B8fy6vhSV2",
+    "nome": "Verdadeira Espiritualidade - Francis A. Schaeffer.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "16cZzXWh9IGLrHHWGLVXr3LkAaOlJubWe",
+    "nome": "O Deus que se Revela - Francis A. Schaeffer.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1thGuQgd5-ibJEs72mdb1aYMPuEg-GSRP",
+    "nome": "A Morte da Razao - Francis A. Schaeffer.pdf",
+    "nota": 20,
+    "fidelidade": 70,
+    "limpeza": 70,
+    "sinais": {
+      "nomes em inglês/1k": 0,
+      "inglês solto/1k": 0,
+      "colagens (ea/eo)/1k": 0,
+      "paginação/1k": 0,
+      "hífen quebrado/1k": 0,
+      "caractere inválido/1k": 683.25,
+      "português/1k": 0
+    },
+    "penalidades": [
+      "pouco português — pode estar noutro idioma",
+      "caracteres corrompidos",
+      "texto ilegível (IA)"
+    ],
+    "graves": ["pouco português — pode estar noutro idioma"],
+    "pirata": false,
+    "caracteres": 147093,
+    "sobrevivencia": 0.98,
+    "juiz": {
+      "veredito": "ilegivel",
+      "confianca": 100,
+      "evidencia": "Texto ilegível, parece ser resultado de OCR falho ou caracteres aleatórios.",
+      "votos": 3
+    }
+  },
+  {
+    "id": "1zaVmDMILNzB9hLFY6ph5AEnmYOacuZC5",
+    "nome": "Como Viveremos - Francis A. Schaeffer.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1kHyUTI6-Kho5nXUSCbaU9Es7Vt9dQfvx",
+    "nome": "Confissão de Fé Westminster - Comentada por A. A. Hodge.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1XRBXtOi8Iqk85Cv0MAuRrnQrQL_fZdbx",
+    "nome": "A Mortificação do Pecado - John Owen.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1TTobfWz-_d2ztSRtwkJj3e5dksQMLSDX",
+    "nome": "Cristo na Terra - Jakob Van Bruggen.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1JuWaAUkP9yTlomKE-Jg5r0_S5e2g91yz",
+    "nome": "AT - NT - Teologia - Cristo em Genesis - Henry Law.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1yvb3Kyx9kwy1KprJAxdEAkUr6B0U1BZK",
+    "nome": "Verdades Essênciais da Fé Cristã - 3º Caderno - R. C. Sproul.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  },
+  {
+    "id": "1JBo9N6i3LMNpsEX9DWjG59bmZMaMcWgl",
+    "nome": "Verdades Essênciais da Fé Cristã - 2º Caderno - R. C. Sproul.pdf",
+    "nota": 0,
+    "sinais": {},
+    "penalidades": ["sem texto extraível (0 caracteres) — PDF escaneado?"],
+    "graves": ["sem texto extraível"],
+    "caracteres": 0,
+    "sobrevivencia": 0
+  }
+]

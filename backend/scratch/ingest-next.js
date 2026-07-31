@@ -31,27 +31,36 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 const { google } = require('googleapis');
 
-/** Padrões que NÃO devem ser indexados (ver curadoria acima). */
-const EXCLUIR = [
-  /biblia sagrada/i,
-  /biblia de jerusalem/i,
-  /interlinear/i,
-  /^bhs\./i,
-  /nestle aland/i,
-  /\bna2[78]\b/i,
-  /lexico do novo testamento/i,
-  /chave linguistica/i,
-  /gramatica|gramática|noções do grego|nocoes do grego/i,
-  /nocoes de hebraico|noções de hebraico/i,
-  /palavras chaves do novo testamento/i,
-  /fundamentos do grego/i,
-  /tabela (grego|hebraica)/i,
-  /qual o texto original/i,
-  /farsa da boa preguica|farsa da boa preguiça/i,
-  /\(apontamento\)/i,
-  /panorama do antigo testamento\.pptx/i,
-  /\.(m4a|mp3|jpg|png)$/i,
-];
+const path = require('node:path');
+const fs = require('node:fs');
+
+/** Curadoria por nome de arquivo — lista única em curadoria.js. */
+const { excluir, normaliza } = require('./curadoria');
+
+/**
+ * Nota mínima no relatório de qualidade para uma obra ser indexada.
+ *
+ * Existe porque a primeira leva de indexação entrou sem conferência e trouxe
+ * duas traduções automáticas — o Grudem com "Peter" no lugar de "Pedro", o
+ * Sproul com "a bondade ea doçura". Servir isso citando o autor é pior que
+ * não ter biblioteca: a plataforma atribui a um teólogo frases que ele não
+ * escreveu, e o testador não tem como saber.
+ *
+ * 70 é o corte porque, na calibração, tradução humana ficou em 97 e tradução
+ * automática em 40 — não há nada legítimo na faixa intermediária.
+ */
+const NOTA_MINIMA = Number(process.env.INGEST_NOTA_MINIMA ?? 70);
+
+/** Lê o veredito de qualidade produzido por analyze-quality.js. */
+function carregarQualidade() {
+  const arquivo = path.join(__dirname, 'quality-report.json');
+  if (!fs.existsSync(arquivo)) return null;
+  const mapa = new Map();
+  for (const obra of JSON.parse(fs.readFileSync(arquivo, 'utf8'))) {
+    mapa.set(obra.id, obra);
+  }
+  return mapa;
+}
 
 /** Ordem de prioridade: quanto mais cedo o padrão casa, antes o livro entra. */
 const PRIORIDADE = [
@@ -72,9 +81,6 @@ const PRIORIDADE = [
   /historia da teologia|história da teologia/i,
   /comentario|comentário/i,
 ];
-
-const normaliza = (s) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function prioridadeDe(nome) {
   const i = PRIORIDADE.findIndex((re) => re.test(normaliza(nome)));
@@ -116,23 +122,55 @@ function prioridadeDe(nome) {
       /pdf|document|epub|presentation/i.test(f.mimeType ?? ''),
     );
 
-    const excluidos = todos.filter((f) =>
-      EXCLUIR.some((re) => re.test(f.name ?? '')),
-    );
-    const elegiveis = todos
-      .filter((f) => !EXCLUIR.some((re) => re.test(f.name ?? '')))
+    const excluidos = todos.filter((f) => excluir(f.name));
+    const candidatos = todos
+      .filter((f) => !excluir(f.name))
       .filter((f) => !jaTem.has(f.id));
+
+    // ── 2b. Portão de qualidade ─────────────────────────────────────────────
+    // Sem relatório, não se indexa nada: passar direto foi exatamente o erro
+    // que encheu a biblioteca de tradução automática.
+    const qualidade = carregarQualidade();
+    if (!qualidade) {
+      console.log(
+        'Nenhum relatório de qualidade encontrado.\n' +
+          'Rode primeiro: node scratch/analyze-quality.js\n' +
+          '(indexar sem conferir foi o que trouxe Grudem e Sproul traduzidos por máquina)',
+      );
+      return;
+    }
+
+    const semAnalise = candidatos.filter((f) => !qualidade.has(f.id));
+    const reprovados = candidatos.filter(
+      (f) => qualidade.has(f.id) && qualidade.get(f.id).nota < NOTA_MINIMA,
+    );
+    const elegiveis = candidatos.filter(
+      (f) => qualidade.has(f.id) && qualidade.get(f.id).nota >= NOTA_MINIMA,
+    );
 
     elegiveis.sort((a, b) => {
       const p = prioridadeDe(a.name) - prioridadeDe(b.name);
-      // Empate: menor primeiro, para o acervo crescer em número de obras.
-      return p !== 0 ? p : Number(a.size ?? 0) - Number(b.size ?? 0);
+      if (p !== 0) return p;
+      // Empate na prioridade: a de melhor nota primeiro; depois a menor, para
+      // o acervo crescer em número de obras antes de encarar os calhamaços.
+      const q = qualidade.get(b.id).nota - qualidade.get(a.id).nota;
+      return q !== 0 ? q : Number(a.size ?? 0) - Number(b.size ?? 0);
     });
 
     console.log(
       `acervo: ${todos.length} arquivos · ${excluidos.length} fora por curadoria · ` +
-        `${jaTem.size} já indexados · ${elegiveis.length} na fila\n`,
+        `${jaTem.size} já indexados\n` +
+        `qualidade: ${elegiveis.length} aprovadas · ${reprovados.length} reprovadas` +
+        (semAnalise.length ? ` · ${semAnalise.length} sem análise` : '') +
+        `  (corte: ${NOTA_MINIMA})\n`,
     );
+
+    if (semAnalise.length) {
+      console.log(
+        `⚠️  ${semAnalise.length} obra(s) novas no Drive ainda não analisadas — ` +
+          'rode analyze-quality.js para incluí-las.\n',
+      );
+    }
 
     const lote = elegiveis.slice(0, quantos);
     if (lote.length === 0) {
@@ -142,8 +180,11 @@ function prioridadeDe(nome) {
 
     console.log(`PRÓXIMOS ${lote.length}:`);
     for (const f of lote) {
+      const q = qualidade.get(f.id);
       console.log(
-        `  ${(Number(f.size ?? 0) / 1024 / 1024).toFixed(1).padStart(6)} MB  ${f.name.slice(0, 62)}`,
+        `  nota ${String(q.nota).padStart(3)} · ` +
+          `${(Number(f.size ?? 0) / 1024 / 1024).toFixed(1).padStart(6)} MB  ` +
+          f.name.slice(0, 56),
       );
     }
 
