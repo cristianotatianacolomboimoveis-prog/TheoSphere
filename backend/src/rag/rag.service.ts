@@ -1588,12 +1588,31 @@ export class RagService {
    * Também registra cada obra encontrada em `sources` (type 'classic').
    */
   /**
-   * Similaridade a partir da qual os trechos da biblioteca bastam sozinhos —
-   * sem acionar a IA. Configurável por env para calibrar com uso real.
+   * Similaridade a partir da qual um trecho da biblioteca conta como
+   * relevante. Calibrado com o acervo real em 30/07/2026:
+   *
+   *   pergunta bem coberta (dom de línguas)      → 87,1%  · 8 trechos ≥ 0,79
+   *   pergunta coberta porém ampla (justificação) → 79,9%  · 8 trechos ≥ 0,79
+   *   pergunta fora do acervo (arqueologia)       → 77,4%  · 0 trechos ≥ 0,79
+   *
+   * O limiar inicial de 0,82 era um chute e reprovava o caso do meio, que
+   * tinha material excelente no acervo.
    */
   private get LIBRARY_DIRECT_THRESHOLD(): number {
-    const v = Number(process.env.LIBRARY_DIRECT_THRESHOLD ?? 0.82);
-    return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.82;
+    const v = Number(process.env.LIBRARY_DIRECT_THRESHOLD ?? 0.79);
+    return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.79;
+  }
+
+  /**
+   * Quantos trechos precisam passar do limiar para a biblioteca responder
+   * sozinha. Um único trecho acima da linha é ruído — a medição mostrou que
+   * pergunta fora do acervo ainda produz 1 trecho em ~77%, enquanto pergunta
+   * coberta produz 8 acima de 0,79. Exigir consenso separa os dois casos com
+   * folga muito maior do que ajustar só o limiar.
+   */
+  private get LIBRARY_DIRECT_MIN_HITS(): number {
+    const v = Number(process.env.LIBRARY_DIRECT_MIN_HITS ?? 3);
+    return Number.isFinite(v) && v >= 1 ? Math.floor(v) : 3;
   }
 
   /**
@@ -1614,7 +1633,9 @@ export class RagService {
     const relevantes = hits.filter(
       (h) => h.similarity >= this.LIBRARY_DIRECT_THRESHOLD,
     );
-    if (relevantes.length === 0) return null;
+
+    // Consenso, não pico: um trecho isolado acima da linha é ruído.
+    if (relevantes.length < this.LIBRARY_DIRECT_MIN_HITS) return null;
 
     const sources: RagSource[] = relevantes.map((h) => ({
       type: 'classic',
