@@ -919,7 +919,15 @@ export class RagService {
   ): boolean {
     // Sempre verifica a query atual contra o filtro de domínio,
     // independentemente do histórico de conversa (previne bypass por contexto).
-    const q = query.toLowerCase().trim();
+    // Sem acentos: a whitelist é escrita com acento ("versículo") mas o
+    // usuário digita sem, e vice-versa. Comparar as duas formas na mesma base
+    // evita recusa por acentuação (bug observado em 30/07/2026 com
+    // "apostólica"/"apostolica").
+    const q = query
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
 
     // 1. Blacklist explícita (assuntos puramente mundanos/off-topic)
     const blacklistKeywords = [
@@ -939,8 +947,12 @@ export class RagService {
       'smartphone',
     ];
 
+    // Normaliza as listas na mesma base do `q` (sem acento).
+    const semAcento = (t: string) =>
+      t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
     const hasBlacklistKeyword = blacklistKeywords.some((keyword) =>
-      q.includes(keyword),
+      q.includes(semAcento(keyword)),
     );
     if (hasBlacklistKeyword) {
       return false;
@@ -1160,8 +1172,74 @@ export class RagService {
       'vontade',
     ];
 
-    const hasInDomainKeyword = inDomainKeywords.some((keyword) =>
-      q.includes(keyword),
+    // Vocabulário que faltava e derrubava perguntas legítimas. Ex.: "O dom de
+    // línguas cessou após a era apostólica" não tinha palavra interrogativa
+    // nem termo da lista, e era recusada como "mecânica automotiva"
+    // (observado em produção em 30/07/2026).
+    const inDomainExtra = [
+      'dom',
+      'dons',
+      'carisma',
+      'apostol',
+      'cessacion',
+      'continuism',
+      'pentecost',
+      'lingua',
+      'glossolalia',
+      'profecia',
+      'milagre',
+      'escatolog',
+      'soteriolog',
+      'cristolog',
+      'pneumatolog',
+      'eclesiolog',
+      'hermeneutic',
+      'homiletic',
+      'patristic',
+      'reforma',
+      'puritan',
+      'concilio',
+      'credo',
+      'catecismo',
+      'confissao',
+      'sacramento',
+      'batismo',
+      'ceia',
+      'expiacao',
+      'justificacao',
+      'santificacao',
+      'regeneracao',
+      'arrependimento',
+      'aliança',
+      'alianca',
+      'messias',
+      'ressurreicao',
+      'encarnacao',
+      'canon',
+      'canonic',
+      'manuscrito',
+      'septuaginta',
+      'vulgata',
+      'targum',
+      'talmude',
+      'midrash',
+      'qumran',
+      'parabola',
+      'salmo',
+      'evangelist',
+      'discipul',
+      'ministerio',
+      'pregacao',
+      'sermao',
+      'oracao',
+      'jejum',
+      'idolatria',
+      'pecado',
+      'salvacao',
+    ];
+
+    const hasInDomainKeyword = [...inDomainKeywords, ...inDomainExtra].some(
+      (keyword) => q.includes(semAcento(keyword)),
     );
 
     // 3. Padrões de referências bíblicas (ex: "Jo 3:16", "Genesis 1:1")
@@ -1194,7 +1272,7 @@ export class RagService {
       'prossiga',
     ];
     const isGeneralQuestion = generalQuestionIndicators.some((ind) =>
-      q.includes(ind),
+      q.includes(semAcento(ind)),
     );
 
     if (isGeneralQuestion) {

@@ -1,0 +1,34 @@
+fix(rag): filtro de dominio recusava perguntas teologicas legitimas
+
+Producao recusou "O dom de linguas cessou apos a era apostolica" com a
+mensagem de que nao ajuda com "mecanica automotiva". A frase nao tinha
+palavra interrogativa nem termo da whitelist, entao caia no return false.
+
+Duas causas:
+
+1. Acentuacao. A whitelist e escrita com acento ("versiculo", "genesis") e
+   o usuario digita sem — e vice-versa. Agora a query e as listas sao
+   comparadas na mesma base, sem acento.
+
+2. Vocabulario. Faltavam termos centrais: dons, linguas, glossolalia,
+   cessacionismo, apostolico, escatologia, soteriologia, cristologia,
+   pneumatologia, hermeneutica, sacramento, expiacao, justificacao,
+   santificacao, canon, Septuaginta, Qumran, e mais 40.
+
+A blacklist continua intacta: "trocar pneu" e "receita de bolo" seguem
+recusados. 4 testes de regressao (114 no total).
+
+Tambem: scratch/ingest-next.js — indexacao incremental com curadoria.
+
+Escolhe sozinho os proximos N arquivos nao indexados (controle por fileId
+no banco, idempotente), na ordem de prioridade: Institutas, Hoekema,
+Carson, Packer, Owen, Schaeffer, Lloyd-Jones, Sproul, Stott, Piper,
+Spurgeon, Westminster, sistematicas, comentarios.
+
+EXCLUI de proposito 19 arquivos: Biblias (NVI, Jerusalem, BHS, NA27/NA28),
+interlineares, lexicos e gramaticas. A plataforma ja tem texto biblico,
+Strong e interlinear em banco estruturado — indexa-los como fragmentos de
+250 caracteres seria caro E pior que o que ja existe. So o Novo Testamento
+Interlinear (216 MB) seria 28% do custo total do acervo.
+
+Fila atual: 110 arquivos, 19 fora por curadoria, 88 na fila.
