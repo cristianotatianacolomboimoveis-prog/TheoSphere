@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { hashPassword, needsRehash, verifyPassword } from './password.util';
+import { normalizeEmail } from './email.util';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,9 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string) {
+    // Defesa em profundidade: o DTO já normaliza, mas garantimos aqui para
+    // qualquer chamador que não passe pelo ValidationPipe.
+    email = normalizeEmail(email);
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw new ConflictException('E-mail já cadastrado.');
@@ -45,6 +49,9 @@ export class AuthService {
   }
 
   async login(email: string, pass: string) {
+    // Mesma normalização do cadastro — sem isso, uma maiúscula no e-mail cai em
+    // "usuário não encontrado" e devolve 401 com a senha correta.
+    email = normalizeEmail(email);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
       throw new UnauthorizedException('Credenciais inválidas.');

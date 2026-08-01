@@ -6,6 +6,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { normalizeEmail } from '../email.util';
 
 /**
  * Strong password policy:
@@ -17,6 +19,9 @@ import {
  * Clients send plaintext over TLS; the backend hashes with bcrypt cost 12.
  */
 export class RegisterDto {
+  // Normaliza (trim + minúsculas) ANTES da validação — o ValidationPipe roda
+  // com transform:true. Assim o e-mail chega canônico ao service e ao audit log.
+  @Transform(({ value }) => normalizeEmail(value))
   @IsEmail({}, { message: 'O e-mail deve ser um endereço de e-mail válido.' })
   @MaxLength(254) // RFC 5321
   email!: string;
@@ -36,6 +41,7 @@ export class RegisterDto {
 }
 
 export class LoginDto {
+  @Transform(({ value }) => normalizeEmail(value))
   @IsEmail({}, { message: 'O e-mail deve ser um endereço de e-mail válido.' })
   @MaxLength(254)
   email!: string;

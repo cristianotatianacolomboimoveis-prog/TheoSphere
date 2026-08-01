@@ -100,6 +100,21 @@ describe('AuthService', () => {
       expect(res).toEqual({ message: expect.any(String), userId: 'u2' });
       expect(JSON.stringify(res)).not.toContain('senha123');
     });
+
+    it('normaliza o e-mail (trim + minúsculas) antes de gravar', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      mockedPw.hashPassword.mockResolvedValue('hashed');
+      prisma.user.create.mockResolvedValue({ ...user, id: 'u3' });
+
+      await service.register('  Novo@B.COM ', 'senha123');
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'novo@b.com' },
+      });
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ email: 'novo@b.com' }),
+      });
+    });
   });
 
   describe('login', () => {
@@ -114,6 +129,19 @@ describe('AuthService', () => {
       expect(errA).toBeInstanceOf(UnauthorizedException);
       expect(errB).toBeInstanceOf(UnauthorizedException);
       expect((errA as Error).message).toBe((errB as Error).message);
+    });
+
+    it('e-mail com maiúsculas/espaços loga na conta canônica (não dá 401)', async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      mockedPw.verifyPassword.mockResolvedValue(true);
+      mockedPw.needsRehash.mockReturnValue(false);
+
+      await service.login('  A@B.com ', 'senha');
+
+      // sem normalização, a busca iria com "  A@B.com " e não acharia o usuário
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'a@b.com' },
+      });
     });
 
     it('login válido emite JWT + refresh token persistido', async () => {
