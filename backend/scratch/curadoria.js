@@ -77,4 +77,77 @@ function motivoExclusao(nome) {
   return re ? String(re) : null;
 }
 
-module.exports = { excluir, motivoExclusao, normaliza, PADROES };
+/**
+ * ── Elegibilidade: uma regra só, usada pelos dois scripts ───────────────────
+ *
+ * Motivo (01/08/2026): ingest-next.js e analyze-quality.js decidiam cada um por
+ * conta própria quais arquivos do Drive contavam, e as regras divergiam:
+ *
+ *   ingest-next    → /pdf|document|epub|presentation/ no mimeType, sem teto
+ *   analyze-quality → findExtractor(mimeType) + teto de 60 MB
+ *
+ * O resultado era um aviso perpétuo e insolúvel. Três arquivos ficavam
+ * eternamente "sem análise" no plano do ingest — um .odt (que casava com
+ * "document"), um .pptx (que casava com "presentation") e um PDF de 78,6 MB —
+ * porque o analisador, por regra própria, nunca os alcançava. Rodar
+ * `analyze-quality.js --pendentes`, que era o que o aviso mandava fazer, não
+ * mudava nada: os três não estavam no relatório, e `--pendentes` só revisitava
+ * quem já estava.
+ *
+ * Pior que o incômodo: o .odt e o .pptx entrariam na fila de indexação do
+ * ingest se algum dia ganhassem nota, e não há extrator para eles — quebrariam
+ * no processFile.
+ *
+ * Agora a pergunta "este arquivo entra?" tem uma resposta só, aqui.
+ */
+
+/**
+ * Teto de tamanho para download e extração.
+ *
+ * Não é um limite de custo — quem controla custo é o lote diário. É um limite
+ * de memória: extrair um PDF grande carrega o arquivo inteiro em Buffer e o
+ * texto em string. O acervo tem um interlinear de 216 MB (barrado pela
+ * curadoria, mas serve de referência de escala).
+ *
+ * 60 MB deixava "a prática da Piedade" (78,6 MB) permanentemente fora da
+ * análise E dentro da fila de indexação — o pior dos dois mundos. 120 MB cobre
+ * tudo que a curadoria deixa passar hoje.
+ */
+const TAMANHO_MAXIMO = Number(process.env.INGEST_TAMANHO_MAXIMO_MB ?? 120) * 1024 * 1024;
+
+/**
+ * Este arquivo do Drive entra na biblioteca?
+ *
+ * @param {{id?: string, name?: string, mimeType?: string, size?: string|number}} file
+ * @returns {{ok: boolean, motivo: string|null}} `motivo` é nulo quando ok.
+ */
+function elegivel(file) {
+  // Carregado aqui dentro, e não no topo, para curadoria.js continuar
+  // utilizável por scripts que rodam sem o build (`dist/`) presente.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { findExtractor } = require('../dist/rag/text-extractors');
+
+  if (excluir(file.name)) {
+    return { ok: false, motivo: `curadoria: ${motivoExclusao(file.name)}` };
+  }
+  if (!findExtractor(file.mimeType ?? '')) {
+    return { ok: false, motivo: `sem extrator para ${file.mimeType || 'tipo desconhecido'}` };
+  }
+  const bytes = Number(file.size ?? 0);
+  if (bytes >= TAMANHO_MAXIMO) {
+    return {
+      ok: false,
+      motivo: `${(bytes / 1024 / 1024).toFixed(1)} MB — acima do teto de ${(TAMANHO_MAXIMO / 1024 / 1024).toFixed(0)} MB`,
+    };
+  }
+  return { ok: true, motivo: null };
+}
+
+module.exports = {
+  excluir,
+  motivoExclusao,
+  normaliza,
+  elegivel,
+  TAMANHO_MAXIMO,
+  PADROES,
+};

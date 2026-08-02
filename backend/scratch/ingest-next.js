@@ -34,8 +34,8 @@ const { google } = require('googleapis');
 const path = require('node:path');
 const fs = require('node:fs');
 
-/** Curadoria por nome de arquivo — lista única em curadoria.js. */
-const { excluir, normaliza } = require('./curadoria');
+/** Curadoria e elegibilidade — regra única em curadoria.js. */
+const { excluir, elegivel, normaliza } = require('./curadoria');
 
 /**
  * Nota mínima no relatório de qualidade para uma obra ser indexada.
@@ -118,13 +118,21 @@ function prioridadeDe(nome) {
       pageSize: 1000,
     });
 
-    const todos = (res.data.files ?? []).filter((f) =>
-      /pdf|document|epub|presentation/i.test(f.mimeType ?? ''),
-    );
+    const todos = res.data.files ?? [];
 
+    // A elegibilidade vem de curadoria.js — a MESMA regra que analyze-quality
+    // usa. Antes, este script filtrava por /pdf|document|epub|presentation/ no
+    // mimeType, o que admitia .odt e .pptx que nenhum extrator lê; eles ficavam
+    // para sempre na conta de "sem análise" porque o analisador, com regra
+    // própria, nunca chegava neles.
     const excluidos = todos.filter((f) => excluir(f.name));
-    const candidatos = todos
+    const inelegiveis = todos
       .filter((f) => !excluir(f.name))
+      .map((f) => ({ f, motivo: elegivel(f).motivo }))
+      .filter((x) => x.motivo);
+
+    const candidatos = todos
+      .filter((f) => elegivel(f).ok)
       .filter((f) => !jaTem.has(f.id));
 
     // ── 2b. Portão de qualidade ─────────────────────────────────────────────
@@ -159,17 +167,33 @@ function prioridadeDe(nome) {
 
     console.log(
       `acervo: ${todos.length} arquivos · ${excluidos.length} fora por curadoria · ` +
+        (inelegiveis.length ? `${inelegiveis.length} sem extrator/tamanho · ` : '') +
         `${jaTem.size} já indexados\n` +
         `qualidade: ${elegiveis.length} aprovadas · ${reprovados.length} reprovadas` +
         (semAnalise.length ? ` · ${semAnalise.length} sem análise` : '') +
         `  (corte: ${NOTA_MINIMA})\n`,
     );
 
+    // O aviso só aparece quando há o que fazer a respeito. Antes ele mandava
+    // rodar `analyze-quality.js --pendentes` para arquivos que aquele script,
+    // por construção, jamais alcançaria — e reaparecia idêntico no dia
+    // seguinte. Um alarme que não se pode desligar é um alarme que se ignora.
     if (semAnalise.length) {
       console.log(
-        `⚠️  ${semAnalise.length} obra(s) novas no Drive ainda não analisadas — ` +
-          'rode analyze-quality.js para incluí-las.\n',
+        `⚠️  ${semAnalise.length} obra(s) elegíveis ainda sem análise de qualidade:`,
       );
+      for (const f of semAnalise) console.log(`     • ${f.name.slice(0, 60)}`);
+      console.log('   rode: node scratch/analyze-quality.js --pendentes\n');
+    }
+
+    // Inelegíveis não são pendência — são decisão. Ficam visíveis para o
+    // operador saber que existem, sem sugerir que há algo a corrigir.
+    if (inelegiveis.length && soPlano) {
+      console.log(`ℹ️  ${inelegiveis.length} arquivo(s) fora por formato ou tamanho:`);
+      for (const { f, motivo } of inelegiveis) {
+        console.log(`     • ${f.name.slice(0, 48)} — ${motivo}`);
+      }
+      console.log('');
     }
 
     const lote = elegiveis.slice(0, quantos);

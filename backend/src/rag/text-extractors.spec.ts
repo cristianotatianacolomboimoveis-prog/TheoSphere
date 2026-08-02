@@ -1,4 +1,34 @@
-import { cleanExtractedText } from './text-extractors';
+import { cleanExtractedText, pdfPageCount } from './text-extractors';
+
+/**
+ * O campo de contagem de páginas mudou de nome entre as versões do pdf-parse
+ * (v1 `numpages` → v2 `total`) e ninguém reparou: ler o campo antigo devolve
+ * undefined sem erro. Como esse número alimenta o guarda de PDF escaneado da
+ * análise de qualidade, o guarda ficou desligado e uma obra escaneada entrou
+ * no acervo com nota 97. Estes testes prendem as duas formas.
+ */
+describe('pdfPageCount', () => {
+  it('lê o campo da v2 (TextResult.total)', () => {
+    expect(pdfPageCount({ total: 284, pages: [], text: '' })).toBe(284);
+  });
+
+  it('lê o campo da v1 (numpages)', () => {
+    expect(pdfPageCount({ numpages: 212, text: '' })).toBe(212);
+  });
+
+  it('cai no tamanho do array de páginas quando não há contagem', () => {
+    expect(pdfPageCount({ pages: [{ num: 1 }, { num: 2 }] })).toBe(2);
+  });
+
+  it('devolve undefined quando a informação não veio', () => {
+    // Precisa ser undefined, e não 0: o chamador tem de saber distinguir
+    // "não sei quantas páginas" de "sei que tem zero" — foi confundir os dois
+    // que deixou o guarda de OCR passar em silêncio.
+    expect(pdfPageCount({ text: 'só o texto' })).toBeUndefined();
+    expect(pdfPageCount(undefined)).toBeUndefined();
+    expect(pdfPageCount({ total: NaN })).toBeUndefined();
+  });
+});
 
 /**
  * Estes testes existem por causa de um caso real: onze obras boas (Owen,

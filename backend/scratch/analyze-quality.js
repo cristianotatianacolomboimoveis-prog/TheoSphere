@@ -16,9 +16,11 @@
  * Este script baixa o arquivo, extrai o texto com o MESMO extrator da
  * ingestão (para a nota refletir o que seria indexado de fato) e pontua.
  *
- *   node scratch/analyze-quality.js            # todos os elegíveis
- *   node scratch/analyze-quality.js "Carson"   # filtra por nome
+ *   node scratch/analyze-quality.js             # todos os elegíveis
+ *   node scratch/analyze-quality.js "Carson"    # filtra por nome (sem acento importa)
  *   node scratch/analyze-quality.js --limite 10
+ *   node scratch/analyze-quality.js --pendentes # só o que falta: obras novas
+ *                                               # no Drive + vereditos duvidosos
  *
  * Nota final 0–100. O corte usado pela ingestão é 70.
  */
@@ -314,39 +316,72 @@ function pontuar(texto, nomeArquivo) {
     pageSize: 1000,
   });
 
-  const { excluir } = require('./curadoria');
+  // Mesma regra de elegibilidade do ingest-next — ver curadoria.js.
+  const { elegivel, normaliza } = require('./curadoria');
 
-  let alvos = (res.data.files ?? [])
-    .filter((f) => findExtractor(f.mimeType ?? ''))
-    .filter((f) => !excluir(f.name))
-    .filter((f) => Number(f.size ?? 0) < 60 * 1024 * 1024);
+  let alvos = (res.data.files ?? []).filter((f) => elegivel(f).ok);
 
   if (filtro) {
-    alvos = alvos.filter((f) =>
-      f.name.toLowerCase().includes(filtro.toLowerCase()),
-    );
+    // Comparação sem acento: os nomes chegam do Drive em NFD, então um filtro
+    // digitado como "Lições" (NFC) não casa com o nome do arquivo. Sem isto,
+    // `analyze-quality.js "Lições"` devolvia zero obras sem explicar por quê.
+    const alvo = normaliza(filtro);
+    alvos = alvos.filter((f) => normaliza(f.name).includes(alvo));
   }
 
-  // --pendentes: re-analisa só o que ficou sem veredito confiável, mantendo o
-  // resto do relatório. Re-analisar as 88 leva ~15 min e gasta tokens à toa.
-  let anterior = [];
+  // ── O relatório anterior é sempre carregado ────────────────────────────────
+  //
+  // Antes ele só era lido sob --pendentes, e o arquivo final era escrito com o
+  // que a rodada produziu. Ou seja: `analyze-quality.js "Carson"` analisava uma
+  // obra e gravava um relatório com uma linha, apagando as outras 87 — e o
+  // ingest-next, no dia seguinte, veria 87 obras "sem análise" e pararia.
+  // Nunca aconteceu por sorte: ninguém tinha usado o filtro ainda.
+  //
+  // Agora a rodada sempre MESCLA sobre o que já existe. --refazer serve para
+  // quem realmente quer começar do zero.
+  const destino = path.join(__dirname, 'quality-report.json');
+  const recomecar = args.includes('--refazer');
+  let anterior =
+    !recomecar && fs.existsSync(destino)
+      ? JSON.parse(fs.readFileSync(destino, 'utf8'))
+      : [];
+
   if (args.includes('--pendentes')) {
-    anterior = JSON.parse(fs.readFileSync(path.join(__dirname, 'quality-report.json'), 'utf8'));
+    const noRelatorio = new Set(anterior.map((o) => o.id));
+
     // Pendente é toda obra sem veredito confiável. Não filtrar por nota aqui:
     // a nota anterior pode ter vindo de uma versão do analisador que já foi
     // corrigida, e é justamente isso que se quer refazer.
     const semVeredito = (o) =>
       !o.juiz || ['indeterminado', 'erro', 'ilegivel'].includes(o.juiz.veredito);
 
-    // Exceto as que já foram diagnosticadas como PDF sem camada de texto:
-    // reanalisar não muda nada, o arquivo precisa passar por OCR primeiro.
-    const precisaOcr = (o) => (o.penalidades ?? []).some((p) => /OCR/.test(p));
+    // Exceto as já diagnosticadas como PDF sem camada de texto: reanalisar não
+    // muda nada, o arquivo precisa passar por OCR primeiro. O teste era só
+    // /OCR/, que não casa com "sem texto extraível (0 caracteres) — PDF
+    // escaneado?" — a redação que o próprio script usa quando o texto vem
+    // vazio. Resultado: doze arquivos escaneados eram baixados de novo a cada
+    // rodada de --pendentes para chegar sempre à mesma conclusão.
+    const precisaOcr = (o) =>
+      (o.penalidades ?? []).some((p) => /OCR|sem texto extraível|escaneado/i.test(p));
 
-    const pendente = new Set(
+    const revisitar = new Set(
       anterior.filter((o) => semVeredito(o) && !precisaOcr(o)).map((o) => o.id),
     );
+
+    // ── E o que nunca foi analisado ────────────────────────────────────────
+    // Faltava isto (01/08/2026): "pendente" só significava "está no relatório
+    // com veredito ruim". Arquivo novo no Drive, ausente do relatório, não era
+    // pendente para ninguém — e era exatamente o que o ingest-next mandava
+    // resolver com este comando. O aviso não tinha como ser atendido.
+    const inedito = alvos.filter((f) => !noRelatorio.has(f.id)).map((f) => f.id);
+
+    const pendente = new Set([...revisitar, ...inedito]);
     alvos = alvos.filter((f) => pendente.has(f.id));
-    console.log(`--pendentes: ${alvos.length} obra(s) sem veredito confiável\n`);
+    console.log(
+      `--pendentes: ${alvos.length} obra(s) — ` +
+        `${inedito.length} nunca analisada(s), ` +
+        `${alvos.length - inedito.length} sem veredito confiável\n`,
+    );
   }
 
   alvos = alvos.slice(0, limite);
@@ -375,14 +410,40 @@ function pontuar(texto, nomeArquivo) {
       r.caracteres = text.length;
       r.sobrevivencia = Number(sobrevivencia.toFixed(2));
 
-      // Menos de 1.000 caracteres por página de conteúdo real é típico de PDF
-      // só com imagem: o extrator devolve rodapés e pouco mais.
-      const porPagina = meta?.pages ? text.length / meta.pages : Infinity;
-      if (porPagina < 400) {
-        r.nota = 0;
-        r.penalidades = [
-          `PDF sem camada de texto (${Math.round(porPagina)} caracteres por página) — precisa de OCR`,
-        ];
+      // ── Guarda de PDF escaneado ────────────────────────────────────────
+      //
+      // Menos de 400 caracteres por página de conteúdo real é típico de PDF só
+      // com imagem: o extrator devolve rodapés e pouco mais.
+      //
+      // Este guarda esteve desligado até 01/08/2026 sem que nada acusasse:
+      // `meta.pages` vinha undefined em TODAS as obras (o pdf-parse trocou
+      // `numpages` por `total` na v2), a expressão caía no `: Infinity` e a
+      // condição nunca era verdadeira. "A Arte e a Bíblia" (Schaeffer), com
+      // 6.776 caracteres no livro inteiro, tirou 97 e foi indexada — 34
+      // trechos de camada de texto residual servidos como se fossem a obra.
+      //
+      // Por isso a ausência de contagem agora tem tratamento próprio, em vez
+      // de virar Infinity. Ler falta de sinal como aprovação é o modo de falha
+      // recorrente deste portão, e não pode se repetir por um terceiro caminho.
+      if (typeof meta?.pages === 'number' && meta.pages > 0) {
+        const porPagina = text.length / meta.pages;
+        if (porPagina < 400) {
+          r.nota = 0;
+          r.penalidades = [
+            `PDF sem camada de texto (${Math.round(porPagina)} caracteres por página) — precisa de OCR`,
+          ];
+        }
+      } else {
+        r.paginasDesconhecidas = true;
+        // Sem contagem de páginas, resta o valor absoluto. 20.000 caracteres
+        // são ~10 páginas de texto corrido: nenhuma obra do acervo é tão
+        // curta, mas um escaneado com camada residual fica bem abaixo disso.
+        if (text.length < 20000) {
+          r.nota = 0;
+          r.penalidades = [
+            `só ${text.length} caracteres e sem contagem de páginas — provável PDF escaneado, precisa de OCR`,
+          ];
+        }
       }
 
       // ── Estágio 2: o revisor lê. Só para quem passou pelas heurísticas —
@@ -423,18 +484,21 @@ function pontuar(texto, nomeArquivo) {
     }
   }
 
-  // Em --pendentes, mescla: substitui as reanalisadas e preserva o resto.
-  const destino = path.join(__dirname, 'quality-report.json');
-  const final = anterior.length
-    ? [...anterior.filter((o) => !saida.some((n) => n.id === o.id)), ...saida]
-    : saida;
-  fs.writeFileSync(destino, JSON.stringify(final, null, 2));
+  // Mescla sempre: substitui as reanalisadas e preserva o resto do relatório.
+  // Escrita atômica — um Ctrl-C no meio do writeFileSync deixaria o relatório
+  // truncado, e relatório truncado significa obras boas caindo para "sem
+  // análise" e obras ruins perdendo o veredito que as barrava.
+  const vencidas = new Set(saida.map((n) => n.id));
+  const final = [...anterior.filter((o) => !vencidas.has(o.id)), ...saida];
+  const temporario = `${destino}.tmp`;
+  fs.writeFileSync(temporario, JSON.stringify(final, null, 2));
+  fs.renameSync(temporario, destino);
 
   const bons = saida.filter((s) => s.nota >= 70).length;
   console.log(`\n${'─'.repeat(60)}`);
   console.log(`🟢 ≥85 excelente : ${saida.filter((s) => s.nota >= 85).length}`);
   console.log(`🟡 70-84 aceitável: ${saida.filter((s) => s.nota >= 70 && s.nota < 85).length}`);
   console.log(`🔴 <70 reprovado  : ${saida.filter((s) => s.nota < 70).length}`);
-  console.log(`\n${bons} obra(s) aprovadas para indexação`);
-  console.log(`relatório: ${destino}`);
+  console.log(`\n${bons} obra(s) aprovadas nesta rodada`);
+  console.log(`relatório: ${final.length} obras no total → ${destino}`);
 })();

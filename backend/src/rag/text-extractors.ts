@@ -45,6 +45,42 @@ export interface Extractor {
 
 /* ─── PDF ──────────────────────────────────────────────────────────────── */
 
+/**
+ * Quantas páginas o PDF tem, segundo o que a lib devolveu.
+ *
+ * Existe como função separada — e testada — porque o nome do campo mudou entre
+ * as versões do `pdf-parse` e a troca passou despercebida. Na v1 era
+ * `numpages`; na v2 (`PDFParse.getText()` → `TextResult`) é `total`, e `pages`
+ * virou o array de páginas. Ler `numpages` de um TextResult devolve
+ * `undefined` sem erro nenhum.
+ *
+ * O silêncio é o problema: `meta.pages` alimenta o guarda de PDF escaneado do
+ * analyze-quality ("menos de 400 caracteres por página → precisa de OCR").
+ * Com `undefined`, a divisão dá Infinity, o guarda nunca dispara e um PDF
+ * escaneado com 6.776 caracteres de camada de texto passa com nota 97 — foi o
+ * que aconteceu com "A Arte e a Bíblia" (Schaeffer), indexada com 34 trechos.
+ *
+ * Devolve `undefined` só quando a informação realmente não veio, para o
+ * chamador poder distinguir "não sei" de "sei que é pequeno".
+ */
+export function pdfPageCount(pdfData: unknown): number | undefined {
+  const d = pdfData as {
+    total?: unknown;
+    numpages?: unknown;
+    pages?: unknown;
+  };
+
+  // v2: TextResult.total
+  if (typeof d?.total === 'number' && Number.isFinite(d.total)) return d.total;
+  // v1: numpages
+  if (typeof d?.numpages === 'number' && Number.isFinite(d.numpages)) {
+    return d.numpages;
+  }
+  // Último recurso: o array de páginas da v2.
+  if (Array.isArray(d?.pages)) return d.pages.length;
+  return undefined;
+}
+
 const pdfExtractor: Extractor = {
   canHandle: (mime) => mime === 'application/pdf',
   async extract(buffer) {
@@ -52,7 +88,7 @@ const pdfExtractor: Extractor = {
     const pdfData = await parser.getText();
     return {
       text: pdfData.text ?? '',
-      meta: { pages: pdfData.numpages },
+      meta: { pages: pdfPageCount(pdfData) },
     };
   },
 };
