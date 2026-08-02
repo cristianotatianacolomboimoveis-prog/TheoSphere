@@ -288,7 +288,7 @@ function pontuar(texto, nomeArquivo) {
   };
 }
 
-(async () => {
+async function principal() {
   const args = process.argv.slice(2);
   const iLim = args.indexOf('--limite');
   const limite = iLim >= 0 ? Number(args[iLim + 1]) : 999;
@@ -433,11 +433,13 @@ function pontuar(texto, nomeArquivo) {
             `PDF sem camada de texto (${Math.round(porPagina)} caracteres por página) — precisa de OCR`,
           ];
         }
-      } else {
+      } else if (f.mimeType === 'application/pdf') {
+        // PDF sem contagem de páginas é anomalia — e é o caso que enganou o
+        // portão até hoje. Sem o divisor, resta o valor absoluto: 20.000
+        // caracteres são ~10 páginas de texto corrido, e nenhum livro do
+        // acervo é tão curto, mas um escaneado com camada residual fica bem
+        // abaixo disso.
         r.paginasDesconhecidas = true;
-        // Sem contagem de páginas, resta o valor absoluto. 20.000 caracteres
-        // são ~10 páginas de texto corrido: nenhuma obra do acervo é tão
-        // curta, mas um escaneado com camada residual fica bem abaixo disso.
         if (text.length < 20000) {
           r.nota = 0;
           r.penalidades = [
@@ -445,6 +447,11 @@ function pontuar(texto, nomeArquivo) {
           ];
         }
       }
+      // DOCX e EPUB não têm paginação por natureza: a ausência não diz nada
+      // sobre a qualidade e não pode virar penalidade. Aplicar aqui o piso dos
+      // 20.000 caracteres reprovava manuscritos legítimos — os materiais de
+      // seminário do Thirdmill, por exemplo, são .docx. Texto realmente vazio
+      // já é barrado pela regra de 2.000 caracteres em pontuar().
 
       // ── Estágio 2: o revisor lê. Só para quem passou pelas heurísticas —
       // não vale gastar tokens confirmando um texto já obviamente destruído.
@@ -501,4 +508,16 @@ function pontuar(texto, nomeArquivo) {
   console.log(`🔴 <70 reprovado  : ${saida.filter((s) => s.nota < 70).length}`);
   console.log(`\n${bons} obra(s) aprovadas nesta rodada`);
   console.log(`relatório: ${final.length} obras no total → ${destino}`);
-})();
+}
+
+if (require.main === module) {
+  principal();
+}
+
+/**
+ * Exportado para que a triagem de material novo (avaliar-local.js) use
+ * exatamente o mesmo julgamento do acervo, e não uma segunda implementação que
+ * inevitavelmente divergiria — foi o que aconteceu com as regras de
+ * elegibilidade, que passaram meses discordando entre dois scripts.
+ */
+module.exports = { pontuar, limparTexto, amostrar, julgarComIA };
