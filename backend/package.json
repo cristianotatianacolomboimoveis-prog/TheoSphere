@@ -20,6 +20,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "verificar": "npm run build && npm run test && npm run lint",
+    "verificar:acervo": "node scratch/verifica-portao.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

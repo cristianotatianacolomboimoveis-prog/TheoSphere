@@ -1,6 +1,12 @@
 /**
  * verifica-portao.js — confere a coerência entre Drive, relatório e banco.
- * Só lê. Temporário (01/08/2026).
+ *
+ * Só lê. Sai com código 1 se achar qualquer incoerência, para poder ser
+ * encadeado em `npm run verificar:acervo` e falhar de verdade.
+ *
+ * Imprimir o problema e sair com 0 é a mesma falha que este projeto já teve
+ * três vezes em lugares diferentes: ausência de reclamação lida como
+ * aprovação. Um verificador que nunca falha não verifica nada.
  */
 require('dotenv').config({ quiet: true });
 
@@ -38,10 +44,18 @@ const NOTA_MINIMA = Number(process.env.INGEST_NOTA_MINIMA ?? 70);
     const todos = res.data.files ?? [];
     const porIdDrive = new Map(todos.map((f) => [f.id, f]));
 
+    /** Toda incoerência entra aqui; no fim, a lista decide o código de saída. */
+    const problemas = [];
+
     // 1. Integridade do relatório
     const ids = rel.map((o) => o.id);
     const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
     console.log(`1. relatório: ${rel.length} entradas · ${dup.length} id duplicado`);
+    if (dup.length) {
+      problemas.push(
+        `${dup.length} id duplicado no relatório — a mesclagem gravou a mesma obra duas vezes`,
+      );
+    }
 
     // 2. O que está INDEXADO, e a nota atual de cada obra
     const linhas = await prisma.$queryRawUnsafe(
@@ -65,6 +79,15 @@ const NOTA_MINIMA = Number(process.env.INGEST_NOTA_MINIMA ?? 70);
       );
     }
     console.log(`   → ${suspeitas} obra(s) indexada(s) que hoje não passariam`);
+    if (suspeitas) {
+      problemas.push(
+        `${suspeitas} obra(s) estão servindo no acervo sem passar no portão — ` +
+          'foi assim que Grudem e Sproul-Romanos ficaram citáveis',
+      );
+    }
+    if (linhas.some((l) => !l.id)) {
+      problemas.push('há trechos indexados sem fileId no metadado — origem irrastreável');
+    }
 
     // 3. Efeito do teto novo: quem entrou na faixa 60–120 MB
     const faixa = todos.filter((f) => {
@@ -105,6 +128,23 @@ const NOTA_MINIMA = Number(process.env.INGEST_NOTA_MINIMA ?? 70);
     console.log(
       `\n5. fila: ${elegiveis.length} elegíveis não indexadas · ${aprovadas.length} aprovadas`,
     );
+
+    // 6. Órfãs: entrada no relatório para arquivo que sumiu do Drive. Não é
+    //    erro grave, mas indica renomeação — e obra renomeada perde o veredito
+    //    e volta para a fila como se fosse nova.
+    const orfas = rel.filter((o) => !porIdDrive.has(o.id));
+    console.log(`\n6. entradas do relatório fora do Drive: ${orfas.length}`);
+    for (const o of orfas.slice(0, 5)) console.log(`   ${(o.nome ?? '').slice(0, 50)}`);
+
+    // ── Veredito ────────────────────────────────────────────────────────────
+    console.log(`\n${'─'.repeat(60)}`);
+    if (problemas.length === 0) {
+      console.log('✅ acervo coerente — Drive, relatório e banco batem.');
+    } else {
+      console.log(`❌ ${problemas.length} incoerência(s):`);
+      for (const p of problemas) console.log(`   • ${p}`);
+      process.exitCode = 1;
+    }
   } finally {
     await prisma.$disconnect();
     await pool.end();
