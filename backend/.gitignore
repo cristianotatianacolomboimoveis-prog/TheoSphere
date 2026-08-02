@@ -56,6 +56,11 @@ check-db.*
 scratch-check.*
 .vercel
 
+# Saídas geradas por scripts de scratch — dados, não fonte. Poluíam o histórico
+# (quality-report.json deu 437 linhas de churn em 2026-08-01). Limpeza 2026-08-01.
+scratch/quality-report.json
+scratch/test-response.json
+
 # Saída do tsc para scripts avulsos: o .js as vezes E a fonte (jest.config.js,
 # clear-cache.js), mas .d.ts e .js.map nunca sao — sao sempre gerados.
 # Limpeza 2026-07-29: 20 desses estavam versionados.
