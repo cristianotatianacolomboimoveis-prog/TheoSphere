@@ -1,0 +1,32 @@
+{
+  "_doc": "Decisão de licença por obra da biblioteca RAG. Fail-closed: obra ausente aqui, ou com status diferente de 'dominio-publico'/'licenciado', NAO e indexada nem servida. Chave = nome exato do arquivo no Drive (ou fileId). status: dominio-publico | licenciado | bloqueado. Preencha uma linha por obra ao liberar. Licenca e decisao humana e juridica, nao inferida por autor.",
+  "_exemplos": {
+    "Matthew Henry - Commentary on the Whole Bible.pdf": {
+      "status": "dominio-publico",
+      "fonte": "CCEL",
+      "motivo": "Publicado ~1710; traducao/edicao livre"
+    },
+    "Nome de uma obra licenciada.pdf": {
+      "status": "licenciado",
+      "motivo": "Licenca comercial assinada com a editora X em AAAA-MM-DD"
+    }
+  },
+  "obras": {
+    "Teologia - As institutas das Religiões Cristãs - Editora Fiel.pdf": {
+      "status": "bloqueado",
+      "motivo": "Traducao moderna Editora Fiel — direito autoral vigente"
+    },
+    "Teologia - As Institutas - Volume 1 - Editora Cultura Cristã.pdf": {
+      "status": "bloqueado",
+      "motivo": "Traducao moderna Cultura Crista — direito autoral vigente"
+    },
+    "Teologia - As Institutas - Volume 3 - Editora Cultura Cristã.pdf": {
+      "status": "bloqueado",
+      "motivo": "Traducao moderna Cultura Crista — direito autoral vigente"
+    },
+    "Anthony Hoekema - Linguas.pdf": {
+      "status": "bloqueado",
+      "motivo": "Autor/traducao sob direito autoral vigente"
+    }
+  }
+}

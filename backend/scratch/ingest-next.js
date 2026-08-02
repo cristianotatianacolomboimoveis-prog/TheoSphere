@@ -36,6 +36,8 @@ const fs = require('node:fs');
 
 /** Curadoria e elegibilidade — regra única em curadoria.js. */
 const { excluir, elegivel, normaliza } = require('./curadoria');
+/** Portão de licença (domínio público) — regra única em licencas.js. */
+const { carregarLicencas, licencaDe } = require('./licencas');
 
 /**
  * Nota mínima no relatório de qualidade para uma obra ser indexada.
@@ -152,9 +154,26 @@ function prioridadeDe(nome) {
     const reprovados = candidatos.filter(
       (f) => qualidade.has(f.id) && qualidade.get(f.id).nota < NOTA_MINIMA,
     );
-    const elegiveis = candidatos.filter(
+    const aprovadosQualidade = candidatos.filter(
       (f) => qualidade.has(f.id) && qualidade.get(f.id).nota >= NOTA_MINIMA,
     );
+
+    // ── 2c. Portão de licença (domínio público) ─────────────────────────────
+    // Fail-closed: só entra obra aprovada em licencas.json como domínio público
+    // ou licenciada. Licença NÃO se infere de autor/título — o original de
+    // Calvino é livre, mas a tradução moderna das Institutas é protegida. A
+    // decisão é por arquivo, humana. Sem manifesto, nada é indexado.
+    const licencas = carregarLicencas();
+    if (!licencas) {
+      console.log(
+        'Nenhum manifesto de licença (scratch/licencas.json).\n' +
+          'Fail-closed: nada será indexado enquanto cada obra não tiver licença aprovada.\n' +
+          '(servir obra protegida numa plataforma que será vendida é risco jurídico)',
+      );
+      return;
+    }
+    const semLicenca = aprovadosQualidade.filter((f) => !licencaDe(f, licencas).ok);
+    const elegiveis = aprovadosQualidade.filter((f) => licencaDe(f, licencas).ok);
 
     elegiveis.sort((a, b) => {
       const p = prioridadeDe(a.name) - prioridadeDe(b.name);
@@ -169,10 +188,28 @@ function prioridadeDe(nome) {
       `acervo: ${todos.length} arquivos · ${excluidos.length} fora por curadoria · ` +
         (inelegiveis.length ? `${inelegiveis.length} sem extrator/tamanho · ` : '') +
         `${jaTem.size} já indexados\n` +
-        `qualidade: ${elegiveis.length} aprovadas · ${reprovados.length} reprovadas` +
+        `qualidade: ${aprovadosQualidade.length} aprovadas · ${reprovados.length} reprovadas` +
         (semAnalise.length ? ` · ${semAnalise.length} sem análise` : '') +
-        `  (corte: ${NOTA_MINIMA})\n`,
+        `  (corte: ${NOTA_MINIMA})\n` +
+        `licença: ${elegiveis.length} liberadas · ${semLicenca.length} sem licença de domínio público\n`,
     );
+
+    // Obras que passam na qualidade mas não têm licença aprovada não são
+    // pendência de conserto — são decisão jurídica. Ficam visíveis para o
+    // operador liberar em licencas.json quando (e se) tiver o direito.
+    if (semLicenca.length) {
+      console.log(
+        `🔒 ${semLicenca.length} obra(s) aprovadas na qualidade, mas SEM licença — não entram:`,
+      );
+      for (const f of semLicenca) {
+        console.log(
+          `     • ${f.name.slice(0, 52)} — ${licencaDe(f, licencas).status}`,
+        );
+      }
+      console.log(
+        '   libere cada uma em scratch/licencas.json (status: dominio-publico | licenciado)\n',
+      );
+    }
 
     // O aviso só aparece quando há o que fazer a respeito. Antes ele mandava
     // rodar `analyze-quality.js --pendentes` para arquivos que aquele script,
