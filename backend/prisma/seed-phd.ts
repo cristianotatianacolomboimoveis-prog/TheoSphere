@@ -1,6 +1,15 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+// Prisma 7 exige um driver adapter explícito no constructor — `new PrismaClient()`
+// sem opções lança PrismaClientInitializationError e o seed nunca roda.
+const connectionString =
+  process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Iniciando seeding de léxicos e comentários (Modo PhD)...');
@@ -11,34 +20,50 @@ async function main() {
       strongId: 'G26',
       word: 'ἀγάπη (agapē)',
       language: 'GK',
-      definition: 'Amor sacrificial, incondicional e benevolente. No NT, descreve o amor de Deus pela humanidade.',
+      definition:
+        'Amor sacrificial, incondicional e benevolente. No NT, descreve o amor de Deus pela humanidade.',
       academicRef: 'BDAG p.6',
-      morphology: { case: 'nominative', gender: 'feminine', number: 'singular' }
+      morphology: {
+        case: 'nominative',
+        gender: 'feminine',
+        number: 'singular',
+      },
     },
     {
       strongId: 'G3056',
       word: 'λόγος (logos)',
       language: 'GK',
-      definition: 'Palavra, fala, razão, princípio ordenador do universo. No contexto joanino, refere-se à encarnação da Segunda Pessoa da Trindade.',
+      definition:
+        'Palavra, fala, razão, princípio ordenador do universo. No contexto joanino, refere-se à encarnação da Segunda Pessoa da Trindade.',
       academicRef: 'BDAG p.600',
-      morphology: { case: 'nominative', gender: 'masculine', number: 'singular' }
+      morphology: {
+        case: 'nominative',
+        gender: 'masculine',
+        number: 'singular',
+      },
     },
     {
       strongId: 'G1343',
       word: 'δικαιοσύνη (dikaiosynē)',
       language: 'GK',
-      definition: 'Justiça, retidão, o estado de estar em conformidade com o padrão divino. Central na teologia paulina de Romanos.',
+      definition:
+        'Justiça, retidão, o estado de estar em conformidade com o padrão divino. Central na teologia paulina de Romanos.',
       academicRef: 'BDAG p.247',
-      morphology: { case: 'nominative', gender: 'feminine', number: 'singular' }
+      morphology: {
+        case: 'nominative',
+        gender: 'feminine',
+        number: 'singular',
+      },
     },
     {
       strongId: 'H7225',
       word: 'רֵאשִׁית (reshith)',
       language: 'HB',
-      definition: 'Início, primícias, o melhor de algo. Usado em Gênesis 1:1 para marcar o ponto de partida temporal e ontológico.',
+      definition:
+        'Início, primícias, o melhor de algo. Usado em Gênesis 1:1 para marcar o ponto de partida temporal e ontológico.',
       academicRef: 'HALOT p.1165',
-      morphology: { type: 'noun', state: 'construct' }
-    }
+      morphology: { type: 'noun', state: 'construct' },
+    },
   ];
 
   for (const entry of lexicalData) {
@@ -57,8 +82,9 @@ async function main() {
       verse: 1,
       author: 'F.F. Bruce',
       source: 'The Gospel of John',
-      content: 'A frase "No princípio era o Verbo" ecoa Gênesis 1:1, mas enquanto Moisés escreve sobre o início da criação, João escreve sobre o que já existia no início.',
-      tags: ['Cristologia', 'Intertextualidade']
+      content:
+        'A frase "No princípio era o Verbo" ecoa Gênesis 1:1, mas enquanto Moisés escreve sobre o início da criação, João escreve sobre o que já existia no início.',
+      tags: ['Cristologia', 'Intertextualidade'],
     },
     {
       bookId: 45, // Romanos
@@ -66,14 +92,15 @@ async function main() {
       verse: 17,
       author: 'C.E.B. Cranfield',
       source: 'ICC: Romans',
-      content: 'A "justiça de Deus" (dikaiosynē theou) deve ser entendida aqui primariamente como a atividade salvífica de Deus, Sua fidelidade à aliança.',
-      tags: ['Soteriologia', 'Justificação']
-    }
+      content:
+        'A "justiça de Deus" (dikaiosynē theou) deve ser entendida aqui primariamente como a atividade salvífica de Deus, Sua fidelidade à aliança.',
+      tags: ['Soteriologia', 'Justificação'],
+    },
   ];
 
   for (const comm of commentaries) {
     await prisma.technicalCommentary.create({
-      data: comm
+      data: comm,
     });
   }
 

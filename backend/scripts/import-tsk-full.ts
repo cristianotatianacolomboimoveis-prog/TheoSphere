@@ -19,32 +19,91 @@
  * em lotes de 5k pra evitar pressão de transação.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 
-const prisma = new PrismaClient();
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+// Prisma 7 exige um driver adapter explícito no constructor — `new PrismaClient()`
+// sem opções lança PrismaClientInitializationError e o script nunca roda.
+const connectionString =
+  process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 // openbible.info usa o formato OSIS-like: "Gen.1.1", "1Cor.13.4".
 // Convertemos para o canônico "Genesis 1:1", "1 Corinthians 13:4" pra casar
 // com o frontend.
 const OSIS_TO_NAME: Record<string, string> = {
-  Gen: 'Genesis', Exod: 'Exodus', Lev: 'Leviticus', Num: 'Numbers', Deut: 'Deuteronomy',
-  Josh: 'Joshua', Judg: 'Judges', Ruth: 'Ruth', '1Sam': '1 Samuel', '2Sam': '2 Samuel',
-  '1Kgs': '1 Kings', '2Kgs': '2 Kings', '1Chr': '1 Chronicles', '2Chr': '2 Chronicles',
-  Ezra: 'Ezra', Neh: 'Nehemiah', Esth: 'Esther', Job: 'Job', Ps: 'Psalms',
-  Prov: 'Proverbs', Eccl: 'Ecclesiastes', Song: 'Song of Solomon', Isa: 'Isaiah',
-  Jer: 'Jeremiah', Lam: 'Lamentations', Ezek: 'Ezekiel', Dan: 'Daniel',
-  Hos: 'Hosea', Joel: 'Joel', Amos: 'Amos', Obad: 'Obadiah', Jonah: 'Jonah',
-  Mic: 'Micah', Nah: 'Nahum', Hab: 'Habakkuk', Zeph: 'Zephaniah',
-  Hag: 'Haggai', Zech: 'Zechariah', Mal: 'Malachi',
-  Matt: 'Matthew', Mark: 'Mark', Luke: 'Luke', John: 'John', Acts: 'Acts',
-  Rom: 'Romans', '1Cor': '1 Corinthians', '2Cor': '2 Corinthians',
-  Gal: 'Galatians', Eph: 'Ephesians', Phil: 'Philippians', Col: 'Colossians',
-  '1Thess': '1 Thessalonians', '2Thess': '2 Thessalonians',
-  '1Tim': '1 Timothy', '2Tim': '2 Timothy', Titus: 'Titus', Phlm: 'Philemon',
-  Heb: 'Hebrews', Jas: 'James', '1Pet': '1 Peter', '2Pet': '2 Peter',
-  '1John': '1 John', '2John': '2 John', '3John': '3 John', Jude: 'Jude',
+  Gen: 'Genesis',
+  Exod: 'Exodus',
+  Lev: 'Leviticus',
+  Num: 'Numbers',
+  Deut: 'Deuteronomy',
+  Josh: 'Joshua',
+  Judg: 'Judges',
+  Ruth: 'Ruth',
+  '1Sam': '1 Samuel',
+  '2Sam': '2 Samuel',
+  '1Kgs': '1 Kings',
+  '2Kgs': '2 Kings',
+  '1Chr': '1 Chronicles',
+  '2Chr': '2 Chronicles',
+  Ezra: 'Ezra',
+  Neh: 'Nehemiah',
+  Esth: 'Esther',
+  Job: 'Job',
+  Ps: 'Psalms',
+  Prov: 'Proverbs',
+  Eccl: 'Ecclesiastes',
+  Song: 'Song of Solomon',
+  Isa: 'Isaiah',
+  Jer: 'Jeremiah',
+  Lam: 'Lamentations',
+  Ezek: 'Ezekiel',
+  Dan: 'Daniel',
+  Hos: 'Hosea',
+  Joel: 'Joel',
+  Amos: 'Amos',
+  Obad: 'Obadiah',
+  Jonah: 'Jonah',
+  Mic: 'Micah',
+  Nah: 'Nahum',
+  Hab: 'Habakkuk',
+  Zeph: 'Zephaniah',
+  Hag: 'Haggai',
+  Zech: 'Zechariah',
+  Mal: 'Malachi',
+  Matt: 'Matthew',
+  Mark: 'Mark',
+  Luke: 'Luke',
+  John: 'John',
+  Acts: 'Acts',
+  Rom: 'Romans',
+  '1Cor': '1 Corinthians',
+  '2Cor': '2 Corinthians',
+  Gal: 'Galatians',
+  Eph: 'Ephesians',
+  Phil: 'Philippians',
+  Col: 'Colossians',
+  '1Thess': '1 Thessalonians',
+  '2Thess': '2 Thessalonians',
+  '1Tim': '1 Timothy',
+  '2Tim': '2 Timothy',
+  Titus: 'Titus',
+  Phlm: 'Philemon',
+  Heb: 'Hebrews',
+  Jas: 'James',
+  '1Pet': '1 Peter',
+  '2Pet': '2 Peter',
+  '1John': '1 John',
+  '2John': '2 John',
+  '3John': '3 John',
+  Jude: 'Jude',
   Rev: 'Revelation',
 };
 
@@ -92,7 +151,9 @@ async function* readRows(path: string): AsyncGenerator<Row> {
 async function main() {
   const file = process.argv[2];
   if (!file) {
-    console.error('Uso: ts-node scripts/import-tsk-full.ts <cross-references.txt>');
+    console.error(
+      'Uso: ts-node scripts/import-tsk-full.ts <cross-references.txt>',
+    );
     process.exit(2);
   }
   console.log(`📥 Importando TSK de ${file}…`);
@@ -116,7 +177,9 @@ async function main() {
     skipped += batch.length - result.count;
     batch = [];
     if (total % 50_000 === 0 || total < 10_000) {
-      console.log(`   …${total.toLocaleString()} inseridas / ${skipped.toLocaleString()} duplicadas`);
+      console.log(
+        `   …${total.toLocaleString()} inseridas / ${skipped.toLocaleString()} duplicadas`,
+      );
     }
   };
 

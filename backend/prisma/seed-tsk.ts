@@ -1,7 +1,7 @@
 /**
  * Seed do corpus TSK inicial.
  *
- *   • `npm run seed:tsk`           — popula ~30 versos curados (rápido, ~150 rows).
+ *   • `npm run db:seed:tsk`        — popula ~30 versos curados (rápido, ~150 rows).
  *   • `npm run tsk:import [file]`  — importa o CSV completo do openbible.info
  *                                    (~340k rows; faz upsert para sobrescrever
  *                                    ranks dos curados com os do TSK oficial).
@@ -9,10 +9,19 @@
  * Idempotente: usa upsert por (sourceRef, targetRef) — re-rodar é seguro.
  */
 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { TSK_SEED } from '../src/bible/tsk-seed';
 
-const prisma = new PrismaClient();
+// Prisma 7 exige um driver adapter explícito no constructor — `new PrismaClient()`
+// sem opções lança PrismaClientInitializationError e o seed nunca roda.
+const connectionString =
+  process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const totalSources = TSK_SEED.length;

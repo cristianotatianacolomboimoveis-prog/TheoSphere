@@ -8,10 +8,20 @@
  * `<button className="hover:...">` sem onClick é TSX perfeitamente válido, e um
  * fetch que devolve 404 dentro de um catch que só loga passa em tudo.
  *
- * Três checagens:
+ * Quatro checagens:
  *   1. HANDLERS  — elementos interativos sem handler (botão decorativo)
  *   2. ROTAS     — chamadas do frontend sem rota correspondente no backend
  *   3. SILÊNCIO  — componentes que capturam erro sem nada mostrar ao usuário
+ *   4. PRISMA    — `new PrismaClient()` sem driver adapter (quebra em runtime)
+ *
+ * A checagem 4 nasceu em 03/08/2026: oito seeds e scripts ficaram quebrados
+ * desde a migração para o Prisma 7, que passou a exigir um driver adapter no
+ * constructor. `new PrismaClient()` continua sendo TypeScript válido — o erro
+ * só aparece em runtime, como PrismaClientInitializationError. Nenhum lint,
+ * teste ou build pegaria: `prisma/seed-*.ts` e `scripts/**` estão fora do
+ * escopo do eslint e do tsconfig.build. O efeito prático foi o `db:seed:tsk`
+ * nunca ter rodado, deixando `/api/v1/cross-refs` respondendo 200 com
+ * `count: 0` na Bíblia inteira por três semanas.
  *
  * Uso:
  *   node audit/scripts/static-checks.mjs            # relatório humano
@@ -38,7 +48,7 @@ const asJson = process.argv.includes("--json");
 
 const allowlist = fs.existsSync(ALLOWLIST_PATH)
   ? JSON.parse(fs.readFileSync(ALLOWLIST_PATH, "utf8"))
-  : { handlers: [], routes: [], silence: [] };
+  : { handlers: [], routes: [], silence: [], prisma: [] };
 
 /* ───────────────────────── utilidades ───────────────────────── */
 
@@ -252,6 +262,50 @@ function checkSilence() {
   return findings;
 }
 
+/* ──────────────── 4. Prisma sem driver adapter ──────────────── */
+
+/**
+ * Varre TODO o backend (não só `src/`) atrás de `new PrismaClient()` sem
+ * argumento. No Prisma 7 o driver adapter é obrigatório; sem ele o processo
+ * morre na construção do client, antes de qualquer query.
+ *
+ * Só olha a construção direta. `class X extends PrismaClient` com `super({...})`
+ * é o padrão do PrismaService e passa limpo.
+ */
+const PRISMA_NO_ADAPTER = /new\s+PrismaClient\s*\(\s*\)/g;
+
+/**
+ * Apaga o conteúdo de comentários preservando o comprimento do arquivo, para
+ * que os índices de `matchAll` continuem apontando para a linha certa.
+ *
+ * Existe porque a primeira versão desta checagem se autodenunciou: o comentário
+ * que explica o problema contém a própria expressão `new PrismaClient()`.
+ */
+function maskComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) =>
+    m.replace(/[^\n]/g, " "),
+  );
+}
+
+function checkPrismaAdapter() {
+  const findings = [];
+  const backendRoot = path.join(ROOT, "backend");
+  for (const file of walk(backendRoot, /\.(ts|mts|cts|js|mjs)$/)) {
+    if (/\.d\.ts$/.test(file)) continue;
+    const src = maskComments(fs.readFileSync(file, "utf8"));
+    for (const m of src.matchAll(PRISMA_NO_ADAPTER)) {
+      findings.push({
+        file: rel(file),
+        line: lineOf(src, m.index),
+        kind: "prisma",
+        detail:
+          "new PrismaClient() sem driver adapter — lança PrismaClientInitializationError em runtime (Prisma 7)",
+      });
+    }
+  }
+  return findings;
+}
+
 /* ───────────────────────── execução ───────────────────────── */
 
 const isAllowed = (group, f) =>
@@ -263,6 +317,7 @@ const groups = {
   handlers: checkHandlers(),
   routes: checkRoutes(),
   silence: checkSilence(),
+  prisma: checkPrismaAdapter(),
 };
 
 const novel = {};
@@ -279,6 +334,7 @@ if (asJson) {
     handlers: "Elementos interativos sem handler",
     routes: "Chamadas de API sem rota correspondente",
     silence: "Componentes que falham em silêncio",
+    prisma: "PrismaClient sem driver adapter (quebra em runtime)",
   };
   for (const [name, items] of Object.entries(novel)) {
     const suppressed = groups[name].length - items.length;

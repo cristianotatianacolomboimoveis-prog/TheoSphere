@@ -1,53 +1,62 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+// Prisma 7 exige um driver adapter explícito no constructor — `new PrismaClient()`
+// sem opções lança PrismaClientInitializationError e o seed nunca roda.
+const connectionString =
+  process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 const GEO_DATA = [
   {
-    name: "Jerusalém",
+    name: 'Jerusalém',
     era: 0,
-    category: "Cidade",
-    description: "Centro espiritual e político de Israel.",
+    category: 'Cidade',
+    description: 'Centro espiritual e político de Israel.',
     lng: 35.2137,
-    lat: 31.7683
+    lat: 31.7683,
   },
   {
-    name: "Belém",
+    name: 'Belém',
     era: 0,
-    category: "Cidade",
-    description: "Local de nascimento de Davi e Jesus.",
+    category: 'Cidade',
+    description: 'Local de nascimento de Davi e Jesus.',
     lng: 35.2023,
-    lat: 31.7054
+    lat: 31.7054,
   },
   {
-    name: "Nazaré",
+    name: 'Nazaré',
     era: 30,
-    category: "Cidade",
-    description: "Cidade onde Jesus cresceu.",
+    category: 'Cidade',
+    description: 'Cidade onde Jesus cresceu.',
     lng: 35.2975,
-    lat: 32.7019
+    lat: 32.7019,
   },
   {
-    name: "Monte Sinai",
+    name: 'Monte Sinai',
     era: -1400,
-    category: "Montanha",
-    description: "Local onde Moisés recebeu as Tábuas da Lei.",
+    category: 'Montanha',
+    description: 'Local onde Moisés recebeu as Tábuas da Lei.',
     lng: 33.9733,
-    lat: 28.5394
+    lat: 28.5394,
   },
   {
-    name: "Mar da Galileia",
+    name: 'Mar da Galileia',
     era: 30,
-    category: "Lago",
-    description: "Cenário de muitos milagres de Jesus.",
+    category: 'Lago',
+    description: 'Cenário de muitos milagres de Jesus.',
     lng: 35.59,
-    lat: 32.83
-  }
+    lat: 32.83,
+  },
 ];
 
 async function main() {
   console.log('Seed Geo: Populando locais com PostGIS...');
-  
+
   for (const loc of GEO_DATA) {
     // Para PostGIS, usamos queryRaw pois o Prisma não suporta o tipo geography nativamente para escrita direta
     await prisma.$executeRaw`
@@ -62,7 +71,7 @@ async function main() {
       ON CONFLICT DO NOTHING;
     `;
   }
-  
+
   console.log('Seed Geo: Concluído!');
 }
 

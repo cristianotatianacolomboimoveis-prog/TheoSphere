@@ -27,6 +27,25 @@
     "Anthony Hoekema - Linguas.pdf": {
       "status": "bloqueado",
       "motivo": "Autor/traducao sob direito autoral vigente"
+    },
+    "Catecismo Menor de Westminster (P1-10) - dominio publico.docx": {
+      "status": "bloqueado",
+      "motivo": "Substituido pela versao completa (107 perguntas); nao indexar o piloto parcial"
+    },
+    "Catecismo Menor de Westminster (completo) - dominio publico.docx": {
+      "status": "dominio-publico",
+      "fonte": "Westminster Shorter Catechism (1647)",
+      "motivo": "Obra original de dominio publico; traducao propria do TheoSphere (107 perguntas)"
+    },
+    "Confissoes de Agostinho - Livro I parte 1 - dominio publico.docx": {
+      "status": "dominio-publico",
+      "fonte": "Confessiones de Agostinho (c. 397); trad. inglesa livre de E. B. Pusey (1838), Project Gutenberg #3296",
+      "motivo": "Obra e fonte-base em dominio publico; traducao propria do TheoSphere (abertura do Livro I)"
+    },
+    "Confissoes de Agostinho - Livro I parte 2 - dominio publico.docx": {
+      "status": "dominio-publico",
+      "fonte": "Confessiones de Agostinho (c. 397); trad. inglesa livre de E. B. Pusey (1838), Project Gutenberg #3296",
+      "motivo": "Obra e fonte-base em dominio publico; traducao propria do TheoSphere (conclusao do Livro I; partes 1+2 = Livro I completo)"
     }
   }
 }

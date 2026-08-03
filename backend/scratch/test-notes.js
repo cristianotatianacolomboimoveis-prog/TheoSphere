@@ -1,4 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
+require('dotenv').config({ quiet: true });
+
+// Prisma 7 exige driver adapter explicito no constructor.
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '',
+});
 const { UserContextService } = require('../dist/src/rag/user-context.service');
 const { EmbeddingService } = require('../dist/src/rag/embedding.service');
 const { ConfigService } = require('@nestjs/config');
@@ -9,7 +17,7 @@ const config = {
 };
 
 async function main() {
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
   const embeddings = new EmbeddingService(config, prisma);
   const context = new UserContextService(prisma, embeddings, config);
 
