@@ -12,6 +12,10 @@
     }
   },
   "obras": {
+    "Teologia Sistemática - Franklin Ferreira Alan Myatt.pdf": {
+      "status": "bloqueado",
+      "motivo": "Obra de 2007 (Vida Nova), autores vivos — direito autoral vigente. Entrou por engano em 04/08/2026 pela API de ingestao, que na epoca nao consultava este manifesto; purgada e agora barrada no runtime."
+    },
     "Teologia - As institutas das Religiões Cristãs - Editora Fiel.pdf": {
       "status": "bloqueado",
       "motivo": "Traducao moderna Editora Fiel — direito autoral vigente"

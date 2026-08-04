@@ -9,6 +9,11 @@ import {
   SUPPORTED_MIME_QUERY,
   cleanExtractedText,
 } from './text-extractors';
+import {
+  carregarLicencas,
+  licencaDe,
+  type LicenseManifest,
+} from './license-gate';
 
 @Injectable()
 export class DriveRagService {
@@ -112,11 +117,51 @@ export class DriveRagService {
         `Encontrados ${files.length} arquivos suportados (PDF/DOCX/EPUB) na biblioteca.`,
       );
 
-      for (const file of files) {
-        await this.processFile(drive, file, userId, tradition);
+      // Portão de licença: carregado UMA vez por ingestão. Manifesto ausente
+      // não libera nada — bloqueia tudo e grita, porque servir obra protegida
+      // é pior do que não servir obra nenhuma.
+      const licencas = carregarLicencas();
+      if (!licencas) {
+        this.logger.error(
+          '[LICENÇA] scratch/licencas.json ausente ou ilegível — ingestão bloqueada por completo (fail-closed). ' +
+            'Defina LICENSE_MANIFEST_PATH ou restaure o manifesto.',
+        );
       }
 
-      return { success: true, filesProcessed: files.length };
+      const bloqueadas: Array<{ nome: string; motivo: string }> = [];
+      let ingeridos = 0;
+
+      for (const file of files) {
+        const decisao = licencaDe(
+          { id: file.id, name: file.name },
+          licencas ?? null,
+        );
+        if (!decisao.ok) {
+          bloqueadas.push({
+            nome: file.name ?? file.id ?? '(sem nome)',
+            motivo: decisao.motivo ?? decisao.status,
+          });
+          this.logger.warn(
+            `[LICENÇA] "${file.name}" NÃO indexada — ${decisao.status}: ${decisao.motivo ?? 'sem motivo registrado'}`,
+          );
+          continue;
+        }
+        await this.processFile(drive, file, userId, tradition, licencas);
+        ingeridos += 1;
+      }
+
+      if (bloqueadas.length > 0) {
+        this.logger.log(
+          `[LICENÇA] ${bloqueadas.length} de ${files.length} obra(s) barradas pelo portão; ${ingeridos} ingerida(s).`,
+        );
+      }
+
+      return {
+        success: true,
+        filesProcessed: ingeridos,
+        filesFound: files.length,
+        blocked: bloqueadas,
+      };
     } catch (error) {
       this.logger.error(
         `Erro ao ler pasta do Drive: ${(error as Error).message}`,
@@ -130,8 +175,21 @@ export class DriveRagService {
     file: any,
     userId?: string,
     tradition: string = 'Geral',
+    licencas?: LicenseManifest | null,
   ) {
     const targetUserId = userId || 'public-guest';
+
+    // Defesa em profundidade: `ingestFolder` já barrou o que não tem licença,
+    // mas qualquer outro chamador que chegue aqui direto passa pelo mesmo
+    // portão. Uma tranca só na porta da frente foi exatamente o defeito de
+    // 04/08/2026 — ver license-gate.ts.
+    const decisao = licencaDe({ id: file.id, name: file.name }, licencas);
+    if (!decisao.ok) {
+      this.logger.warn(
+        `[LICENÇA] "${file.name}" bloqueada em processFile — ${decisao.status}.`,
+      );
+      return;
+    }
 
     // Protetor contra arquivos massivos de 100MB+ (CWE-400)
     if (file.size && parseInt(file.size, 10) > 100 * 1024 * 1024) {
@@ -141,13 +199,19 @@ export class DriveRagService {
       return;
     }
 
-    // Evita re-processar e duplicar arquivos na sincronização semanal automática,
-    // mas invalida e recria o estado caso o arquivo tenha sido modificado no Drive.
+    // Evita re-processar e duplicar arquivos, e invalida o estado caso o
+    // arquivo tenha sido modificado no Drive.
+    //
+    // A checagem é por `fileId` em TODA a biblioteca, deliberadamente SEM
+    // filtrar por `userId`: o acervo é compartilhado, e uma obra é a mesma obra
+    // independentemente de quem disparou a ingestão. Enquanto isso era escopado
+    // por usuário, reingerir com outra conta duplicava tudo — foi assim que as
+    // "Confissões" de Agostinho passaram de 85 para 170 trechos em 04/08/2026,
+    // com a mesma obra contada duas vezes na recuperação.
     try {
       const exists: any[] = await this.prisma.$queryRaw`
         SELECT id, metadata FROM "UserEmbedding"
-        WHERE "userId" = ${targetUserId}
-          AND type = 'library_book'
+        WHERE type = 'library_book'
           AND metadata->>'fileId' = ${file.id}
         LIMIT 1
       `;
@@ -170,8 +234,7 @@ export class DriveRagService {
         );
         await this.prisma.$executeRaw`
           DELETE FROM "UserEmbedding"
-          WHERE "userId" = ${targetUserId}
-            AND type = 'library_book'
+          WHERE type = 'library_book'
             AND metadata->>'fileId' = ${file.id}
         `;
       }
