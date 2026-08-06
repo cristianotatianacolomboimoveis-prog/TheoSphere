@@ -49,10 +49,18 @@ envenenado, 21 botões sem `onClick` e um portão de licença que lia ausência 
 como aprovação. Todos passavam em "parece que está funcionando".
 
 ```bash
-cd backend && npm run verificar          # build + testes + lint
+cd backend && npm run verificar          # build + typecheck + testes + lint
+cd backend && npm run typecheck          # tsc --noEmit -p tsconfig.json (INCLUI os specs)
 cd backend && npm run verificar:acervo   # coerência Drive × relatório × banco (exit 1 em erro)
 node audit/scripts/static-checks.mjs     # handlers ausentes, rotas fantasma, falha silenciosa, Prisma sem adapter
 ```
+
+> **Por que `typecheck` existe separado de `build`:** `nest build` usa
+> `tsconfig.build.json`, que exclui `**/*spec.ts`. Durante meses os arquivos de teste
+> **nunca passaram por type-check** — o Jest os executa sem checar tipos, então um
+> erro TS2339 num spec ficava invisível para a suíte inteira. Descoberto em
+> 2026-08-06 ao abrir o projeto num IDE, que apontou 15 erros que `npm run verificar`
+> dava como limpo. Não remova o `typecheck` do `verificar`.
 
 Três regras que vêm de cicatriz:
 
@@ -110,6 +118,21 @@ cd backend && npx tsx scripts/full-rag-bootstrap.ts
 **Melhoria sugerida, ainda não aplicada:** incluir `meta: { vectorArm: "ok" | "empty" | "failed" }`
 na resposta de `/search/verses`. Falha silenciosa é o problema de fundo, e aqui ela
 está no backend, fora do alcance do `static-checks.mjs` (que só varre o frontend).
+
+### 🔑 Token do Railway exposto no repositório
+
+`scripts/check-production-health.ts` tem um token do Railway escrito direto no
+código (`const RAILWAY_TOKEN = '...'`), commitado desde `c3462e7` e já publicado no
+GitHub. O script aponta para `theosphere-production.up.railway.app` — o backend
+antigo, desativado na migração para o Render. É código morto.
+
+O arquivo foi mantido por decisão do dono. **Apagar o arquivo não resolveria de
+qualquer forma**: o token permanece no histórico do git e em qualquer clone. A única
+ação que efetivamente fecha isso é **revogar o token no painel do Railway**, o que
+só o dono pode fazer. Enquanto não for revogado, trate como credencial vazada.
+
+Nenhum agente deve reutilizar esse token nem escrever segredos novos em código.
+Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do provedor.
 
 ### ⚪ Lacunas de conteúdo
 

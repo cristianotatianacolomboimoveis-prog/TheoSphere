@@ -219,3 +219,54 @@ Suíte inteira re-executada do zero. **Nada regrediu, nada novo apareceu.** Uma 
 - ⚪ POST bloqueado: `rag/chat` (enlatada?) e truncagem sem medição.
 - ⚪ Acervo do Drive sem medição (precisa de Postgres).
 - 📦 Refatoração do portão de licença **ainda não comitada** — 6 arquivos, passa lint/140 testes/typecheck. Comandos na primeira passagem. Some a esses o `.gitignore` alterado hoje.
+
+---
+
+# Quarta passagem — 15:00 (migracao para o Antigravity)
+
+Projeto preparado e aberto no Antigravity IDE. Abrir num IDE real revelou dois
+defeitos que a suite dava como limpos.
+
+## Achado 1: os specs nunca passaram por type-check
+
+O painel Problems do IDE mostrou 15 erros de TypeScript num repositorio que
+`npm run verificar` reportava sem problema. Causa: `nest build` usa
+`tsconfig.build.json`, que exclui `**/*spec.ts`. O Jest executa os specs sem checar
+tipos. Resultado: **os arquivos de teste ficaram fora de qualquer verificacao de
+tipo**.
+
+O erro concreto: `rag.service.spec.ts` faz cast do metodo privado
+`buildGeminiRequest` para um tipo escrito a mao que declarava so
+`{ systemInstruction, maxOutputTokens }`. A assercao de `thinkingConfig` — o teste
+que guarda justamente a correcao da truncagem de 30/07 — acessava propriedade fora
+do tipo. **O teste passava em runtime e guardava de verdade**; o tipo é que estava
+incompleto. Nao era teste vazio, mas era erro real e invisivel.
+
+Corrigido em `402cecd`:
+
+- tipo do cast completado com `thinkingConfig`
+- `npm run typecheck` = `tsc --noEmit -p tsconfig.json` (inclui specs)
+- `verificar` passou a ser `build && typecheck && test && lint`
+
+Caminho de falha testado: erro injetado num spec faz o typecheck sair 2; revertido,
+sai 0. Suite completa depois da mudanca: typecheck 0, 140 testes, lint 0, nest build 0.
+
+## Achado 2: token do Railway em codigo versionado
+
+`scripts/check-production-health.ts` tem `const RAILWAY_TOKEN = '...'` literal,
+commitado em `c3462e7` e ja no GitHub. O script aponta para o backend antigo do
+Railway, desativado na migracao para o Render — codigo morto.
+
+Arquivo mantido por decisao do dono. Apagar nao resolveria: o token segue no
+historico do git. **Acao necessaria: revogar o token no painel do Railway.** Pendente.
+
+## Preparacao para o Antigravity
+
+- `AGENTS.md` na raiz — stack, convencoes, armadilhas, pendencias vivas
+- `~/.gemini/GEMINI.md` — regra global que manda ler o AGENTS.md do workspace
+- `.antigravityignore` + `.geminiignore` — excluem node_modules (3,2 GB),
+  valhalla_data (116 MB), artefatos de build e `.env`
+- `theosphere.zip` (1,1 GB) deletado da raiz
+- Antigravity IDE ja estava instalado; TheoSphere ja era pasta confiavel
+
+Commits: `f948c4b`, `4cf8c13`, `2b10e42`, `402cecd` — todos em `origin/main`.
