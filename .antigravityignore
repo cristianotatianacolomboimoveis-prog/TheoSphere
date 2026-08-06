@@ -1,0 +1,27 @@
+# Exclui do índice e do contexto do agente (mesma sintaxe do .gitignore).
+# Regra: só artefato pesado e segredo. NÃO exclua código-fonte nem config —
+# excluir demais faz o agente trabalhar cego, que é pior que índice grande.
+
+# Dependências e artefatos de build (~3,2 GB)
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.eslintcache
+
+# Dados pesados de terceiros (~116 MB, não é código do projeto)
+valhalla_data/
+
+# Segredos — o agente não precisa das chaves reais para trabalhar.
+# Os .example continuam visíveis e documentam o formato esperado.
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# Binários e mídia
+*.zip
+*.pdf
+*.docx
+*.log
