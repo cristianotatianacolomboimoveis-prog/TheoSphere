@@ -9,6 +9,45 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ---
 
+## 0. COMECE AQUI — onde o trabalho parou
+
+Última sessão: **2026-08-06**, encerrada no commit `d4f073e`. Repositório limpo,
+`origin/main` sincronizado, suíte inteira passando (typecheck 0, 140 testes backend,
+49 frontend, lint 0, build 0). Produção respondendo saudável.
+
+Os próximos passos, em ordem de importância:
+
+**1. Revogar o token do Railway.** Só o dono pode. Detalhe na seção 6. É o único
+item de segurança em aberto.
+
+**2. Povoar os embeddings da Bíblia em produção.** Este é o item que muda a
+experiência do usuário hoje — a busca semântica nunca funcionou. Comece pelo
+diagnóstico (barato, só leitura) antes de gastar cota:
+
+```bash
+cd backend
+psql "$DATABASE_URL" -c 'SELECT translation, count(*) FILTER (WHERE embedding IS NOT NULL) AS com_embedding, count(*) AS total FROM "BibleVerse" GROUP BY translation;'
+```
+
+Se vier zero, povoe **uma tradução primeiro** (BLIVRE) para medir o custo real antes
+de rodar as sete. Ver seção 6 para o porquê e o histórico.
+
+**3. Medir o que nunca foi medido.** Três perguntas seguem sem resposta porque o
+ambiente anterior não tinha saída de rede nem acesso ao Postgres. Num IDE local com
+o `.env` carregado, todas são respondíveis:
+
+- `POST /rag/chat` devolve resposta real ou texto enlatado?
+- A resposta chega completa ou truncada no meio da frase?
+- Quantos trechos o acervo do Drive realmente tem? (Conte
+  `UserEmbedding` com `type = 'library_book'` no banco — **não** use `/rag/stats`,
+  que reporta um cache em memória e mente.)
+
+**4. Tornar a falha visível.** A melhoria do `meta.vectorArm` na resposta de
+`/search/verses`, descrita na seção 6. É a correção de fundo: falha silenciosa é o
+defeito que este projeto mais paga caro.
+
+---
+
 ## 1. O que é o projeto
 
 Plataforma de pesquisa bíblica e teológica. O objetivo declarado é superar o Logos
