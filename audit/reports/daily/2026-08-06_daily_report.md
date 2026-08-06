@@ -270,3 +270,54 @@ historico do git. **Acao necessaria: revogar o token no painel do Railway.** Pen
 - Antigravity IDE ja estava instalado; TheoSphere ja era pasta confiavel
 
 Commits: `f948c4b`, `4cf8c13`, `2b10e42`, `402cecd` — todos em `origin/main`.
+
+---
+
+# Quinta passagem — 16:45 (diagnóstico do banco de produção)
+
+Com acesso real ao Postgres, as perguntas que estavam sem medição há dias foram
+respondidas. Script criado: `backend/scratch/diagnostico-embeddings.js` — somente
+leitura, custo zero, reexecutável.
+
+## Embeddings: confirmado, e o número é zero
+
+| tradução          | com embedding | total  |
+| ----------------- | ------------- | ------ |
+| BLIVRE            | 0             | 31.102 |
+| NVA               | 0             | 31.094 |
+| ARA               | 0             | 88     |
+| KJV               | 0             | 56     |
+| NVIPT             | 0             | 24     |
+| ara _(minúsculo)_ | 0             | 1      |
+
+**0 de 62.365.** O diagnóstico por aritmética do RRF, feito na primeira passagem,
+estava certo — e agora está confirmado na fonte, não inferido. Os cinco índices HNSW
+existem, incluindo `BibleVerse_embedding_hnsw_idx`: a infraestrutura está pronta e
+vazia. Não é problema de schema nem de migração, é povoamento que nunca rodou.
+
+## Achado novo: só 2 das 7 traduções existem de verdade
+
+`/bible/versions` devolve 7 versões com metadados de licença. A tabela `BibleVerse`
+conta outra história: BLIVRE e NVA são Bíblias completas (~31 mil versículos cada), e
+**ARA (88), KJV (56) e NVIPT (24) são amostras** — dezenas de versículos. Uma sétima
+não tem nenhuma linha.
+
+A interface oferece traduções que o usuário não consegue ler além de alguns
+versículos, sem sinalizar isso em lugar nenhum. É o mesmo padrão dos outros defeitos
+deste projeto: o sistema responde com sucesso e o vazio passa por conteúdo.
+
+Sujeira de dados junto: `'ara'` minúsculo e `'ARA'` maiúsculo coexistem como
+traduções distintas (1 e 88 versículos).
+
+## Acervo do Drive: 170 trechos, 2 donos
+
+Não está vazio — a anotação anterior de "0 trechos" está superada. Mas 170 é pouco,
+coerente com as poucas obras reingeridas depois da purga de 01/08, que removeu
+27.887 trechos. Confirmado também que `/rag/stats` não serve para medir isso:
+reporta cache em memória do processo.
+
+## O que segue sem medição
+
+`POST /rag/chat` — resposta real ou enlatada, e truncagem. Não medido nesta
+passagem. **Não há mais bloqueio técnico**; é só não ter sido feito ainda. Essa
+distinção importa: nos relatórios anteriores era impossível, agora é pendente.

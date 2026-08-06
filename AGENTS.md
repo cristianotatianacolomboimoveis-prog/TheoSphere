@@ -20,27 +20,28 @@ Os próximos passos, em ordem de importância:
 **1. Revogar o token do Railway.** Só o dono pode. Detalhe na seção 6. É o único
 item de segurança em aberto.
 
-**2. Povoar os embeddings da Bíblia em produção.** Este é o item que muda a
-experiência do usuário hoje — a busca semântica nunca funcionou. Comece pelo
-diagnóstico (barato, só leitura) antes de gastar cota:
+**2. Povoar os embeddings da Bíblia em produção.** Diagnóstico já feito em
+2026-08-06: **0 de 62.365 versículos têm embedding.** Confirmado no banco, não
+inferido. Detalhe na seção 6.
+
+O povoamento gasta cota do Gemini (`gemini-embedding-001`) proporcional ao volume.
+Comece por **BLIVRE apenas** — 31.102 versículos — meça o custo real, e só depois
+decida sobre as demais. Este projeto já estourou teto de gastos uma vez (29/07).
 
 ```bash
 cd backend
-psql "$DATABASE_URL" -c 'SELECT translation, count(*) FILTER (WHERE embedding IS NOT NULL) AS com_embedding, count(*) AS total FROM "BibleVerse" GROUP BY translation;'
+node scratch/diagnostico-embeddings.js   # reconferir, somente leitura, custo zero
+npx tsx scripts/full-rag-bootstrap.ts    # povoar — GASTA COTA
 ```
 
-Se vier zero, povoe **uma tradução primeiro** (BLIVRE) para medir o custo real antes
-de rodar as sete. Ver seção 6 para o porquê e o histórico.
+**3. Decidir sobre as traduções incompletas.** Cinco das sete versões oferecidas na
+UI têm dezenas de versículos, não milhares. Ver seção 6. É decisão de produto, não
+correção óbvia.
 
-**3. Medir o que nunca foi medido.** Três perguntas seguem sem resposta porque o
-ambiente anterior não tinha saída de rede nem acesso ao Postgres. Num IDE local com
-o `.env` carregado, todas são respondíveis:
-
-- `POST /rag/chat` devolve resposta real ou texto enlatado?
-- A resposta chega completa ou truncada no meio da frase?
-- Quantos trechos o acervo do Drive realmente tem? (Conte
-  `UserEmbedding` com `type = 'library_book'` no banco — **não** use `/rag/stats`,
-  que reporta um cache em memória e mente.)
+**4. Medir o `POST /rag/chat`.** Segue sem resposta: a IA devolve conteúdo real ou
+texto enlatado, e a resposta chega inteira ou truncada? Nunca foi medido em
+produção porque o ambiente de verificação anterior não fazia POST. Num IDE local
+com o `.env` carregado, é direto.
 
 **4. Tornar a falha visível.** A melhoria do `meta.vectorArm` na resposta de
 `/search/verses`, descrita na seção 6. É a correção de fundo: falha silenciosa é o
@@ -135,10 +136,28 @@ existir: sem ela, o próximo agente rediagnostica tudo do zero.
 
 ### 🔴 Embeddings da Bíblia ausentes em produção
 
-`BibleVerse.embedding` está NULL no banco de produção. Consequência: **a busca
-híbrida roda com um braço só** — todo resultado vem de full-text puro, o braço
-semântico não contribui. Buscar "perdão dos inimigos" não encontra "amai os vossos
-inimigos". É exatamente o recurso que deveria diferenciar a plataforma do Logos.
+**Confirmado com o banco em 2026-08-06 — zero, não "poucos":**
+
+| tradução          | com embedding | total  |
+| ----------------- | ------------- | ------ |
+| BLIVRE            | 0             | 31.102 |
+| NVA               | 0             | 31.094 |
+| ARA               | 0             | 88     |
+| KJV               | 0             | 56     |
+| NVIPT             | 0             | 24     |
+| ara _(minúsculo)_ | 0             | 1      |
+
+`BibleVerse.embedding` está NULL em **62.365 de 62.365 versículos**. Consequência:
+**a busca híbrida roda com um braço só** — todo resultado vem de full-text puro, o
+braço semântico não contribui. Buscar "perdão dos inimigos" não encontra "amai os
+vossos inimigos". É exatamente o recurso que deveria diferenciar a plataforma do
+Logos.
+
+Os cinco índices HNSW existem, incluindo `BibleVerse_embedding_hnsw_idx`. A
+infraestrutura está pronta e vazia — não é problema de schema nem de migração.
+
+Rode `node backend/scratch/diagnostico-embeddings.js` para reconferir a qualquer
+momento: é somente leitura e não gasta cota.
 
 Ficou dois meses invisível por três camadas de silêncio empilhadas:
 `hybridSearchVerses` engole a falha do braço vetorial num `logger.warn` e segue com
@@ -173,14 +192,31 @@ só o dono pode fazer. Enquanto não for revogado, trate como credencial vazada.
 Nenhum agente deve reutilizar esse token nem escrever segredos novos em código.
 Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do provedor.
 
+### 🟠 Só 2 das 7 traduções existem de fato
+
+`GET /bible/versions` devolve 7 versões com metadados de licença, mas a tabela
+`BibleVerse` conta outra história (medido em 2026-08-06): **BLIVRE (31.102) e NVA
+(31.094) são Bíblias completas; ARA (88), KJV (56) e NVIPT (24) são amostras** —
+dezenas de versículos, não milhares. Uma sétima não tem nenhuma linha.
+
+Ou seja, a interface oferece traduções que o usuário não consegue ler além de alguns
+versículos. Isso não é o portão de licença agindo (BLIVRE e NVA são as livres; ARA e
+NVIPT são `restricted` por licença e provavelmente nunca deveriam ter sido
+carregadas). Vale decidir explicitamente: ou some da lista de versões, ou sinaliza
+como parcial na UI. Hoje falha em silêncio, que é o padrão que este projeto combate.
+
+Há também sujeira de dados: `'ara'` minúsculo e `'ARA'` maiúsculo coexistem como
+traduções distintas (1 e 88 versículos). Normalizar.
+
 ### ⚪ Lacunas de conteúdo
 
 - **Léxico** roda com seed de amostra, não com o dataset completo.
 - **Comentários vazios** desde a purga de licença de 2026-08-01 (10 obras,
   27.887 trechos removidos).
-- **Acervo do Drive** sem medição confiável de tamanho. Atenção: `/rag/stats`
-  reporta `totalDocuments` de um cache em memória do processo, que zera a cada
-  restart do Render — **não mede o acervo**.
+- **Acervo do Drive: 170 trechos, 2 donos** (medido em 2026-08-06). Não está vazio,
+  mas é pequeno — coerente com as poucas obras reingeridas depois da purga. Atenção:
+  `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera
+  a cada restart do Render — **não mede o acervo**. Use o script de diagnóstico.
 
 ### ⚖️ Portão de licença
 
