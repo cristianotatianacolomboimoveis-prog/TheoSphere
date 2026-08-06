@@ -11,7 +11,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-08-06**, encerrada no commit `d4f073e`. Repositório limpo,
+Última sessão: **2026-08-06**, encerrada no commit `0ea321e`. Repositório limpo,
 `origin/main` sincronizado, suíte inteira passando (typecheck 0, 140 testes backend,
 49 frontend, lint 0, build 0). Produção respondendo saudável.
 
@@ -43,7 +43,7 @@ texto enlatado, e a resposta chega inteira ou truncada? Nunca foi medido em
 produção porque o ambiente de verificação anterior não fazia POST. Num IDE local
 com o `.env` carregado, é direto.
 
-**4. Tornar a falha visível.** A melhoria do `meta.vectorArm` na resposta de
+**5. Tornar a falha visível.** A melhoria do `meta.vectorArm` na resposta de
 `/search/verses`, descrita na seção 6. É a correção de fundo: falha silenciosa é o
 defeito que este projeto mais paga caro.
 
