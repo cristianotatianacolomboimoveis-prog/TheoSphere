@@ -9,11 +9,7 @@ import {
   SUPPORTED_MIME_QUERY,
   cleanExtractedText,
 } from './text-extractors';
-import {
-  carregarLicencas,
-  licencaDe,
-  type LicenseManifest,
-} from './license-gate';
+import { licencaDe } from './license-gate';
 
 @Injectable()
 export class DriveRagService {
@@ -117,25 +113,15 @@ export class DriveRagService {
         `Encontrados ${files.length} arquivos suportados (PDF/DOCX/EPUB) na biblioteca.`,
       );
 
-      // Portão de licença: carregado UMA vez por ingestão. Manifesto ausente
-      // não libera nada — bloqueia tudo e grita, porque servir obra protegida
-      // é pior do que não servir obra nenhuma.
-      const licencas = carregarLicencas();
-      if (!licencas) {
-        this.logger.error(
-          '[LICENÇA] scratch/licencas.json ausente ou ilegível — ingestão bloqueada por completo (fail-closed). ' +
-            'Defina LICENSE_MANIFEST_PATH ou restaure o manifesto.',
-        );
-      }
-
+      // Portão de licença. O manifesto é compilado junto com o serviço
+      // (license-manifest.ts), então não há como faltar em produção — foi
+      // justamente um manifesto lido do disco e não encontrado que barrou as
+      // 107 obras, aprovadas inclusive, em 04/08/2026.
       const bloqueadas: Array<{ nome: string; motivo: string }> = [];
       let ingeridos = 0;
 
       for (const file of files) {
-        const decisao = licencaDe(
-          { id: file.id, name: file.name },
-          licencas ?? null,
-        );
+        const decisao = licencaDe({ id: file.id, name: file.name });
         if (!decisao.ok) {
           bloqueadas.push({
             nome: file.name ?? file.id ?? '(sem nome)',
@@ -146,15 +132,13 @@ export class DriveRagService {
           );
           continue;
         }
-        await this.processFile(drive, file, userId, tradition, licencas);
+        await this.processFile(drive, file, userId, tradition);
         ingeridos += 1;
       }
 
-      if (bloqueadas.length > 0) {
-        this.logger.log(
-          `[LICENÇA] ${bloqueadas.length} de ${files.length} obra(s) barradas pelo portão; ${ingeridos} ingerida(s).`,
-        );
-      }
+      this.logger.log(
+        `[LICENÇA] ${files.length} obra(s) na pasta · ${ingeridos} liberada(s) · ${bloqueadas.length} barrada(s).`,
+      );
 
       return {
         success: true,
@@ -175,7 +159,6 @@ export class DriveRagService {
     file: any,
     userId?: string,
     tradition: string = 'Geral',
-    licencas?: LicenseManifest | null,
   ) {
     const targetUserId = userId || 'public-guest';
 
@@ -183,7 +166,7 @@ export class DriveRagService {
     // mas qualquer outro chamador que chegue aqui direto passa pelo mesmo
     // portão. Uma tranca só na porta da frente foi exatamente o defeito de
     // 04/08/2026 — ver license-gate.ts.
-    const decisao = licencaDe({ id: file.id, name: file.name }, licencas);
+    const decisao = licencaDe({ id: file.id, name: file.name });
     if (!decisao.ok) {
       this.logger.warn(
         `[LICENÇA] "${file.name}" bloqueada em processFile — ${decisao.status}.`,

@@ -18,6 +18,8 @@ coverage/
 *.log
 valhalla_data/
 .vercel
+# cache do eslint (--cache), gerado pelo verificador diário
+.eslintcache
 
 # Python
 .venv/
