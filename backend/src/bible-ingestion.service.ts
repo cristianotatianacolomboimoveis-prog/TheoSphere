@@ -361,11 +361,13 @@ export class BibleIngestionService {
         WHERE bv.id = v.id
       `;
     } catch (err) {
-      this.logger.error(
-        `Batch embedding trigger failed: ${
-          err instanceof Error ? err.message : 'unknown'
-        }`,
-      );
+      const errMsg = err instanceof Error ? err.message : 'unknown';
+      this.logger.error(`Batch embedding trigger failed: ${errMsg}`);
+      this.events.publishIngestion(EVENT_CHANNELS.INGESTION_BIBLE, {
+        kind: 'embedding.failed',
+        ref: `${translation}/${bookId}/${chapter}`,
+        error: errMsg,
+      });
     }
   }
 
@@ -379,14 +381,15 @@ export class BibleIngestionService {
     );
 
     // Busca versículos sem embedding
-    const verses = await this.prisma.bibleVerse.findMany({
-      where: {
-        translation: translation.toUpperCase(),
-        embedding: null,
-      } as unknown as import('@prisma/client').Prisma.BibleVerseWhereInput,
-      take: limit,
-      select: { id: true, text: true },
-    });
+    const verses = await this.prisma.$queryRaw<
+      Array<{ id: string; text: string }>
+    >`
+      SELECT id, text
+      FROM "BibleVerse"
+      WHERE translation = ${translation.toUpperCase()}
+        AND embedding IS NULL
+      LIMIT ${limit}
+    `;
 
     this.logger.log(
       `[RAG-Bible] Encontrados ${verses.length} versículos para processar.`,

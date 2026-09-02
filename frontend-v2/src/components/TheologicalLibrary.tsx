@@ -122,7 +122,7 @@ const PUBLIC_BOOKS: BookItem[] = [
     readUrl: "https://www.gutenberg.org/ebooks/63346",
     downloadUrl: "https://www.gutenberg.org/ebooks/63346.epub.noimages",
     source: "Project Gutenberg",
-    subjects: ["Sermões", "Exegese", "Devocional"],
+    subjects: ["Sermões", "Exegese", "Devocional", "Reforma", "Teologia"],
     language: "pt",
     fileName: "O Sermao do Monte - Charles Spurgeon.epub",
     mimeType: "application/epub+zip",
@@ -239,13 +239,33 @@ export default function TheologicalLibrary({
 
     if (activeCategory === "all") return matchesSearch;
     if (activeCategory === "theology")
-      return matchesSearch && book.subjects.includes("Teologia");
+      return (
+        matchesSearch &&
+        book.subjects.some((s) =>
+          ["teologia", "sistemática", "doutrina"].includes(s.toLowerCase()),
+        )
+      );
     if (activeCategory === "patristics")
-      return matchesSearch && book.subjects.includes("Patrística");
+      return (
+        matchesSearch &&
+        book.subjects.some((s) =>
+          ["patrística", "escolástica", "devocional", "mística"].includes(
+            s.toLowerCase(),
+          ),
+        )
+      );
     if (activeCategory === "reformation")
-      return matchesSearch && book.subjects.includes("Reforma");
+      return (
+        matchesSearch &&
+        book.subjects.some((s) => ["reforma"].includes(s.toLowerCase()))
+      );
     if (activeCategory === "philosophy")
-      return matchesSearch && book.subjects.includes("Filosofia");
+      return (
+        matchesSearch &&
+        book.subjects.some((s) =>
+          ["filosofia", "apologética"].includes(s.toLowerCase()),
+        )
+      );
 
     return matchesSearch;
   });

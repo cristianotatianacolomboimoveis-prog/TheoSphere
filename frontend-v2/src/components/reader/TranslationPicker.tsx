@@ -10,6 +10,7 @@ export interface TranslationOption {
   name: string;
   lang: string;
   type: string;
+  isPartial?: boolean;
 }
 
 export interface TranslationPickerProps {
@@ -159,8 +160,13 @@ export const TranslationPicker: React.FC<TranslationPickerProps> = ({
                   )}
                   <div className="flex items-start justify-between gap-3 w-full">
                     <div className="flex flex-col flex-grow">
-                      <div className="font-bold text-sm tracking-wide flex items-center gap-2 text-foreground">
+                      <div className="font-bold text-sm tracking-wide flex items-center gap-2 text-foreground flex-wrap">
                         <span>{t.name}</span>
+                        {t.isPartial && (
+                          <span className="px-1.5 py-0.2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 rounded text-[8px] font-extrabold uppercase tracking-wider">
+                            Amostra
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-muted mt-1 uppercase tracking-wider font-semibold flex items-center gap-1.5">
                         <span

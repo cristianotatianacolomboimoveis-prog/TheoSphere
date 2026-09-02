@@ -52,12 +52,12 @@ export class DriveRagService {
   }
 
   /**
-   * Cron job para sincronização semanal automática.
+   * Cron job para sincronização diária automática.
    */
-  @Cron(CronExpression.EVERY_WEEK)
-  async handleWeeklySync() {
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleDailySync() {
     this.logger.log(
-      '--- [AUTO] Iniciando sincronização semanal da biblioteca Drive ---',
+      '--- [AUTO] Iniciando sincronização diária da biblioteca Drive ---',
     );
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
     const userId = 'e850cb80-d129-4810-957b-bc94d1fe2aee'; // Usuário principal/admin
@@ -66,11 +66,11 @@ export class DriveRagService {
       try {
         await this.ingestFolder(folderId, userId, 'Geral');
         this.logger.log(
-          '--- [AUTO] Sincronização semanal concluída com sucesso ---',
+          '--- [AUTO] Sincronização diária concluída com sucesso ---',
         );
       } catch (error) {
         this.logger.error(
-          `--- [AUTO] Erro na sincronização semanal: ${(error as Error).message}`,
+          `--- [AUTO] Erro na sincronização diária: ${(error as Error).message}`,
         );
       }
     } else {

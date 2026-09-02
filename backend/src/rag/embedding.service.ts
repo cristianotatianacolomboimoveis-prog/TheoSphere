@@ -266,25 +266,29 @@ export class EmbeddingService implements OnModuleDestroy {
     try {
       const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
 
-      // Process in parallel for high performance
-      await Promise.all(
-        uncachedIndices.map(async (originalIndex, i) => {
-          const text = uncachedTexts[i];
-          const result = await this.genAI!.models.embedContent({
-            model: 'gemini-embedding-001',
-            contents: text,
-            config: {
-              taskType: 'RETRIEVAL_DOCUMENT',
-              outputDimensionality: 768,
-            },
-          });
+      // Process in small sub-batches to prevent undici socket exhaustion (ENOMEM / fetch failed)
+      const subBatchSize = 10;
+      for (let i = 0; i < uncachedIndices.length; i += subBatchSize) {
+        const subBatch = uncachedIndices.slice(i, i + subBatchSize);
+        await Promise.all(
+          subBatch.map(async (originalIndex, j) => {
+            const text = uncachedTexts[i + j];
+            const result = await this.genAI!.models.embedContent({
+              model: 'gemini-embedding-001',
+              contents: text,
+              config: {
+                taskType: 'RETRIEVAL_DOCUMENT',
+                outputDimensionality: 768,
+              },
+            });
 
-          const embedding = result.embeddings?.[0]?.values;
-          if (!embedding) throw new Error('Gemini retornou embedding vazio');
-          results[originalIndex] = embedding;
-          await this.writeCache(normalized[originalIndex], embedding);
-        }),
-      );
+            const embedding = result.embeddings?.[0]?.values;
+            if (!embedding) throw new Error('Gemini retornou embedding vazio');
+            results[originalIndex] = embedding;
+            await this.writeCache(normalized[originalIndex], embedding);
+          }),
+        );
+      }
 
       return results as number[][];
     } catch (error) {

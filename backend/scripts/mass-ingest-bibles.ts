@@ -19,8 +19,6 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const TRANSLATIONS_TO_INGEST = [
-  'ARA', // Almeida Revista e Atualizada (PT)
-  'ARC', // Almeida Revista e Corrigida (PT)
   'KJV', // King James Version (EN)
   'WEB', // World English Bible (EN)
   'WLC', // Westminster Leningrad Codex (Hebrew)

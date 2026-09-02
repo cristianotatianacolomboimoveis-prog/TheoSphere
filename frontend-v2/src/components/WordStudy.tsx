@@ -59,7 +59,8 @@ export default function WordStudy({
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { setBibleReference, setActiveVerse } = useTheoStore();
+  const { setBibleReference, setActiveVerse, activeBook, books } =
+    useTheoStore();
 
   /** Leva a ocorrência da concordância para o leitor. */
   const openOccurrence = (reference: string) => {
@@ -133,6 +134,31 @@ export default function WordStudy({
     }, 0);
     return () => clearTimeout(timer);
   }, [initialStrongId, language]);
+
+  // Synchronize default language with the active book's testament if no entry is selected/pending
+  React.useEffect(() => {
+    if (initialStrongId || selectedEntry) return;
+    if (!activeBook || books.length === 0) return;
+
+    const currentBook = books.find(
+      (b) =>
+        b.namePt.toLowerCase() === activeBook.toLowerCase() ||
+        b.nameEn.toLowerCase() === activeBook.toLowerCase() ||
+        b.abbreviation.toLowerCase() === activeBook.toLowerCase(),
+    );
+
+    if (currentBook) {
+      const isHebrew =
+        currentBook.testament === "OT" || currentBook.testament === "AT";
+      const targetLang = isHebrew ? "hebrew" : "greek";
+      if (language !== targetLang) {
+        const timer = setTimeout(() => {
+          setLanguage(targetLang);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [activeBook, books, initialStrongId, selectedEntry, language]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

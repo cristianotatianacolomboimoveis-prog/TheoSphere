@@ -17,15 +17,13 @@ import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
 import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
 const ALLOWED_TRANSLATIONS = new Set([
-  'ARA',
-  'NVIPT',
+  'BLIVRE',
+  'NVA',
   'KJV',
   'TR',
   'WLC',
-  'web',
-  'kjv',
-  'asv',
-  'ylt',
+  'LXX',
+  'WEB',
 ]);
 
 /**
@@ -55,21 +53,11 @@ const VERSION_METADATA: Record<
     license: 'free',
     holder: 'CC BY-SA 4.0',
   },
-  ARA: {
-    name: 'Almeida Revista e Atualizada',
-    lang: 'PT',
-    license: 'restricted',
-    holder: 'Sociedade Bíblica do Brasil',
-  },
-  NVIPT: {
-    name: 'Nova Versão Internacional',
-    lang: 'PT',
-    license: 'restricted',
-    holder: 'Biblica',
-  },
   KJV: { name: 'King James Version', lang: 'EN', license: 'free' },
+  WEB: { name: 'World English Bible', lang: 'EN', license: 'free' },
   TR: { name: 'Textus Receptus', lang: 'GRC', license: 'free' },
   WLC: { name: 'Westminster Leningrad Codex', lang: 'HEB', license: 'free' },
+  LXX: { name: 'Septuagint', lang: 'GRC', license: 'free' },
 };
 
 @Controller('api/v1/bible')
@@ -116,12 +104,19 @@ export class BibleController {
   @UseInterceptors(new CacheControlInterceptor(86400))
   async getVersions() {
     // `data` mantém o formato legado (array de strings) para compatibilidade.
-    // `meta` traz licenciamento por versão — o frontend usa para exibir
-    // apenas versões de licença livre no beta público (Fase 0 go-to-market).
+    // Filtrado na Etapa 1 do Risco 2 para conter apenas traduções completas de domínio público (BLIVRE e NVA)
     return {
       success: true,
-      data: ['BLIVRE', 'NVA', 'ARA', 'NVIPT', 'KJV', 'TR', 'WLC'],
-      meta: VERSION_METADATA,
+      data: ['BLIVRE', 'NVA', 'KJV', 'WEB', 'TR', 'WLC', 'LXX'],
+      meta: {
+        BLIVRE: VERSION_METADATA.BLIVRE,
+        NVA: VERSION_METADATA.NVA,
+        KJV: VERSION_METADATA.KJV,
+        WEB: VERSION_METADATA.WEB,
+        TR: VERSION_METADATA.TR,
+        WLC: VERSION_METADATA.WLC,
+        LXX: VERSION_METADATA.LXX,
+      },
     };
   }
 

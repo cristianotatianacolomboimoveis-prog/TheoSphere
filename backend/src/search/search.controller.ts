@@ -31,7 +31,14 @@ export class SearchController {
       translation,
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
-    return { success: true, count: data.length, data };
+    return {
+      success: true,
+      count: data.length,
+      data,
+      meta: {
+        vectorArm: (data as any).vectorStatus || 'ok',
+      },
+    };
   }
 
   /**

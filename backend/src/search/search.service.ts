@@ -131,18 +131,34 @@ export class SearchService {
     const translation = opts.translation;
 
     // Run both retrievers in parallel; degrade gracefully if either fails.
+    let vectorStatus: 'ok' | 'empty' | 'failed' = 'ok';
     const [vectorHits, keywordHits] = await Promise.all([
-      this.vectorSearch(trimmed, poolSize, translation).catch((err) => {
-        this.logger.warn(`vector search failed: ${(err as Error).message}`);
-        return [] as VectorRow[];
-      }),
+      this.vectorSearch(trimmed, poolSize, translation)
+        .then((res) => {
+          if (!res || res.length === 0) {
+            vectorStatus = 'empty';
+          }
+          return res;
+        })
+        .catch((err) => {
+          this.logger.warn(`vector search failed: ${(err as Error).message}`);
+          vectorStatus = 'failed';
+          return [] as VectorRow[];
+        }),
       this.keywordSearch(trimmed, poolSize, translation).catch((err) => {
         this.logger.warn(`keyword search failed: ${(err as Error).message}`);
         return [] as KeywordRow[];
       }),
     ]);
 
-    return this.fuse(vectorHits, keywordHits, k, limit);
+    const fused = this.fuse(vectorHits, keywordHits, k, limit) as any;
+    Object.defineProperty(fused, 'vectorStatus', {
+      value: vectorStatus,
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    });
+    return fused;
   }
 
   /**

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import https from 'https';
 
 // Configuration
-const RAILWAY_TOKEN = '0f404c6d-4b84-4225-ac0d-bbb0eae2577c';
+const RAILWAY_TOKEN = process.env.RAILWAY_TOKEN || '';
 const BACKEND_URL = 'https://theosphere-production.up.railway.app';
 const CLOUDFLARE_URL = 'https://api.theosphere.app/api/v1/health/live'; // Optional custom edge
 

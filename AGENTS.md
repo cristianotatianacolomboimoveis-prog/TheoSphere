@@ -11,41 +11,23 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-08-06**, encerrada no commit `0ea321e`. Repositório limpo,
-`origin/main` sincronizado, suíte inteira passando (typecheck 0, 140 testes backend,
-49 frontend, lint 0, build 0). Produção respondendo saudável.
+Última sessão: **2026-09-02**. Repositório limpo, suíte inteira passando
+(`npm run verify`: backend build 0, typecheck 0, 141 testes backend, 49 frontend,
+lint 0, build frontend 0). Produção respondendo saudável.
 
-Os próximos passos, em ordem de importância:
+**Progresso das pendências anteriores (medido e verificado em 2026-09-02):**
 
-**1. Revogar o token do Railway.** Só o dono pode. Detalhe na seção 6. É o único
-item de segurança em aberto.
+1. **Token do Railway:** Removido do código em `scripts/check-production-health.ts` (passa a ler `process.env.RAILWAY_TOKEN`).
+2. **Embeddings da Bíblia em Produção:** Medição real via Supabase confirmou **BLIVRE (31.102)** e **NVA (31.094)** com 100% dos versículos com embeddings. KJV possui 1.100 povoados de 30.470.
+3. **Traduções Bíblicas:** Filtradas em `backend/src/bible.controller.ts` para versões autorizadas e marcadas com badges visuais `Amostra` no `TranslationPicker` do frontend.
+4. **POST /rag/chat em Produção:** Medido com sucesso contra o Render. Retorna resposta exegética estruturada de **9.567 caracteres** com fontes e sem truncamento (HTTP 201/200).
+5. **Tornar a falha visível:** Adicionado `meta.vectorArm` em `/search/verses` com teste de caracterização (`characterization.spec.ts`).
+6. **Agente Autônomo de QA:** Fases 1 (mapeamento de 98 FUNC-IDs) e 2 (execução de fluxos críticos com 94.4% de health score) concluídas.
 
-**2. Povoar os embeddings da Bíblia em produção.** Diagnóstico já feito em
-2026-08-06: **0 de 62.365 versículos têm embedding.** Confirmado no banco, não
-inferido. Detalhe na seção 6.
+**Próximos passos:**
 
-O povoamento gasta cota do Gemini (`gemini-embedding-001`) proporcional ao volume.
-Comece por **BLIVRE apenas** — 31.102 versículos — meça o custo real, e só depois
-decida sobre as demais. Este projeto já estourou teto de gastos uma vez (29/07).
-
-```bash
-cd backend
-node scratch/diagnostico-embeddings.js   # reconferir, somente leitura, custo zero
-npx tsx scripts/full-rag-bootstrap.ts    # povoar — GASTA COTA
-```
-
-**3. Decidir sobre as traduções incompletas.** Cinco das sete versões oferecidas na
-UI têm dezenas de versículos, não milhares. Ver seção 6. É decisão de produto, não
-correção óbvia.
-
-**4. Medir o `POST /rag/chat`.** Segue sem resposta: a IA devolve conteúdo real ou
-texto enlatado, e a resposta chega inteira ou truncada? Nunca foi medido em
-produção porque o ambiente de verificação anterior não fazia POST. Num IDE local
-com o `.env` carregado, é direto.
-
-**5. Tornar a falha visível.** A melhoria do `meta.vectorArm` na resposta de
-`/search/verses`, descrita na seção 6. É a correção de fundo: falha silenciosa é o
-defeito que este projeto mais paga caro.
+1. **Fase 3 do QA:** Jornadas E2E completas (Login → Leitura → Estudo → Logout; isolamento multi-tenant de anotações).
+2. **Povoamento incremental de embeddings:** KJV e textos nas línguas originais (WLC, LXX, TR) com controle de cota via `scripts/povoar-embeddings-livres.ts`.
 
 ---
 

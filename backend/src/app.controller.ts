@@ -50,7 +50,7 @@ export class AppController {
   @Post('api/v1/ai/compare')
   @UseGuards(JwtAuthGuard)
   async compareTheology(@Body() body: CompareTheologyDto, @Req() req: Request) {
-    const userId = req.user?.userId;
+    const userId = (req.user as any)?.userId;
     if (!userId) {
       // Should be unreachable — JwtAuthGuard already validated.
       throw new BadRequestException('missing user context');

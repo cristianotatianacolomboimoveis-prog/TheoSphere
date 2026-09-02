@@ -78,12 +78,14 @@ export const TRANSLATIONS = [
     name: "Almeida Revista e Atualizada (ARA)",
     lang: "PT",
     type: "Equivalência Formal",
+    isPartial: true,
   },
   {
     id: "nvipt",
     name: "Nova Versão Internacional (NVI)",
     lang: "PT",
     type: "Equivalência Dinâmica",
+    isPartial: true,
   },
   {
     id: "almeida",
