@@ -1,14 +1,16 @@
 "use client";
 
-// react-resizable-panels v4 (migrated from v2):
+// react-resizable-panels v4:
 //   • PanelGroup        → Group
 //   • PanelResizeHandle → Separator
-//   • Panel             → Panel (mantido)
+//   • Panel             → Panel
 //   • prop `direction`  → `orientation`
-// defaultSize/minSize continuam aceitando number (% do grupo).
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { useState, useSyncExternalStore } from "react";
-import { X, Columns, Rows, Maximize2 } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { useTheoStore } from "@/store/useTheoStore";
+import { LayoutSwitcher } from "./LayoutSwitcher";
+import { ContextualInsightsPanel } from "../reader/ContextualInsightsPanel";
 
 /** Detecta se a viewport é mobile (<768px) — compatível com React Compiler */
 const MOBILE_QUERY = "(max-width: 767px)";
@@ -52,11 +54,9 @@ export function Workspace({
   middleTitle = "Análise Exegética",
   rightTitle = "Estudo de Palavras",
 }: WorkspaceProps) {
-  const [activeTabs, setActiveTabs] = useState({
-    left: leftTitle,
-    middle: middleTitle,
-    right: rightTitle,
-  });
+  const { workspaceLayout, setWorkspaceLayout } = useTheoStore();
+  const [maximizedPane, setMaximizedPane] = useState<string | null>(null);
+
   const isMobile = useIsMobile();
 
   // Mobile: painéis empilhados verticalmente com tabs
@@ -73,63 +73,292 @@ export function Workspace({
     );
   }
 
+  const toggleMaximize = (paneKey: string) => {
+    setMaximizedPane((curr) => (curr === paneKey ? null : paneKey));
+  };
+
+  // Se algum painel estiver maximizado, renderiza apenas ele em tela cheia
+  if (maximizedPane) {
+    let content = leftPane;
+    let title = leftTitle;
+    if (maximizedPane === "middle") {
+      content = rightPane;
+      title = middleTitle;
+    } else if (maximizedPane === "right") {
+      content = bottomPane;
+      title = rightTitle;
+    } else if (maximizedPane === "copilot") {
+      content = <ContextualInsightsPanel />;
+      title = "Copilot Exegético";
+    }
+
+    return (
+      <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
+        <PaneTabHeader
+          title={title}
+          isMaximized={true}
+          onToggleMaximize={() => toggleMaximize(maximizedPane)}
+        />
+        <div className="flex-grow overflow-hidden relative">{content}</div>
+        <WorkspaceStatusBar />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
-      <Group orientation="horizontal" className="flex-grow">
-        {/* Pane 1: Primary Content */}
-        <Panel
-          defaultSize={40}
-          minSize={20}
-          className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
-        >
-          <PaneTabHeader title={activeTabs.left} />
+      {/* 1. MODO: FOCO TOTAL (SINGLE PANE) */}
+      {workspaceLayout === "single" && (
+        <div className="flex-grow flex flex-col overflow-hidden bg-white dark:bg-[#0D1117]">
+          <PaneTabHeader
+            title={leftTitle}
+            isMaximized={false}
+            onToggleMaximize={() => toggleMaximize("left")}
+          />
           <div className="flex-grow overflow-hidden relative">{leftPane}</div>
-        </Panel>
-
-        <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
-          <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
-        </Separator>
-
-        {/* Panes 2 & 3: Supporting Content */}
-        <Panel defaultSize={60} minSize={20}>
-          <Group orientation="vertical">
-            {/* Top Right Pane */}
-            <Panel
-              defaultSize={50}
-              minSize={20}
-              className="flex flex-col bg-white dark:bg-[#0D1117] border-b border-gray-300 dark:border-white/10"
-            >
-              <PaneTabHeader title={activeTabs.middle} />
-              <div className="flex-grow overflow-hidden">{rightPane}</div>
-            </Panel>
-
-            <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
-              <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
-            </Separator>
-
-            {/* Bottom Right Pane */}
-            <Panel
-              defaultSize={50}
-              minSize={20}
-              className="flex flex-col bg-white dark:bg-[#0D1117]"
-            >
-              <PaneTabHeader title={activeTabs.right} />
-              <div className="flex-grow overflow-hidden">{bottomPane}</div>
-            </Panel>
-          </Group>
-        </Panel>
-      </Group>
-
-      {/* Logos Status Bar */}
-      <div className="h-6 bg-[#E8EBF0] dark:bg-[#1E252B] border-t border-gray-300 dark:border-white/10 flex items-center px-4 justify-between">
-        <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
-          <span>Pronto</span>
-          <div className="w-px h-3 bg-gray-300 dark:bg-white/10" />
-          <span>Versão: 2.1.0-Logos</span>
         </div>
-        <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
-          <span>Latência: 45ms</span>
-        </div>
+      )}
+
+      {/* 2. MODO: ESTUDO PARALELO (SPLIT 50/50) */}
+      {workspaceLayout === "split" && (
+        <Group orientation="horizontal" className="flex-grow">
+          <Panel
+            defaultSize={50}
+            minSize={25}
+            className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
+          >
+            <PaneTabHeader
+              title={leftTitle}
+              isMaximized={false}
+              onToggleMaximize={() => toggleMaximize("left")}
+            />
+            <div className="flex-grow overflow-hidden relative">{leftPane}</div>
+          </Panel>
+
+          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
+          </Separator>
+
+          <Panel
+            defaultSize={50}
+            minSize={25}
+            className="flex flex-col bg-white dark:bg-[#0D1117]"
+          >
+            <PaneTabHeader
+              title={middleTitle}
+              isMaximized={false}
+              onToggleMaximize={() => toggleMaximize("middle")}
+            />
+            <div className="flex-grow overflow-hidden relative">
+              {rightPane}
+            </div>
+          </Panel>
+        </Group>
+      )}
+
+      {/* 3. MODO: BANCADA EXEGÉTICA (TRIPLE PANE - PADRÃO SUPERIOR AO LOGOS) */}
+      {workspaceLayout === "triple" && (
+        <Group orientation="horizontal" className="flex-grow">
+          <Panel
+            defaultSize={42}
+            minSize={25}
+            className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
+          >
+            <PaneTabHeader
+              title={leftTitle}
+              isMaximized={false}
+              onToggleMaximize={() => toggleMaximize("left")}
+            />
+            <div className="flex-grow overflow-hidden relative">{leftPane}</div>
+          </Panel>
+
+          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
+          </Separator>
+
+          <Panel defaultSize={58} minSize={25}>
+            <Group orientation="vertical">
+              <Panel
+                defaultSize={55}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117] border-b border-gray-300 dark:border-white/10"
+              >
+                <PaneTabHeader
+                  title={middleTitle}
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("middle")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  {rightPane}
+                </div>
+              </Panel>
+
+              <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
+                <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
+              </Separator>
+
+              <Panel
+                defaultSize={45}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117]"
+              >
+                <PaneTabHeader
+                  title={rightTitle}
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("right")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  {bottomPane}
+                </div>
+              </Panel>
+            </Group>
+          </Panel>
+        </Group>
+      )}
+
+      {/* 4. MODO: COPILOT TEOLÓGICO IA */}
+      {workspaceLayout === "copilot" && (
+        <Group orientation="horizontal" className="flex-grow">
+          <Panel
+            defaultSize={60}
+            minSize={30}
+            className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
+          >
+            <PaneTabHeader
+              title={leftTitle}
+              isMaximized={false}
+              onToggleMaximize={() => toggleMaximize("left")}
+            />
+            <div className="flex-grow overflow-hidden relative">{leftPane}</div>
+          </Panel>
+
+          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
+          </Separator>
+
+          <Panel
+            defaultSize={40}
+            minSize={25}
+            className="flex flex-col bg-white dark:bg-[#0D1117]"
+          >
+            <PaneTabHeader
+              title="Ideias & Copilot RAG"
+              isMaximized={false}
+              onToggleMaximize={() => toggleMaximize("copilot")}
+            />
+            <div className="flex-grow overflow-hidden relative">
+              <ContextualInsightsPanel />
+            </div>
+          </Panel>
+        </Group>
+      )}
+
+      {/* 5. MODO: GRADE SINÓTICA 2X2 */}
+      {workspaceLayout === "grid" && (
+        <Group orientation="vertical" className="flex-grow">
+          <Panel defaultSize={50} minSize={20}>
+            <Group orientation="horizontal">
+              <Panel
+                defaultSize={50}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
+              >
+                <PaneTabHeader
+                  title={leftTitle}
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("left")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  {leftPane}
+                </div>
+              </Panel>
+              <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+                <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
+              </Separator>
+              <Panel
+                defaultSize={50}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117]"
+              >
+                <PaneTabHeader
+                  title={middleTitle}
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("middle")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  {rightPane}
+                </div>
+              </Panel>
+            </Group>
+          </Panel>
+
+          <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
+            <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
+          </Separator>
+
+          <Panel defaultSize={50} minSize={20}>
+            <Group orientation="horizontal">
+              <Panel
+                defaultSize={50}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10"
+              >
+                <PaneTabHeader
+                  title={rightTitle}
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("right")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  {bottomPane}
+                </div>
+              </Panel>
+              <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+                <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
+              </Separator>
+              <Panel
+                defaultSize={50}
+                minSize={20}
+                className="flex flex-col bg-white dark:bg-[#0D1117]"
+              >
+                <PaneTabHeader
+                  title="Ideias & Copilot RAG"
+                  isMaximized={false}
+                  onToggleMaximize={() => toggleMaximize("copilot")}
+                />
+                <div className="flex-grow overflow-hidden relative">
+                  <ContextualInsightsPanel />
+                </div>
+              </Panel>
+            </Group>
+          </Panel>
+        </Group>
+      )}
+
+      {/* Status Bar */}
+      <WorkspaceStatusBar />
+    </div>
+  );
+}
+
+/**
+ * Barra de status com alternador rápido de layouts e indicadores
+ */
+function WorkspaceStatusBar() {
+  return (
+    <div className="h-7 bg-[#E8EBF0] dark:bg-[#1E252B] border-t border-gray-300 dark:border-white/10 flex items-center px-4 justify-between select-none">
+      <div className="flex items-center gap-3 text-[10px] text-gray-500 font-medium">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+          Pronto • Sincronizado
+        </span>
+        <div className="w-px h-3 bg-gray-300 dark:bg-white/10" />
+        <span className="font-bold text-gray-600 dark:text-gray-400">
+          Link Set A
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <LayoutSwitcher variant="toolbar" />
       </div>
     </div>
   );
@@ -137,7 +366,6 @@ export function Workspace({
 
 /**
  * Layout mobile: tabs no topo, um painel visível por vez.
- * Evita painéis side-by-side impossíveis em telas <768px.
  */
 function MobileWorkspace({
   leftPane,
@@ -153,6 +381,11 @@ function MobileWorkspace({
     ...(bottomPane
       ? [{ key: "bottom", label: rightTitle, pane: bottomPane }]
       : []),
+    {
+      key: "copilot",
+      label: "Copilot RAG",
+      pane: <ContextualInsightsPanel />,
+    },
   ];
   const [activeTab, setActiveTab] = useState("left");
   const current = tabs.find((t) => t.key === activeTab) || tabs[0];
@@ -188,24 +421,45 @@ function MobileWorkspace({
 }
 
 /**
- * Cabeçalho do painel. Antes desenhava uma barra de abas completa — "+",
- * menu "⋮" e "X" — sem nenhum sistema de abas por trás: os três eram
- * inertes (varredura 2026-07-29). Ficou só o rótulo, que é o que existe
- * de fato. Quando houver múltiplas abas por painel, a barra volta com
- * comportamento real.
+ * Cabeçalho do painel com título, indicador de sincronização e botão de maximizar
  */
-function PaneTabHeader({ title }: { title: string }) {
+function PaneTabHeader({
+  title,
+  isMaximized,
+  onToggleMaximize,
+}: {
+  title: string;
+  isMaximized: boolean;
+  onToggleMaximize?: () => void;
+}) {
   return (
-    <div className="h-8 bg-[#F3F5F7] dark:bg-[#1E252B] border-b border-gray-300 dark:border-white/10 flex items-center px-1 select-none">
+    <div className="h-8 bg-[#F3F5F7] dark:bg-[#1E252B] border-b border-gray-300 dark:border-white/10 flex items-center justify-between px-1 select-none">
       <div className="flex h-full items-end">
-        <div className="h-full px-4 flex items-center gap-2 bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10 relative">
+        <div className="h-full px-3 flex items-center gap-2 bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10 relative">
           <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">
             {title}
           </span>
-          {/* Active indicator line */}
+          <span className="text-[8px] font-extrabold px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            A
+          </span>
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600" />
         </div>
       </div>
+
+      {onToggleMaximize && (
+        <button
+          onClick={onToggleMaximize}
+          className="p-1 mr-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          title={isMaximized ? "Restaurar Painéis" : "Maximizar Painel"}
+          aria-label={isMaximized ? "Restaurar Painéis" : "Maximizar Painel"}
+        >
+          {isMaximized ? (
+            <Minimize2 className="w-3.5 h-3.5" />
+          ) : (
+            <Maximize2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

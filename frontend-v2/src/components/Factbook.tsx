@@ -60,6 +60,9 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
+  const [activeLens, setActiveLens] = useState<
+    "all" | "biblical" | "theological" | "geography" | "library"
+  >("all");
   const [history, setHistory] = useState<string[]>([]);
   const { chat } = useRAG();
   const router = useRouter();
@@ -478,7 +481,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 className="max-w-4xl mx-auto p-12 space-y-12 pb-32"
               >
                 {/* Report Header */}
-                <header className="border-b-2 border-gray-100 dark:border-white/5 pb-10">
+                <header className="border-b-2 border-gray-100 dark:border-white/5 pb-8">
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-3">
                       <h1 className="text-5xl font-serif font-bold text-gray-900 dark:text-white leading-tight">
@@ -494,8 +497,6 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                         </span>
                       </div>
                     </div>
-                    {/* "Ferramentas" foi removido: era um botão sem handler e
-                        sem menu por trás. Copiar e Imprimir agora funcionam. */}
                     <div className="flex gap-2 print:hidden">
                       <button
                         onClick={handleCopy}
@@ -523,123 +524,190 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                   </div>
                 </header>
 
-                {/* Sections Grid/List */}
+                {/* Lentes do Factbook (Inspirado no Logos, mas superior com Atlas 3D) */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-white/10 pb-4 print:hidden">
+                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                    {[
+                      { id: "all", label: "Tudo", icon: Sparkles },
+                      { id: "biblical", label: "Bíblico", icon: ScrollText },
+                      { id: "theological", label: "Teológico", icon: BookOpen },
+                      {
+                        id: "geography",
+                        label: "Geografia & Mapa",
+                        icon: MapPin,
+                      },
+                      { id: "library", label: "Biblioteca", icon: Library },
+                    ].map((lens) => {
+                      const Icon = lens.icon;
+                      const isActive = activeLens === lens.id;
+                      return (
+                        <button
+                          key={lens.id}
+                          onClick={() => setActiveLens(lens.id as any)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            isActive
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{lens.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Ação Rápida: Abrir no Atlas 3D */}
+                  <button
+                    onClick={() => {
+                      setActiveTool("atlas");
+                      router.push("/atlas");
+                      onClose();
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all"
+                    title="Explorar relevo e localização no globo 3D"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Explorar no Atlas 3D</span>
+                  </button>
+                </div>
+
+                {/* Sections Grid/List com filtro de Lente */}
                 <div className="space-y-16">
-                  {(data.sections ?? []).map((section) => (
-                    <section
-                      key={section.id}
-                      ref={(el) => {
-                        sectionRefs.current[section.id] = el;
-                      }}
-                      className="scroll-mt-10 group"
-                    >
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                          {getIcon(section.icon)}
-                        </div>
-                        <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">
-                          {section.title}
-                        </h2>
-                        <div className="flex-grow h-px bg-gray-100 dark:bg-white/5" />
-                        {/* O menu "…" por seção não tinha handler nem menu —
+                  {(data.sections ?? [])
+                    .filter((section) => {
+                      if (activeLens === "all") return true;
+                      if (activeLens === "biblical")
+                        return ["passages", "events"].includes(section.id);
+                      if (activeLens === "theological")
+                        return ["overview", "related", "key-articles"].includes(
+                          section.id,
+                        );
+                      if (activeLens === "geography")
+                        return ["overview", "events", "passages"].includes(
+                          section.id,
+                        );
+                      if (activeLens === "library")
+                        return ["key-articles", "further-reading"].includes(
+                          section.id,
+                        );
+                      return true;
+                    })
+                    .map((section) => (
+                      <section
+                        key={section.id}
+                        ref={(el) => {
+                          sectionRefs.current[section.id] = el;
+                        }}
+                        className="scroll-mt-10 group"
+                      >
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                            {getIcon(section.icon)}
+                          </div>
+                          <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">
+                            {section.title}
+                          </h2>
+                          <div className="flex-grow h-px bg-gray-100 dark:bg-white/5" />
+                          {/* O menu "…" por seção não tinha handler nem menu —
                             removido em vez de simulado. */}
-                      </div>
+                        </div>
 
-                      <div className="pl-11">
-                        {section.content && (
-                          <p className="text-lg font-serif text-gray-800 dark:text-gray-200 leading-relaxed text-justify first-letter:text-4xl first-letter:font-bold first-letter:mr-1 first-letter:float-left">
-                            {section.content}
-                          </p>
-                        )}
+                        <div className="pl-11">
+                          {section.content && (
+                            <p className="text-lg font-serif text-gray-800 dark:text-gray-200 leading-relaxed text-justify first-letter:text-4xl first-letter:font-bold first-letter:mr-1 first-letter:float-left">
+                              {section.content}
+                            </p>
+                          )}
 
-                        {/* Artigos e eventos são frases descritivas, não
+                          {/* Artigos e eventos são frases descritivas, não
                             entidades — o cursor-pointer prometia um clique que
                             nunca existiu (varredura 2026-07-29). */}
-                        {section.items && (
-                          <ul className="space-y-2">
-                            {section.items.map((item, i) => (
-                              <li key={i} className="flex items-start gap-3">
-                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 shrink-0" />
-                                <span className="text-[13px] text-gray-600 dark:text-gray-400">
-                                  {item}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                          {section.items && (
+                            <ul className="space-y-2">
+                              {section.items.map((item, i) => (
+                                <li key={i} className="flex items-start gap-3">
+                                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 shrink-0" />
+                                  <span className="text-[13px] text-gray-600 dark:text-gray-400">
+                                    {item}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
 
-                        {/* Cada referência abre o versículo no leitor. Se a IA
+                          {/* Cada referência abre o versículo no leitor. Se a IA
                             devolver algo que não é referência válida, o item
                             fica como texto em vez de virar botão morto. */}
-                        {section.verses && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {section.verses.map((v) => {
-                              const navigable = parseBibleRef(v) !== null;
-                              return (
-                                <button
-                                  key={v}
-                                  onClick={() => openReference(v)}
-                                  disabled={!navigable}
-                                  title={
-                                    navigable
-                                      ? `Abrir ${v} no leitor`
-                                      : "Referência não reconhecida"
-                                  }
-                                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-blue-500/30 enabled:hover:bg-blue-50/30 dark:enabled:hover:bg-blue-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
-                                    <span className="text-sm font-bold text-blue-600">
-                                      {v}
-                                    </span>
-                                  </div>
-                                  {navigable && (
-                                    <ArrowLeft className="w-3.5 h-3.5 text-gray-300 rotate-180 opacity-0 group-hover/verse:opacity-100 transition-all" />
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+                          {section.verses && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {section.verses.map((v) => {
+                                const navigable = parseBibleRef(v) !== null;
+                                return (
+                                  <button
+                                    key={v}
+                                    onClick={() => openReference(v)}
+                                    disabled={!navigable}
+                                    title={
+                                      navigable
+                                        ? `Abrir ${v} no leitor`
+                                        : "Referência não reconhecida"
+                                    }
+                                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-blue-500/30 enabled:hover:bg-blue-50/30 dark:enabled:hover:bg-blue-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
+                                      <span className="text-sm font-bold text-blue-600">
+                                        {v}
+                                      </span>
+                                    </div>
+                                    {navigable && (
+                                      <ArrowLeft className="w-3.5 h-3.5 text-gray-300 rotate-180 opacity-0 group-hover/verse:opacity-100 transition-all" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
 
-                        {/* Cada tópico relacionado gera um novo dossiê — é a
+                          {/* Cada tópico relacionado gera um novo dossiê — é a
                             navegação que define um Factbook. */}
-                        {section.tags && (
-                          <div className="flex flex-wrap gap-2">
-                            {section.tags.map((tag) => (
-                              <button
-                                key={tag}
-                                onClick={() => {
-                                  contentRef.current?.scrollTo({ top: 0 });
-                                  void handleSearch(tag);
-                                }}
-                                title={`Gerar dossiê sobre ${tag}`}
-                                className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                          {section.tags && (
+                            <div className="flex flex-wrap gap-2">
+                              {section.tags.map((tag) => (
+                                <button
+                                  key={tag}
+                                  onClick={() => {
+                                    contentRef.current?.scrollTo({ top: 0 });
+                                    void handleSearch(tag);
+                                  }}
+                                  title={`Gerar dossiê sobre ${tag}`}
+                                  className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
+                                >
+                                  {tag}
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
-                        {/* Referências bibliográficas: são citações, não URLs.
+                          {/* Referências bibliográficas: são citações, não URLs.
                             O cursor-pointer sugeria um link que nunca existiu. */}
-                        {section.links && (
-                          <ul className="space-y-1.5">
-                            {section.links.map((link, i) => (
-                              <li
-                                key={i}
-                                className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400"
-                              >
-                                <ExternalLink className="w-3 h-3 mt-0.5 shrink-0 text-gray-400" />
-                                <span>{link}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </section>
-                  ))}
+                          {section.links && (
+                            <ul className="space-y-1.5">
+                              {section.links.map((link, i) => (
+                                <li
+                                  key={i}
+                                  className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400"
+                                >
+                                  <ExternalLink className="w-3 h-3 mt-0.5 shrink-0 text-gray-400" />
+                                  <span>{link}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </section>
+                    ))}
                 </div>
               </motion.div>
             ) : (
@@ -664,14 +732,48 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                     Conceitos Teológicos.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 w-full">
+                <div className="w-full space-y-3 pt-2">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Tópicos Populares Recomendados
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
+                    {[
+                      { name: "Jesus Cristo", tag: "Pessoa", icon: "👑" },
+                      { name: "Davi", tag: "Pessoa", icon: "⚔️" },
+                      { name: "Jerusalém", tag: "Lugar", icon: "🏛️" },
+                      { name: "Aliança Divina", tag: "Teologia", icon: "📜" },
+                      { name: "Graça & Fé", tag: "Doutrina", icon: "✨" },
+                      {
+                        name: "Mar Vermelho",
+                        tag: "Lugar & Evento",
+                        icon: "🌊",
+                      },
+                    ].map((topic) => (
+                      <button
+                        key={topic.name}
+                        onClick={() => handleSearch(topic.name)}
+                        className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/70 dark:bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-50/40 dark:hover:bg-blue-500/10 text-left transition-all group"
+                      >
+                        <div className="text-base mb-1">{topic.icon}</div>
+                        <div className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 transition-colors">
+                          {topic.name}
+                        </div>
+                        <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
+                          {topic.tag}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 w-full pt-4">
                   <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-left space-y-2">
                     <Users className="w-5 h-5 text-blue-600" />
                     <h4 className="text-xs font-bold uppercase tracking-widest">
                       Pessoas
                     </h4>
                     <p className="text-[10px] text-gray-400">
-                      Genealogias, biografia e conexões.
+                      Genealogias, biografia e conexões canônicas.
                     </p>
                   </div>
                   <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-left space-y-2">
@@ -680,14 +782,9 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                       Lugares
                     </h4>
                     <p className="text-[10px] text-gray-400">
-                      Contexto geográfico e arqueológico.
+                      Contexto geográfico e camadas arqueológicas 3D.
                     </p>
                   </div>
-                </div>
-                <div className="pt-8">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
-                    Comece pesquisando no painel à esquerda
-                  </p>
                 </div>
               </motion.div>
             )}

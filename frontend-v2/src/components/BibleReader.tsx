@@ -256,6 +256,22 @@ export default function BibleReader({
     [workerPost, activeBook],
   );
 
+  const handleWordClick = useCallback(
+    (word: string, event: React.MouseEvent) => {
+      setHoverData({
+        word,
+        strongId: "LEX-" + word.toUpperCase(),
+        definition: `Análise lexical de "${word}". Carregando lema e morfologia nas línguas originais...`,
+        pos: { x: event.clientX, y: event.clientY },
+      });
+      workerPost("FETCH_STRONGS", {
+        word,
+        book: activeBook,
+      });
+    },
+    [workerPost, activeBook],
+  );
+
   const parentRef = useRef<HTMLDivElement>(null);
   const allVerses = chaptersData.length > 0 ? chaptersData[0].verses : [];
   const versesToRender =
@@ -442,6 +458,7 @@ export default function BibleReader({
                             sourceRef: ref,
                           });
                         }}
+                        onWordClick={handleWordClick}
                       />
                     </div>
                   );

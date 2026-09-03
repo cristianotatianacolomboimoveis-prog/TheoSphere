@@ -14,35 +14,29 @@ import {
   Command,
 } from "lucide-react";
 import { useTheoStore, ToolId } from "@/store/useTheoStore";
-
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut } from "lucide-react";
+import { LayoutSwitcher } from "./LayoutSwitcher";
+import { TheoSphereCommandPalette } from "./TheoSphereCommandPalette";
 
 export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   const { setActiveTool } = useTheoStore();
   const { isAuthenticated, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [layoutsOpen, setLayoutsOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
 
-  const handleCommand = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const input = (
-      e.currentTarget.elements.namedItem("command") as HTMLInputElement
-    )?.value?.trim();
-    if (!input) return;
-
-    // Simple command routing
-    const lower = input.toLowerCase();
-    if (
-      lower.startsWith("gen") ||
-      lower.startsWith("gên") ||
-      /^[1-3]?\s?[a-z]/i.test(lower)
-    ) {
-      // Bible reference detected → go to exegesis
-      setActiveTool("exegesis");
-    } else {
-      setActiveTool("factbook");
-    }
-  };
+  // Atalho global Cmd+K / Ctrl+K
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="relative h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 md:px-4 pl-14 gap-2 md:gap-4 z-[60]">
@@ -54,27 +48,31 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
       </button>
 
-      {/* Command Box (Central Focus of Logos) */}
-      <form
-        onSubmit={handleCommand}
-        className="flex-grow max-w-2xl relative group"
+      {/* Command Box (Central Focus of Logos — Híbrida & Speed Search) */}
+      <div
+        onClick={() => setPaletteOpen(true)}
+        className="flex-grow max-w-2xl relative group cursor-pointer"
       >
         <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
           <Command className="w-3.5 h-3.5 text-gray-400" />
         </div>
-        <input
-          name="command"
-          type="text"
-          placeholder="Ir para Gn 1:1, Pesquisar..."
-          className="w-full h-7 pl-10 pr-4 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[12px] focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-400 outline-none"
-        />
-        <button
-          type="submit"
-          className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-[10px] font-bold text-gray-500 rounded border border-gray-200 dark:border-white/10 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
-        >
-          IR
-        </button>
-      </form>
+        <div className="w-full h-7 pl-9 pr-14 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[12px] flex items-center text-gray-400 select-none group-hover:border-blue-500/50 transition-colors">
+          <span className="truncate">
+            Ir para Gn 1:1, Sl 23, ou pesquisar (ex: amor AND paz, book:Rom)...
+          </span>
+        </div>
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded">
+            ⌘K
+          </kbd>
+        </div>
+      </div>
+
+      {/* Modal Paleta de Comando */}
+      <TheoSphereCommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+      />
 
       {/* Tools Icons (hidden on mobile — accessible via sidebar drawer) */}
       <div className="hidden md:flex items-center gap-1">
@@ -94,11 +92,24 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
           onClick={() => setActiveTool("factbook")}
         />
         <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-2" />
-        <TopBarButton
-          icon={Layout}
-          label="Layouts"
-          onClick={() => setActiveTool("exegesis")}
-        />
+        <div className="relative">
+          <TopBarButton
+            icon={Layout}
+            label="Layouts"
+            onClick={() => setLayoutsOpen(!layoutsOpen)}
+          />
+          {layoutsOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setLayoutsOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 z-50">
+                <LayoutSwitcher onClose={() => setLayoutsOpen(false)} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* O sino de notificações foi removido: não existe sistema de

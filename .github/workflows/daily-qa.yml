@@ -1,0 +1,43 @@
+name: Agente Autônomo de QA Diário
+
+on:
+  schedule:
+    # Executa todos os dias às 09:00 UTC (06:00 BRT)
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  qa-suite:
+    name: Executar Testes E2E e Fluxos Críticos
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Verificações Estáticas de Integridade
+        run: |
+          echo "=== 1. CHECAGENS ESTÁTICAS DE SEGURANÇA E INTEGRIDADE ==="
+          node audit/scripts/static-checks.mjs
+
+      - name: Executar Suíte do Agente Autônomo contra Produção
+        env:
+          BASE_URL: 'https://theosphere.onrender.com'
+        run: |
+          echo "=== 2. AGENTE AUTÔNOMO DE QA (FLUXOS CRÍTICOS EM PRODUÇÃO) ==="
+          node audit/scripts/qa-phase2-suite.mjs
+
+      - name: Arquivar Relatórios de QA Diários
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-qa-diario-${{ github.run_id }}
+          path: audit/reports/

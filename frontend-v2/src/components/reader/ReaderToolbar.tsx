@@ -11,6 +11,7 @@ import {
   Volume2,
   Square,
   Languages,
+  Lightbulb,
 } from "lucide-react";
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
 import { TRANSLATIONS } from "../BibleReader";
@@ -61,6 +62,8 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
     books,
     viewMode,
     setViewMode,
+    workspaceLayout,
+    setWorkspaceLayout,
   } = useTheoStore();
 
   const selectedBook =
@@ -190,6 +193,30 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             }
           >
             <Languages className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Botão de Ideias e Copilot Contextual (Inspirado no Logos Bible) */}
+          <button
+            onClick={() =>
+              setWorkspaceLayout(
+                workspaceLayout === "copilot" ? "triple" : "copilot",
+              )
+            }
+            className={`px-3 py-2 rounded-lg border transition-all flex items-center gap-1.5 ${
+              workspaceLayout === "copilot"
+                ? "bg-amber-500/20 border-amber-500/30 text-amber-500 shadow-sm"
+                : "bg-surface-hover/50 border-border-subtle text-foreground/30 hover:text-amber-500 hover:border-amber-500/30"
+            }`}
+            title={
+              workspaceLayout === "copilot"
+                ? "Ocultar Painel de Ideias"
+                : "Abrir Painel de Ideias e Exegese Contextual"
+            }
+          >
+            <Lightbulb className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-bold hidden sm:inline">
+              Ideias
+            </span>
           </button>
 
           {/* Botão de Leitura Bíblica */}

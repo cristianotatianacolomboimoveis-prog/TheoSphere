@@ -12,6 +12,7 @@ interface VerseRowProps {
   highlightQuery?: string;
   crossRefCount?: number;
   onCrossRefClick?: (e: React.MouseEvent) => void;
+  onWordClick?: (word: string, e: React.MouseEvent) => void;
 }
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
@@ -34,6 +35,48 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   );
 }
 
+function InteractiveText({
+  text,
+  query,
+  onWordClick,
+}: {
+  text: string;
+  query?: string;
+  onWordClick?: (word: string, e: React.MouseEvent) => void;
+}) {
+  if (query) {
+    return <HighlightedText text={text} query={query} />;
+  }
+
+  const words = text.split(/(\s+)/);
+  return (
+    <>
+      {words.map((chunk, i) => {
+        const isWhitespace = /^\s+$/.test(chunk);
+        if (isWhitespace) return <span key={i}>{chunk}</span>;
+
+        const cleanWord = chunk.replace(/[.,;:!?"'()[\]{}—–]/g, "").trim();
+
+        return (
+          <span
+            key={i}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (cleanWord && onWordClick) {
+                onWordClick(cleanWord, e);
+              }
+            }}
+            title="Duplo-clique para análise morfológica e lema no original"
+            className="hover:bg-blue-500/10 hover:text-blue-600 rounded px-0.5 transition-colors select-text cursor-text"
+          >
+            {chunk}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export const VerseRow: React.FC<VerseRowProps> = ({
   verse,
   text,
@@ -43,6 +86,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
   highlightQuery,
   crossRefCount,
   onCrossRefClick,
+  onWordClick,
 }) => (
   <div
     className={`grid ${secondaryText ? "grid-cols-2 gap-12" : "grid-cols-1"} w-full max-w-4xl mx-auto`}
@@ -76,13 +120,13 @@ export const VerseRow: React.FC<VerseRowProps> = ({
           )}
         </div>
 
-        {/* Biblical Text - Serif Focus */}
+        {/* Biblical Text - Serif Focus with Interactive Lexical Words */}
         <span className="text-[20px] leading-[1.8] font-serif text-gray-800 dark:text-gray-200 tracking-normal text-justify hyphens-auto">
-          {highlightQuery ? (
-            <HighlightedText text={text} query={highlightQuery} />
-          ) : (
-            text
-          )}
+          <InteractiveText
+            text={text}
+            query={highlightQuery}
+            onWordClick={onWordClick}
+          />
         </span>
       </div>
     </div>
@@ -95,7 +139,11 @@ export const VerseRow: React.FC<VerseRowProps> = ({
             {verse}
           </span>
           <span className="text-[20px] leading-[1.8] font-serif text-gray-400 dark:text-white/20 font-light tracking-normal text-justify">
-            {secondaryText}
+            <InteractiveText
+              text={secondaryText}
+              query={highlightQuery}
+              onWordClick={onWordClick}
+            />
           </span>
         </div>
       </div>

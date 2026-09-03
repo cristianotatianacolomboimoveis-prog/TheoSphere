@@ -74,6 +74,12 @@ interface TheoState {
   books: BibleBook[];
   _hasHydrated: boolean;
 
+  // Workspace Layout (Inspirado no Logos Bible, mas superior)
+  workspaceLayout: "single" | "split" | "triple" | "copilot" | "grid";
+  setWorkspaceLayout: (
+    layout: "single" | "split" | "triple" | "copilot" | "grid",
+  ) => void;
+
   // Actions
   setActiveTool: (tool: ToolId) => void;
   setCurrentContext: (context: PageContext | null) => void;
@@ -103,7 +109,9 @@ export const useTheoStore = create<TheoState>()(
       userPins: [],
       books: [],
       _hasHydrated: false,
+      workspaceLayout: "triple",
 
+      setWorkspaceLayout: (layout) => set({ workspaceLayout: layout }),
       setActiveTool: (tool) => set({ activeTool: tool }),
       setCurrentContext: (context) => set({ currentContext: context }),
       setBibleReference: (book, chapter) =>
