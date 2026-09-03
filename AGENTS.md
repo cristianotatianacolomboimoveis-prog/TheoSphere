@@ -11,18 +11,20 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-02**. Repositório limpo, suíte inteira passando
-(`npm run verify`: backend build 0, typecheck 0, 141 testes backend, 49 frontend,
-lint 0, build frontend 0). Produção respondendo saudável.
+Última sessão: **2026-09-03**. Repositório limpo, suíte inteira passando
+(141 testes backend, 49 frontend, lint 0, typecheck 0, static-checks 0).
+Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
+Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
-**Progresso das pendências anteriores (medido e verificado em 2026-09-02):**
+**Progresso das pendências e novas entregas (medido e verificado em 2026-09-03):**
 
-1. **Token do Railway:** Removido do código em `scripts/check-production-health.ts` (passa a ler `process.env.RAILWAY_TOKEN`).
-2. **Embeddings da Bíblia em Produção:** Medição real via Supabase confirmou **BLIVRE (31.102)** e **NVA (31.094)** com 100% dos versículos com embeddings. KJV possui 1.100 povoados de 30.470.
-3. **Traduções Bíblicas:** Filtradas em `backend/src/bible.controller.ts` para versões autorizadas e marcadas com badges visuais `Amostra` no `TranslationPicker` do frontend.
-4. **POST /rag/chat em Produção:** Medido com sucesso contra o Render. Retorna resposta exegética estruturada de **9.567 caracteres** com fontes e sem truncamento (HTTP 201/200).
-5. **Tornar a falha visível:** Adicionado `meta.vectorArm` em `/search/verses` com teste de caracterização (`characterization.spec.ts`).
-6. **Agente Autônomo de QA:** Fases 1 (mapeamento de 98 FUNC-IDs) e 2 (execução de fluxos críticos com 94.4% de health score) concluídas.
+1. **Agente Autônomo Diário de QA (Ativo na Nuvem):** Configurado em `.github/workflows/daily-qa.yml` para rodar todos os dias às 06:00 BRT (09:00 UTC) com upload automático de relatórios. Suíte de 14 testes da Fase 2 validada ao vivo contra a produção com **100.0% de Health Score**.
+2. **Sistema de Layouts Superior ao Logos:** Implementado `LayoutSwitcher.tsx` e `Workspace.tsx` com 5 layouts dinâmicos em 1 clique (Foco Único, Paralelo 50/50, Bancada Exegética Tríplice, Copilot IA e Grade Sinótica 2x2), além de maximização individual por painel e Link Set A automático.
+3. **Speed Search & Busca Híbrida:** Implementado `TheoSphereCommandPalette.tsx` com atalho global `Cmd+K`/`Ctrl+K`, parser de referências canônicas (`bibleReference.ts`) e operadores booleanos do Logos (`AND`, `OR`, `NOT`, `book:`, `chapter:`).
+4. **Painel Contextual de Ideias:** Criado `ContextualInsightsPanel.tsx` e botão `[💡 Ideias]` na toolbar da Bíblia, integrando comentários de domínio público (JFB, Matthew Henry, Calvino), referências TSK e Copilot IA RAG via `/rag/chat`.
+5. **Factbook com Lentes e Atlas 3D:** Adicionadas lentes temáticas (_Tudo_, _Bíblico_, _Teológico_, _Geografia_, _Biblioteca_), galeria de tópicos populares e botão de 1 clique para plotar no globo 3D.
+6. **Morfologia Interlinear de 1 Clique:** `VerseRow.tsx` enriquecido para que duplo-clique em qualquer palavra do versículo acione o `StrongOverlay.tsx` na posição do cursor.
+7. **Deploy em Produção:** Backend sincronizado via Git push (`main ae4562d`) e frontend publicado com sucesso na Vercel (`https://frontend-v2-lake.vercel.app`).
 
 **Próximos passos:**
 
