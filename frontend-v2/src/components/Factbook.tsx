@@ -53,6 +53,26 @@ interface FactbookData {
   sections: FactbookSection[];
 }
 
+function formatEntityText(val: any): string {
+  if (val == null) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "object") {
+    if (val.title && val.author)
+      return `${val.title} (${val.author}${val.year ? `, ${val.year}` : ""})`;
+    if (val.name) return val.name;
+    if (val.title) return val.title;
+    if (val.text) return val.text;
+    if (val.label) return val.label;
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return String(val);
+    }
+  }
+  return String(val);
+}
+
 export default function Factbook({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -629,7 +649,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                                 <li key={i} className="flex items-start gap-3">
                                   <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600/30 shrink-0" />
                                   <span className="text-[13px] text-gray-600 dark:text-gray-400">
-                                    {item}
+                                    {formatEntityText(item)}
                                   </span>
                                 </li>
                               ))}
@@ -642,15 +662,17 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           {section.verses && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {section.verses.map((v) => {
-                                const navigable = parseBibleRef(v) !== null;
+                                const verseStr = formatEntityText(v);
+                                const navigable =
+                                  parseBibleRef(verseStr) !== null;
                                 return (
                                   <button
-                                    key={v}
-                                    onClick={() => openReference(v)}
+                                    key={verseStr}
+                                    onClick={() => openReference(verseStr)}
                                     disabled={!navigable}
                                     title={
                                       navigable
-                                        ? `Abrir ${v} no leitor`
+                                        ? `Abrir ${verseStr} no leitor`
                                         : "Referência não reconhecida"
                                     }
                                     className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-blue-500/30 enabled:hover:bg-blue-50/30 dark:enabled:hover:bg-blue-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
@@ -658,7 +680,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                                     <div className="flex items-center gap-3">
                                       <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
                                       <span className="text-sm font-bold text-blue-600">
-                                        {v}
+                                        {verseStr}
                                       </span>
                                     </div>
                                     {navigable && (
@@ -674,19 +696,22 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                             navegação que define um Factbook. */}
                           {section.tags && (
                             <div className="flex flex-wrap gap-2">
-                              {section.tags.map((tag) => (
-                                <button
-                                  key={tag}
-                                  onClick={() => {
-                                    contentRef.current?.scrollTo({ top: 0 });
-                                    void handleSearch(tag);
-                                  }}
-                                  title={`Gerar dossiê sobre ${tag}`}
-                                  className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
-                                >
-                                  {tag}
-                                </button>
-                              ))}
+                              {section.tags.map((tag) => {
+                                const tagStr = formatEntityText(tag);
+                                return (
+                                  <button
+                                    key={tagStr}
+                                    onClick={() => {
+                                      contentRef.current?.scrollTo({ top: 0 });
+                                      void handleSearch(tagStr);
+                                    }}
+                                    title={`Gerar dossiê sobre ${tagStr}`}
+                                    className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
+                                  >
+                                    {tagStr}
+                                  </button>
+                                );
+                              })}
                             </div>
                           )}
 
@@ -700,7 +725,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                                   className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400"
                                 >
                                   <ExternalLink className="w-3 h-3 mt-0.5 shrink-0 text-gray-400" />
-                                  <span>{link}</span>
+                                  <span>{formatEntityText(link)}</span>
                                 </li>
                               ))}
                             </ul>

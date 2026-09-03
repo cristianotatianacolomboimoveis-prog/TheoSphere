@@ -148,17 +148,18 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
   // Clampar coordenadas — w-80 (320px) + h-estimado para baixo
   const CARD_WIDTH = 320;
   const CARD_HEIGHT_ESTIMATE = 480;
+  const safePosition = position || { x: 100, y: 100 };
   const left =
     typeof window !== "undefined"
-      ? Math.min(position.x, window.innerWidth - CARD_WIDTH - 16)
-      : position.x;
+      ? Math.min(safePosition.x, window.innerWidth - CARD_WIDTH - 16)
+      : safePosition.x;
   const top =
     typeof window !== "undefined"
       ? Math.min(
-          position.y + 20,
+          safePosition.y + 20,
           window.innerHeight - CARD_HEIGHT_ESTIMATE - 16,
         )
-      : position.y + 20;
+      : safePosition.y + 20;
 
   return (
     <motion.div

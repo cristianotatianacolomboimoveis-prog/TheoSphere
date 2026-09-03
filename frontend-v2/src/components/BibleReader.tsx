@@ -245,7 +245,7 @@ export default function BibleReader({
           word: word.original,
           strongId: word.strong,
           definition: "...",
-          pos: { x: event.clientX, y: event.clientY },
+          position: { x: event.clientX, y: event.clientY },
         });
         workerPost("FETCH_STRONGS", {
           strongId: word.strong,
@@ -262,7 +262,7 @@ export default function BibleReader({
         word,
         strongId: "LEX-" + word.toUpperCase(),
         definition: `Análise lexical de "${word}". Carregando lema e morfologia nas línguas originais...`,
-        pos: { x: event.clientX, y: event.clientY },
+        position: { x: event.clientX, y: event.clientY },
       });
       workerPost("FETCH_STRONGS", {
         word,
