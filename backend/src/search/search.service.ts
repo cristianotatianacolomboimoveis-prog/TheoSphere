@@ -98,12 +98,13 @@ export class SearchService {
 
       const resolvedBookId = resolveBookId(bookName);
       if (resolvedBookId) {
+        const transFilter = opts.translation?.toUpperCase().trim();
         const results = await this.prisma.bibleVerse.findMany({
           where: {
             bookId: resolvedBookId,
             chapter: chapter,
             ...(verse ? { verse } : {}),
-            ...(opts.translation ? { translation: opts.translation } : {}),
+            ...(transFilter ? { translation: transFilter } : {}),
           },
           orderBy: { verse: 'asc' },
           take: opts.limit || 50,
@@ -128,7 +129,7 @@ export class SearchService {
     const limit = Math.min(opts.limit ?? 20, 100);
     const poolSize = Math.min(opts.poolSize ?? 50, 200);
     const k = opts.rrfK ?? 60;
-    const translation = opts.translation;
+    const translation = opts.translation?.toUpperCase().trim();
 
     // Run both retrievers in parallel; degrade gracefully if either fails.
     let vectorStatus: 'ok' | 'empty' | 'failed' = 'ok';
@@ -190,7 +191,7 @@ export class SearchService {
     }
 
     const limit = Math.min(opts.limit ?? 50, 200);
-    const translation = opts.translation;
+    const translation = opts.translation?.toUpperCase().trim();
 
     const bookId = parsed.bookName ? resolveBookId(parsed.bookName) : null;
 
@@ -297,15 +298,12 @@ export class SearchService {
     poolSize: number,
     translation?: string,
   ): Promise<VectorRow[]> {
-    let embedding: number[];
-    try {
-      embedding = await this.embeddings.createEmbedding(query);
-    } catch (err) {
-      this.logger.warn(
-        `embedding for vector search failed: ${(err as Error).message}`,
-      );
-      return [];
-    }
+    // Falha do provedor de embedding é FALHA do braço vetorial, não vazio.
+    // Deixar propagar para o outer .catch em hybridSearchVerses, que marca
+    // `vectorStatus='failed'` (visível ao cliente como `meta.vectorArm`).
+    // Engolir o erro aqui e devolver [] tornava um teto de gastos no Gemini
+    // indistinguível de "não há embeddings povoados" (regressão 2026-07).
+    const embedding = await this.embeddings.createEmbedding(query);
     const literal = `[${embedding
       .map((n) => (Number.isFinite(n) ? n : 0))
       .join(',')}]`;

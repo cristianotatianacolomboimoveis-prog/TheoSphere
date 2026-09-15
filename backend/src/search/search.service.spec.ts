@@ -235,6 +235,68 @@ describe('SearchService', () => {
     });
   });
 
+  /**
+   * meta.vectorArm — o controller expõe `(data as any).vectorStatus` como
+   * `meta.vectorArm` na resposta HTTP de /api/v1/search/verses. O service
+   * anexa `vectorStatus` no array retornado via Object.defineProperty
+   * (não-enumerável), e é isso que garante que uma queda silenciosa do braço
+   * vetorial fique visível ao cliente.
+   *
+   * Regressão que motivou a instrumentação: em 2026-07 os embeddings ficaram
+   * NULL em produção por dois meses porque `hybridSearchVerses` engolia a
+   * falha do braço vetorial num logger.warn e seguia com [], e a resposta HTTP
+   * não distinguia "só casou por keyword porque vetor falhou" de "casou pelos
+   * dois". Sem esses testes, essa sinalização pode regredir sem alarme.
+   */
+  describe('meta.vectorArm exposure', () => {
+    it('anexa vectorStatus="ok" quando o retriever vetorial devolve linhas', async () => {
+      setRetrieverResults(
+        [{ id: 'V1', distance: 0.1, text: 'shared' }],
+        [{ id: 'V1', rank: 0.9, text: 'shared' }],
+      );
+      const out = await service.hybridSearchVerses('grace');
+      expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
+        'ok',
+      );
+    });
+
+    it('anexa vectorStatus="empty" quando o retriever vetorial devolve []', async () => {
+      setRetrieverResults([], [{ id: 'K1', rank: 0.9, text: 'kw only' }]);
+      const out = await service.hybridSearchVerses('grace');
+      expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
+        'empty',
+      );
+      expect(out).toHaveLength(1);
+    });
+
+    it('anexa vectorStatus="failed" quando o embedding lança erro', async () => {
+      embeddings.createEmbedding.mockRejectedValue(new Error('gemini 429'));
+      // Keyword retriever ainda responde para não crashar o pipeline
+      prisma.$queryRaw.mockResolvedValue([]);
+      const out = await service.hybridSearchVerses('grace');
+      expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
+        'failed',
+      );
+    });
+
+    it('vectorStatus não é enumerável — não vaza no JSON.stringify do array de hits', async () => {
+      setRetrieverResults([{ id: 'V1', distance: 0.1, text: 't' }], []);
+      const out = await service.hybridSearchVerses('grace');
+      // Serialização do array não expõe a propriedade lateral (o controller
+      // resolve `meta.vectorArm` fora do array, então a UI não deve receber
+      // a chave duplicada acidentalmente).
+      const parsed = JSON.parse(JSON.stringify(out));
+      expect(parsed).toBeInstanceOf(Array);
+      expect(
+        (parsed as unknown as { vectorStatus?: string }).vectorStatus,
+      ).toBeUndefined();
+      // Acessível diretamente no objeto vivo:
+      expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
+        'ok',
+      );
+    });
+  });
+
   describe('advancedSearch — strong:/morph: (InterlinearWord)', () => {
     /**
      * Achata recursivamente a tagged-template do $queryRaw: fragmentos

@@ -11,25 +11,32 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-03**. Repositório limpo, suíte inteira passando
-(141 testes backend, 49 frontend, lint 0, typecheck 0, static-checks 0).
+Última sessão: **2026-09-15**. Repositório limpo, suíte inteira passando
+(**145 testes backend** — +4 sobre o baseline de 141, cobrindo `meta.vectorArm`;
+49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+QA Fase 2: 100%, QA Fase 3: 100%).
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
 Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
-**Progresso das pendências e novas entregas (medido e verificado em 2026-09-03):**
+**Progresso das pendências e novas entregas (medido e verificado em 2026-09-11):**
 
-1. **Agente Autônomo Diário de QA (Ativo na Nuvem):** Configurado em `.github/workflows/daily-qa.yml` para rodar todos os dias às 06:00 BRT (09:00 UTC) com upload automático de relatórios. Suíte de 14 testes da Fase 2 validada ao vivo contra a produção com **100.0% de Health Score**.
-2. **Sistema de Layouts Superior ao Logos:** Implementado `LayoutSwitcher.tsx` e `Workspace.tsx` com 5 layouts dinâmicos em 1 clique (Foco Único, Paralelo 50/50, Bancada Exegética Tríplice, Copilot IA e Grade Sinótica 2x2), além de maximização individual por painel e Link Set A automático.
-3. **Speed Search & Busca Híbrida:** Implementado `TheoSphereCommandPalette.tsx` com atalho global `Cmd+K`/`Ctrl+K`, parser de referências canônicas (`bibleReference.ts`) e operadores booleanos do Logos (`AND`, `OR`, `NOT`, `book:`, `chapter:`).
-4. **Painel Contextual de Ideias:** Criado `ContextualInsightsPanel.tsx` e botão `[💡 Ideias]` na toolbar da Bíblia, integrando comentários de domínio público (JFB, Matthew Henry, Calvino), referências TSK e Copilot IA RAG via `/rag/chat`.
-5. **Factbook com Lentes e Atlas 3D:** Adicionadas lentes temáticas (_Tudo_, _Bíblico_, _Teológico_, _Geografia_, _Biblioteca_), galeria de tópicos populares e botão de 1 clique para plotar no globo 3D.
-6. **Morfologia Interlinear de 1 Clique:** `VerseRow.tsx` enriquecido para que duplo-clique em qualquer palavra do versículo acione o `StrongOverlay.tsx` na posição do cursor.
-7. **Deploy em Produção:** Backend sincronizado via Git push (`main ae4562d`) e frontend publicado com sucesso na Vercel (`https://frontend-v2-lake.vercel.app`).
+1. **Agente Autônomo Diário de QA (Fases 2 e 3 Ativas na Nuvem):** Configurado em `.github/workflows/daily-qa.yml` para rodar todos os dias às 06:00 BRT (09:00 UTC). Suíte Fase 2 (14 testes) e Fase 3 (13 testes E2E com isolamento multi-tenant, leitura, anotações, interlinear e encerramento de sessão) validadas contra a produção com **100.0% de Health Score**.
+2. **Povoamento Incremental de Embeddings & Suporte Unicode:** Corrigido bug crítico em `EmbeddingService.normalizeText` para suportar nativamente diacríticos e caracteres gregos/hebraicos (`\p{L}\p{N}\p{M}`). Povoamento com Gemini executado: **66.296 versículos com embeddings ativos** (BLIVRE 100%, NVA 100%, KJV 1.600, TR 1.000, WLC 500, LXX 500, WEB 500) e busca híbrida validada com `vectorArm: ok`.
+3. **Pipeline de Ingestão do Acervo Clássico (Domínio Público):** Ingestão e indexação vetorial de **38 obras clássicas completas (18.790 chunks de 500 palavras)** no `UserEmbedding` com portão de licença fail-closed (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Aquino, Bunyan, Comentários de Matthew Henry e Easton's Bible Dictionary), validado com citação precisa de 7 fontes pelo Copilot IA RAG.
+4. **Sistema de Layouts Superior ao Logos:** Implementado `LayoutSwitcher.tsx` e `Workspace.tsx` com 5 layouts dinâmicos em 1 clique (Foco Único, Paralelo 50/50, Bancada Exegética Tríplice, Copilot IA e Grade Sinótica 2x2), além de maximização individual por painel e Link Set A automático.
+5. **Speed Search & Busca Híbrida:** Implementado `TheoSphereCommandPalette.tsx` com atalho global `Cmd+K`/`Ctrl+K`, parser de referências canônicas (`bibleReference.ts`) e operadores booleanos do Logos (`AND`, `OR`, `NOT`, `book:`, `chapter:`).
+6. **Painel Contextual de Ideias:** Criado `ContextualInsightsPanel.tsx` e botão `[💡 Ideias]` na toolbar da Bíblia, integrando comentários de domínio público (JFB, Matthew Henry, Calvino), referências TSK e Copilot IA RAG via `/rag/chat`.
+7. **Factbook com Lentes e Atlas 3D:** Adicionadas lentes temáticas (_Tudo_, _Bíblico_, _Teológico_, _Geografia_, _Biblioteca_), galeria de tópicos populares e botão de 1 clique para plotar no globo 3D.
+8. **Morfologia Interlinear de 1 Clique:** `VerseRow.tsx` enriquecido para que duplo-clique em qualquer palavra do versículo acione o `StrongOverlay.tsx` na posição do cursor.
+9. **Deploy em Produção:** Backend sincronizado via Git push (`main ae4562d`) e frontend publicado com sucesso na Vercel (`https://frontend-v2-lake.vercel.app`).
+10. **Limpeza e Normalização de Traduções (Concluído):** Normalizado `opts.translation` com `.toUpperCase().trim()` em `SearchService` (abrangendo detecção de referências, busca híbrida e avançada). No frontend (`BibleReader.tsx` e `TranslationPicker.tsx`), atualizado o catálogo com as 7 edições integrais canônicas de domínio público/licença livre (`BLIVRE`, `NVA`, `KJV`, `WEB`, `TR`, `WLC`, `LXX`) com badges estilizados para grego (`GR`) e hebraico (`HE`), e sinalização explícita de versões parciais/amostras (`isPartial: true`).
+
+11. **Migração cross-tool para Claude Code (2026-09-15):** Removido o TheoSphere do workspace do Antigravity IDE — `storage.json` (2 refs), `state.vscdb` (5 chaves com `TheoSphere` limpas) e `workspaceStorage/d66ebd…c6bb/` deletado. Backups `.bak.<ts>` mantidos ao lado dos originais. `~/.gemini/GEMINI.md` global já é agnóstico (só instrui a ler AGENTS.md). `.agent/workflows/audit-weekly.md` reescrito para ser cross-tool. Repositório agora é operado exclusivamente pelo Claude Code / Cowork.
+12. **Sinalização `meta.vectorArm` verificada, corrigida e coberta por teste (2026-09-15):** o item que estava listado em §6 como "melhoria sugerida, ainda não aplicada" tinha a instrumentação de saída aplicada (`search.controller.ts:38-40` expõe `meta: { vectorArm: (data as any).vectorStatus || 'ok' }` sobre a propriedade não-enumerável anexada em `search.service.ts:135-161`), mas o teste que escrevi para o cenário `gemini 429` — o que motivou a instrumentação — falhou revelando um bug: `vectorSearch` engolia o erro de `createEmbedding` no `try/catch` interno e devolvia `[]`, o que virava `vectorStatus='empty'` em vez de `'failed'`. Ou seja, teto de gastos do Gemini era indistinguível de "biblioteca sem embeddings povoados" — exatamente o tipo de falha silenciosa que a sinalização existe para tornar visível. **Corrigido**: removido o `try/catch` interno de `vectorSearch`, deixando o erro propagar para o outer `.catch` de `hybridSearchVerses` que já marca `'failed'`. **Testes**: adicionados 4 casos em `search.service.spec.ts` (`describe('meta.vectorArm exposure')`) cobrindo os estados `ok`, `empty`, `failed` (via `createEmbedding` rejeitado) e o invariante de não-enumerabilidade (para não vazar `vectorStatus` no `JSON.stringify` do array de hits, evitando duplicação com o `meta.vectorArm` que já vem no envelope). 18/18 do spec, 145/145 do backend, lint e typecheck limpos.
 
 **Próximos passos:**
 
-1. **Fase 3 do QA:** Jornadas E2E completas (Login → Leitura → Estudo → Logout; isolamento multi-tenant de anotações).
-2. **Povoamento incremental de embeddings:** KJV e textos nas línguas originais (WLC, LXX, TR) com controle de cota via `scripts/povoar-embeddings-livres.ts`.
+1. **Expansão Contínua do Acervo:** Adição e ingestão de novos volumes clássicos de domínio público conforme demanda exegética.
 
 ---
 
@@ -118,24 +125,22 @@ Não basta responder "está tudo certo" — mostre o número.
 Atualize esta seção quando resolver um item. Ela é o principal motivo deste arquivo
 existir: sem ela, o próximo agente rediagnostica tudo do zero.
 
-### 🔴 Embeddings da Bíblia ausentes em produção
+### 🟢 Embeddings da Bíblia em produção (Povoamento Ativo)
 
-**Confirmado com o banco em 2026-08-06 — zero, não "poucos":**
+**Medição direta no banco PostgreSQL:**
 
-| tradução          | com embedding | total  |
-| ----------------- | ------------- | ------ |
-| BLIVRE            | 0             | 31.102 |
-| NVA               | 0             | 31.094 |
-| ARA               | 0             | 88     |
-| KJV               | 0             | 56     |
-| NVIPT             | 0             | 24     |
-| ara _(minúsculo)_ | 0             | 1      |
+| tradução | com embedding | total  | status              |
+| -------- | ------------- | ------ | ------------------- |
+| BLIVRE   | 31.102        | 31.102 | 100% Completo       |
+| NVA      | 31.094        | 31.094 | 100% Completo       |
+| KJV      | 1.600         | 30.470 | Povoamento em lotes |
+| TR       | 1.000         | 7.957  | Grego NT Ativo      |
+| WLC      | 500           | 22.550 | Hebraico AT Ativo   |
+| LXX      | 500           | 21.899 | Grego AT Ativo      |
+| WEB      | 500           | 30.456 | Inglês WEB Ativo    |
 
-`BibleVerse.embedding` está NULL em **62.365 de 62.365 versículos**. Consequência:
-**a busca híbrida roda com um braço só** — todo resultado vem de full-text puro, o
-braço semântico não contribui. Buscar "perdão dos inimigos" não encontra "amai os
-vossos inimigos". É exatamente o recurso que deveria diferenciar a plataforma do
-Logos.
+Total no banco: **66.296 versículos com embeddings ativos** indexados via HNSW (`BibleVerse_embedding_hnsw_idx`).
+A busca híbrida em `/search/verses` opera com os dois braços (Full-Text + Vetorial) respondendo `meta.vectorArm: "ok"`.
 
 Os cinco índices HNSW existem, incluindo `BibleVerse_embedding_hnsw_idx`. A
 infraestrutura está pronta e vazia — não é problema de schema nem de migração.
@@ -157,9 +162,21 @@ psql "$DATABASE_URL" -c 'SELECT translation, count(*) FILTER (WHERE embedding IS
 cd backend && npx tsx scripts/full-rag-bootstrap.ts
 ```
 
-**Melhoria sugerida, ainda não aplicada:** incluir `meta: { vectorArm: "ok" | "empty" | "failed" }`
-na resposta de `/search/verses`. Falha silenciosa é o problema de fundo, e aqui ela
-está no backend, fora do alcance do `static-checks.mjs` (que só varre o frontend).
+**Sinalização `meta.vectorArm` aplicada e blindada (2026-09-15):**
+`/search/verses` responde `meta: { vectorArm: "ok" | "empty" | "failed" }` —
+implementado no `search.controller.ts` linhas 38-40 sobre a propriedade
+não-enumerável `vectorStatus` anexada em `search.service.ts` linhas 135-161.
+Coberto por `describe('meta.vectorArm exposure')` em `search.service.spec.ts`
+com os 3 estados + o invariante de não-enumerabilidade (que evita duplicar a
+chave dentro do array serializado ao lado do `meta` do envelope).
+
+Bug lateral corrigido na mesma passada: o `try/catch` interno em `vectorSearch`
+engolia falha de `createEmbedding` e retornava `[]`, o que virava `vectorStatus =
+'empty'` em vez de `'failed'` — falha silenciosa clássica do tipo que o AGENTS
+combate. O `catch` interno foi removido; o erro agora propaga para o outer
+`.catch` de `hybridSearchVerses` que já marca `'failed'` corretamente. Efeito
+prático: teto de gastos do Gemini deixa de aparecer indistinguível de
+"biblioteca sem embeddings povoados" no cliente.
 
 ### 🔑 Token do Railway exposto no repositório
 
@@ -176,31 +193,17 @@ só o dono pode fazer. Enquanto não for revogado, trate como credencial vazada.
 Nenhum agente deve reutilizar esse token nem escrever segredos novos em código.
 Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do provedor.
 
-### 🟠 Só 2 das 7 traduções existem de fato
+### 🟢 Traduções Canônicas e Normalização Case-Insensitive
 
-`GET /bible/versions` devolve 7 versões com metadados de licença, mas a tabela
-`BibleVerse` conta outra história (medido em 2026-08-06): **BLIVRE (31.102) e NVA
-(31.094) são Bíblias completas; ARA (88), KJV (56) e NVIPT (24) são amostras** —
-dezenas de versículos, não milhares. Uma sétima não tem nenhuma linha.
+A tabela `BibleVerse` contém 7 traduções integrais e canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), WLC (22.550), LXX (21.899)**.
 
-Ou seja, a interface oferece traduções que o usuário não consegue ler além de alguns
-versículos. Isso não é o portão de licença agindo (BLIVRE e NVA são as livres; ARA e
-NVIPT são `restricted` por licença e provavelmente nunca deveriam ter sido
-carregadas). Vale decidir explicitamente: ou some da lista de versões, ou sinaliza
-como parcial na UI. Hoje falha em silêncio, que é o padrão que este projeto combate.
+- A camada de busca (`SearchService`) normaliza qualquer entrada para uppercase trimmed (`translation?.toUpperCase().trim()`), eliminando divergências case-sensitive.
+- A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia todas as 7 edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
 
-Há também sujeira de dados: `'ara'` minúsculo e `'ARA'` maiúsculo coexistem como
-traduções distintas (1 e 88 versículos). Normalizar.
+### ⚪ Acervo Clássico e Biblioteca Teológica
 
-### ⚪ Lacunas de conteúdo
-
-- **Léxico** roda com seed de amostra, não com o dataset completo.
-- **Comentários vazios** desde a purga de licença de 2026-08-01 (10 obras,
-  27.887 trechos removidos).
-- **Acervo do Drive: 170 trechos, 2 donos** (medido em 2026-08-06). Não está vazio,
-  mas é pequeno — coerente com as poucas obras reingeridas depois da purga. Atenção:
-  `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera
-  a cada restart do Render — **não mede o acervo**. Use o script de diagnóstico.
+- **Léxico** integrado com concordância Strong e léxico TAGNT grego/hebraico.
+- **Acervo de Domínio Público:** **38 obras clássicas completas e 18.790 trechos** indexados no `UserEmbedding` com embeddings vetoriais (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Matthew Henry, Aquino, Bunyan, Easton's Bible Dictionary). O Copilot IA cita diretamente as obras nos debates e exegeses. Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `scratch/diagnostico-embeddings.js` para medir o acervo persistente no PostgreSQL.
 
 ### ⚖️ Portão de licença
 
