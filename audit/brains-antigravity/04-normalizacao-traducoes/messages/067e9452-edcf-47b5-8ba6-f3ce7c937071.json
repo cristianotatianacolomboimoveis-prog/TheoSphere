@@ -1,0 +1,24 @@
+{
+  "id": "067e9452-edcf-47b5-8ba6-f3ce7c937071",
+  "recipient": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+  "sender": "1a04edf0-199b-44a2-9321-dbedcfe51872/task-151",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-11T17:51:21.039555Z",
+  "renderDetails": {
+    "messageTitle": "Run povoar-embeddings-livres.ts WEB 500 finished"
+  },
+  "content": "Task id \"1a04edf0-199b-44a2-9321-dbedcfe51872/task-151\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t🌟 [POVOAMENTO SEGURO] Inicializando Prisma e EmbeddingService...\n[Nest] 37198  - 09/11/2026, 2:49:52 PM     LOG [EmbeddingService] Google Gemini AI inicializado para Embeddings (768 dims).\n🔍 Buscando versículos sem embedding para a versão 'WEB' (Limite: 500)...\n📊 Encontrados 500 versículos pendentes.\n🚀 Progresso [WEB]: 20/500 versículos processados (20 salvos no banco).\n🚀 Progresso [WEB]: 40/500 versículos processados (40 salvos no banco).\n🚀 Progresso [WEB]: 60/500 versículos processados (60 salvos no banco).\n🚀 Progresso [WEB]: 80/500 versículos processados (80 salvos no banco).\n🚀 Progresso [WEB]: 100/500 versículos processados (100 salvos no banco).\n🚀 Progresso [WEB]: 120/500 versículos processados (120 salvos no banco).\n🚀 Progresso [WEB]: 140/500 versículos processados (140 salvos no banco).\n🚀 Progresso [WEB]: 160/500 versículos processados (160 salvos no banco).\n🚀 Progresso [WEB]: 180/500 versículos processados (180 salvos no banco).\n🚀 Progresso [WEB]: 200/500 versículos processados (200 salvos no banco).\n🚀 Progresso [WEB]: 220/500 versículos processados (220 salvos no banco).\n🚀 Progresso [WEB]: 240/500 versículos processados (240 salvos no banco).\n🚀 Progresso [WEB]: 260/500 versículos processados (260 salvos no banco).\n🚀 Progresso [WEB]: 280/500 versículos processados (280 salvos no banco).\n🚀 Progresso [WEB]: 300/500 versículos processados (300 salvos no banco).\n🚀 Progresso [WEB]: 320/500 versículos processados (320 salvos no banco).\n🚀 Progresso [WEB]: 340/500 versículos processados (340 salvos no banco).\n🚀 Progresso [WEB]: 360/500 versículos processados (360 salvos no banco).\n🚀 Progresso [WEB]: 380/500 versículos processados (380 salvos no banco).\n🚀 Progresso [WEB]: 400/500 versículos processados (400 salvos no banco).\n🚀 Progresso [WEB]: 420/500 versículos processados (420 salvos no banco).\n🚀 Progresso [WEB]: 440/500 versículos processados (440 salvos no banco).\n🚀 Progresso [WEB]: 460/500 versículos processados (460 salvos no banco).\n🚀 Progresso [WEB]: 480/500 versículos processados (480 salvos no banco).\n🚀 Progresso [WEB]: 500/500 versículos processados (500 salvos no banco).\n\n🎉 Resumo do Povoamento para 'WEB':\n   - Versículos salvos nesta rodada: 500\n   - Lotes com erro: 0\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1a04edf0-199b-44a2-9321-dbedcfe51872/.system_generated/tasks/task-151.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "stepIndex": 151,
+      "toolCall": {
+        "id": "call_362120",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"npx tsx scripts/povoar-embeddings-livres.ts WEB 500\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":60000,\"toolAction\":\"Populating WEB English embeddings\",\"toolSummary\":\"Run povoar-embeddings-livres.ts WEB 500\"}",
+        "thinkingSignature": "EsgCCsUCARFNMg/cq+s3PZST/7GIoACy01QhXKZu3p3hEQxrpH1qC18elXAqREPMPJMsQwM2q6dWfAI7iHrOAQMBB5the2zkTCiiCpQSrIpi2rjPHkpwY222P5Yvhb4i//XuQOF3Cya8mYYTmXGAlo3tm843kjvUQwaKXMY6xMOzUWqGuqNMEj2io7MJb6jsRfUTuTlIh8axwZI1/IqrUQxJI5Vrwh0GR5FO1pRIMoD1XcZwD8+VkbtbwYHGudKzhW/DV+x5Nb4XD1nnReTV09EI4wWZGgqsL2wBh1WSzhJYK7wboV4LBn8g0pnLPeEWFR4mda4/PymL7SQBXZroKS4UMGQnuMIfJ0zffcuvqp69hSByQkaL9JNZCn32R+NxYKWeulqmq5st7LmL5vFZXsZRUKjpEujivxU0xdOxglPRf7A2EWsMi3zdLQ==",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

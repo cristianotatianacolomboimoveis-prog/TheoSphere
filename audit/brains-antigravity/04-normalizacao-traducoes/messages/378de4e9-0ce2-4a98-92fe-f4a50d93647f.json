@@ -1,0 +1,24 @@
+{
+  "id": "378de4e9-0ce2-4a98-92fe-f4a50d93647f",
+  "recipient": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+  "sender": "1a04edf0-199b-44a2-9321-dbedcfe51872/task-143",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-11T17:48:27.507790Z",
+  "renderDetails": {
+    "messageTitle": "Run povoar-embeddings-livres.ts WLC 500 finished"
+  },
+  "content": "Task id \"1a04edf0-199b-44a2-9321-dbedcfe51872/task-143\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t🌟 [POVOAMENTO SEGURO] Inicializando Prisma e EmbeddingService...\n[Nest] 37029  - 09/11/2026, 2:47:20 PM     LOG [EmbeddingService] Google Gemini AI inicializado para Embeddings (768 dims).\n🔍 Buscando versículos sem embedding para a versão 'WLC' (Limite: 500)...\n📊 Encontrados 500 versículos pendentes.\n🚀 Progresso [WLC]: 20/500 versículos processados (20 salvos no banco).\n🚀 Progresso [WLC]: 40/500 versículos processados (40 salvos no banco).\n🚀 Progresso [WLC]: 60/500 versículos processados (60 salvos no banco).\n🚀 Progresso [WLC]: 80/500 versículos processados (80 salvos no banco).\n🚀 Progresso [WLC]: 100/500 versículos processados (100 salvos no banco).\n🚀 Progresso [WLC]: 120/500 versículos processados (120 salvos no banco).\n🚀 Progresso [WLC]: 140/500 versículos processados (140 salvos no banco).\n🚀 Progresso [WLC]: 160/500 versículos processados (160 salvos no banco).\n🚀 Progresso [WLC]: 180/500 versículos processados (180 salvos no banco).\n🚀 Progresso [WLC]: 200/500 versículos processados (200 salvos no banco).\n🚀 Progresso [WLC]: 220/500 versículos processados (220 salvos no banco).\n🚀 Progresso [WLC]: 240/500 versículos processados (240 salvos no banco).\n🚀 Progresso [WLC]: 260/500 versículos processados (260 salvos no banco).\n🚀 Progresso [WLC]: 280/500 versículos processados (280 salvos no banco).\n🚀 Progresso [WLC]: 300/500 versículos processados (300 salvos no banco).\n🚀 Progresso [WLC]: 320/500 versículos processados (320 salvos no banco).\n🚀 Progresso [WLC]: 340/500 versículos processados (340 salvos no banco).\n🚀 Progresso [WLC]: 360/500 versículos processados (360 salvos no banco).\n🚀 Progresso [WLC]: 380/500 versículos processados (380 salvos no banco).\n🚀 Progresso [WLC]: 400/500 versículos processados (400 salvos no banco).\n🚀 Progresso [WLC]: 420/500 versículos processados (420 salvos no banco).\n🚀 Progresso [WLC]: 440/500 versículos processados (440 salvos no banco).\n🚀 Progresso [WLC]: 460/500 versículos processados (460 salvos no banco).\n🚀 Progresso [WLC]: 480/500 versículos processados (480 salvos no banco).\n🚀 Progresso [WLC]: 500/500 versículos processados (500 salvos no banco).\n\n🎉 Resumo do Povoamento para 'WLC':\n   - Versículos salvos nesta rodada: 500\n   - Lotes com erro: 0\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1a04edf0-199b-44a2-9321-dbedcfe51872/.system_generated/tasks/task-143.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "stepIndex": 143,
+      "toolCall": {
+        "id": "call_524070",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"npx tsx scripts/povoar-embeddings-livres.ts WLC 500\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":60000,\"toolAction\":\"Populating WLC Hebrew embeddings\",\"toolSummary\":\"Run povoar-embeddings-livres.ts WLC 500\"}",
+        "thinkingSignature": "EskCCsYCARFNMg+NBU07LmNmBI2Z0Xk3QfsWi4Hqi7qVrInsfPuYp9S8ObVPACDYrOvNN+0s9Cdwfo96ougjxmnqQ5rqsrnEWe4bU68aid6R89+OMDnwXjh5q+Ll5ku9OZ6pkz+kkNJ0z1nTe0TXCvVV4kcsmmNCJ3kbMLB+Mla1ZpBO1+ORF8Gn0szww+PQrN7eS2CdLbne6bZG0kHZERTR7BiPmq2m3XayLhzxTI1llNNIHTvped6OU+y9oZt94hpHugfSaMyRoXo+s+RETG5BXJlH2thXhi3TKivmR+cZkpY5WlnO+ZD3vpbUltdhcoXKzgnOuX5Rb3EX2ykspENLT/0rsXZx/it2Skg5QQkHDVNADQYSSsnyHhsnUfRSJ0Vb3iZNO9S5Ort6azJHMdR2bq0qw+nd4qA+4cJTUK8HlbA+Go0dyQqjIfo=",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "dd890a4f-ab08-4f47-88e7-3cdd1ea493a0",
+  "recipient": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2",
+  "sender": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/task-9",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-01T21:36:18.912133Z",
+  "renderDetails": {
+    "messageTitle": "Run npm run verificar in backend finished"
+  },
+  "content": "Task id \"1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/task-9\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> backend@0.0.1 verificar\n> npm run build && npm run typecheck && npm run test && npm run lint\n\n\n> backend@0.0.1 build\n> prisma generate && nest build\n\nLoaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\n\n✔ Generated Prisma Client (v7.9.0) to ./node_modules/@prisma/client in 117ms\n\nStart by importing your Prisma Client (See: https://pris.ly/d/importing-client)\n\n\n\n> backend@0.0.1 typecheck\n> tsc --noEmit -p tsconfig.json\n\n\n> backend@0.0.1 test\n> jest\n\nPASS src/rag/license-gate.spec.ts\nPASS src/search/query-parser.spec.ts\nPASS src/common/book-map.spec.ts\nPASS src/events/event-bus.service.spec.ts\n[Nest] 37178  - 09/01/2026, 6:36:09 PM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 37178  - 09/01/2026, 6:36:09 PM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 37178  - 09/01/2026, 6:36:09 PM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 37178  - 09/01/2026, 6:36:09 PM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 37178  - 09/01/2026, 6:36:09 PM    WARN [EventBusService] subscribe(theosphere:rag:hit) ignored: subscriber not ready\n[Nest] 37178  - 09/01/2026, 6:36:09 PM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\nPASS src/linguistics/linguistics.service.spec.ts\nPASS src/health/health.indicators.spec.ts\nPASS src/bible/passage-guide.service.spec.ts\nPASS src/auth/auth.service.spec.ts\nPASS src/search/characterization.spec.ts\nPASS src/search/search.service.spec.ts\nPASS src/rag/text-extractors.spec.ts\nPASS src/rag/rag.service.spec.ts\nPASS src/app.controller.spec.ts\n\nTest Suites: 13 passed, 13 total\nTests:       141 passed, 141 total\nSnapshots:   0 total\nTime:        2.525 s\nRan all test suites.\n\n> backend@0.0.1 lint\n> eslint \"{src,apps,libs,test}/**/*.ts\" --fix\n\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/.system_generated/tasks/task-9.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2",
+      "stepIndex": 9,
+      "toolCall": {
+        "id": "call_572184",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"cd backend \\u0026\\u0026 npm run verificar\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Running backend verification\",\"toolSummary\":\"Run npm run verificar in backend\"}",
+        "thinkingSignature": "EswDCskDARFNMg8fC2qkxSvfgb82qU2WZKkzasTR+Had0rwt73qnqr5zsMUJVVCkwaRqdMeDuPGl5GzDp2g/ejTOwR6RTXw5Oa+2/JxZVMij2wvtRUCkb4egGNomFphoJoGwc8kseejw0DFTAlpPFZm0gtpPPkM8HOkRM7ff6YHH58zkitpbb0u2ZJoP54DamyruHPSq5a0Txiof4XeVY0HVGDWMYyriKtQ+G1cvSA5MMthQLbDxxnQkUAGEcyUzsbel71npM3h7BPAvENnCe15K0rd0ZsemUwRvFsWK2l0xEDBh+QGe7LDhXWmVRa8GoATETuKe9n5HkiFC0ecfgbebjDjAnEwA+koSEPW73J1fi2pS7mGxCxmx+Jcx/Mwyzj3WaQMV9vtvJyuAjIdMCcXaA2wKKclDFN7RZrHZu0M1qxw167ialL4MkD5G5Sap5JjKblziIL3A1OG2Q0xZi9spePP+KijcB12eEZiyTj8OHXXM41h0qZyt1SU43E9/aHU69KoAEuVZ/9vtbMUYduKcod5xAPE4IdFcFA+1HGoGX1Erkuni0sTEH6LUTNnLJXZBqGL3PffUzqspweOVBs+fYn1ktezLTMXZoY+5kw==",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

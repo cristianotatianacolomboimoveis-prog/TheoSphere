@@ -1,0 +1,22 @@
+{
+  "id": "5531ca56-fe39-4869-96e7-6fc9a70eafad",
+  "recipient": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+  "sender": "1a04edf0-199b-44a2-9321-dbedcfe51872/task-73",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-11T17:20:25.802021Z",
+  "renderDetails": { "messageTitle": "Run qa-phase3-suite.mjs finished" },
+  "content": "Task id \"1a04edf0-199b-44a2-9321-dbedcfe51872/task-73\" finished with result:\n\n\t\t\t\tThe command exited with code 1.\n\t\t\t\tOutput:\n\t\t\t\t🚀 Iniciando TheoSphere QA Suite — Fase 3 (Jornadas E2E & Multi-Tenant) contra: https://theosphere.onrender.com\n\n--- 1. JORNADA DE AUTENTICAÇÃO (AUTH E2E) ---\n✅ [E2E-AUTH-01] Cadastro de Usuário A (3571ms): HTTP 201, userId criado: 0326735d-24d4-42a0-921c-e045dec06a38\n✅ [E2E-AUTH-02] Login de Usuário A com geração de JWT (2119ms): HTTP 200, token JWT recebido (tamanho: 261 chars)\n✅ [E2E-AUTH-03] Cadastro e Login de Usuário B (Isolamento) (4019ms): HTTP 200, Usuário B autenticado (userId: 51ee8dca-fe8d-448e-a1b8-9f4f25014faf)\n\n--- 2. JORNADA DE LEITURA BÍBLICA & EXEGESE ---\n✅ [E2E-READ-01] Carregamento do Texto Bíblico (João 3 em BLIVRE) (401ms): HTTP 200, 36 versículos carregados. João 3:16: \"Porque Deus amou ao mundo de tal maneira...\"\n✅ [E2E-READ-02] Consulta de Referências Cruzadas TSK para João 3:16 (355ms): HTTP 200, 12 referências mapeadas (ex: John 1:14, John 3:15, John 3:17)\n❌ [E2E-READ-03] Consulta de Morfologia Interlinear / Línguas Originais (810ms): HTTP 200, módulo linguístico respondeu com undefined registros interlineares\n\n--- 3. JORNADA DE ESTUDO & ANOTAÇÕES PESSOAIS ---\n✅ [E2E-NOTE-01] Sincronização de Anotação Privada pelo Usuário A (1202ms): HTTP 201, anotações e destaques sincronizados no RAG (indexados: 2)\n\n--- 4. ISOLAMENTO MULTI-TENANT ESTRITO ---\n✅ [E2E-TENANT-01] Consulta Copilot IA com contexto autenticado de Usuário A (21083ms): HTTP 201, Copilot IA respondeu ao Usuário A (10251 caracteres)\n✅ [E2E-TENANT-02] Blindagem: Usuário B NÃO tem acesso às anotações privadas do Usuário A (20270ms): HTTP 201, Isolamento confirmado: segredo do Usuário A NÃO foi exposto ao Usuário B\n✅ [E2E-TENANT-03] Consulta de biblioteca pessoal protegida por JWT (GET /library/lookup) (515ms): HTTP 200, biblioteca pessoal consultada isoladamente para o Usuário B (0 trechos)\n\n--- 5. FEEDBACK DE IA & ENCERRAMENTO DE SESSÃO ---\n✅ [E2E-FEEDBACK-01] Envio de Feedback do Usuário A (👍 Aprendizado Contínuo) (217ms): HTTP 201, feedback registrado: {\"action\":\"ack\",\"promoted\":false}\n✅ [E2E-LOGOUT-01] Encerramento de sessão (POST /auth/logout) (181ms): HTTP 200, cookies de sessão limpos com sucesso\n✅ [E2E-SEC-01] Rejeição de rotas protegidas sem token (HTTP 401) (420ms): HTTP 401 (esperado 401 Unauthorized sem token)\n\n======================================================\nRESUMO FINAL DE EXECUÇÃO — FASE 3:\nTotal de testes: 13\nAprovados:       12\nFalhas:          1\nHealth Score:    92.3%\n\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1a04edf0-199b-44a2-9321-dbedcfe51872/.system_generated/tasks/task-73.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "stepIndex": 73,
+      "toolCall": {
+        "id": "call_453832",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"node audit/scripts/qa-phase3-suite.mjs\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere\",\"WaitMsBeforeAsync\":60000,\"toolAction\":\"Running QA Phase 3 Suite\",\"toolSummary\":\"Run qa-phase3-suite.mjs\"}",
+        "thinkingSignature": "ErYCCrMCARFNMg+OfBnrrjbQMPQtNBGnXVzkpBLZMKt4rQ1VlH9uj+AnUEIzYART5ALuYPKjQW9NtUbetGV8m1/fhy6o4jsVnfbLfTdntZjTmoGwRg1F6djCN3sDzbAo6qUIZPY/JeUuAkO8CG8hQivwac4LrpSi9KNyCvAzngdvqMm2goX6LXMP+BXBl4ZOfto+qS7T2wKwcbTXXPJe5gzA+jJ91AC4VNRmecvzhsAra8w6b2Q0wwQKv7UScznMo5znjnH1cCb9y7WMZF0cRisq9z0ZuTgwHyJnwAk8iy4eGk0ll9OZ/2ywAmLpnFLj4KYqVKB6ZMo/WoV+MPj22akYZIDLP2hv1Jyf7bPy3ZjK1S3gyd46X7+LwMQ9ZY2/OfiC6yaCNucd3HKHVRkXqfUihcibHhQ7vQ==",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

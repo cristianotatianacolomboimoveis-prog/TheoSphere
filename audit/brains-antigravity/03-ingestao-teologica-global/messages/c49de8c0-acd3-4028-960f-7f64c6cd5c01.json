@@ -1,0 +1,22 @@
+{
+  "id": "c49de8c0-acd3-4028-960f-7f64c6cd5c01",
+  "recipient": "5a07269d-e7af-4669-b06c-7f2131c905da",
+  "sender": "5a07269d-e7af-4669-b06c-7f2131c905da/task-413",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-08-20T21:29:21.954671Z",
+  "renderDetails": { "messageTitle": "Diagnostic check status finished" },
+  "content": "Task id \"5a07269d-e7af-4669-b06c-7f2131c905da/task-413\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t◇ injected env (14) from .env // tip: ⌁ auth for agents [www.vestauth.com]\nConectado ao banco de produção.\n\n============================================================\nEMBEDDINGS DA BÍBLIA (por tradução)\n============================================================\n┌─────────┬─────────────┬───────────────┬─────────┐\n│ (index) │ translation │ com_embedding │ total   │\n├─────────┼─────────────┼───────────────┼─────────┤\n│ 0       │ 'BLIVRE'    │ '31102'       │ '31102' │\n│ 1       │ 'KJV'       │ '0'           │ '30470' │\n│ 2       │ 'LXX'       │ '0'           │ '21899' │\n│ 3       │ 'NVA'       │ '31094'       │ '31094' │\n│ 4       │ 'TR'        │ '0'           │ '7957'  │\n│ 5       │ 'WEB'       │ '0'           │ '30456' │\n│ 6       │ 'WLC'       │ '0'           │ '22550' │\n└─────────┴─────────────┴───────────────┴─────────┘\n\n============================================================\nACERVO DO DRIVE (UserEmbedding por tipo)\n============================================================\n┌─────────┬──────────────┬─────────┬───────┐\n│ (index) │ type         │ trechos │ donos │\n├─────────┼──────────────┼─────────┼───────┤\n│ 0       │ 'book_chunk' │ '10221' │ '1'   │\n└─────────┴──────────────┴─────────┴───────┘\n\n============================================================\nÍNDICES VETORIAIS (HNSW)\n============================================================\n┌─────────┬──────────────────────┬─────────────────────────────────────────┐\n│ (index) │ tablename            │ indexname                               │\n├─────────┼──────────────────────┼─────────────────────────────────────────┤\n│ 0       │ 'BibleVerse'         │ 'BibleVerse_embedding_hnsw_idx'         │\n│ 1       │ 'SemanticCacheEntry' │ 'SemanticCacheEntry_embedding_hnsw_idx' │\n│ 2       │ 'TheologyEmbedding'  │ 'TheologyEmbedding_embedding_hnsw_idx'  │\n│ 3       │ 'UserEmbedding'      │ 'UserEmbedding_validated_qa_hnsw_idx'   │\n│ 4       │ 'UserEmbedding'      │ 'UserEmbedding_embedding_hnsw_idx'      │\n└─────────┴──────────────────────┴─────────────────────────────────────────┘\n\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/5a07269d-e7af-4669-b06c-7f2131c905da/.system_generated/tasks/task-413.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "5a07269d-e7af-4669-b06c-7f2131c905da",
+      "stepIndex": 413,
+      "toolCall": {
+        "id": "call_1691821",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"node scratch/diagnostico-embeddings.js\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":5000,\"toolAction\":\"Running database embeddings diagnostic to verify status\",\"toolSummary\":\"Diagnostic check status\"}",
+        "thinkingSignature": "EooDCocDARFNMg85C+j+BG5svgPAzqGRPDLVjbGKaBeM7J1zwGK+cTKDs9malIDp6T6eQ2Il0nuIRMMomWzsbtWfbYbAoMFHZ43cFZM7y87+R6mVLrTuJRKFzzv5LcxB6zH0mNkwVgXJVNgY6EZL0mQg+/fzIR6oaVDHZfjAJsjUcp4Q+CvwMxgsjemWjU3Zcdb0vtLgV3Y+oi8HI7ogPU9bpv9xFB1uxn0XkcUcVyjdMVbKpplquA3ZvcRUQUt8EjYaVJAiSc1XKssTVn0urb0UkXOl9VCkniqMgEOMWIgO1rFkfasIjvgDxZw6U2I3e+PYNsXQM+X+hdYqbxhJc6BmuxAXAHocqzCYUdMhAdhw044fEerjEx47XL15WVWQyIezjxkUTDofz2N5CzExDMgZF8wx02go5m/TxDDR0ammbJBgLrVBFblFXsD4zwa5KJJFh7yafrDVciRK4WwfX9xepZgYJnn8bLQEZW5YjkMit522kZZo1wHLTTTUp0ZDozeNPif41WHDoxtEvg==",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

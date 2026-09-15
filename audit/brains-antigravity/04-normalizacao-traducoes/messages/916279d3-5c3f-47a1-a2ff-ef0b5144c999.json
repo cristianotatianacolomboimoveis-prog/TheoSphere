@@ -1,0 +1,24 @@
+{
+  "id": "916279d3-5c3f-47a1-a2ff-ef0b5144c999",
+  "recipient": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+  "sender": "1a04edf0-199b-44a2-9321-dbedcfe51872/task-147",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-11T17:49:44.041774Z",
+  "renderDetails": {
+    "messageTitle": "Run povoar-embeddings-livres.ts LXX 500 finished"
+  },
+  "content": "Task id \"1a04edf0-199b-44a2-9321-dbedcfe51872/task-147\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t🌟 [POVOAMENTO SEGURO] Inicializando Prisma e EmbeddingService...\n[Nest] 37101  - 09/11/2026, 2:48:34 PM     LOG [EmbeddingService] Google Gemini AI inicializado para Embeddings (768 dims).\n🔍 Buscando versículos sem embedding para a versão 'LXX' (Limite: 500)...\n📊 Encontrados 500 versículos pendentes.\n🚀 Progresso [LXX]: 20/500 versículos processados (20 salvos no banco).\n🚀 Progresso [LXX]: 40/500 versículos processados (40 salvos no banco).\n🚀 Progresso [LXX]: 60/500 versículos processados (60 salvos no banco).\n🚀 Progresso [LXX]: 80/500 versículos processados (80 salvos no banco).\n🚀 Progresso [LXX]: 100/500 versículos processados (100 salvos no banco).\n🚀 Progresso [LXX]: 120/500 versículos processados (120 salvos no banco).\n🚀 Progresso [LXX]: 140/500 versículos processados (140 salvos no banco).\n🚀 Progresso [LXX]: 160/500 versículos processados (160 salvos no banco).\n🚀 Progresso [LXX]: 180/500 versículos processados (180 salvos no banco).\n🚀 Progresso [LXX]: 200/500 versículos processados (200 salvos no banco).\n🚀 Progresso [LXX]: 220/500 versículos processados (220 salvos no banco).\n🚀 Progresso [LXX]: 240/500 versículos processados (240 salvos no banco).\n🚀 Progresso [LXX]: 260/500 versículos processados (260 salvos no banco).\n🚀 Progresso [LXX]: 280/500 versículos processados (280 salvos no banco).\n🚀 Progresso [LXX]: 300/500 versículos processados (300 salvos no banco).\n🚀 Progresso [LXX]: 320/500 versículos processados (320 salvos no banco).\n🚀 Progresso [LXX]: 340/500 versículos processados (340 salvos no banco).\n🚀 Progresso [LXX]: 360/500 versículos processados (360 salvos no banco).\n🚀 Progresso [LXX]: 380/500 versículos processados (380 salvos no banco).\n🚀 Progresso [LXX]: 400/500 versículos processados (400 salvos no banco).\n🚀 Progresso [LXX]: 420/500 versículos processados (420 salvos no banco).\n🚀 Progresso [LXX]: 440/500 versículos processados (440 salvos no banco).\n🚀 Progresso [LXX]: 460/500 versículos processados (460 salvos no banco).\n🚀 Progresso [LXX]: 480/500 versículos processados (480 salvos no banco).\n🚀 Progresso [LXX]: 500/500 versículos processados (500 salvos no banco).\n\n🎉 Resumo do Povoamento para 'LXX':\n   - Versículos salvos nesta rodada: 500\n   - Lotes com erro: 0\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1a04edf0-199b-44a2-9321-dbedcfe51872/.system_generated/tasks/task-147.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "stepIndex": 147,
+      "toolCall": {
+        "id": "call_384533",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"npx tsx scripts/povoar-embeddings-livres.ts LXX 500\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":60000,\"toolAction\":\"Populating LXX Greek embeddings\",\"toolSummary\":\"Run povoar-embeddings-livres.ts LXX 500\"}",
+        "thinkingSignature": "EsQCCsECARFNMg/tPQUwCG7i7yI2WRxLqu60nyEwrtE7QwhC1pFNEqRIhC/0bHwYz8N2c4SzD1gXhDqW73xFZvTeCPVL9FKGU4UG9KzgDlUzUflnRe2wpJEQcEY5tBVGBDJ7z545hmGLLrze/d0mcYg0U6aPOxXW4HinV/qfhDA6DpLbRXyR+dGgglIgmoIQs8cESE9v8CMXWdIeKML1hU3jZd93+8cKhSxGVgfEheufzDr5CtSl20i1mCY9qqptJnLUmYvunCy/LLr9G0nF1itBRb/EHPHgcDX3b1qi8y8g8FzbZrAwymj1uxdfHFBC7v3cY8qekhrk6zx2S/FyFkySupqp0KjJsm6Klr0zYdb1Ee58RDmKldAT2h/cHM67kJjVt3cjbxAzAxtNSikq45+ynEXK+fAtUX/q638bHjLb0QOod+qC",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

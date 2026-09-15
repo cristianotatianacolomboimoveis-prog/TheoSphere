@@ -1,0 +1,22 @@
+{
+  "id": "3d349032-ad1f-443b-9bab-d7dbcece9094",
+  "recipient": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2",
+  "sender": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/task-91",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-01T21:47:02.007164Z",
+  "renderDetails": { "messageTitle": "Run test batch KJV 100 verses finished" },
+  "content": "Task id \"1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/task-91\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t🌟 [POVOAMENTO SEGURO] Inicializando Prisma e EmbeddingService...\n[Nest] 37838  - 09/01/2026, 6:46:23 PM     LOG [EmbeddingService] Google Gemini AI inicializado para Embeddings (768 dims).\n🔍 Buscando versículos sem embedding para a versão 'KJV' (Limite: 100)...\n📊 Encontrados 100 versículos pendentes.\n🚀 Progresso [KJV]: 100/100 versículos processados (100 salvos no banco).\n\n🎉 Resumo do Povoamento para 'KJV':\n   - Versículos salvos nesta rodada: 100\n   - Lotes com erro: 0\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2/.system_generated/tasks/task-91.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2",
+      "stepIndex": 91,
+      "toolCall": {
+        "id": "call_530265",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"cd backend \\u0026\\u0026 npx tsx scripts/povoar-embeddings-livres.ts KJV 100\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Running test batch embedding population\",\"toolSummary\":\"Run test batch KJV 100 verses\"}",
+        "thinkingSignature": "EoECCv4BARFNMg9kewevFIRNLJqdvzBHuRKTFcC9z60H422Y5NZP1Dne6wXMeEsB94QjGkwBiRU9MnFH/moVK8Qb4Ku5mI8cRLHsaWazkVYJe/Vf/A0+8TDZ3bMzsEsHbSVCbMu4PJFPl5vwnrdSvmRFWIHGDCuIX1lMk2BGTQxFtWe3raSykZX4/QPIJ9wQ/n4SGyP+1z7DF4ccyiZciqzuK+1cSxPZUzpl/JU51AfTCowvmsfzEv9M4T5YL7E02beYg9ojmh30AMlk3ISzVcoYIDjRC8qE8q3M6DrJa2HdMSdZOeftcZSZ0TlKwcCktYMEx0wX9awejIdL7JSANxR7f/s=",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

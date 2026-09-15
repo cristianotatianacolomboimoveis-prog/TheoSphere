@@ -1,0 +1,24 @@
+{
+  "id": "53b15948-3dc9-4d8a-ae9c-001f5c8cd670",
+  "recipient": "5a07269d-e7af-4669-b06c-7f2131c905da",
+  "sender": "5a07269d-e7af-4669-b06c-7f2131c905da/task-570",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-08-22T18:59:34.226274Z",
+  "renderDetails": {
+    "messageTitle": "Run dry run of scale ingest with ccel/archive finished"
+  },
+  "content": "Task id \"5a07269d-e7af-4669-b06c-7f2131c905da/task-570\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t◇ injected env (14) from .env // tip: ◈ encrypted .env [www.dotenvx.com]\n🌟 [AGENTE-MASSIVO-SCALE] Iniciando ingestão resiliente...\n  ⚠️ MODO DRY-RUN ATIVADO (Somente leitura e download).\n📋 Checkpoint: 30 livros já processados anteriormente.\n⏭️ [Ignorado] ID #45844 já consta no checkpoint.\n⏭️ [Ignorado] ID #45305 já consta no checkpoint.\n⏭️ [Ignorado] ID #19038 já consta no checkpoint.\n⏭️ [Ignorado] ID #17723 já consta no checkpoint.\n⏭️ [Ignorado] ID #32055 já consta no checkpoint.\n⏭️ [Ignorado] ID #9804 já consta no checkpoint.\n⏭️ [Ignorado] ID #7098 já consta no checkpoint.\n⏭️ [Ignorado] ID #3239 já consta no checkpoint.\n⏭️ [Ignorado] ID #32999 já consta no checkpoint.\n⏭️ [Ignorado] ID #17611 já consta no checkpoint.\n⏭️ [Ignorado] ID #17897 já consta no checkpoint.\n⏭️ [Ignorado] ID #18755 já consta no checkpoint.\n⏭️ [Ignorado] ID #19950 já consta no checkpoint.\n⏭️ [Ignorado] ID #36907 já consta no checkpoint.\n⏭️ [Ignorado] ID #26472 já consta no checkpoint.\n⏭️ [Ignorado] ID #59353 já consta no checkpoint.\n⏭️ [Ignorado] ID #45001 já consta no checkpoint.\n⏭️ [Ignorado] ID #64392 já consta no checkpoint.\n⏭️ [Ignorado] ID #45463 já consta no checkpoint.\n⏭️ [Ignorado] ID #1722 já consta no checkpoint.\n⏭️ [Ignorado] ID #1670 já consta no checkpoint.\n⏭️ [Ignorado] ID #39452 já consta no checkpoint.\n⏭️ [Ignorado] ID #9519 já consta no checkpoint.\n⏭️ [Ignorado] ID #14867 já consta no checkpoint.\n⏭️ [Ignorado] ID #32011 já consta no checkpoint.\n⏭️ [Ignorado] ID #19039 já consta no checkpoint.\n⏭️ [Ignorado] ID #27530 já consta no checkpoint.\n⏭️ [Ignorado] ID #1967 já consta no checkpoint.\n⏭️ [Ignorado] ID #41785 já consta no checkpoint.\n⏭️ [Ignorado] ID #59789 já consta no checkpoint.\n\n🔍 Buscando ID #90001: \"Commentary on the Whole Bible\"\n\n  📖 Commentary on the Whole Bible — Matthew Henry (Gutenberg #90001)\n  ✅ Commentary_on_the_Whole_Bible_gutenberg_90001.epub (287 KB)\n  [DRY-RUN] Pulando extração, embeddings e gravação.\n\n🔍 Buscando ID #90002: \"Easton's Bible Dictionary\"\n\n  📖 Easton's Bible Dictionary — M.G. Easton (Gutenberg #90002)\n  ✅ Eastons_Bible_Dictionary_gutenberg_90002.epub (102346 KB)\n  [DRY-RUN] Pulando extração, embeddings e gravação.\n\n🏁 [AGENTE-MASSIVO-SCALE] Execução concluída.\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/5a07269d-e7af-4669-b06c-7f2131c905da/.system_generated/tasks/task-570.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "5a07269d-e7af-4669-b06c-7f2131c905da",
+      "stepIndex": 570,
+      "toolCall": {
+        "id": "call_2237360",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"npx tsx scratch/massive-scale-ingest.ts --dry-run\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Running dry run of massive-scale-ingest.ts with new external URLs\",\"toolSummary\":\"Run dry run of scale ingest with ccel/archive\"}",
+        "thinkingSignature": "EuwGCukGARFNMg9FZKPjA5IXmX044I6bWgNftpKDY50o6iVhMb6q5lcr7roQC2RDUovzCsNz47KtipaHUYITNgE/XhnizVZ0JdbZ6TZNQrhWPIN/3mhSi5TcTFp1DepyWOSDPfXzgrv1BcYYmJN243phjfnugByDj3dAHfS57pI74V1+VMq6J0xRgdFduy6gqk259BnftK8CpMf9IbyMHtlQkGtUHmIYUpnIItpbGE2YAMAUULzTEDcYUZEXeArn0+BZ75NoedICEFvxW8UTKuTPBBq+4+QxyYh8Sq5YR07Av4aojR6n5pov9DDoewUPPW7QnJf0mS4IY6XGlFuR2CrOfPsoFipIrJ5a2L+5760YKmZhGonPCrjkkf/GGYQHvdTBQoEBflwal16oxmWS46zANVURMOsolIY+sE4RVOxTn5AlcDGfSFUEXGpVgVP5izPucNxtS46hoQhdVqIKW0DoiG1sdCnPnYicsg2CrCQx8fD1YFh0Dm6m3GF9qJbbndlMAefucr+eMdhd1muAB2DaPWuqgsbTULGqE3CImoahFaUxoRz09QEFfCCn8pJYMQfCaVH5u6JbKoeDgL82k/CHOT52ydhYO+1+rLZK1eHB8GE4zwWG7V1eyv48K6jXixLw0/3ws3Hc2fXtX37czUvj+Dm4mh4szGGLpoQDkf5w2PFScZNxu3+0tLDz6w/yjuwHpTXML+MIJJ5GnhSoATHbyeZMXL/DRDdUO0vrj2XOIzHydFMRxLSrTRU74rm/VXn8mW9ELyRXGR81uB768hde9OnxirzMWc1CErTF2y/+hSIyl6o9o/iSxjd8ywz95muPGSGnoElxmSSjWhByVDUiuRBicD/ir62M9mMqRU73NXkMV2FEUo16k+Spn0CN07rpYsXpNKcNOYZBOU5yJk9RQ6uHlm1mLwRvZvCVoJ+mfQeXQD9T+LeqLi7q9t4GloTBsWCe/9o4JdfezeNn2svZ+n38f2KhL1xQviBgY6PJhsihaB3tNYJ2Es87QpGqD92/6VzDUP2sApR9Bv+1Mxh/4RqLY51OLB803gJ+g4JcyHQuzosKGMuwyDX1a5+Q0vFsdTVI/XWnT/zW84c/8FM7vehlP8A0UFpnyYumpFMP3ERpNtQ3vs4Fd5Q9jhoiRN2OvErvU2e213kPoIrD",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

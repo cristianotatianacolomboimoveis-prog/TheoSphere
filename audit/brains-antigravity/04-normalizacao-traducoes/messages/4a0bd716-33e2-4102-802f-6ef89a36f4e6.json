@@ -1,0 +1,22 @@
+{
+  "id": "4a0bd716-33e2-4102-802f-6ef89a36f4e6",
+  "recipient": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+  "sender": "1a04edf0-199b-44a2-9321-dbedcfe51872/task-83",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-11T17:20:59.480649Z",
+  "renderDetails": { "messageTitle": "Run qa-phase3-suite.mjs finished" },
+  "content": "Task id \"1a04edf0-199b-44a2-9321-dbedcfe51872/task-83\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t🚀 Iniciando TheoSphere QA Suite — Fase 3 (Jornadas E2E & Multi-Tenant) contra: https://theosphere.onrender.com\n\n--- 1. JORNADA DE AUTENTICAÇÃO (AUTH E2E) ---\n✅ [E2E-AUTH-01] Cadastro de Usuário A (2868ms): HTTP 201, userId criado: 39b3e8d8-f110-405d-a213-d87bd6048e78\n✅ [E2E-AUTH-02] Login de Usuário A com geração de JWT (1913ms): HTTP 200, token JWT recebido (tamanho: 261 chars)\n✅ [E2E-AUTH-03] Cadastro e Login de Usuário B (Isolamento) (3915ms): HTTP 200, Usuário B autenticado (userId: 95c529f9-58e0-4d98-8a6d-31270d862712)\n\n--- 2. JORNADA DE LEITURA BÍBLICA & EXEGESE ---\n✅ [E2E-READ-01] Carregamento do Texto Bíblico (João 3 em BLIVRE) (416ms): HTTP 200, 36 versículos carregados. João 3:16: \"Porque Deus amou ao mundo de tal maneira...\"\n✅ [E2E-READ-02] Consulta de Referências Cruzadas TSK para João 3:16 (470ms): HTTP 200, 12 referências mapeadas (ex: John 1:14, John 3:15, John 3:17)\n✅ [E2E-READ-03] Consulta de Morfologia Interlinear / Línguas Originais (762ms): HTTP 200, módulo linguístico respondeu (disponível: true, versículos mapeados: 36)\n\n--- 3. JORNADA DE ESTUDO & ANOTAÇÕES PESSOAIS ---\n✅ [E2E-NOTE-01] Sincronização de Anotação Privada pelo Usuário A (752ms): HTTP 201, anotações e destaques sincronizados no RAG (indexados: 2)\n\n--- 4. ISOLAMENTO MULTI-TENANT ESTRITO ---\n✅ [E2E-TENANT-01] Consulta Copilot IA com contexto autenticado de Usuário A (604ms): HTTP 201, Copilot IA respondeu ao Usuário A (10251 caracteres)\n✅ [E2E-TENANT-02] Blindagem: Usuário B NÃO tem acesso às anotações privadas do Usuário A (592ms): HTTP 201, Isolamento confirmado: segredo do Usuário A NÃO foi exposto ao Usuário B\n✅ [E2E-TENANT-03] Consulta de biblioteca pessoal protegida por JWT (GET /library/lookup) (1105ms): HTTP 200, biblioteca pessoal consultada isoladamente para o Usuário B (0 trechos)\n\n--- 5. FEEDBACK DE IA & ENCERRAMENTO DE SESSÃO ---\n✅ [E2E-FEEDBACK-01] Envio de Feedback do Usuário A (👍 Aprendizado Contínuo) (1009ms): HTTP 201, feedback registrado: {\"action\":\"ack\",\"promoted\":false}\n✅ [E2E-LOGOUT-01] Encerramento de sessão (POST /auth/logout) (452ms): HTTP 200, cookies de sessão limpos com sucesso\n✅ [E2E-SEC-01] Rejeição de rotas protegidas sem token (HTTP 401) (169ms): HTTP 401 (esperado 401 Unauthorized sem token)\n\n======================================================\nRESUMO FINAL DE EXECUÇÃO — FASE 3:\nTotal de testes: 13\nAprovados:       13\nFalhas:          0\nHealth Score:    100.0%\n\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/1a04edf0-199b-44a2-9321-dbedcfe51872/.system_generated/tasks/task-83.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "stepIndex": 83,
+      "toolCall": {
+        "id": "call_319543",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"node audit/scripts/qa-phase3-suite.mjs\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere\",\"WaitMsBeforeAsync\":60000,\"toolAction\":\"Running QA Phase 3 Suite\",\"toolSummary\":\"Run qa-phase3-suite.mjs\"}",
+        "thinkingSignature": "EsMBCsABARFNMg8i1306qJd5g3kGifft7PZikUJSAXbkM/x9Xh1tcUUsKjat19fLGH9ZXMHAzOGvVYyNNYLsR7g8yl8UoeI5Yt3n8skmh8riSgiatkBzBXahENhYrO1ZoSzKDMhrcecr1PYCLAohL1tjhrM2NvpbtT1BWVKPh4ffyGg23cOfqOrlGoMITjJGkN4CChXlnV4MFR9Y1UD7hxD78YTjWM9WlvcfbZZ2jsLwvqkapoHFdo1XX9wPem6dpX4Uw5mG",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

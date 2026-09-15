@@ -1,0 +1,49 @@
+{
+  "source_root": "/Users/cristianocolombo/.gemini/antigravity-ide/brain",
+  "migrated_at": "2026-09-15",
+  "total_bytes": 92218943,
+  "brains": {
+    "04-normalizacao-traducoes": {
+      "bytes": 1623674,
+      "docs": 2,
+      "transcripts": 2,
+      "messages": 15,
+      "tasks": 13,
+      "images": 0,
+      "other": 0
+    },
+    "02-povoamento-embeddings-livres": {
+      "bytes": 465130,
+      "docs": 2,
+      "transcripts": 2,
+      "messages": 4,
+      "tasks": 3,
+      "images": 0,
+      "other": 0
+    },
+    "03-ingestao-teologica-global": {
+      "bytes": 8882449,
+      "docs": 4,
+      "transcripts": 2,
+      "messages": 21,
+      "tasks": 17,
+      "images": 2,
+      "other": 0
+    },
+    "01-arquitetura-superior-ao-logos": {
+      "bytes": 81247690,
+      "docs": 2,
+      "transcripts": 2,
+      "messages": 10,
+      "tasks": 8,
+      "images": 100,
+      "other": 5
+    }
+  },
+  "uuid_to_folder": {
+    "1a04edf0-199b-44a2-9321-dbedcfe51872": "04-normalizacao-traducoes",
+    "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2": "02-povoamento-embeddings-livres",
+    "5a07269d-e7af-4669-b06c-7f2131c905da": "03-ingestao-teologica-global",
+    "9d7dc041-0908-497b-9bac-4096d5a43e68": "01-arquitetura-superior-ao-logos"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "1dad92f7-e21f-4992-846b-6cdde33416d8",
+  "recipient": "5a07269d-e7af-4669-b06c-7f2131c905da",
+  "sender": "system",
+  "priority": "MESSAGE_PRIORITY_LOW",
+  "timestamp": "2026-08-22T18:54:30.101780Z",
+  "hideFromUser": true,
+  "content": "[Notice] All your subagents and background tasks have been stopped due to server restart. If you want a subagent to continue working, it needs to be revived by sending it a new message. If resuming work, please check on status and restart as needed."
+}

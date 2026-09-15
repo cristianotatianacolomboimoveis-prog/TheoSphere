@@ -1,0 +1,24 @@
+{
+  "id": "db36e020-6148-41cd-9a40-61581dd3087c",
+  "recipient": "5a07269d-e7af-4669-b06c-7f2131c905da",
+  "sender": "5a07269d-e7af-4669-b06c-7f2131c905da/task-585",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-08-22T19:00:06.715846Z",
+  "renderDetails": {
+    "messageTitle": "Run scale ingest for Matthew Henry and Easton finished"
+  },
+  "content": "Task id \"5a07269d-e7af-4669-b06c-7f2131c905da/task-585\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t◇ injected env (14) from .env // tip: ⌘ suppress logs { quiet: true }\n🌟 [AGENTE-MASSIVO-SCALE] Iniciando ingestão resiliente...\n📋 Checkpoint: 30 livros já processados anteriormente.\n⏭️ [Ignorado] ID #45844 já consta no checkpoint.\n⏭️ [Ignorado] ID #45305 já consta no checkpoint.\n⏭️ [Ignorado] ID #19038 já consta no checkpoint.\n⏭️ [Ignorado] ID #17723 já consta no checkpoint.\n⏭️ [Ignorado] ID #32055 já consta no checkpoint.\n⏭️ [Ignorado] ID #9804 já consta no checkpoint.\n⏭️ [Ignorado] ID #7098 já consta no checkpoint.\n⏭️ [Ignorado] ID #3239 já consta no checkpoint.\n⏭️ [Ignorado] ID #32999 já consta no checkpoint.\n⏭️ [Ignorado] ID #17611 já consta no checkpoint.\n⏭️ [Ignorado] ID #17897 já consta no checkpoint.\n⏭️ [Ignorado] ID #18755 já consta no checkpoint.\n⏭️ [Ignorado] ID #19950 já consta no checkpoint.\n⏭️ [Ignorado] ID #36907 já consta no checkpoint.\n⏭️ [Ignorado] ID #26472 já consta no checkpoint.\n⏭️ [Ignorado] ID #59353 já consta no checkpoint.\n⏭️ [Ignorado] ID #45001 já consta no checkpoint.\n⏭️ [Ignorado] ID #64392 já consta no checkpoint.\n⏭️ [Ignorado] ID #45463 já consta no checkpoint.\n⏭️ [Ignorado] ID #1722 já consta no checkpoint.\n⏭️ [Ignorado] ID #1670 já consta no checkpoint.\n⏭️ [Ignorado] ID #39452 já consta no checkpoint.\n⏭️ [Ignorado] ID #9519 já consta no checkpoint.\n⏭️ [Ignorado] ID #14867 já consta no checkpoint.\n⏭️ [Ignorado] ID #32011 já consta no checkpoint.\n⏭️ [Ignorado] ID #19039 já consta no checkpoint.\n⏭️ [Ignorado] ID #27530 já consta no checkpoint.\n⏭️ [Ignorado] ID #1967 já consta no checkpoint.\n⏭️ [Ignorado] ID #41785 já consta no checkpoint.\n⏭️ [Ignorado] ID #59789 já consta no checkpoint.\n\n🔍 Buscando ID #90001: \"Commentary on the Whole Bible\"\n\n  📖 Commentary on the Whole Bible — Matthew Henry (Gutenberg #90001)\n  ✅ Commentary_on_the_Whole_Bible_gutenberg_90001.epub (287 KB)\n  🔪 1 chunks de ~500 palavras\n  🧠 Gerando embeddings com retry (1 chunks)...\n  ✅ 1/1 embeddings prontos\n  💾 Banco: +1 novos | 0 já existentes\n\n🔍 Buscando ID #90002: \"Easton's Bible Dictionary\"\n\n  📖 Easton's Bible Dictionary — M.G. Easton (Gutenberg #90002)\n  ✅ Eastons_Bible_Dictionary_gutenberg_90002.epub (102346 KB)\n  ⚠️  Texto insuficiente extraído. Pulando.\n\n🏁 [AGENTE-MASSIVO-SCALE] Execução concluída.\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/5a07269d-e7af-4669-b06c-7f2131c905da/.system_generated/tasks/task-585.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "5a07269d-e7af-4669-b06c-7f2131c905da",
+      "stepIndex": 585,
+      "toolCall": {
+        "id": "call_2392802",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"npx tsx scratch/massive-scale-ingest.ts\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere/backend\",\"WaitMsBeforeAsync\":5000,\"toolAction\":\"Running real ingestion script for Matthew Henry and Easton's Dictionary\",\"toolSummary\":\"Run scale ingest for Matthew Henry and Easton\"}",
+        "thinkingSignature": "Eq0ECqoEARFNMg/mygpEQjelfrtw+YU0fqCJUlFTFteUaYNJ15A2SExOdsMXmFT0rTFJBBxa9ak8Xo6D/wz3GbtHCDHjn3nGm1QtLf8wQNJ4KvJyX5pPNNnc55JTZ2PScBm0JZZbspAv1dgr+nVEMVY8iWyccH7fW5fHyZ7hfNhMmIRGeMTSPxL5WhO1ynAFnunJb9URM+dGDYAhtkJyQLjbn2I6MsE5IXcyLJnZxSJDfGfWGEwnaEi8hq5+5X6Eh+rgAXl0qOea9deGYitXZtMMom39s0rrLiWZs1Q5rfALnHjjNqJqpcdOeftVqU0U+IAh9dAe+NGuBFUr57oXNcyms76QNvKfLiWBwVPDvzfJRVgik3hN8XIxNzT5ujVXtK1XJsIo0/1cUHNGECYQX9n05y1Ts+Me1uZCHh/BJ2m8OI+HvwDUuNEtPZ5fIQis1TXqvEyWd2HrEwfM5FxIUCcppN3sKhYxf3hUUUt/F9sVBuOUW6oxjHeZl1PIunQgFDnyuZLaJwhUO12SoJRcEXn8iHs0muRt+Wrgouj5sFEeLXnIpQUvXE/0G3DOxDsEvudPr+FnqmdI3DYf+Pzm2ttBFJZHEhvpbt1BSXX3UAjRmP0OLvPaHm3+lNFBPV2nquHDOhNJrAi4ltPVxblI9ETE2AUw4DPXtOJtE7RcKOcSjykCz5TAi17Oqh/fA6zgwkjFYxnnyt0vTPuLbogvKpJtgSv51N+TMQZGJGlyE1M=",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

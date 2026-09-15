@@ -1,0 +1,24 @@
+{
+  "id": "9f202fd3-9d4f-4ef6-8b03-213260faa0d5",
+  "recipient": "9d7dc041-0908-497b-9bac-4096d5a43e68",
+  "sender": "9d7dc041-0908-497b-9bac-4096d5a43e68/task-469",
+  "priority": "MESSAGE_PRIORITY_HIGH",
+  "timestamp": "2026-09-03T12:00:11.696320Z",
+  "renderDetails": {
+    "messageTitle": "Executar npm run verificar no backend finished"
+  },
+  "content": "Task id \"9d7dc041-0908-497b-9bac-4096d5a43e68/task-469\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> backend@0.0.1 verificar\n> npm run build && npm run typecheck && npm run test && npm run lint\n\n\n> backend@0.0.1 build\n> prisma generate && nest build\n\nLoaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\n\n✔ Generated Prisma Client (v7.9.0) to ./node_modules/@prisma/client in 101ms\n\nStart by importing your Prisma Client (See: https://pris.ly/d/importing-client)\n\n\n\n> backend@0.0.1 typecheck\n> tsc --noEmit -p tsconfig.json\n\n\n> backend@0.0.1 test\n> jest\n\nPASS src/bible/passage-guide.service.spec.ts\nPASS src/linguistics/linguistics.service.spec.ts\nPASS src/health/health.indicators.spec.ts\nPASS src/rag/license-gate.spec.ts\nPASS src/auth/auth.service.spec.ts\nPASS src/search/query-parser.spec.ts\nPASS src/common/book-map.spec.ts\nPASS src/events/event-bus.service.spec.ts\nPASS src/search/characterization.spec.ts\nPASS src/search/search.service.spec.ts\nPASS src/rag/text-extractors.spec.ts\n[Nest] 13302  - 09/03/2026, 9:00:03 AM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 13302  - 09/03/2026, 9:00:03 AM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 13302  - 09/03/2026, 9:00:03 AM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 13302  - 09/03/2026, 9:00:03 AM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\n[Nest] 13302  - 09/03/2026, 9:00:03 AM    WARN [EventBusService] subscribe(theosphere:rag:hit) ignored: subscriber not ready\n[Nest] 13302  - 09/03/2026, 9:00:03 AM     LOG [EventBusService] REDIS_URL não configurada — EventBus desabilitado (publish/subscribe viram no-ops).\nPASS src/app.controller.spec.ts\nPASS src/rag/rag.service.spec.ts\n\nTest Suites: 13 passed, 13 total\nTests:       141 passed, 141 total\nSnapshots:   0 total\nTime:        1.758 s, estimated 2 s\nRan all test suites.\n\n> backend@0.0.1 lint\n> eslint \"{src,apps,libs,test}/**/*.ts\" --fix\n\n\n\nLog: file:///Users/cristianocolombo/.gemini/antigravity-ide/brain/9d7dc041-0908-497b-9bac-4096d5a43e68/.system_generated/tasks/task-469.log",
+  "sourceMetadata": {
+    "tool": {
+      "conversationId": "9d7dc041-0908-497b-9bac-4096d5a43e68",
+      "stepIndex": 469,
+      "toolCall": {
+        "id": "call_204754",
+        "name": "run_command",
+        "argumentsJson": "{\"CommandLine\":\"cd backend \\u0026\\u0026 npm run verificar\",\"Cwd\":\"/Users/cristianocolombo/Downloads/TheoSphere\",\"WaitMsBeforeAsync\":30000,\"toolAction\":\"Rodando verificação completa do backend\",\"toolSummary\":\"Executar npm run verificar no backend\"}",
+        "thinkingSignature": "EtADCs0DARFNMg9ol9ZnXe4VqHhOqi0KnznRVjoXLpp0YLfahHDCUBn2z0lT9hyxP0r3JjX6rxOeyRzIGtcrIr8sUjrXz4XfDYF+t3Xe6yStu0X4E58QrtcdE+dEPI0sVJV3tCwXLWGowZ4i8Ap8tNnfOUlQEzxjpcQ2kPZUbgVF5HjJtDRo0zmSv41Gm7yi40kWUYMc+EF09VdIt04fkMIISP03ZjYrVFl3WmWO/PijZoexIDI2MHzgFTjPwPVy9tl/bdLg7+5SxJB8nhnazDhmp6XoAOTRgjJtvSpZ7lEPrWoTlYVB5c4AOdiNG4Pg2/dgx9LE8eGIDN7bT+/ARxq/MNhIrncwaZ1/mAlrtURSb9I5bLJ28RIwbtYab1bOww3O823AbvJWsxPKnqKwVamRLUqsxeMHuv0swjovyfdEIUDn2jO6qh5VIqJ1ULJIi5LesIbi+zyFnHV+AsT1abSSX64+Gem3sFd59j0V7R7KZiIJVzziA7c/vuZN8yeIN9vracrMg6NkEM+mqMjmWukd30GAqxgrFiHVDbMIiX32keUclCYT4fERTiYuKq3y6OKunO9JWIBnPEXyCkWd9OQ58n2dUSf/MFJFBX3/XePg/yc=",
+        "originalName": "run_command"
+      }
+    }
+  }
+}

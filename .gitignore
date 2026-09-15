@@ -25,3 +25,13 @@ valhalla_data/
 .venv/
 __pycache__/
 *.pyc
+
+# Antigravity brains migrados (2026-09-15): textual versionado, binário só local
+# Screenshots são referência histórica sem valor em diff/merge; ficam no disco
+# mas fora do repo. ~88MB brutos → ~10MB versionados.
+audit/brains-antigravity/**/screenshots/
+audit/brains-antigravity/**/*.png
+audit/brains-antigravity/**/*.webp
+audit/brains-antigravity/**/*.jpg
+audit/brains-antigravity/**/*.jpeg
+audit/brains-antigravity/**/*.gif
