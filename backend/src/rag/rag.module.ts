@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RagService } from './rag.service';
+import { EvidenceAwareRagService } from './evidence-aware-rag.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagController } from './rag.controller';
 import { EvidenceController } from './evidence.controller';
@@ -35,7 +36,10 @@ import { ConfigModule } from '@nestjs/config';
     LibraryController,
   ],
   providers: [
-    RagService,
+    {
+      provide: RagService,
+      useClass: EvidenceAwareRagService,
+    },
     AiQuotaService,
     SemanticCacheService,
     UserContextService,
