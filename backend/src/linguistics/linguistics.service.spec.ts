@@ -2,11 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LinguisticsService } from './linguistics.service';
 import { PrismaService } from '../prisma.service';
 
-/**
- * Testes do LinguisticsService (interlinear STEP Bible).
- * Inclui regressão para o findOccurrencesByRoot reescrito na auditoria
- * 2026-07-21 (antes: `text contains strongId` — full scan sempre-vazio).
- */
 describe('LinguisticsService', () => {
   let service: LinguisticsService;
   let prisma: {
@@ -104,8 +99,8 @@ describe('LinguisticsService', () => {
     });
   });
 
-  describe('findOccurrencesByRoot (regressão auditoria 2026-07-21)', () => {
-    it('busca via InterlinearWord (NÃO via text contains)', async () => {
+  describe('findOccurrencesByRoot', () => {
+    it('busca via InterlinearWord (não via text contains)', async () => {
       prisma.interlinearWord.findMany.mockResolvedValue([word()]);
       prisma.bibleVerse.findMany.mockResolvedValue([
         {
@@ -121,7 +116,6 @@ describe('LinguisticsService', () => {
       expect(prisma.interlinearWord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { strongId: 'G25' } }),
       );
-      // O texto vem por join em UMA query (sem N+1), com dedup de refs
       expect(prisma.bibleVerse.findMany).toHaveBeenCalledTimes(1);
       expect(res).toHaveLength(1);
       expect(res[0]).toMatchObject({
@@ -131,24 +125,25 @@ describe('LinguisticsService', () => {
       });
     });
 
-    it('sem ocorrências → [] sem consultar BibleVerse', async () => {
-      prisma.interlinearWord.findMany.mockResolvedValue([]);
-      const res = await service.findOccurrencesByRoot('G9999');
-      expect(res).toEqual([]);
-      expect(prisma.bibleVerse.findMany).not.toHaveBeenCalled();
-    });
-
-    it('versículo sem texto na tradução pedida → text null (não quebra)', async () => {
+    it('normaliza translation e retorna null quando a tradução não possui o versículo', async () => {
       prisma.interlinearWord.findMany.mockResolvedValue([word()]);
       prisma.bibleVerse.findMany.mockResolvedValue([]);
 
-      const res = await service.findOccurrencesByRoot('G25', 'KJV');
+      const res = await service.findOccurrencesByRoot('G25', 'kjv');
+
       expect(res[0].text).toBeNull();
       expect(prisma.bibleVerse.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ translation: 'KJV' }),
         }),
       );
+    });
+
+    it('sem ocorrências → [] sem consultar BibleVerse', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([]);
+      const res = await service.findOccurrencesByRoot('G9999');
+      expect(res).toEqual([]);
+      expect(prisma.bibleVerse.findMany).not.toHaveBeenCalled();
     });
   });
 
@@ -170,6 +165,73 @@ describe('LinguisticsService', () => {
     it('retorna null quando não há entrada', async () => {
       prisma.lexicalEntry.findFirst.mockResolvedValue(null);
       expect(await service.getRootAnalysis('G0')).toBeNull();
+    });
+  });
+
+  describe('lemmatize', () => {
+    it('resolve forma grega real para lema, morfologia e Strong sem inventar dados', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([
+        word(),
+        word({ id: 'w2', strongId: 'H1961', lemma: 'היה' }),
+      ]);
+
+      const res = await service.lemmatize('  ἠγάπησεν,  ', 'greek');
+
+      expect(res).toMatchObject({
+        original: '  ἠγάπησεν,  ',
+        normalized: 'ἠγάπησεν',
+        language: 'greek',
+        found: true,
+        lemma: 'ἀγαπάω',
+        morphology: 'V-AAI-3S',
+        strongId: 'G25',
+        source: 'STEP Bible TAGNT/TAHOT indexed corpus',
+      });
+      expect(res.candidates).toHaveLength(1);
+      expect(prisma.interlinearWord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { word: 'ἠγάπησεν' },
+          take: 100,
+        }),
+      );
+    });
+
+    it('faz distinção entre grego e hebraico quando a forma possui candidatos de ambos', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([
+        word(),
+        word({ id: 'w2', strongId: 'H9999', word: 'ἠγάπησεν', lemma: 'אחר' }),
+      ]);
+
+      const greek = await service.lemmatize('ἠγάπησεν', 'greek');
+      const hebrew = await service.lemmatize('ἠγάπησεν', 'hebrew');
+
+      expect(greek.candidates).toHaveLength(1);
+      expect(greek.strongId).toBe('G25');
+      expect(hebrew.candidates).toHaveLength(1);
+      expect(hebrew.strongId).toBe('H9999');
+    });
+
+    it('retorna found=false e não força um lema quando a forma não está no corpus', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([]);
+
+      const res = await service.lemmatize('λέξη-inexistente', 'greek');
+
+      expect(res).toMatchObject({
+        found: false,
+        lemma: null,
+        morphology: null,
+        strongId: null,
+        candidates: [],
+        source: null,
+      });
+    });
+
+    it('entrada vazia não consulta o banco', async () => {
+      const res = await service.lemmatize('   ', 'greek');
+
+      expect(res.found).toBe(false);
+      expect(res.normalized).toBe('');
+      expect(prisma.interlinearWord.findMany).not.toHaveBeenCalled();
     });
   });
 });
