@@ -16,6 +16,7 @@ import { SearchModule } from '../search/search.module';
 import { TheologicalSourcesService } from './theological-sources.service';
 import { RerankerService } from './reranker.service';
 import { EvidencePackService } from './evidence-pack.service';
+import { EvidencePackContextService } from './evidence-pack-context.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -37,8 +38,9 @@ import { ConfigModule } from '@nestjs/config';
     TheologicalSourcesService,
     RerankerService,
     EvidencePackService,
+    EvidencePackContextService,
     RolesGuard,
   ],
-  exports: [RagService, AiQuotaService, EvidencePackService],
+  exports: [RagService, AiQuotaService, EvidencePackService, EvidencePackContextService],
 })
 export class RagModule {}
