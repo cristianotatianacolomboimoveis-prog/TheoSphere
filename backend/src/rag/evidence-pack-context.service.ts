@@ -61,6 +61,7 @@ export class EvidencePackContextService {
   private escape(value: string): string {
     return value
       .replace(/<\/?(?:system|instruction|prompt|candidate|query-data)[^>]*>/gi, '')
+      // eslint-disable-next-line no-control-regex
       .replace(/\u0000/g, '')
       .trim();
   }
