@@ -5,9 +5,10 @@ import { EvidencePackContextService } from './evidence-pack-context.service';
 import { EvidencePackService } from './evidence-pack.service';
 
 describe('EvidenceController', () => {
+  const hybridSearchVerses = jest.fn();
   const search = {
-    hybridSearchVerses: jest.fn(),
-  } as unknown as jest.Mocked<SearchService>;
+    hybridSearchVerses,
+  } as unknown as SearchService;
 
   const packs = new EvidencePackService();
   const context = new EvidencePackContextService();
@@ -31,11 +32,11 @@ describe('EvidenceController', () => {
         keywordRank: 1,
       },
     ];
-    search.hybridSearchVerses.mockResolvedValue(hits);
+    hybridSearchVerses.mockResolvedValue(hits);
 
     const result = await controller.preview('João 3:16', 'blivre', '5');
 
-    expect(search.hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
+    expect(hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
       limit: 5,
       translation: 'BLIVRE',
     });
