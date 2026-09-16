@@ -53,7 +53,10 @@ export class RerankerService {
   ): Promise<RerankResult[]> {
     if (!candidates || candidates.length === 0) return [];
 
-    const safeTopK = Math.max(1, Math.min(Math.trunc(topK || 1), candidates.length));
+    const safeTopK = Math.max(
+      1,
+      Math.min(Math.trunc(topK || 1), candidates.length),
+    );
     if (!this.genAI) {
       return this.keywordFallback(query, candidates, safeTopK);
     }
@@ -86,27 +89,28 @@ export class RerankerService {
       const scores = this.parseScores(raw, candidates.length);
 
       if (!scores) {
-        this.logger.warn('[Reranker] Invalid score payload — using deterministic fallback');
+        this.logger.warn(
+          '[Reranker] Invalid score payload — using deterministic fallback',
+        );
         return this.keywordFallback(query, candidates, safeTopK);
       }
 
       const scored = candidates.map((c, i) => ({
         ...c,
         crossEncoderScore: scores[i],
+        __order: i,
       }));
 
       scored.sort((a, b) => {
         const delta = b.crossEncoderScore - a.crossEncoderScore;
-        if (delta !== 0) return delta;
-        // Stable deterministic tie-breaker: preserve original retrieval order.
-        return candidates.indexOf(a) - candidates.indexOf(b);
+        return delta !== 0 ? delta : a.__order - b.__order;
       });
 
       this.logger.debug(
         `[Reranker] Judged ${candidates.length} docs → top score: ${scored[0]?.crossEncoderScore}`,
       );
 
-      return scored.slice(0, safeTopK);
+      return scored.slice(0, safeTopK).map(({ __order, ...doc }) => doc);
     } catch (err) {
       this.logger.warn(
         `[Reranker] Judge failed: ${(err as Error).message} — using deterministic fallback`,
@@ -147,7 +151,9 @@ ${docList}
 
   private escapePromptBoundary(value: string): string {
     // Prevent the data block from manufacturing a closing tag in the prompt.
-    return value.replace(/<\/candidate>/gi, '<\\/candidate>').replace(/<\/query-data>/gi, '<\\/query-data>');
+    return value
+      .replace(/<\/candidate>/gi, '<\\/candidate>')
+      .replace(/<\/query-data>/gi, '<\\/query-data>');
   }
 
   /**
@@ -207,7 +213,8 @@ ${docList}
         : Number.isFinite(doc.distance)
           ? 1 - Number(doc.distance)
           : 0;
-      const crossEncoderScore = Math.max(0, originalSimilarity * 10) + overlap * 0.5;
+      const crossEncoderScore =
+        Math.max(0, originalSimilarity * 10) + overlap * 0.5;
       return { ...doc, crossEncoderScore, __order: index };
     });
 
@@ -216,6 +223,6 @@ ${docList}
       return delta !== 0 ? delta : a.__order - b.__order;
     });
 
-    return scored.slice(0, limit).map(({ __order: _order, ...doc }) => doc);
+    return scored.slice(0, limit).map(({ __order, ...doc }) => doc);
   }
 }
