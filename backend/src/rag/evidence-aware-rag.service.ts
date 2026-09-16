@@ -30,7 +30,7 @@ export class EvidenceAwareRagService extends RagService {
     semanticCache: SemanticCacheService,
     userContext: UserContextService,
     prisma: PrismaService,
-    search: SearchService,
+    private readonly retrievalSearch: SearchService,
     theologicalSources: TheologicalSourcesService,
     reranker: RerankerService,
     aiQuota: AiQuotaService,
@@ -42,7 +42,7 @@ export class EvidenceAwareRagService extends RagService {
       semanticCache,
       userContext,
       prisma,
-      search,
+      retrievalSearch,
       theologicalSources,
       reranker,
       aiQuota,
@@ -131,7 +131,7 @@ export class EvidenceAwareRagService extends RagService {
   }
 
   private async searchHybridBible(query: string): Promise<HybridHit[]> {
-    return this.search.hybridSearchVerses(query, { limit: 12 });
+    return this.retrievalSearch.hybridSearchVerses(query, { limit: 12 });
   }
 
   private mergeEvidence(value: unknown, evidence: string): string {
