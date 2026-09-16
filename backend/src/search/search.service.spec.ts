@@ -295,6 +295,38 @@ describe('SearchService', () => {
         'ok',
       );
     });
+
+    it('anexa timing por braço (vectorMs, keywordMs, fusionMs, retrieversMs) — não-enumerável', async () => {
+      setRetrieverResults(
+        [{ id: 'V1', distance: 0.1, text: 'shared' }],
+        [{ id: 'K1', rank: 0.9, text: 'kw' }],
+      );
+      const out = await service.hybridSearchVerses('grace');
+      const t = out as unknown as {
+        vectorMs: number;
+        keywordMs: number;
+        fusionMs: number;
+        retrieversMs: number;
+      };
+      // Números finitos, não-negativos. Não asserto <200ms porque isso é
+      // meta de produção, não invariante do algoritmo em teste unitário.
+      expect(typeof t.vectorMs).toBe('number');
+      expect(t.vectorMs).toBeGreaterThanOrEqual(0);
+      expect(typeof t.keywordMs).toBe('number');
+      expect(t.keywordMs).toBeGreaterThanOrEqual(0);
+      expect(typeof t.fusionMs).toBe('number');
+      expect(t.fusionMs).toBeGreaterThanOrEqual(0);
+      expect(typeof t.retrieversMs).toBe('number');
+      // Promise.all: retrieversMs >= max(vectorMs, keywordMs), sempre.
+      expect(t.retrieversMs).toBeGreaterThanOrEqual(
+        Math.max(t.vectorMs, t.keywordMs),
+      );
+      // Não enumerável — não vaza no JSON.stringify (o controller expõe via meta.timing).
+      const parsed = JSON.parse(JSON.stringify(out));
+      expect(
+        (parsed as unknown as { vectorMs?: number }).vectorMs,
+      ).toBeUndefined();
+    });
   });
 
   describe('advancedSearch — strong:/morph: (InterlinearWord)', () => {

@@ -132,33 +132,64 @@ export class SearchService {
     const translation = opts.translation?.toUpperCase().trim();
 
     // Run both retrievers in parallel; degrade gracefully if either fails.
+    // Timing por braço serve para diagnosticar a meta declarada de <200ms:
+    // sem isso, uma resposta de 500ms é indistinguível entre "embedding
+    // demorou" (rede/provedor) e "SQL do vetor demorou" (índice/pool).
     let vectorStatus: 'ok' | 'empty' | 'failed' = 'ok';
+    let vectorMs = 0;
+    let keywordMs = 0;
+    const tRetrievers = Date.now();
     const [vectorHits, keywordHits] = await Promise.all([
-      this.vectorSearch(trimmed, poolSize, translation)
-        .then((res) => {
-          if (!res || res.length === 0) {
-            vectorStatus = 'empty';
-          }
+      (async () => {
+        const t0 = Date.now();
+        try {
+          const res = await this.vectorSearch(trimmed, poolSize, translation);
+          vectorMs = Date.now() - t0;
+          if (!res || res.length === 0) vectorStatus = 'empty';
           return res;
-        })
-        .catch((err) => {
+        } catch (err) {
+          vectorMs = Date.now() - t0;
           this.logger.warn(`vector search failed: ${(err as Error).message}`);
           vectorStatus = 'failed';
           return [] as VectorRow[];
-        }),
-      this.keywordSearch(trimmed, poolSize, translation).catch((err) => {
-        this.logger.warn(`keyword search failed: ${(err as Error).message}`);
-        return [] as KeywordRow[];
-      }),
+        }
+      })(),
+      (async () => {
+        const t0 = Date.now();
+        try {
+          const res = await this.keywordSearch(trimmed, poolSize, translation);
+          keywordMs = Date.now() - t0;
+          return res;
+        } catch (err) {
+          keywordMs = Date.now() - t0;
+          this.logger.warn(`keyword search failed: ${(err as Error).message}`);
+          return [] as KeywordRow[];
+        }
+      })(),
     ]);
+    // O gasto total do estágio "retrievers" é o max, não a soma (Promise.all).
+    const retrieversMs = Date.now() - tRetrievers;
 
+    const tFuse = Date.now();
     const fused = this.fuse(vectorHits, keywordHits, k, limit) as any;
-    Object.defineProperty(fused, 'vectorStatus', {
-      value: vectorStatus,
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    });
+    const fusionMs = Date.now() - tFuse;
+
+    // Propriedades não-enumeráveis: o controller lê e coloca em `meta`, mas
+    // JSON.stringify(fused) não vaza esses campos dentro do array de hits.
+    for (const [key, value] of [
+      ['vectorStatus', vectorStatus],
+      ['vectorMs', vectorMs],
+      ['keywordMs', keywordMs],
+      ['fusionMs', fusionMs],
+      ['retrieversMs', retrieversMs],
+    ] as const) {
+      Object.defineProperty(fused, key, {
+        value,
+        enumerable: false,
+        writable: true,
+        configurable: true,
+      });
+    }
     return fused;
   }
 

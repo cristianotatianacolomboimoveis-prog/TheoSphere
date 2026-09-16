@@ -27,16 +27,35 @@ export class SearchController {
       throw new BadRequestException('Query "q" must be at least 2 characters');
     }
     const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const tController = Date.now();
     const data = await this.search.hybridSearchVerses(q, {
       translation,
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
+    const totalMs = Date.now() - tController;
+    // Meta expõe o timing por braço para investigar a meta declarada de
+    // <200ms. Campos vêm de propriedades não-enumeráveis anexadas ao array
+    // por hybridSearchVerses; ausentes viram null naturalmente.
+    const d = data as unknown as {
+      vectorStatus?: string;
+      vectorMs?: number;
+      keywordMs?: number;
+      fusionMs?: number;
+      retrieversMs?: number;
+    };
     return {
       success: true,
       count: data.length,
       data,
       meta: {
-        vectorArm: (data as any).vectorStatus || 'ok',
+        vectorArm: d.vectorStatus || 'ok',
+        timing: {
+          vectorMs: d.vectorMs ?? null,
+          keywordMs: d.keywordMs ?? null,
+          fusionMs: d.fusionMs ?? null,
+          retrieversMs: d.retrieversMs ?? null,
+          totalMs,
+        },
       },
     };
   }
