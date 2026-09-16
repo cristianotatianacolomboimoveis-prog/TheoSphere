@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { RagService } from './rag.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagController } from './rag.controller';
+import { EvidenceController } from './evidence.controller';
 import { EmbeddingModule } from './embedding.module';
 import { SemanticCacheService } from './semantic-cache.service';
 import { UserContextService } from './user-context.service';
@@ -27,7 +28,12 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     SearchModule,
   ],
-  controllers: [RagController, DriveRagController, LibraryController],
+  controllers: [
+    RagController,
+    EvidenceController,
+    DriveRagController,
+    LibraryController,
+  ],
   providers: [
     RagService,
     AiQuotaService,
@@ -41,6 +47,11 @@ import { ConfigModule } from '@nestjs/config';
     EvidencePackContextService,
     RolesGuard,
   ],
-  exports: [RagService, AiQuotaService, EvidencePackService, EvidencePackContextService],
+  exports: [
+    RagService,
+    AiQuotaService,
+    EvidencePackService,
+    EvidencePackContextService,
+  ],
 })
 export class RagModule {}
