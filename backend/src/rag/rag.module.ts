@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { SearchModule } from '../search/search.module';
 import { TheologicalSourcesService } from './theological-sources.service';
 import { RerankerService } from './reranker.service';
+import { EvidencePackService } from './evidence-pack.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -35,8 +36,9 @@ import { ConfigModule } from '@nestjs/config';
     LibraryService,
     TheologicalSourcesService,
     RerankerService,
-    RolesGuard, // class-based guard used by @UseGuards(RolesGuard) — needs DI
+    EvidencePackService,
+    RolesGuard,
   ],
-  exports: [RagService, AiQuotaService],
+  exports: [RagService, AiQuotaService, EvidencePackService],
 })
 export class RagModule {}
