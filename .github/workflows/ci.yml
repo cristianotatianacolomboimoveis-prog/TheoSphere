@@ -221,15 +221,9 @@ jobs:
             exit "$status"
           fi
 
-          # Remove the exact, intentional pg_trgm index differences. Do not
-          # blanket-ignore all index changes: new/unexpected drift must fail CI.
-          filtered="$(sed \
-            -e '/Removed index on columns (definition)/d' \
-            -e '/Removed index on columns (word)/d' \
-            -e '/Removed index on columns (content)/d' \
-            -e '/\[\*\] Changed the `LexicalEntry` table/{N;N;d;}' \
-            -e '/\[\*\] Changed the `TechnicalCommentary` table/{N;d;}' \
-            /tmp/prisma-drift.txt)"
+          # Strip only the exact, intentional pg_trgm diff lines plus their
+          # table headers. Any other line remains visible and fails the gate.
+          filtered="$(grep -vE '^\[\*\] Changed the `(LexicalEntry|TechnicalCommentary)` table$|^  \[-\] Removed index on columns \((definition|word|content)\)$' /tmp/prisma-drift.txt || true)"
 
           if [ -n "$(printf '%s' "$filtered" | sed '/^[[:space:]]*$/d')" ]; then
             echo "Unexpected Prisma migration drift detected:"
