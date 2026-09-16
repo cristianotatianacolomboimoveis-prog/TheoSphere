@@ -57,14 +57,16 @@ export class EvidencePackService {
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         if (a.provenance !== b.provenance) return a.provenance.localeCompare(b.provenance);
+        if (a.title !== b.title) return a.title.localeCompare(b.title);
+        if ((a.reference ?? '') !== (b.reference ?? '')) {
+          return (a.reference ?? '').localeCompare(b.reference ?? '');
+        }
         return a.id.localeCompare(b.id);
       })
       .slice(0, boundedMax)
       .map((item, index) => ({ ...item, rank: index + 1 }));
 
-    const primaryCount = items.filter((item) =>
-      item.kind === 'primary' || item.kind === 'linguistic',
-    ).length;
+    const primaryCount = items.filter((item) => item.kind === 'primary').length;
     const hasCounterEvidence = items.some((item) =>
       (item.contradicts?.length ?? 0) > 0,
     );
