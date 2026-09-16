@@ -45,5 +45,22 @@
     "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2": "02-povoamento-embeddings-livres",
     "5a07269d-e7af-4669-b06c-7f2131c905da": "03-ingestao-teologica-global",
     "9d7dc041-0908-497b-9bac-4096d5a43e68": "01-arquitetura-superior-ao-logos"
+  },
+  "second_pass_2026_09_16": {
+    "added_folders": [
+      "05-sessao-migracao-para-claude",
+      "06-sessao-agosto",
+      "00-verification-report-2026-07-02"
+    ],
+    "added_conversation_dbs": [
+      "1a04edf0-199b-44a2-9321-dbedcfe51872",
+      "1ef3dc15-8acf-49c9-85ac-38cbe3b56fd2",
+      "5a07269d-e7af-4669-b06c-7f2131c905da",
+      "9d7dc041-0908-497b-9bac-4096d5a43e68",
+      "51f49470-f718-4596-98a1-c5bcb2ca1fc6",
+      "dbba6b95-d144-4f1a-aca5-b7974715c0a3"
+    ],
+    "cli_source": "/Users/cristianocolombo/.gemini/antigravity",
+    "note": "Migra\u00e7\u00e3o inicial pegou s\u00f3 o brain state; segunda passada migrou tamb\u00e9m os conversation.db (SQLite) e o brain do antigravity CLI (separado do IDE)."
   }
 }
