@@ -22,13 +22,44 @@ export interface InterlinearWordRow {
   lemmaGloss: string | null;
 }
 
+interface InterlinearWhere {
+  bookId?: number;
+  chapter?: number;
+  strongId?: string;
+  word?: string;
+}
+
 interface InterlinearDelegate {
   findMany(args: {
-    where?: { bookId?: number; chapter?: number; strongId?: string };
+    where?: InterlinearWhere;
     orderBy?: Array<Record<string, 'asc' | 'desc'>>;
     take?: number;
   }): Promise<InterlinearWordRow[]>;
-  count(args: { where?: { strongId?: string } }): Promise<number>;
+  count(args: { where?: InterlinearWhere }): Promise<number>;
+}
+
+export interface LemmatizationResult {
+  original: string;
+  normalized: string;
+  language: 'hebrew' | 'greek';
+  found: boolean;
+  lemma: string | null;
+  morphology: string | null;
+  strongId: string | null;
+  translit: string | null;
+  gloss: string | null;
+  candidates: Array<{
+    form: string;
+    lemma: string | null;
+    morphology: string | null;
+    strongId: string;
+    translit: string;
+    gloss: string;
+    bookId: number;
+    chapter: number;
+    verse: number;
+  }>;
+  source: string | null;
 }
 
 @Injectable()
@@ -41,6 +72,14 @@ export class LinguisticsService {
     return (this.prisma as unknown as Record<string, InterlinearDelegate>)[
       'interlinearWord'
     ];
+  }
+
+  /** Normaliza Unicode sem destruir diacríticos de grego/hebraico. */
+  private normalizeOriginalWord(word: string): string {
+    return word
+      .normalize('NFKC')
+      .trim()
+      .replace(/^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$/gu, '');
   }
 
   /**
@@ -57,7 +96,6 @@ export class LinguisticsService {
     for (const w of words) {
       (verses[w.verse] ??= []).push(w);
     }
-    // Rótulo da fonte por testamento: TAHOT (AT hebraico) / TAGNT (NT grego)
     const dataset = bookId < 40 ? 'TAHOT' : 'TAGNT';
     return {
       bookId,
@@ -72,8 +110,7 @@ export class LinguisticsService {
   }
 
   /**
-   * Ocorrências reais de um Strong's no texto original (busca por raiz),
-   * a partir da tabela interlinear.
+   * Ocorrências reais de um Strong's no texto original (busca por raiz).
    */
   async getOccurrences(strongId: string, limit = 100) {
     const normalized = strongId.toUpperCase().trim();
@@ -105,34 +142,26 @@ export class LinguisticsService {
    * Suporta Hebrew (Strong's H) e Greek (Strong's G).
    */
   async getRootAnalysis(strongId: string) {
-    this.logger.log(`Analisando raiz lexical para: ${strongId}`);
+    const normalized = strongId.toUpperCase().trim();
+    this.logger.log(`Analisando raiz lexical para: ${normalized}`);
 
-    // Busca no banco de dados por entradas léxicas pré-existentes
     const entry = await this.prisma.lexicalEntry.findFirst({
-      where: { strongId },
+      where: { strongId: normalized },
     });
 
     if (entry) {
       return {
         ...entry,
         lemma: entry.word,
-        source: 'Database (BDAG/HALOT Cache)',
+        source: 'Database (lexical entry)',
       };
     }
 
-    // Se não houver no banco, poderíamos disparar uma análise via IA ou retornar null
     return null;
   }
 
   /**
    * Encontra todas as ocorrências de uma raiz no texto bíblico.
-   * Essencial para a funcionalidade 'Search by Root' estilo Accordance.
-   *
-   * Reescrito na auditoria 2026-07-21: a versão anterior fazia
-   * `text contains strongId` — um full scan em BibleVerse que era também
-   * semanticamente errado (o texto dos versículos não contém Strong IDs).
-   * Agora delega à tabela InterlinearWord (índice em strongId) e anexa o
-   * texto do versículo na tradução pedida.
    */
   async findOccurrencesByRoot(strongId: string, translation = 'BLIVRE') {
     const normalized = strongId.toUpperCase().trim();
@@ -143,7 +172,6 @@ export class LinguisticsService {
     });
     if (words.length === 0) return [];
 
-    // Uma query única para os textos (evita N+1): OR de refs distintas.
     const refs = Array.from(
       new Map(
         words.map((w) => [
@@ -153,7 +181,7 @@ export class LinguisticsService {
       ).values(),
     );
     const verses = await this.prisma.bibleVerse.findMany({
-      where: { translation, OR: refs },
+      where: { translation: translation.toUpperCase().trim(), OR: refs },
     });
     const textByRef = new Map(
       verses.map((v) => [`${v.bookId}:${v.chapter}:${v.verse}`, v.text]),
@@ -173,14 +201,70 @@ export class LinguisticsService {
   }
 
   /**
-   * Realiza o parsing de uma forma flexionada para encontrar sua raiz (Lemmatization).
+   * Deterministic form-to-lemma lookup over the actual interlinear corpus.
+   * This intentionally does not invent a lemma with an LLM. It returns only
+   * analyses present in the indexed source data, preserving academic
+   * provenance and making ambiguity visible to the caller.
    */
-  async lemmatize(word: string, language: 'hebrew' | 'greek') {
-    // Implementação futura usando ferramentas como OpenGNT ou similar
+  async lemmatize(
+    word: string,
+    language: 'hebrew' | 'greek',
+  ): Promise<LemmatizationResult> {
+    const original = String(word ?? '');
+    const normalized = this.normalizeOriginalWord(original);
+    const prefix = language === 'greek' ? 'G' : 'H';
+
+    if (!normalized) {
+      return {
+        original,
+        normalized,
+        language,
+        found: false,
+        lemma: null,
+        morphology: null,
+        strongId: null,
+        translit: null,
+        gloss: null,
+        candidates: [],
+        source: null,
+      };
+    }
+
+    const rows = await this.interlinear.findMany({
+      where: { word: normalized },
+      orderBy: [{ strongId: 'asc' }, { bookId: 'asc' }, { chapter: 'asc' }, { verse: 'asc' }],
+      take: 100,
+    });
+
+    const languageRows = rows.filter((row) =>
+      row.strongId.toUpperCase().startsWith(prefix),
+    );
+
+    const candidates = languageRows.map((row) => ({
+      form: row.word,
+      lemma: row.lemma,
+      morphology: row.morph,
+      strongId: row.strongId,
+      translit: row.translit,
+      gloss: row.gloss,
+      bookId: row.bookId,
+      chapter: row.chapter,
+      verse: row.verse,
+    }));
+
+    const first = candidates[0];
     return {
-      original: word,
-      lemma: '',
-      morphology: '',
+      original,
+      normalized,
+      language,
+      found: candidates.length > 0,
+      lemma: first?.lemma ?? null,
+      morphology: first?.morphology ?? null,
+      strongId: first?.strongId ?? null,
+      translit: first?.translit ?? null,
+      gloss: first?.gloss ?? null,
+      candidates,
+      source: candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
     };
   }
 }
