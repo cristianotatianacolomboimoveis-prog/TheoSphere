@@ -158,8 +158,8 @@ ${docList}
 
   /**
    * Parse an LLM response into exactly expectedLength scores.
-   * A mismatched or malformed payload is rejected rather than partially
-   * assigning scores to the wrong candidates.
+   * A mismatched, non-numeric, or malformed payload is rejected rather than
+   * partially assigning scores to the wrong candidates.
    */
   private parseScores(raw: string, expectedLength: number): number[] | null {
     let parsed: unknown;
@@ -178,10 +178,17 @@ ${docList}
 
     if (!Array.isArray(parsed) || parsed.length !== expectedLength) return null;
 
-    const scores = parsed.map((value) => Number(value));
-    if (scores.some((n) => !Number.isFinite(n))) return null;
+    if (
+      parsed.some(
+        (value) => typeof value !== 'number' || !Number.isFinite(value),
+      )
+    ) {
+      return null;
+    }
 
-    return scores.map((n) => Math.min(10, Math.max(0, n)));
+    return parsed.map((value) =>
+      Math.min(10, Math.max(0, value as number)),
+    );
   }
 
   /**
