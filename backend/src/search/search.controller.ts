@@ -3,15 +3,22 @@ import {
   Get,
   Query,
   BadRequestException,
-  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { SearchService } from './search.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('api/v1/search')
 export class SearchController {
   constructor(private readonly search: SearchService) {}
+
+  private parseLimit(limit?: string, fallback = 20, max = 100): number {
+    if (limit == null || limit.trim() === '') return fallback;
+    const parsed = Number.parseInt(limit, 10);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new BadRequestException('limit must be a positive integer');
+    }
+    return Math.min(parsed, max);
+  }
 
   /**
    * GET /api/v1/search/verses?q=...&translation=KJV&limit=20
@@ -26,11 +33,11 @@ export class SearchController {
     if (!q || q.trim().length < 2) {
       throw new BadRequestException('Query "q" must be at least 2 characters');
     }
-    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const safeLimit = this.parseLimit(limit, 20, 100);
     const tController = Date.now();
     const data = await this.search.hybridSearchVerses(q, {
       translation,
-      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      limit: safeLimit,
     });
     const totalMs = Date.now() - tController;
     // Meta expõe o timing por braço para investigar a meta declarada de
@@ -63,21 +70,18 @@ export class SearchController {
   /**
    * GET /api/v1/search/advanced?q=...&translation=KJV&limit=50
    *
-   * Logos-style structured search. Accepts the same syntax the BibleReader
-   * search input emits:
+   * Structured search supports field-aware filters while retaining a
+   * deterministic SQL path for morphological / lexical constraints.
    *
-   *   • free-text terms       agape AND eros
-   *   • quoted phrases        "in the beginning"
-   *   • field filters         book:John chapter:1-3
-   *   • exclusions            repent -hell
-   *   • lemma filter          lemma:λόγος   (treated as literal term)
-   *
-   * Response includes `parsed` so the UI can render confirmation chips
-   * ("book: John", "chapter: 1-3", etc.) and educate the user on what
-   * was interpreted.
+   * Examples:
+   *   agape AND eros
+   *   "in the beginning"
+   *   book:John chapter:1-3
+   *   strong:G26 book:John
+   *   morph:V-AAI book:Romans chapter:5
+   *   lemma:λόγος
    */
   @Get('advanced')
-  // 60/min — hybrid search runs an embedding + 2 SQL queries per call.
   @Throttle({ default: { ttl: 60_000, limit: 60 } })
   async advanced(
     @Query('q') q: string,
@@ -87,10 +91,10 @@ export class SearchController {
     if (!q || q.trim().length < 2) {
       throw new BadRequestException('Query "q" must be at least 2 characters');
     }
-    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const safeLimit = this.parseLimit(limit, 50, 200);
     const { parsed, hits } = await this.search.advancedSearch(q, {
       translation,
-      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      limit: safeLimit,
     });
     return {
       success: true,
@@ -99,6 +103,9 @@ export class SearchController {
           bookName: parsed.bookName ?? null,
           chapterMin: parsed.chapterMin ?? null,
           chapterMax: parsed.chapterMax ?? null,
+          strongId: parsed.strongId ?? null,
+          morph: parsed.morph ?? null,
+          lemma: parsed.lemma ?? null,
           must: parsed.must,
           mustNot: parsed.mustNot,
           phrases: parsed.phrases,
