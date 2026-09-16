@@ -35,3 +35,16 @@ audit/brains-antigravity/**/*.webp
 audit/brains-antigravity/**/*.jpg
 audit/brains-antigravity/**/*.jpeg
 audit/brains-antigravity/**/*.gif
+
+# Acervo clássico de domínio público — os EPUBs/TXTs baixados do Project
+# Gutenberg são fonte que já foi ingerida no UserEmbedding (banco Supabase);
+# o banco é a fonte de verdade, não o disco. Mantém aqui como cache local
+# para re-ingestão eventual, mas fora do repo (200+ MB).
+acervo-traduzido/*.epub
+acervo-traduzido/*.txt
+acervo-traduzido/*.pdf
+
+# Scratch/diagnóstico do backend — scripts one-shot que exercitam o banco
+# de produção ou geram artefatos temporários. Não são código do produto.
+backend/scratch/*.json
+backend/scratch/ingestion-checkpoint.json

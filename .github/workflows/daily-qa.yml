@@ -28,12 +28,19 @@ jobs:
           echo "=== 1. CHECAGENS ESTÁTICAS DE SEGURANÇA E INTEGRIDADE ==="
           node audit/scripts/static-checks.mjs
 
-      - name: Executar Suíte do Agente Autônomo contra Produção
+      - name: Executar Suíte do Agente Autônomo contra Produção (Fase 2 - Fluxos Críticos)
         env:
           BASE_URL: 'https://theosphere.onrender.com'
         run: |
-          echo "=== 2. AGENTE AUTÔNOMO DE QA (FLUXOS CRÍTICOS EM PRODUÇÃO) ==="
+          echo "=== 2. AGENTE AUTÔNOMO DE QA (FASE 2: FLUXOS CRÍTICOS EM PRODUÇÃO) ==="
           node audit/scripts/qa-phase2-suite.mjs
+
+      - name: Executar Suíte do Agente Autônomo contra Produção (Fase 3 - Jornadas E2E & Multi-Tenant)
+        env:
+          BASE_URL: 'https://theosphere.onrender.com'
+        run: |
+          echo "=== 3. AGENTE AUTÔNOMO DE QA (FASE 3: JORNADAS E2E & MULTI-TENANT ISOLATION) ==="
+          node audit/scripts/qa-phase3-suite.mjs
 
       - name: Arquivar Relatórios de QA Diários
         if: always()

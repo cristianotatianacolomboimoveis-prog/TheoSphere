@@ -155,7 +155,7 @@ export class EmbeddingService implements OnModuleDestroy {
     return text
       .toLowerCase()
       .replace(/\s+/g, ' ') // colapsa espaços
-      .replace(/[^\w\sàáâãéêíóôõúç.,;:!?()"-]/gi, '') // remove chars especiais
+      .replace(/[^\p{L}\p{N}\p{M}\s.,;:!?()"-]/gu, '') // preserva letras, números, marcas e diacríticos em qualquer idioma (Grego, Hebraico, PT, EN)
       .trim()
       .slice(0, 8000); // Limite para evitar tokens excessivos (~2000 tokens)
   }

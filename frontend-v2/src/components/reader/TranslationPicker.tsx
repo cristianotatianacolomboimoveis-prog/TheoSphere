@@ -175,9 +175,13 @@ export const TranslationPicker: React.FC<TranslationPickerProps> = ({
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : t.lang === "EN"
                                 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                : t.lang === "LA"
-                                  ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                                  : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : t.lang === "GR"
+                                  ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                                  : t.lang === "HE"
+                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                    : t.lang === "LA"
+                                      ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                      : "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20"
                           }`}
                         >
                           {t.lang}

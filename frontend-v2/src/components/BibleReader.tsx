@@ -59,8 +59,7 @@ import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const TRANSLATIONS = [
-  // Traduções de licença livre (CC) — padrão do beta público.
-  // Servidas do banco local via seed-public-domain.ts (backend).
+  // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
   {
     id: "blivre",
     name: "Bíblia Livre (BLIVRE)",
@@ -73,6 +72,38 @@ export const TRANSLATIONS = [
     lang: "PT",
     type: "Equivalência Dinâmica • Licença Livre",
   },
+  {
+    id: "kjv",
+    name: "King James Version (KJV)",
+    lang: "EN",
+    type: "Equivalência Formal • Domínio Público",
+  },
+  {
+    id: "web",
+    name: "World English Bible (WEB)",
+    lang: "EN",
+    type: "Equivalência Formal • Domínio Público",
+  },
+  {
+    id: "tr",
+    name: "Textus Receptus (TR)",
+    lang: "GR",
+    type: "Texto Grego do NT • Domínio Público",
+  },
+  {
+    id: "wlc",
+    name: "Westminster Leningrad Codex (WLC)",
+    lang: "HE",
+    type: "Texto Massorético Hebraico • Domínio Público",
+  },
+  {
+    id: "lxx",
+    name: "Septuaginta (LXX)",
+    lang: "GR",
+    type: "Antigo Testamento Grego • Domínio Público",
+  },
+
+  // ─── Amostras Parciais & Provedores Externos ───
   {
     id: "ara",
     name: "Almeida Revista e Atualizada (ARA)",
@@ -100,24 +131,6 @@ export const TRANSLATIONS = [
     type: "Equivalência Formal",
   },
   {
-    id: "apibible",
-    name: "API.Bible (Custom ID)",
-    lang: "EN",
-    type: "Personalizado",
-  },
-  {
-    id: "kjv",
-    name: "King James Version (KJV)",
-    lang: "EN",
-    type: "Equivalência Formal",
-  },
-  {
-    id: "web",
-    name: "World English Bible (WEB - Bible-API)",
-    lang: "EN",
-    type: "Equivalência Formal",
-  },
-  {
     id: "clementine",
     name: "Clementine Latin Vulgate (Vulgate - Bible-API)",
     lang: "LA",
@@ -128,6 +141,12 @@ export const TRANSLATIONS = [
     name: "Chinese Union Version (CUV - Bible-API)",
     lang: "ZH",
     type: "Equivalência Formal",
+  },
+  {
+    id: "apibible",
+    name: "API.Bible (Custom ID)",
+    lang: "EN",
+    type: "Personalizado",
   },
 ];
 
