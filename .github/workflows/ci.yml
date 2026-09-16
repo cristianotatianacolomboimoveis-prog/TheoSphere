@@ -142,7 +142,8 @@ jobs:
 
   # ─────────────────────────────────────────────────────────────────────────
   # Migration drift check — fails the PR if schema.prisma diverges from the
-  # SQL migration files. Catches "I edited the schema but forgot to migrate".
+  # SQL migration files. A small allowlist is used for deliberate PostgreSQL
+  # indexes that Prisma cannot represent (e.g. pg_trgm operator classes).
   # ─────────────────────────────────────────────────────────────────────────
   migration-drift:
     name: Prisma migration drift
@@ -192,11 +193,48 @@ jobs:
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS vector;"
           PGPASSWORD=ci_test_password psql -h localhost -U theosphere -d theosphere_drift_shadow -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
-      # `migrate diff` compares the current DB state (after deploying all
-      # migrations) against the schema.prisma. A non-empty diff = drift.
-      - name: Detect drift between schema.prisma and migrations
+      # `migrate diff` compares the SQL migration graph with schema.prisma.
+      # Prisma cannot model pg_trgm operator classes, so the three explicitly
+      # documented trigram indexes are allowlisted. Any other schema delta is
+      # still treated as a hard failure.
+      - name: Detect unexpected migration drift
+        shell: bash
         run: |
+          set +e
           npx prisma migrate diff \
             --from-migrations prisma/migrations \
             --to-schema prisma/schema.prisma \
-            --exit-code
+            > /tmp/prisma-drift.txt
+          status=$?
+          set -e
+
+          echo "--- Prisma migration diff ---"
+          cat /tmp/prisma-drift.txt
+
+          if [ "$status" -eq 0 ]; then
+            echo "No Prisma migration drift detected."
+            exit 0
+          fi
+
+          if [ "$status" -ne 2 ]; then
+            echo "Prisma migrate diff failed unexpectedly with exit code $status."
+            exit "$status"
+          fi
+
+          # Remove the exact, intentional pg_trgm index differences. Do not
+          # blanket-ignore all index changes: new/unexpected drift must fail CI.
+          filtered="$(sed \
+            -e '/Removed index on columns (definition)/d' \
+            -e '/Removed index on columns (word)/d' \
+            -e '/Removed index on columns (content)/d' \
+            -e '/\[\*\] Changed the `LexicalEntry` table/{N;N;d;}' \
+            -e '/\[\*\] Changed the `TechnicalCommentary` table/{N;d;}' \
+            /tmp/prisma-drift.txt)"
+
+          if [ -n "$(printf '%s' "$filtered" | sed '/^[[:space:]]*$/d')" ]; then
+            echo "Unexpected Prisma migration drift detected:"
+            printf '%s\n' "$filtered"
+            exit 1
+          fi
+
+          echo "Only approved PostgreSQL pg_trgm index differences were detected."
