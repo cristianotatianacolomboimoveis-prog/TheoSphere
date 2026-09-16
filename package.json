@@ -7,7 +7,9 @@
     "verify": "npm run verificar --prefix backend && npm run lint --prefix frontend-v2 && npm run test --prefix frontend-v2 && npm run build --prefix frontend-v2",
     "qa:fase1": "node audit/scripts/qa-phase1.mjs",
     "qa:fase1:noprobes": "node audit/scripts/qa-phase1.mjs --no-probes",
-    "qa:fase1:json": "node audit/scripts/qa-phase1.mjs --json"
+    "qa:fase1:json": "node audit/scripts/qa-phase1.mjs --json",
+    "mcp:typecheck": "backend/node_modules/.bin/tsc -p mcp/tsconfig.json",
+    "mcp:test": "backend/node_modules/.bin/jest --config mcp/jest.config.cjs --runInBand"
   },
   "devDependencies": {
     "husky": "^9.1.7",
