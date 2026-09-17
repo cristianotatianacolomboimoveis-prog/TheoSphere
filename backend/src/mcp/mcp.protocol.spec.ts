@@ -59,6 +59,11 @@ describe('McpProtocolService', () => {
     expect((invalid?.error as any).code).toBe(-32600);
   });
 
+  it('rejects malformed tool call arguments', async () => {
+    const response = await service.handle({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 42 as any, arguments: [] as any } });
+    expect((response?.error as any).code).toBe(-32602);
+  });
+
   it('does not answer notifications', async () => {
     await expect(service.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).resolves.toBeNull();
   });
