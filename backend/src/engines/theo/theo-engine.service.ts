@@ -19,22 +19,19 @@ export class TheologyEngineService {
    */
   async research(query: string, limit = 12) {
     const normalized = query.trim();
-    if (!normalized) return this.evidencePacks.build({ query: '' });
+    if (!normalized) return this.evidencePacks.build('', []);
     const hits = await this.search.hybridSearchVerses(normalized, { limit: Math.min(Math.max(Math.trunc(limit), 1), 50) });
-    return this.evidencePacks.build({
-      query: normalized,
-      items: hits.map((hit) => ({
-        kind: 'primary' as const,
-        provenance: 'bible' as const,
+    return this.evidencePacks.build(normalized, hits.map((hit) => ({ source: {
+        type: 'bible' as const,
         title: hit.translation,
         reference: `${hit.bookId}:${hit.chapter}:${hit.verse}`,
         snippet: hit.text,
         score: hit.score,
-        rank: hit.vectorRank ?? hit.keywordRank ?? 0,
+      },
+        kind: 'primary' as const,
+        provenance: 'bible' as const,
         supports: [hit.id],
-      })),
-      maxItems: limit,
-    });
+      }}), limit);
   }
 
   /**
