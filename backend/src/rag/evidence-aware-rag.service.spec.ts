@@ -169,7 +169,12 @@ describe('EvidenceAwareRagService', () => {
     const service = makeService({} as SearchService);
     const evidence = '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 3';
     const evidenceSpy = jest
-      .spyOn(service as unknown as { buildEvidenceContext: (query: string) => Promise<string> }, 'buildEvidenceContext')
+      .spyOn(
+        service as unknown as {
+          buildEvidenceContext: (query: string) => Promise<string>;
+        },
+        'buildEvidenceContext',
+      )
       .mockResolvedValue(evidence);
     const streamSpy = jest
       .spyOn(RagService.prototype, 'chatStream')
@@ -198,7 +203,7 @@ describe('EvidenceAwareRagService', () => {
     try {
       const iterator = service.chatStream('stream query');
       const result = await iterator.next();
-      const context = result.value as {
+      const context = result.value as unknown as {
         config: { systemInstruction: string };
       };
 
