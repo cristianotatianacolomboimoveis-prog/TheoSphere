@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
-import { McpProjectMemoryService } from './mcp.project-memory.service';
+import { MCP_MEMORY_CATEGORIES, McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpTaskService } from './mcp.task.service';
 
 type JsonRpcRequest = {
@@ -182,13 +182,13 @@ export class McpProtocolService {
       case 'theosphere_memory_search':
         result = await this.memory.search(
           this.string(args.query, 'query'),
-          typeof args.category === 'string' ? args.category : undefined,
+          typeof args.category === 'string' && MCP_MEMORY_CATEGORIES.includes(args.category as any) ? args.category as any : undefined,
           typeof args.limit === 'number' ? Math.min(Math.max(Math.trunc(args.limit), 1), 100) : 20,
         );
         break;
       case 'theosphere_memory_append':
         result = await this.memory.append({
-          category: this.string(args.category, 'category'),
+          category: this.enumValue(args.category, MCP_MEMORY_CATEGORIES, 'category') as any,
           memoryKey: this.string(args.memoryKey, 'memoryKey'),
           content: this.string(args.content, 'content'),
           tags: this.stringArray(args.tags, 'tags'),
