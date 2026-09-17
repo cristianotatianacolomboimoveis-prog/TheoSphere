@@ -69,6 +69,36 @@ export class EvidenceAwareRagService extends RagService {
     );
   }
 
+  /**
+   * Streaming follows the same EvidencePack boundary as non-streaming chat.
+   * Each iterator step is executed inside the request's AsyncLocalStorage
+   * context, so the evidence remains isolated for the lifetime of the stream.
+   */
+  async *chatStream(
+    query: string,
+    userId?: string,
+    tradition?: string,
+    conversationHistory: ChatMessage[] = [],
+    jsonMode = false,
+  ) {
+    const evidence = await this.buildEvidenceContext(query);
+    const iterator = super.chatStream(
+      query,
+      userId,
+      tradition,
+      conversationHistory,
+      jsonMode,
+    );
+
+    while (true) {
+      const step = await this.withEvidenceContext(evidence, () =>
+        iterator.next(),
+      );
+      if (step.done) return;
+      yield step.value;
+    }
+  }
+
   protected withEvidenceContext<T>(
     evidence: string,
     callback: () => Promise<T> | T,
