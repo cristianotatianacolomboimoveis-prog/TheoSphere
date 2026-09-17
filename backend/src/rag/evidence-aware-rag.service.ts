@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Injectable } from '@nestjs/common';
 import { EmbeddingService } from './embedding.service';
 import { SemanticCacheService } from './semantic-cache.service';
@@ -20,10 +21,14 @@ type Builder = (params: BuilderParams) => BuilderResult;
  * RAG generation boundary without rewriting RagService. It preserves the
  * current RagService contract and can be removed once the large service is
  * incrementally decomposed into explicit pipeline stages.
+ *
+ * Evidence context is request-scoped through AsyncLocalStorage because this
+ * provider is a singleton. A mutable instance field would allow concurrent
+ * chat requests to leak one request's evidence into another request.
  */
 @Injectable()
 export class EvidenceAwareRagService extends RagService {
-  private activeEvidenceContext = '';
+  private readonly evidenceContextStorage = new AsyncLocalStorage<string>();
 
   constructor(
     embeddingService: EmbeddingService,
@@ -58,18 +63,10 @@ export class EvidenceAwareRagService extends RagService {
     conversationHistory: ChatMessage[] = [],
     jsonMode = false,
   ) {
-    await this.prepareEvidence(query);
-    try {
-      return await super.chat(
-        query,
-        userId,
-        tradition,
-        conversationHistory,
-        jsonMode,
-      );
-    } finally {
-      this.activeEvidenceContext = '';
-    }
+    const evidence = await this.buildEvidenceContext(query);
+    return this.evidenceContextStorage.run(evidence, () =>
+      super.chat(query, userId, tradition, conversationHistory, jsonMode),
+    );
   }
 
   private installBuilderAdapters(): void {
@@ -86,7 +83,7 @@ export class EvidenceAwareRagService extends RagService {
         ...params,
         bibleContext: this.mergeEvidence(
           params.bibleContext,
-          this.activeEvidenceContext,
+          this.evidenceContextStorage.getStore() ?? '',
         ),
       });
 
@@ -95,19 +92,18 @@ export class EvidenceAwareRagService extends RagService {
         ...params,
         bibleContext: this.mergeEvidence(
           params.bibleContext,
-          this.activeEvidenceContext,
+          this.evidenceContextStorage.getStore() ?? '',
         ),
       });
   }
 
-  private async prepareEvidence(query: string): Promise<void> {
-    this.activeEvidenceContext = '';
+  private async buildEvidenceContext(query: string): Promise<string> {
     const normalizedQuery = query?.trim() ?? '';
-    if (normalizedQuery.length < 2) return;
+    if (normalizedQuery.length < 2) return '';
 
     try {
       const hits = await this.searchHybridBible(normalizedQuery);
-      if (hits.length === 0) return;
+      if (hits.length === 0) return '';
 
       const inputs: EvidenceInput[] = hits.map((hit) => ({
         source: {
@@ -122,11 +118,11 @@ export class EvidenceAwareRagService extends RagService {
       }));
 
       const pack = this.evidencePacks.build(normalizedQuery, inputs, 12);
-      this.activeEvidenceContext = this.evidenceContext.render(pack, 9000);
+      return this.evidenceContext.render(pack, 9000);
     } catch {
       // Evidence is an enhancement boundary. A retrieval failure must not
       // break the existing RAG path, which already has independent fallbacks.
-      this.activeEvidenceContext = '';
+      return '';
     }
   }
 
