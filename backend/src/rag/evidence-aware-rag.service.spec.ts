@@ -56,9 +56,11 @@ describe('EvidenceAwareRagService', () => {
     (service as unknown as { activeEvidenceContext: string }).activeEvidenceContext =
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 1\n=== END EVIDENCE PACK ===';
 
-    const builder = (service as unknown as {
-      buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
-    }).buildGeminiRequest;
+    const builder = (
+      service as unknown as {
+        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+      }
+    ).buildGeminiRequest.bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'João 3:16',
@@ -83,9 +85,11 @@ describe('EvidenceAwareRagService', () => {
     (service as unknown as { activeEvidenceContext: string }).activeEvidenceContext =
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 2\n=== END EVIDENCE PACK ===';
 
-    const builder = (service as unknown as {
-      buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
-    }).buildOpenAiRequest;
+    const builder = (
+      service as unknown as {
+        buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+      }
+    ).buildOpenAiRequest.bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'Jesus',
