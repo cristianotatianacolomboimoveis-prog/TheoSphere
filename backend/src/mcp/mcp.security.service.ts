@@ -10,6 +10,8 @@ const DEFAULT_PERMISSIONS: Record<string, readonly McpPermission[]> = {
     'lock:release',
     'agent:register',
     'audit:read',
+    'memory:write',
+    'memory:read',
   ],
 };
 
