@@ -8,7 +8,8 @@ describe('MCP control-plane foundation', () => {
   it('enforces the task lifecycle and records audit events', () => {
     const audit = new McpAuditService();
     const security = new McpSecurityService();
-    const tasks = new McpTaskService(security, audit);
+    const registry = new McpAgentRegistryService();
+    const tasks = new McpTaskService(security, audit, registry);
 
     const task = tasks.create({
       title: 'Example task',
@@ -29,7 +30,7 @@ describe('MCP control-plane foundation', () => {
   });
 
   it('rejects an invalid lifecycle transition', () => {
-    const tasks = new McpTaskService(new McpSecurityService(), new McpAuditService());
+    const tasks = new McpTaskService(new McpSecurityService(), new McpAuditService(), new McpAgentRegistryService());
     const task = tasks.create({
       title: 'Invalid transition',
       description: 'Must fail closed',
