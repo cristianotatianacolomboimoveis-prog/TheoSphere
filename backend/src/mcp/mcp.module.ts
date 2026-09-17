@@ -6,8 +6,11 @@ import { McpSecurityService } from './mcp.security.service';
 import { McpTaskService } from './mcp.task.service';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
+import { McpProtocolService } from './mcp.protocol.service';
+import { McpController } from './mcp.controller';
 
 @Module({
+  controllers: [McpController],
   providers: [
     McpAuditService,
     McpAgentRegistryService,
@@ -16,6 +19,7 @@ import { McpOrchestratorService } from './mcp.orchestrator.service';
     McpLockService,
     McpProjectMemoryService,
     McpOrchestratorService,
+    McpProtocolService,
   ],
   exports: [
     McpAuditService,
@@ -25,6 +29,7 @@ import { McpOrchestratorService } from './mcp.orchestrator.service';
     McpLockService,
     McpProjectMemoryService,
     McpOrchestratorService,
+    McpProtocolService,
   ],
 })
 export class McpModule {}
