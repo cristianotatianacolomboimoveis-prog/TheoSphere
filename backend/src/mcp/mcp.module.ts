@@ -21,6 +21,7 @@ import { McpProjectMemoryService } from './mcp.project-memory.service';
     McpSecurityService,
     McpTaskService,
     McpLockService,
+    McpProjectMemoryService,
   ],
 })
 export class McpModule {}
