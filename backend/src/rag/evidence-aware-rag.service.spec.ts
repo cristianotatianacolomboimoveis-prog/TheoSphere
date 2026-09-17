@@ -165,6 +165,57 @@ describe('EvidenceAwareRagService', () => {
     expect(second).not.toContain('EVIDENCE_A');
   });
 
+  it('injeta EvidencePack durante a execução real do iterator de streaming', async () => {
+    const service = makeService({} as SearchService);
+    const originalStream = RagService.prototype.chatStream;
+    const streamSpy = jest
+      .spyOn(RagService.prototype, 'chatStream')
+      .mockImplementation(async function* (this: RagService) {
+        const builder = (
+          this as unknown as {
+            buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+          }
+        ).buildGeminiRequest.bind(this);
+        const result = builder({
+          conversationHistory: [],
+          sanitizedQuery: 'stream query',
+          jsonMode: false,
+          driveLibraryContext: '',
+          theologicalContext: '',
+          bibleContext: '',
+          userContextText: '',
+          openSourceContext: '',
+          libraryHasHits: false,
+          validatedQaContext: '',
+          tradition: undefined,
+        });
+        yield result;
+      });
+
+    try {
+      const iterator = service.chatStream('stream query');
+      const evidence = '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 3';
+      const context = await service.withEvidenceForTest(evidence, async () => {
+        const result = await iterator.next();
+        return result.value as {
+          config: { systemInstruction: string };
+        };
+      });
+
+      expect(context.config.systemInstruction).toContain('PRIMARY_SOURCES: 3');
+      expect(streamSpy).toHaveBeenCalledWith(
+        'stream query',
+        undefined,
+        undefined,
+        [],
+        false,
+      );
+    } finally {
+      streamSpy.mockRestore();
+      void originalStream;
+    }
+  });
+
   it('mantém o contrato de RagService', () => {
     const service = makeService({} as SearchService);
     expect(service).toBeInstanceOf(RagService);
