@@ -167,7 +167,10 @@ describe('EvidenceAwareRagService', () => {
 
   it('injeta EvidencePack durante a execução real do iterator de streaming', async () => {
     const service = makeService({} as SearchService);
-    const originalStream = RagService.prototype.chatStream;
+    const evidence = '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 3';
+    const evidenceSpy = jest
+      .spyOn(service as unknown as { buildEvidenceContext: (query: string) => Promise<string> }, 'buildEvidenceContext')
+      .mockResolvedValue(evidence);
     const streamSpy = jest
       .spyOn(RagService.prototype, 'chatStream')
       .mockImplementation(async function* (this: RagService) {
@@ -194,14 +197,12 @@ describe('EvidenceAwareRagService', () => {
 
     try {
       const iterator = service.chatStream('stream query');
-      const evidence = '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 3';
-      const context = await service.withEvidenceForTest(evidence, async () => {
-        const result = await iterator.next();
-        return result.value as {
-          config: { systemInstruction: string };
-        };
-      });
+      const result = await iterator.next();
+      const context = result.value as {
+        config: { systemInstruction: string };
+      };
 
+      expect(evidenceSpy).toHaveBeenCalledWith('stream query');
       expect(context.config.systemInstruction).toContain('PRIMARY_SOURCES: 3');
       expect(streamSpy).toHaveBeenCalledWith(
         'stream query',
@@ -211,8 +212,8 @@ describe('EvidenceAwareRagService', () => {
         false,
       );
     } finally {
+      evidenceSpy.mockRestore();
       streamSpy.mockRestore();
-      void originalStream;
     }
   });
 
