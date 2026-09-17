@@ -48,6 +48,7 @@ export class McpOrchestratorService {
     const task = this.tasks.get(taskId);
     if (!task.assignedAgent) throw new ConflictException('MCP task must be assigned before locking');
     this.locks.acquire(task.files, taskId, task.assignedAgent);
+    this.tasks.transition(taskId, 'LOCKED', this.actor);
     return this.tasks.transition(taskId, 'IN_PROGRESS', this.actor);
   }
 
