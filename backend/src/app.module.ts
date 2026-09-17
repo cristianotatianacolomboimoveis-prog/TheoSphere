@@ -23,6 +23,7 @@ import { EnginesModule } from './engines/engines.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { ArchaeologyModule } from './archaeology/archaeology.module';
 import { AiModule } from './common/ai/ai.module';
+import { McpModule } from './mcp/mcp.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -107,6 +108,7 @@ interface EnvShape {
     CollaborationModule,
     ArchaeologyModule,
     AiModule,
+    McpModule,
   ],
   controllers: [AppController],
   providers: [
