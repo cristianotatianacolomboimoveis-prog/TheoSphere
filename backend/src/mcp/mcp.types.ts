@@ -23,6 +23,7 @@ export interface McpTask {
   assignedAgent?: string;
   dependencies: string[];
   files: string[];
+  requiredCapabilities: string[];
   branch?: string;
   createdAt: string;
   updatedAt: string;
