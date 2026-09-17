@@ -17,6 +17,7 @@ describe('MCP control-plane foundation', () => {
       priority: 'HIGH',
       files: ['src/example.ts'],
       dependencies: [],
+      requiredCapabilities: ['verification'],
     });
 
     expect(tasks.transition(task.id, 'PLANNED').status).toBe('PLANNED');
@@ -37,6 +38,7 @@ describe('MCP control-plane foundation', () => {
       priority: 'MEDIUM',
       files: [],
       dependencies: [],
+      requiredCapabilities: [],
     });
 
     expect(() => tasks.transition(task.id, 'VERIFIED')).toThrow(
