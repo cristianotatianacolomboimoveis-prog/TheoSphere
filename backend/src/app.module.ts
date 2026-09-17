@@ -56,6 +56,7 @@ interface EnvShape {
         OPENAI_API_KEY: Joi.string().optional().allow(''),
         GEMINI_API_KEY: Joi.string().optional().allow(''),
         REDIS_URL: Joi.string().optional().allow(''),
+        MCP_API_KEY: Joi.string().min(32).optional().allow(''),
         SENTRY_DSN: Joi.string().uri().optional().allow(''),
         SENTRY_RELEASE: Joi.string().optional().allow(''),
         SENTRY_TRACES_SAMPLE_RATE: Joi.number().min(0).max(1).optional(),
