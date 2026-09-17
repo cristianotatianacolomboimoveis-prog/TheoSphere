@@ -11,12 +11,13 @@ describe('McpProtocolService', () => {
   } as any;
   const tasks = { create: jest.fn((input: unknown) => ({ id: 'TSK-1', ...(input as object) })) } as any;
   const audit = { list: jest.fn(() => []) } as any;
+  const theology = { research: jest.fn(async () => ({ version: 1, items: [] })) } as any;
   const memory = {
     search: jest.fn(async () => []),
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
   } as any;
 
-  const service = new McpProtocolService(orchestrator, tasks, audit, memory);
+  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology);
 
   it('supports MCP initialize and tool discovery', async () => {
     const initialized = await service.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
