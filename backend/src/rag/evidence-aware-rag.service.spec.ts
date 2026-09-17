@@ -37,32 +37,28 @@ describe('EvidenceAwareRagService', () => {
     const search = { hybridSearchVerses } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
-    const descriptor = Object.getOwnPropertyDescriptor(
+    const buildEvidenceContext = Object.getOwnPropertyDescriptor(
       Object.getPrototypeOf(service),
-      'prepareEvidence',
-    );
-    if (!descriptor?.value) throw new Error('prepareEvidence descriptor not found');
+      'buildEvidenceContext',
+    )?.value as (query: string) => Promise<string>;
 
     // The private method is intentionally invoked with its receiver preserved.
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    await Reflect.apply(
-      descriptor.value as (...args: unknown[]) => Promise<void>,
-      service,
-      ['João 3:16'],
-    );
+    const evidence = await Reflect.apply(buildEvidenceContext, service, [
+      'João 3:16',
+    ]);
 
-    const state = service as unknown as { activeEvidenceContext: string };
     expect(hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
       limit: 12,
     });
-    expect(state.activeEvidenceContext).toContain('EVIDENCE PACK');
-    expect(state.activeEvidenceContext).toContain('PRIMARY_SOURCES: 1');
-    expect(state.activeEvidenceContext).toContain('BLIVRE — 43:3:16');
+    expect(evidence).toContain('EVIDENCE PACK');
+    expect(evidence).toContain('PRIMARY_SOURCES: 1');
+    expect(evidence).toContain('BLIVRE — 43:3:16');
   });
 
-  it('injeta o EvidencePack no builder Gemini sem reimplementar o RAG original', () => {
+  it('injeta o EvidencePack no builder Gemini dentro do contexto da requisição', () => {
     const service = makeService({} as SearchService);
-    (service as unknown as { activeEvidenceContext: string }).activeEvidenceContext =
+    const evidence =
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 1\n=== END EVIDENCE PACK ===';
 
     const builder = (
@@ -70,28 +66,33 @@ describe('EvidenceAwareRagService', () => {
         buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
       }
     ).buildGeminiRequest.bind(service);
-    const result = builder({
-      conversationHistory: [],
-      sanitizedQuery: 'João 3:16',
-      jsonMode: false,
-      driveLibraryContext: '',
-      theologicalContext: '',
-      bibleContext: '',
-      userContextText: '',
-      openSourceContext: '',
-      libraryHasHits: false,
-      validatedQaContext: '',
-      tradition: undefined,
-    });
 
-    const config = result.config as { systemInstruction: string };
+    const result = service.withEvidenceContext(evidence, () =>
+      builder({
+        conversationHistory: [],
+        sanitizedQuery: 'João 3:16',
+        jsonMode: false,
+        driveLibraryContext: '',
+        theologicalContext: '',
+        bibleContext: '',
+        userContextText: '',
+        openSourceContext: '',
+        libraryHasHits: false,
+        validatedQaContext: '',
+        tradition: undefined,
+      }),
+    );
+
+    const config = (result as Record<string, unknown>).config as {
+      systemInstruction: string;
+    };
     expect(config.systemInstruction).toContain('EVIDENCE PACK');
     expect(config.systemInstruction).toContain('PRIMARY_SOURCES: 1');
   });
 
-  it('injeta o EvidencePack no builder OpenAI', () => {
+  it('injeta o EvidencePack no builder OpenAI dentro do contexto da requisição', () => {
     const service = makeService({} as SearchService);
-    (service as unknown as { activeEvidenceContext: string }).activeEvidenceContext =
+    const evidence =
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 2\n=== END EVIDENCE PACK ===';
 
     const builder = (
@@ -99,21 +100,65 @@ describe('EvidenceAwareRagService', () => {
         buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
       }
     ).buildOpenAiRequest.bind(service);
-    const result = builder({
-      conversationHistory: [],
-      sanitizedQuery: 'Jesus',
-      jsonMode: false,
-      driveLibraryContext: '',
-      theologicalContext: '',
-      bibleContext: '',
-      userContextText: '',
-      libraryHasHits: false,
-      validatedQaContext: '',
-    });
 
-    const messages = result.messages as Array<{ role: string; content: string }>;
+    const result = service.withEvidenceContext(evidence, () =>
+      builder({
+        conversationHistory: [],
+        sanitizedQuery: 'Jesus',
+        jsonMode: false,
+        driveLibraryContext: '',
+        theologicalContext: '',
+        bibleContext: '',
+        userContextText: '',
+        libraryHasHits: false,
+        validatedQaContext: '',
+      }),
+    );
+
+    const messages = (result as Record<string, unknown>).messages as Array<{
+      role: string;
+      content: string;
+    }>;
     expect(messages.at(-1)?.content).toContain('EVIDENCE PACK');
     expect(messages.at(-1)?.content).toContain('PRIMARY_SOURCES: 2');
+  });
+
+  it('isola contextos de requisições concorrentes', async () => {
+    const service = makeService({} as SearchService);
+    const builder = (
+      service as unknown as {
+        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+      }
+    ).buildGeminiRequest.bind(service);
+
+    const makeRequest = async (evidence: string, delayMs: number) =>
+      service.withEvidenceContext(evidence, async () => {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        const result = builder({
+          conversationHistory: [],
+          sanitizedQuery: 'pergunta',
+          jsonMode: false,
+          driveLibraryContext: '',
+          theologicalContext: '',
+          bibleContext: '',
+          userContextText: '',
+          openSourceContext: '',
+          libraryHasHits: false,
+          validatedQaContext: '',
+          tradition: undefined,
+        });
+        return (result.config as { systemInstruction: string }).systemInstruction;
+      });
+
+    const [first, second] = await Promise.all([
+      makeRequest('EVIDENCE_A', 15),
+      makeRequest('EVIDENCE_B', 1),
+    ]);
+
+    expect(first).toContain('EVIDENCE_A');
+    expect(first).not.toContain('EVIDENCE_B');
+    expect(second).toContain('EVIDENCE_B');
+    expect(second).not.toContain('EVIDENCE_A');
   });
 
   it('mantém o contrato de RagService', () => {
