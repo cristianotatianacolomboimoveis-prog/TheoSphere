@@ -33,9 +33,8 @@ describe('EvidenceAwareRagService', () => {
   });
 
   it('constrói EvidencePack a partir da busca bíblica e renderiza contexto formal', async () => {
-    const search = {
-      hybridSearchVerses: jest.fn().mockResolvedValue([hit()]),
-    } as unknown as jest.Mocked<SearchService>;
+    const hybridSearchVerses = jest.fn().mockResolvedValue([hit()]);
+    const search = { hybridSearchVerses } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
     await Reflect.apply(
@@ -48,7 +47,7 @@ describe('EvidenceAwareRagService', () => {
     );
 
     const state = service as unknown as { activeEvidenceContext: string };
-    expect(search.hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
+    expect(hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
       limit: 12,
     });
     expect(state.activeEvidenceContext).toContain('EVIDENCE PACK');
