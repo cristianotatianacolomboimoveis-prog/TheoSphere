@@ -8,6 +8,13 @@ class TestableEvidenceAwareRagService extends EvidenceAwareRagService {
   public buildEvidenceForTest(query: string): Promise<string> {
     return this.buildEvidenceContext(query);
   }
+
+  public withEvidenceForTest<T>(
+    evidence: string,
+    callback: () => Promise<T> | T,
+  ): Promise<T> | T {
+    return this.withEvidenceContext(evidence, callback);
+  }
 }
 
 describe('EvidenceAwareRagService', () => {
@@ -64,7 +71,7 @@ describe('EvidenceAwareRagService', () => {
       }
     ).buildGeminiRequest.bind(service);
 
-    const result = service.withEvidenceContext(evidence, () =>
+    const result = service.withEvidenceForTest(evidence, () =>
       builder({
         conversationHistory: [],
         sanitizedQuery: 'João 3:16',
@@ -98,7 +105,7 @@ describe('EvidenceAwareRagService', () => {
       }
     ).buildOpenAiRequest.bind(service);
 
-    const result = service.withEvidenceContext(evidence, () =>
+    const result = service.withEvidenceForTest(evidence, () =>
       builder({
         conversationHistory: [],
         sanitizedQuery: 'Jesus',
@@ -129,7 +136,7 @@ describe('EvidenceAwareRagService', () => {
     ).buildGeminiRequest.bind(service);
 
     const makeRequest = async (evidence: string, delayMs: number) =>
-      service.withEvidenceContext(evidence, async () => {
+      service.withEvidenceForTest(evidence, async () => {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         const result = builder({
           conversationHistory: [],
