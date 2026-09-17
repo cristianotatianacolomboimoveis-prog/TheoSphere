@@ -104,7 +104,7 @@ export class EvidenceAwareRagService extends RagService {
       });
   }
 
-  private async buildEvidenceContext(query: string): Promise<string> {
+  protected async buildEvidenceContext(query: string): Promise<string> {
     const normalizedQuery = query?.trim() ?? '';
     if (normalizedQuery.length < 2) return '';
 
