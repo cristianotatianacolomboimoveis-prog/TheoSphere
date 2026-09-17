@@ -4,7 +4,8 @@ describe('McpProtocolService', () => {
   const orchestrator = {
     snapshot: jest.fn(() => ({ tasks: [], agents: [], locks: [] })),
     plan: jest.fn((id: string) => ({ id, status: 'PLANNED' })),
-    assign: jest.fn((id: string) => ({ id, status: 'PLANNED', assignedAgent: 'agent-1' })),\n    registerAgent: jest.fn((agent: unknown) => agent),
+    assign: jest.fn((id: string) => ({ id, status: 'PLANNED', assignedAgent: 'agent-1' })),
+    registerAgent: jest.fn((agent: unknown) => agent),
     lockAndStart: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })),
     advance: jest.fn((id: string, next: string) => ({ id, status: next })),
   } as any;
@@ -24,12 +25,22 @@ describe('McpProtocolService', () => {
     }));
     const listed = await service.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
     expect((listed?.result as any).tools).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'theosphere_register_agent' }),\n      expect.objectContaining({ name: 'theosphere_snapshot' }),
+      expect.objectContaining({ name: 'theosphere_register_agent' }),
+      expect.objectContaining({ name: 'theosphere_snapshot' }),
       expect.objectContaining({ name: 'theosphere_memory_search' }),
     ]));
   });
 
-  it('routes agent registration through the orchestrator', async () => {\n    const response = await service.handle({\n      jsonrpc: '2.0', id: 2.5, method: 'tools/call',\n      params: { name: 'theosphere_register_agent', arguments: { id: 'agent-1', name: 'Coder', provider: 'claude', capabilities: ['coding'], enabled: true } },\n    });\n    expect(orchestrator.registerAgent).toBeDefined();\n    expect((response?.result as any).structuredContent).toBeDefined();\n  });\n\n  it('routes tools/call to governed services', async () => {
+  it('routes agent registration through the orchestrator', async () => {
+    const response = await service.handle({
+      jsonrpc: '2.0', id: 2.5, method: 'tools/call',
+      params: { name: 'theosphere_register_agent', arguments: { id: 'agent-1', name: 'Coder', provider: 'claude', capabilities: ['coding'], enabled: true } },
+    });
+    expect(orchestrator.registerAgent).toBeDefined();
+    expect((response?.result as any).structuredContent).toBeDefined();
+  });
+
+  it('routes tools/call to governed services', async () => {
     const response = await service.handle({
       jsonrpc: '2.0',
       id: 3,
