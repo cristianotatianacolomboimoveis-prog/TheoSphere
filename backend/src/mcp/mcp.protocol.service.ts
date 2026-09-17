@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { McpAuditService } from './mcp.audit.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { MCP_MEMORY_CATEGORIES, McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpTaskService } from './mcp.task.service';
@@ -24,6 +25,7 @@ export class McpProtocolService {
   constructor(
     private readonly orchestrator: McpOrchestratorService,
     private readonly tasks: McpTaskService,
+    private readonly audit: McpAuditService,
     private readonly memory: McpProjectMemoryService,
   ) {}
 
@@ -41,6 +43,11 @@ export class McpProtocolService {
           },
           required: ['id', 'name', 'provider', 'capabilities', 'enabled'], additionalProperties: false,
         },
+      },
+      {
+        name: 'theosphere_audit_list',
+        description: 'Read recent MCP audit events for operational verification.',
+        inputSchema: { type: 'object', properties: { limit: { type: 'number' } }, additionalProperties: false },
       },
       {
         name: 'theosphere_snapshot',
@@ -175,6 +182,9 @@ export class McpProtocolService {
           capabilities: this.stringArray(args.capabilities, 'capabilities'),
           enabled: args.enabled === true,
         });
+        break;
+      case 'theosphere_audit_list':
+        result = this.audit.list(typeof args.limit === 'number' ? Math.min(Math.max(Math.trunc(args.limit), 1), 200) : 100);
         break;
       case 'theosphere_snapshot':
         result = this.orchestrator.snapshot();
