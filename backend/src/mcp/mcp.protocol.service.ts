@@ -30,6 +30,19 @@ export class McpProtocolService {
   tools() {
     return [
       {
+        name: 'theosphere_register_agent',
+        description: 'Register an enabled TheoSphere worker agent and grant only capability-derived permissions.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' }, name: { type: 'string' },
+            provider: { type: 'string', enum: ['claude', 'gemini', 'openai', 'internal'] },
+            capabilities: { type: 'array', items: { type: 'string' } }, enabled: { type: 'boolean' },
+          },
+          required: ['id', 'name', 'provider', 'capabilities', 'enabled'], additionalProperties: false,
+        },
+      },
+      {
         name: 'theosphere_snapshot',
         description: 'Return the current TheoSphere MCP control-plane snapshot: tasks, agents, and file locks.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -154,6 +167,15 @@ export class McpProtocolService {
     let result: unknown;
 
     switch (name) {
+      case 'theosphere_register_agent':
+        result = this.orchestrator.registerAgent({
+          id: this.string(args.id, 'id'),
+          name: this.string(args.name, 'name'),
+          provider: this.enumValue(args.provider, ['claude', 'gemini', 'openai', 'internal'], 'provider') as any,
+          capabilities: this.stringArray(args.capabilities, 'capabilities'),
+          enabled: args.enabled === true,
+        });
+        break;
       case 'theosphere_snapshot':
         result = this.orchestrator.snapshot();
         break;
