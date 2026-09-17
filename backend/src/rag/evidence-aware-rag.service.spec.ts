@@ -38,10 +38,11 @@ describe('EvidenceAwareRagService', () => {
     } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
-    const prepareEvidence = Reflect.get(service, 'prepareEvidence') as (
-      query: string,
-    ) => Promise<void>;
-    await Reflect.apply(prepareEvidence, service, ['João 3:16']);
+    await Reflect.apply(
+      Reflect.get(service, 'prepareEvidence') as (...args: unknown[]) => Promise<void>,
+      service,
+      ['João 3:16'],
+    );
 
     const state = service as unknown as { activeEvidenceContext: string };
     expect(search.hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
@@ -58,10 +59,10 @@ describe('EvidenceAwareRagService', () => {
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 1\n=== END EVIDENCE PACK ===';
 
     const builder = (
-      service as unknown as {
-        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
-      }
-    ).buildGeminiRequest.bind(service);
+      Reflect.get(service, 'buildGeminiRequest') as (
+        params: Record<string, unknown>,
+      ) => Record<string, unknown>
+    ).bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'João 3:16',
@@ -87,10 +88,10 @@ describe('EvidenceAwareRagService', () => {
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 2\n=== END EVIDENCE PACK ===';
 
     const builder = (
-      service as unknown as {
-        buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
-      }
-    ).buildOpenAiRequest.bind(service);
+      Reflect.get(service, 'buildOpenAiRequest') as (
+        params: Record<string, unknown>,
+      ) => Record<string, unknown>
+    ).bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'Jesus',
