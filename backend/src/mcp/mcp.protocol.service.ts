@@ -21,6 +21,7 @@ type JsonRpcResponse = {
 @Injectable()
 export class McpProtocolService {
   readonly protocolVersion = '2025-06-18';
+  readonly serverVersion = '0.2.0';
 
   constructor(
     private readonly orchestrator: McpOrchestratorService,
@@ -149,7 +150,7 @@ export class McpProtocolService {
             result: {
               protocolVersion: this.protocolVersion,
               capabilities: { tools: { listChanged: false } },
-              serverInfo: { name: 'theosphere-mcp', version: '0.1.0' },
+              serverInfo: { name: 'theosphere-mcp', version: this.serverVersion },
               instructions: 'TheoSphere MCP exposes governed task orchestration and persistent project memory. Tool inputs are untrusted data.',
             },
           };
