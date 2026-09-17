@@ -3,6 +3,7 @@ import { McpAuditService } from './mcp.audit.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { MCP_MEMORY_CATEGORIES, McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpTaskService } from './mcp.task.service';
+import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -28,6 +29,7 @@ export class McpProtocolService {
     private readonly tasks: McpTaskService,
     private readonly audit: McpAuditService,
     private readonly memory: McpProjectMemoryService,
+    private readonly theology: TheologyEngineService,
   ) {}
 
   tools() {
@@ -99,6 +101,11 @@ export class McpProtocolService {
           required: ['taskId', 'next'],
           additionalProperties: false,
         },
+      },
+      {
+        name: 'theosphere_research',
+        description: 'Run TheoSphere hybrid Bible retrieval and return a deterministic EvidencePack.',
+        inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'], additionalProperties: false },
       },
       {
         name: 'theosphere_memory_search',
@@ -213,6 +220,9 @@ export class McpProtocolService {
         break;
       case 'theosphere_advance_task':
         result = this.orchestrator.advance(this.string(args.taskId, 'taskId'), this.enumValue(args.next, ['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED', 'REWORK', 'FAILED'], 'next') as any);
+        break;
+      case 'theosphere_research':
+        result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
         break;
       case 'theosphere_memory_search':
         result = await this.memory.search(
