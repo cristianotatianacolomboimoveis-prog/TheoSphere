@@ -38,11 +38,14 @@ describe('EvidenceAwareRagService', () => {
     } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
-    const prepareEvidence = Object.getOwnPropertyDescriptor(
-      Object.getPrototypeOf(service),
-      'prepareEvidence',
-    )?.value as (query: string) => Promise<void>;
-    await prepareEvidence.call(service, 'João 3:16');
+    await Reflect.apply(
+      Object.getOwnPropertyDescriptor(
+        Object.getPrototypeOf(service),
+        'prepareEvidence',
+      )?.value as (...args: unknown[]) => Promise<void>,
+      service,
+      ['João 3:16'],
+    );
 
     const state = service as unknown as { activeEvidenceContext: string };
     expect(search.hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
