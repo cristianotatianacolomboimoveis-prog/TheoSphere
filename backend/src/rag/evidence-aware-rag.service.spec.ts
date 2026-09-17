@@ -4,9 +4,15 @@ import { EvidencePackContextService } from './evidence-pack-context.service';
 import { RagService } from './rag.service';
 import type { HybridHit, SearchService } from '../search/search.service';
 
+class TestableEvidenceAwareRagService extends EvidenceAwareRagService {
+  public buildEvidenceForTest(query: string): Promise<string> {
+    return this.buildEvidenceContext(query);
+  }
+}
+
 describe('EvidenceAwareRagService', () => {
   const makeService = (search: SearchService) =>
-    new EvidenceAwareRagService(
+    new TestableEvidenceAwareRagService(
       {} as never,
       {} as never,
       {} as never,
@@ -37,16 +43,7 @@ describe('EvidenceAwareRagService', () => {
     const search = { hybridSearchVerses } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
-    const buildEvidenceContext = Object.getOwnPropertyDescriptor(
-      Object.getPrototypeOf(service),
-      'buildEvidenceContext',
-    )?.value as (query: string) => Promise<string>;
-
-    // The private method is intentionally invoked with its receiver preserved.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const evidence = await Reflect.apply(buildEvidenceContext, service, [
-      'João 3:16',
-    ]);
+    const evidence = await service.buildEvidenceForTest('João 3:16');
 
     expect(hybridSearchVerses).toHaveBeenCalledWith('João 3:16', {
       limit: 12,
