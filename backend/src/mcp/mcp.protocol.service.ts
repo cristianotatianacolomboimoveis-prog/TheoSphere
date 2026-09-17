@@ -170,6 +170,8 @@ export class McpProtocolService {
   }
 
   private async callTool(id: string | number | null, params: Record<string, unknown>): Promise<JsonRpcResponse> {
+    if (params.name !== undefined && typeof params.name !== 'string') return this.error(id, -32602, 'MCP tool name must be a string');
+    if (params.arguments !== undefined && (!params.arguments || typeof params.arguments !== 'object' || Array.isArray(params.arguments))) return this.error(id, -32602, 'MCP tool arguments must be an object');
     const name = typeof params.name === 'string' ? params.name : '';
     const args = (params.arguments ?? {}) as Record<string, unknown>;
     let result: unknown;
