@@ -37,11 +37,16 @@ describe('EvidenceAwareRagService', () => {
     const search = { hybridSearchVerses } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
+    const descriptor = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(service),
+      'prepareEvidence',
+    );
+    if (!descriptor?.value) throw new Error('prepareEvidence descriptor not found');
+
+    // The private method is intentionally invoked with its receiver preserved.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     await Reflect.apply(
-      Object.getOwnPropertyDescriptor(
-        Object.getPrototypeOf(service),
-        'prepareEvidence',
-      )?.value as (...args: unknown[]) => Promise<void>,
+      descriptor.value as (...args: unknown[]) => Promise<void>,
       service,
       ['João 3:16'],
     );
@@ -61,10 +66,10 @@ describe('EvidenceAwareRagService', () => {
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 1\n=== END EVIDENCE PACK ===';
 
     const builder = (
-      Reflect.get(service, 'buildGeminiRequest') as (
-        params: Record<string, unknown>,
-      ) => Record<string, unknown>
-    ).bind(service);
+      service as unknown as {
+        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+      }
+    ).buildGeminiRequest.bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'João 3:16',
@@ -90,10 +95,10 @@ describe('EvidenceAwareRagService', () => {
       '=== EVIDENCE PACK ===\nPRIMARY_SOURCES: 2\n=== END EVIDENCE PACK ===';
 
     const builder = (
-      Reflect.get(service, 'buildOpenAiRequest') as (
-        params: Record<string, unknown>,
-      ) => Record<string, unknown>
-    ).bind(service);
+      service as unknown as {
+        buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+      }
+    ).buildOpenAiRequest.bind(service);
     const result = builder({
       conversationHistory: [],
       sanitizedQuery: 'Jesus',
