@@ -56,6 +56,13 @@ export class McpTaskService {
   transition(taskId: string, next: McpTaskState, actor = 'mcp-orchestrator'): McpTask {
     this.security.assertAllowed(actor, 'task:transition');
     const task = this.get(taskId);
+    if (next === 'LOCKED') {
+      const unresolved = task.dependencies.filter((dependencyId) => {
+        const dependency = this.tasks.get(dependencyId);
+        return !dependency || dependency.status !== 'VERIFIED';
+      });
+      if (unresolved.length > 0) throw new ConflictException('MCP dependencies are not verified: ' + unresolved.join(', '));
+    }
     if (!MCP_STATE_TRANSITIONS[task.status].includes(next)) {
       throw new ConflictException(
         `Invalid MCP task transition: ${task.status} -> ${next}`,
