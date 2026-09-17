@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import { RAG_SERVICE } from './rag.tokens';
 import { RagService } from './rag.service';
 import { EvidenceAwareRagService } from './evidence-aware-rag.service';
 import { RagModule } from './rag.module';
