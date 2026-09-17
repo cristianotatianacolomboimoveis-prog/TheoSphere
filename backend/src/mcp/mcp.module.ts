@@ -4,6 +4,7 @@ import { McpAgentRegistryService } from './mcp.agent-registry.service';
 import { McpLockService } from './mcp.lock.service';
 import { McpSecurityService } from './mcp.security.service';
 import { McpTaskService } from './mcp.task.service';
+import { McpProjectMemoryService } from './mcp.project-memory.service';
 
 @Module({
   providers: [
@@ -12,6 +13,7 @@ import { McpTaskService } from './mcp.task.service';
     McpSecurityService,
     McpTaskService,
     McpLockService,
+    McpProjectMemoryService,
   ],
   exports: [
     McpAuditService,
