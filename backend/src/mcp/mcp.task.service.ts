@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { randomUUID } from 'node:crypto';
 import { McpAuditService } from './mcp.audit.service';
 import { McpSecurityService } from './mcp.security.service';
+import { McpAgentRegistryService } from './mcp.agent-registry.service';
 import { MCP_STATE_TRANSITIONS, type McpTask, type McpTaskState } from './mcp.types';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class McpTaskService {
   constructor(
     private readonly security: McpSecurityService,
     private readonly audit: McpAuditService,
+    private readonly registry: McpAgentRegistryService,
   ) {}
 
   create(
@@ -73,6 +75,10 @@ export class McpTaskService {
   assign(taskId: string, agentId: string, actor = 'mcp-orchestrator'): McpTask {
     this.security.assertAllowed(actor, 'task:assign');
     const task = this.get(taskId);
+    const agent = this.registry.get(agentId);
+    if (!agent || !agent.enabled) throw new NotFoundException('MCP agent not found or disabled: ' + agentId);
+    const missing = this.requiredCapabilities(task).filter((capability) => !agent.capabilities.includes(capability));
+    if (missing.length > 0) throw new ConflictException('MCP agent lacks capabilities: ' + missing.join(', '));
     const updated = {
       ...task,
       assignedAgent: agentId,
@@ -89,5 +95,15 @@ export class McpTaskService {
       metadata: { agentId },
     });
     return updated;
+  }
+
+  private requiredCapabilities(task: McpTask): string[] {
+    const text = (task.title + ' ' + task.description).toLowerCase();
+    const capabilities = new Set<string>();
+    if (/search|retriev|bible|lingu|greek|hebrew|strong/.test(text)) capabilities.add('research');
+    if (/test|qa|audit|verify|regression/.test(text)) capabilities.add('verification');
+    if (/security|secret|permission|auth/.test(text)) capabilities.add('security');
+    if (/code|implement|refactor|build|fix/.test(text)) capabilities.add('coding');
+    return [...capabilities];
   }
 }
