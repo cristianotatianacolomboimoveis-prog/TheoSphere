@@ -64,9 +64,16 @@ export class EvidenceAwareRagService extends RagService {
     jsonMode = false,
   ) {
     const evidence = await this.buildEvidenceContext(query);
-    return this.evidenceContextStorage.run(evidence, () =>
+    return this.withEvidenceContext(evidence, () =>
       super.chat(query, userId, tradition, conversationHistory, jsonMode),
     );
+  }
+
+  protected withEvidenceContext<T>(
+    evidence: string,
+    callback: () => Promise<T> | T,
+  ): Promise<T> | T {
+    return this.evidenceContextStorage.run(evidence, callback);
   }
 
   private installBuilderAdapters(): void {
