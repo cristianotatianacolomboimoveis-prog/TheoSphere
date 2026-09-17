@@ -16,7 +16,7 @@ export class McpTaskService {
   ) {}
 
   create(
-    input: Pick<McpTask, 'title' | 'description' | 'priority' | 'files' | 'dependencies'>,
+    input: Pick<McpTask, 'title' | 'description' | 'priority' | 'files' | 'dependencies' | 'requiredCapabilities'>,
     actor = 'mcp-orchestrator',
   ): McpTask {
     this.security.assertAllowed(actor, 'task:create');
@@ -27,6 +27,7 @@ export class McpTaskService {
       status: 'CREATED',
       dependencies: [...new Set(input.dependencies)],
       files: [...new Set(input.files)],
+      requiredCapabilities: [...new Set(input.requiredCapabilities.map((value) => value.trim()).filter(Boolean))],
       createdAt: now,
       updatedAt: now,
       version: 1,
@@ -77,7 +78,7 @@ export class McpTaskService {
     const task = this.get(taskId);
     const agent = this.registry.get(agentId);
     if (!agent || !agent.enabled) throw new NotFoundException('MCP agent not found or disabled: ' + agentId);
-    const missing = this.requiredCapabilities(task).filter((capability) => !agent.capabilities.includes(capability));
+    const missing = task.requiredCapabilities.filter((capability) => !agent.capabilities.includes(capability));
     if (missing.length > 0) throw new ConflictException('MCP agent lacks capabilities: ' + missing.join(', '));
     const updated = {
       ...task,
@@ -97,13 +98,4 @@ export class McpTaskService {
     return updated;
   }
 
-  private requiredCapabilities(task: McpTask): string[] {
-    const text = (task.title + ' ' + task.description).toLowerCase();
-    const capabilities = new Set<string>();
-    if (/search|retriev|bible|lingu|greek|hebrew|strong/.test(text)) capabilities.add('research');
-    if (/test|qa|audit|verify|regression/.test(text)) capabilities.add('verification');
-    if (/security|secret|permission|auth/.test(text)) capabilities.add('security');
-    if (/code|implement|refactor|build|fix/.test(text)) capabilities.add('coding');
-    return [...capabilities];
-  }
 }
