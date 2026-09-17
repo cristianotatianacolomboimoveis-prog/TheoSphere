@@ -1,5 +1,5 @@
-import { Body, Controller, Headers, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import { Body, Controller, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
+import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { McpProtocolService } from './mcp.protocol.service';
 
@@ -16,7 +16,6 @@ export class McpController {
     @Body() body: unknown,
     @Headers('authorization') authorization: string | undefined,
     @Headers('mcp-session-id') sessionId: string | undefined,
-    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     this.authorize(authorization);
