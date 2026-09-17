@@ -181,6 +181,7 @@ export class McpProtocolService {
     if (params.arguments !== undefined && (!params.arguments || typeof params.arguments !== 'object' || Array.isArray(params.arguments))) return this.error(id, -32602, 'MCP tool arguments must be an object');
     const name = typeof params.name === 'string' ? params.name : '';
     const args = (params.arguments ?? {}) as Record<string, unknown>;
+    if (name !== 'theosphere_snapshot' && name !== 'theosphere_audit_list' && name !== 'theosphere_research' && !Object.keys(args).length) return this.error(id, -32602, 'MCP tool arguments are required');
     let result: unknown;
 
     switch (name) {
