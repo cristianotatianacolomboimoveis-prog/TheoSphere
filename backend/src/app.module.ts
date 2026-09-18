@@ -32,6 +32,8 @@ interface EnvShape {
   NODE_ENV: string;
   OPENAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  MCP_API_KEY?: string;
+  REDIS_URL?: string;
 }
 
 @Module({
@@ -71,6 +73,12 @@ interface EnvShape {
             message:
               'OPENAI_API_KEY or GEMINI_API_KEY is required in production',
           });
+        }
+        if (typedEnv.NODE_ENV === 'production' && !typedEnv.MCP_API_KEY) {
+          return helpers.error('any.invalid', { message: 'MCP_API_KEY is required in production' });
+        }
+        if (typedEnv.NODE_ENV === 'production' && !typedEnv.REDIS_URL) {
+          return helpers.error('any.invalid', { message: 'REDIS_URL is required in production for distributed throttling' });
         }
         return typedEnv;
       }),
