@@ -156,7 +156,7 @@ export class McpController {
     const isLocalhost = /^(https?:\\/\\/)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d+)?$/.test(origin);
     const isVercel = /^https:\\/\\/(frontend-v2|cristianocolombo)[\\w-]*\\.vercel\\.app$/.test(origin);
     if (!isLocalhost && !isVercel && !configured.includes(origin)) {
-      throw new UnauthorizedException('Invalid MCP Origin');
+      throw new ForbiddenException('Invalid MCP Origin');
     }
   }
   private authorize(authorization?: string): void {
