@@ -3,6 +3,7 @@ import { McpAuditService } from './mcp.audit.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { MCP_MEMORY_CATEGORIES, McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpTaskService } from './mcp.task.service';
+import { McpAutonomyService } from './mcp.autonomy.service';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 
 type JsonRpcRequest = {
@@ -22,7 +23,7 @@ type JsonRpcResponse = {
 @Injectable()
 export class McpProtocolService {
   readonly protocolVersion = '2025-06-18';
-  readonly serverVersion = '0.2.0';
+  readonly serverVersion = '0.3.0';
 
   constructor(
     private readonly orchestrator: McpOrchestratorService,
@@ -30,6 +31,7 @@ export class McpProtocolService {
     private readonly audit: McpAuditService,
     private readonly memory: McpProjectMemoryService,
     private readonly theology: TheologyEngineService,
+    private readonly autonomy: McpAutonomyService,
   ) {}
 
   tools() {
@@ -101,6 +103,16 @@ export class McpProtocolService {
           required: ['taskId', 'next'],
           additionalProperties: false,
         },
+      },
+      {
+        name: 'theosphere_dispatch_task',
+        description: 'Autonomously plan, assign and start a governed task without fabricating implementation results.',
+        inputSchema: { type: 'object', properties: { taskId: { type: 'string' } }, required: ['taskId'], additionalProperties: false },
+      },
+      {
+        name: 'theosphere_record_result',
+        description: 'Record a worker result and drive successful execution through testing, auditing and verification.',
+        inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, success: { type: 'boolean' }, summary: { type: 'string' } }, required: ['taskId', 'success'], additionalProperties: false },
       },
       {
         name: 'theosphere_research',
@@ -221,6 +233,13 @@ export class McpProtocolService {
         break;
       case 'theosphere_advance_task':
         result = this.orchestrator.advance(this.string(args.taskId, 'taskId'), this.enumValue(args.next, ['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED', 'REWORK', 'FAILED'], 'next') as any);
+        break;
+      case 'theosphere_dispatch_task':
+        result = this.autonomy.dispatch(this.string(args.taskId, 'taskId'));
+        break;
+      case 'theosphere_record_result':
+        if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
+        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), args.success, typeof args.summary === 'string' ? args.summary : undefined);
         break;
       case 'theosphere_research':
         result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
