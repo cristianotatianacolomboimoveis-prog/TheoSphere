@@ -20,15 +20,12 @@ export class McpAutonomyService {
   ) {}
 
   dispatch(taskId: string): McpTask {
-    let task = this.tasks.get(taskId);
-    if (task.status === 'CREATED' || task.status === 'REWORK') {
-      this.orchestrator.plan(taskId);
-      task = this.tasks.get(taskId);
-    }
-    if (task.status !== 'PLANNED') throw new ConflictException(`Task ${taskId} is not dispatchable from ${task.status}`);
-    // Rework is deliberately re-routed so a failed worker does not retain
-    // an implicit claim over the next execution attempt.
-    if (!task.assignedAgent || task.status === 'PLANNED') this.orchestrator.assign(taskId);
+    const initial = this.tasks.get(taskId);
+    const rework = initial.status === 'REWORK';
+    if (initial.status === 'CREATED' || rework) this.orchestrator.plan(taskId);
+    const planned = this.tasks.get(taskId);
+    if (planned.status !== 'PLANNED') throw new ConflictException(`Task ${taskId} is not dispatchable from ${planned.status}`);
+    if (!planned.assignedAgent || rework) this.orchestrator.assign(taskId);
     return this.orchestrator.lockAndStart(taskId);
   }
 
