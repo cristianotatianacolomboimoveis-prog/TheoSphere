@@ -91,6 +91,32 @@ describe('McpProtocolTaskService', () => {
     }));
   });
 
+  it('does not allow failure to overwrite a cancellation race', async () => {
+    const service = new McpProtocolTaskService(memory);
+    const task = await service.create('theosphere_answer');
+    await service.cancel(task.taskId);
+
+    const failed = await service.fail(task.taskId, -32603, 'late failure');
+    expect(failed.status).toBe('cancelled');
+    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
+  });
+
+  it('persists a resumed task after all required input is supplied', async () => {
+    const service = new McpProtocolTaskService(memory);
+    const task = await service.create('test');
+    const stored = (service as any).tasks.get(task.taskId) as { status: string; inputRequests?: Record<string, unknown> };
+    stored.status = 'input_required';
+    stored.inputRequests = { approval: { request: 'approve' } };
+
+    await service.update(task.taskId, { approval: { value: true } });
+
+    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'working' }));
+    expect(memory.append).toHaveBeenLastCalledWith(expect.objectContaining({
+      memoryKey: 'mcp:protocol-task:' + task.taskId,
+      tags: expect.arrayContaining(['working']),
+    }));
+  });
+
   it('rejects unknown task ids', async () => {
     const service = new McpProtocolTaskService(memory);
     expect(() => service.get('missing')).toThrow(NotFoundException);
