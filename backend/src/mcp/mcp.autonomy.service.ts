@@ -25,11 +25,11 @@ export class McpAutonomyService {
   async dispatch(taskId: string): Promise<McpTask> {
     const initial = this.tasks.get(taskId);
     const rework = initial.status === 'REWORK';
-    if (initial.status === 'CREATED' || rework) await this.orchestrator.plan(taskId);
+    if (initial.status === 'CREATED' || rework) this.orchestrator.plan(taskId);
     const planned = this.tasks.get(taskId);
     if (planned.status !== 'PLANNED') throw new ConflictException(`Task ${taskId} is not dispatchable from ${planned.status}`);
-    if (!planned.assignedAgent || rework) await this.orchestrator.assign(taskId);
-    return await this.orchestrator.lockAndStart(taskId);
+    if (!planned.assignedAgent || rework) this.orchestrator.assign(taskId);
+    return this.orchestrator.lockAndStart(taskId);
   }
 
   async renewLocks(taskId: string, agentId: string): Promise<{ taskId: string; renewed: number; ttlMs: number }> {
