@@ -56,9 +56,17 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).capabilities.extensions).toEqual({
       'io.modelcontextprotocol/tasks': {},
     });
-    expect((response?.result as any).ttlMs).toBe(300_000);
-    expect((response?.result as any).cacheScope).toBe('public');
     expect((response?.result as any).resultType).toBe('complete');
+
+    const listed = await service.handle(
+      { jsonrpc: '2.0', id: 0.5, method: 'tools/list', params: { _meta: {
+        'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+        'io.modelcontextprotocol/clientCapabilities': {},
+      } } },
+      '2026-07-28',
+    );
+    expect((listed?.result as any).ttlMs).toBe(300_000);
+    expect((listed?.result as any).cacheScope).toBe('public');
   });
 
   it('returns an async task handle for answer calls from a tasks-capable client', async () => {
