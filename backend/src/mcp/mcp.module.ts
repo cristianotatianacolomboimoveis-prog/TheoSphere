@@ -12,8 +12,10 @@ import { McpProtocolTaskService } from './mcp.protocol-task.service';
 import { McpController } from './mcp.controller';
 import { McpExecutionController } from './mcp.execution.controller';
 import { McpAnswerController } from './mcp.answer.controller';
+import { RagModule } from '../rag/rag.module';
 
 @Module({
+  imports: [RagModule],
   controllers: [McpController, McpExecutionController, McpAnswerController],
   providers: [
     McpAuditService,
