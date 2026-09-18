@@ -65,7 +65,8 @@ export type McpPermission =
   | 'agent:register'
   | 'audit:read'
   | 'memory:write'
-  | 'memory:read';
+  | 'memory:read'
+  | 'research:read';
 
 export const MCP_STATE_TRANSITIONS: Record<McpTaskState, readonly McpTaskState[]> = {
   CREATED: ['PLANNED', 'FAILED'],
