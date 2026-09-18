@@ -52,6 +52,32 @@ describe('McpController', () => {
     await expect(controller.handle({ jsonrpc: '2.0', id: 2, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': [] } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('does not require Mcp-Name for Tasks extension methods', async () => {
+    const controller = new McpController(protocol, config);
+    const responseValue = await controller.handle(
+      {
+        jsonrpc: '2.0',
+        id: 7,
+        method: 'tasks/get',
+        params: {
+          taskId: 'task-123',
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': { extensions: { 'io.modelcontextprotocol/tasks': {} } },
+          },
+        },
+      },
+      undefined,
+      undefined,
+      'application/json',
+      '2026-07-28',
+      'tasks/get',
+      undefined,
+      response,
+    );
+    expect(responseValue).toBeDefined();
+  });
+
   it('supports session lifecycle for Streamable HTTP GET/DELETE', async () => {
     const controller = new McpController(protocol, config);
     response.statusCode = 200;
