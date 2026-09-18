@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Optional, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
