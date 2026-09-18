@@ -81,11 +81,14 @@ export class McpProtocolTaskService {
       throw new ConflictException('MCP task inputResponses must be an object');
     }
     const outstanding = task.inputRequests ?? {};
-    const unknown = Object.keys(inputResponses).filter((key) => !(key in outstanding));
-    if (unknown.length > 0) return;
-    task.inputRequests = {};
-    task.status = 'working';
-    task.statusMessage = 'Task input received; execution resumed.';
+    const remaining = Object.fromEntries(Object.entries(outstanding).filter(([key]) => !(key in inputResponses)));
+    task.inputRequests = remaining;
+    if (Object.keys(remaining).length === 0) {
+      task.status = 'working';
+      task.statusMessage = 'Task input received; execution resumed.';
+    } else {
+      task.statusMessage = 'Task input partially received; additional input is still required.';
+    }
     task.lastUpdatedAt = new Date().toISOString();
     await this.persist(task);
   }
