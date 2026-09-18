@@ -75,7 +75,7 @@ describe('MCP control-plane foundation', () => {
   it('persists and reloads a completed protocol task', async () => {
     const snapshots: any[] = [];
     const append = jest.fn(async (entry: any) => { snapshots.push(entry); return entry; });
-    const latestByKeyPrefix = jest.fn(async () => snapshots);
+    const latestByKeyPrefix = jest.fn(async () => snapshots.length ? [snapshots[snapshots.length - 1]] : []);
     const memory = { append, latestByKeyPrefix } as any;
     const first = new McpProtocolTaskService(memory);
     const created = await first.create('theosphere_answer', { query: 'John 3:16' });
