@@ -42,6 +42,18 @@ describe('McpProtocolTaskService', () => {
     await expect(service.cancel(task.taskId)).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('does not allow completion to overwrite a cancellation race', async () => {
+    const service = new McpProtocolTaskService(memory);
+    const task = await service.create('theosphere_answer');
+
+    await service.cancel(task.taskId);
+
+    await expect(service.complete(task.taskId, {
+      content: [{ type: 'text', text: 'late result' }],
+    })).rejects.toBeInstanceOf(ConflictException);
+    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
+  });
+
   it('fails incomplete tasks after a restart rather than reporting false progress', async () => {
     const working = {
       taskId: 'task-recovered',
