@@ -397,10 +397,13 @@ export class McpProtocolService {
       case 'theosphere_dispatch_task':
         result = await this.autonomy.dispatch(this.string(args.taskId, 'taskId'));
         break;
-      case 'theosphere_record_result':
+      case 'theosphere_record_result': {
         if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
-        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), this.string(args.agentId, 'agentId'), args.success, typeof args.summary === 'string' ? args.summary : undefined, this.executionReceipt(args.receipt));
+        const taskId = this.string(args.taskId, 'taskId');
+        const agentId = this.string(args.agentId, 'agentId');
+        result = await this.autonomy.recordResult(taskId, agentId, args.success, typeof args.summary === 'string' ? args.summary : undefined, this.executionReceipt(args.receipt));
         break;
+      }
       case 'theosphere_verify_result':
         result = await this.autonomy.verifyResult(this.string(args.taskId, 'taskId'), this.string(args.verifierAgentId, 'verifierAgentId'), typeof args.summary === 'string' ? args.summary : undefined);
         break;
