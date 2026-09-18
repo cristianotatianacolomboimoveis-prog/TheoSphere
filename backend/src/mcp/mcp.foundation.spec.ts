@@ -82,7 +82,7 @@ describe('MCP control-plane foundation', () => {
     await first.complete(created.taskId, { content: [{ type: 'text', text: 'Evidence-grounded answer' }], isError: false });
     const second = new McpProtocolTaskService(memory);
     await second.onModuleInit();
-    const recovered = second.get(created.taskId);
+    const recovered = await second.get(created.taskId);
     expect(recovered).toEqual(expect.objectContaining({ status: 'completed', result: expect.any(Object) }));
   });
 
@@ -93,7 +93,7 @@ describe('MCP control-plane foundation', () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await service.cancel(task.taskId);
-    const cancelled = service.get(task.taskId);
+    const cancelled = await service.get(task.taskId);
     expect(cancelled.status).toBe('cancelled');
     await expect(service.complete(task.taskId, {})).rejects.toThrow('already terminal');
   });
