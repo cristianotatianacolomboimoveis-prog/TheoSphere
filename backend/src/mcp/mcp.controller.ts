@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { McpProtocolService } from './mcp.protocol.service';
 
@@ -89,7 +89,9 @@ export class McpController {
       if (production) throw new UnauthorizedException('MCP endpoint is disabled until MCP_API_KEY is configured');
       return;
     }
-    if (authorization !== `Bearer ${configured}`) throw new UnauthorizedException('Invalid MCP authorization');
+    const expected = Buffer.from(`Bearer ${configured}`);
+    const received = Buffer.from(authorization ?? '');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new UnauthorizedException('Invalid MCP authorization');
   }
 }
 
