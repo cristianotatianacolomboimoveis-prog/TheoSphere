@@ -47,6 +47,16 @@ async function post(method, params = {}, name) {
 const report = { base, query, steps: [] };
 
 const discovery = await post('server/discover', meta());
+if (discovery.resultType !== 'complete') throw new Error('server/discover missing resultType=complete');
+if (!Array.isArray(discovery.supportedVersions) || discovery.supportedVersions.some((version) => version !== '2026-07-28')) {
+  throw new Error('server/discover returned an invalid modern version list');
+}
+if (discovery.ttlMs !== 0 || discovery.cacheScope !== 'private') {
+  throw new Error('server/discover returned an invalid cache policy');
+}
+if (!discovery._meta?.['io.modelcontextprotocol/serverInfo']?.name) {
+  throw new Error('server/discover missing serverInfo metadata');
+}
 report.steps.push({
   name: 'server/discover',
   resultType: discovery.resultType,
