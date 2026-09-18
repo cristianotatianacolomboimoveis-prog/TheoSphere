@@ -113,6 +113,41 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).structuredContent).toBeUndefined();
   });
 
+  it('does not complete a cancelled asynchronous answer task', async () => {
+    protocolTasks.create.mockResolvedValueOnce({
+      taskId: 'task-cancelled',
+      status: 'working',
+      statusMessage: 'Running',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+      pollIntervalMs: 2_000,
+    });
+    protocolTasks.get.mockReturnValue({ taskId: 'task-cancelled', status: 'cancelled' });
+    const response = await service.handle(
+      {
+        jsonrpc: '2.0',
+        id: 1.75,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_answer',
+          arguments: { query: 'grace' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {
+              extensions: { 'io.modelcontextprotocol/tasks': {} },
+            },
+          },
+        },
+      },
+      '2026-07-28',
+    );
+    expect((response?.result as any).resultType).toBe('task');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(theology.research).not.toHaveBeenCalled();
+    expect(protocolTasks.complete).not.toHaveBeenCalled();
+  });
+
   it('requires the tasks extension capability for task polling and cancellation', async () => {
     const missing = await service.handle(
       { jsonrpc: '2.0', id: 16, method: 'tasks/get', params: { taskId: 'task-1' } },
