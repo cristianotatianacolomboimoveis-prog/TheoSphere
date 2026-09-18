@@ -66,7 +66,7 @@ export class TheologyEngineService {
       const chapterData = await this.linguistics.getInterlinearChapter(bookId, chapter);
       return Object.values(chapterData.verses).flat().slice(0, 20).map((word) => ({
         source: {
-          type: 'interlinear' as const,
+          type: 'theology' as const,
           title: `STEP Bible ${bookId < 40 ? 'TAHOT' : 'TAGNT'}`,
           reference: `${bookNames.get(bookId) ?? bookId} ${chapter}:${word.verse}`,
           snippet: [word.word, word.translit, word.lemma ? `lemma=${word.lemma}` : '', word.morph ? `morph=${word.morph}` : '', `Strong=${word.strongId}`].filter(Boolean).join(' · '),
