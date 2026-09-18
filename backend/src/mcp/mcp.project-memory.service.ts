@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 
@@ -41,6 +42,36 @@ export class McpProjectMemoryService {
 
   async latest(memoryKey: string) {
     return this.prisma.projectMemory.findFirst({ where: { memoryKey: memoryKey.trim() }, orderBy: { createdAt: 'desc' } });
+  }
+
+  /**
+   * Returns only the newest snapshot for each memory key under a prefix.
+   * Task state is append-only, so loading a fixed number of history rows can
+   * silently drop older tasks after enough state transitions accumulate.
+   */
+  async latestByKeyPrefix(category: McpMemoryCategory, prefix: string) {
+    const normalizedPrefix = prefix.trim();
+    if (!normalizedPrefix) return [];
+    return this.prisma.$queryRaw<Array<{
+      id: string;
+      category: string;
+      memoryKey: string;
+      content: string;
+      tags: string[];
+      source: string | null;
+      taskId: string | null;
+      agentId: string | null;
+      supersedesId: string | null;
+      createdAt: Date;
+    }>>(Prisma.sql`
+      SELECT DISTINCT ON ("memoryKey")
+        "id", "category", "memoryKey", "content", "tags", "source",
+        "taskId", "agentId", "supersedesId", "createdAt"
+      FROM "ProjectMemory"
+      WHERE "category" = ${category}
+        AND "memoryKey" LIKE ${normalizedPrefix + '%'}
+      ORDER BY "memoryKey", "createdAt" DESC, "id" DESC
+    `);
   }
 
   async list(category?: McpMemoryCategory, limit = 100) {
