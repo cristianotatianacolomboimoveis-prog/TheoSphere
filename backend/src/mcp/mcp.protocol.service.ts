@@ -229,6 +229,8 @@ export class McpProtocolService {
                 tools: { listChanged: false },
                 extensions: { 'io.modelcontextprotocol/tasks': {} },
               },
+              ttlMs: 0,
+              cacheScope: 'private',
             },
           }, protocolVersion);
         case 'initialize': {
