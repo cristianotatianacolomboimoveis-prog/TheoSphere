@@ -40,6 +40,11 @@ export class McpController {
           ? ((body as Record<string, unknown>).params as Record<string, unknown>).name
           : undefined;
         if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
+      } else if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
+        const taskId = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
+          ? ((body as Record<string, unknown>).params as Record<string, unknown>).taskId
+          : undefined;
+        if (mcpName !== taskId) throw new BadRequestException('Mcp-Name header must match taskId');
       }
     }
 
@@ -56,8 +61,14 @@ export class McpController {
       ? meta as Record<string, unknown>
       : undefined;
 
-    if (modern && requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) {
-      throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
+    if (modern) {
+      if (requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) {
+        throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
+      }
+      const clientCapabilities = requestMeta['io.modelcontextprotocol/clientCapabilities'];
+      if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) {
+        throw new BadRequestException('MCP 2026-07-28 requires io.modelcontextprotocol/clientCapabilities metadata');
+      }
     }
     if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) {
       throw new BadRequestException('initialize is not part of MCP 2026-07-28');
