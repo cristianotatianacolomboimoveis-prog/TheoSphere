@@ -13,7 +13,7 @@ describe('McpProtocolService', () => {
   const tasks = { create: jest.fn((input: unknown) => ({ id: 'TSK-1', ...(input as object) })) } as any;
   const audit = { list: jest.fn(() => []) } as any;
   const theology = { research: jest.fn(async () => ({ version: 1, items: [] })) } as any;
-  const autonomy = { dispatch: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })), recordResult: jest.fn(async (id: string) => ({ taskId: id, status: 'VERIFIED' })) } as any;
+  const autonomy = { dispatch: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })), recordResult: jest.fn(async (id: string, _agentId: string) => ({ taskId: id, status: 'VERIFIED' })) } as any;
   const memory = {
     search: jest.fn(async () => []),
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
@@ -76,7 +76,7 @@ describe('McpProtocolService', () => {
     expect(memory.search).not.toHaveBeenCalled();
   });
 
-  it('rejects unknown tools and invalid JSON-RPC', async () => {
+\n  it('requires the assigned worker identity when recording results', async () => {\n    const response = await service.handle({ jsonrpc: '2.0', id: 11, method: 'tools/call', params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', success: true } } });\n    expect(response?.error).toEqual(expect.objectContaining({ code: -32000 }));\n    expect(autonomy.recordResult).not.toHaveBeenCalled();\n  });\n\n  it('rejects unknown tools and invalid JSON-RPC', async () => {
     const unknown = await service.handle({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'nope', arguments: {} } });
     expect((unknown?.error as any).code).toBe(-32602);
     const invalid = await service.handle({ jsonrpc: '1.0', id: 5, method: 'ping' });
