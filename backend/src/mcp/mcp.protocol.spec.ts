@@ -122,6 +122,48 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).taskId).toBe('task-research-1');
   });
 
+  it('does not start or complete a cancelled asynchronous research task', async () => {
+    theology.research.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+      return { version: 1, query: 'grace', items: [] };
+    });
+    protocolTasks.create.mockResolvedValueOnce({
+      taskId: 'task-research-cancelled',
+      status: 'working',
+      statusMessage: 'Running',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+      pollIntervalMs: 2_000,
+    });
+    let cancelled = false;
+    protocolTasks.get.mockImplementation(() => ({
+      taskId: 'task-research-cancelled',
+      status: cancelled ? 'cancelled' : 'working',
+    }));
+    const response = await service.handle({
+      jsonrpc: '2.0',
+      id: 1.65,
+      method: 'tools/call',
+      params: {
+        name: 'theosphere_research',
+        arguments: { query: 'grace' },
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {
+            extensions: { 'io.modelcontextprotocol/tasks': {} },
+          },
+        },
+      },
+    }, '2026-07-28');
+    expect((response?.result as any).resultType).toBe('task');
+    cancelled = true;
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(theology.research).toHaveBeenCalledWith('grace', 12);
+    expect(protocolTasks.complete).not.toHaveBeenCalled();
+  });
+
   it('does not start a second execution when polling an existing task', async () => {
     protocolTasks.get.mockReturnValue({
       taskId: 'task-1',
