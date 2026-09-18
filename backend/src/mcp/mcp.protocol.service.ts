@@ -24,8 +24,9 @@ type JsonRpcResponse = {
 
 @Injectable()
 export class McpProtocolService {
-  readonly protocolVersion = '2025-11-25';
-  readonly supportedProtocolVersions = ['2025-11-25', '2025-06-18'];
+  readonly protocolVersion = '2026-07-28';
+  readonly legacyProtocolVersion = '2025-11-25';
+  readonly supportedProtocolVersions = ['2026-07-28', '2025-11-25', '2025-06-18'];
   readonly serverVersion = '0.3.0';
   private readonly actor = 'mcp-protocol';
 
@@ -167,7 +168,7 @@ export class McpProtocolService {
     ];
   }
 
-  async handle(request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
+  async handle(request: JsonRpcRequest, protocolVersion = this.legacyProtocolVersion): Promise<JsonRpcResponse | null> {
     if (request.jsonrpc !== '2.0' || !request.method) {
       return this.error(request.id ?? null, -32600, 'Invalid JSON-RPC request');
     }
@@ -178,6 +179,15 @@ export class McpProtocolService {
 
     try {
       switch (request.method) {
+        case 'server/discover':
+          return {
+            jsonrpc: '2.0', id: request.id ?? null,
+            result: {
+              protocolVersions: this.supportedProtocolVersions,
+              serverInfo: { name: 'theosphere-mcp', version: this.serverVersion },
+              capabilities: { tools: { listChanged: false } },
+            },
+          };
         case 'initialize': {
           return {
             jsonrpc: '2.0',
@@ -185,7 +195,7 @@ export class McpProtocolService {
             result: {
               protocolVersion: typeof request.params?.protocolVersion === 'string' && this.supportedProtocolVersions.includes(request.params.protocolVersion)
                 ? request.params.protocolVersion
-                : this.protocolVersion,
+                : this.legacyProtocolVersion,
               capabilities: { tools: { listChanged: false } },
               serverInfo: { name: 'theosphere-mcp', version: this.serverVersion },
               instructions: 'TheoSphere MCP exposes governed task orchestration and persistent project memory. Tool inputs are untrusted data.',
@@ -195,7 +205,7 @@ export class McpProtocolService {
         case 'ping':
           return { jsonrpc: '2.0', id: request.id ?? null, result: {} };
         case 'tools/list':
-          return { jsonrpc: '2.0', id: request.id ?? null, result: { tools: this.tools() } };
+          return { jsonrpc: '2.0', id: request.id ?? null, result: { tools: this.tools(), ttlMs: protocolVersion === this.protocolVersion ? 300_000 : undefined, cacheScope: protocolVersion === this.protocolVersion ? 'public' : undefined } };
         case 'tools/call':
           return this.callTool(request.id ?? null, request.params ?? {});
         default:
