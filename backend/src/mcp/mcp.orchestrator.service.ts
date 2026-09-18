@@ -23,6 +23,7 @@ export class McpOrchestratorService {
     if (registered.capabilities.includes('coding')) {
       permissions.add('lock:acquire');
       permissions.add('lock:release');
+      permissions.add('lock:renew');
     }
     if (registered.capabilities.includes('verification')) permissions.add('audit:read');
     for (const permission of permissions) this.security.grant(registered.id, permission as any);
@@ -47,31 +48,31 @@ export class McpOrchestratorService {
     return this.tasks.assign(taskId, compatible.id, this.actor);
   }
 
-  lockAndStart(taskId: string): McpTask {
+  async lockAndStart(taskId: string): Promise<McpTask> {
     const task = this.tasks.get(taskId);
     if (!task.assignedAgent) throw new ConflictException('MCP task must be assigned before locking');
     try {
-      this.locks.acquire(task.files, taskId, task.assignedAgent);
+      await this.locks.acquire(task.files, taskId, task.assignedAgent);
       this.tasks.transition(taskId, 'LOCKED', this.actor);
       return this.tasks.transition(taskId, 'IN_PROGRESS', this.actor);
     } catch (error) {
-      try { this.locks.release(taskId, task.assignedAgent); } catch { /* best-effort rollback */ }
+      try { await this.locks.release(taskId, task.assignedAgent); } catch { /* best-effort rollback */ }
       throw error;
     }
   }
 
-  advance(taskId: string, next: Extract<McpTaskState, 'IMPLEMENTED' | 'TESTING' | 'AUDITING' | 'VERIFIED' | 'REWORK' | 'FAILED'>): McpTask {
+  async advance(taskId: string, next: Extract<McpTaskState, 'IMPLEMENTED' | 'TESTING' | 'AUDITING' | 'VERIFIED' | 'REWORK' | 'FAILED'>): Promise<McpTask> {
     const task = this.tasks.get(taskId);
     const updated = this.tasks.transition(taskId, next, this.actor);
     if (['VERIFIED', 'FAILED', 'REWORK'].includes(updated.status)) {
       if (task.assignedAgent) {
-        try { this.locks.release(taskId, task.assignedAgent); } catch { /* task lifecycle remains authoritative */ }
+        try { await this.locks.release(taskId, task.assignedAgent); } catch { /* task lifecycle remains authoritative */ }
       }
     }
     return updated;
   }
 
-  snapshot() {
-    return { tasks: this.tasks.list(), agents: this.agents.list(), locks: this.locks.list() };
+  async snapshot() {
+    return { tasks: this.tasks.list(), agents: this.agents.list(), locks: await this.locks.list() };
   }
 }
