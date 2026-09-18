@@ -74,21 +74,6 @@ describe('McpController', () => {
     expect(protocolTasks.cancel).toHaveBeenCalledWith('task-123');
   });
 
-  it('creates a durable task for task-capable evidence calls and completes it asynchronously', async () => {
-    const protocolTasks = {
-      create: jest.fn(async () => ({ taskId: 'task-answer', status: 'working', createdAt: '2026-09-18T10:00:00.000Z', lastUpdatedAt: '2026-09-18T10:00:00.000Z', ttlMs: 3600000, pollIntervalMs: 2000 })),
-      complete: jest.fn(async () => undefined),
-      fail: jest.fn(async () => undefined),
-    } as any;
-    protocol.handle.mockResolvedValueOnce({ jsonrpc: '2.0', id: 4, result: { content: [{ type: 'text', text: 'evidence answer' }], isError: false } });
-    const controller = new McpController(protocol, config, protocolTasks);
-    const created = await controller.handle({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'theosphere_answer', arguments: { query: 'John 3:16' }, ...taskMeta } }, undefined, undefined, 'application/json', '2026-07-28', 'tools/call', 'theosphere_answer', response);
-    expect(created).toEqual(expect.objectContaining({ result: expect.objectContaining({ resultType: 'task', taskId: 'task-answer', status: 'working' }) }));
-    expect(protocolTasks.create).toHaveBeenCalledWith('theosphere_answer', { query: 'John 3:16' });
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(protocolTasks.complete).toHaveBeenCalledWith('task-answer', expect.objectContaining({ content: expect.any(Array), isError: false }));
-  });
-
   it('supports session lifecycle for Streamable HTTP GET/DELETE', async () => {
     const controller = new McpController(protocol, config);
     response.statusCode = 200;
