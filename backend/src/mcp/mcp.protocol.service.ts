@@ -292,7 +292,8 @@ export class McpProtocolService {
             return this.error(request.id ?? null, -32602, message);
           }
         case 'ping':
-          return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: {} }, protocolVersion);
+          if (protocolVersion === this.protocolVersion) return this.error(request.id ?? null, -32601, 'ping is not part of MCP 2026-07-28');
+          return { jsonrpc: '2.0', id: request.id ?? null, result: {} };
         case 'tools/list':
           return this.modernize({
             jsonrpc: '2.0',
