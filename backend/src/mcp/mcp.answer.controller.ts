@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, Post, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
@@ -19,7 +19,7 @@ export class McpAnswerController {
     @Res() res: Response,
   ) {
     this.authorize(authorization);
-    if (typeof body?.query !== 'string' || !body.query.trim()) throw new UnauthorizedException('query is required');
+    if (typeof body?.query !== 'string' || !body.query.trim()) throw new BadRequestException('query is required');
     const pack = await this.theology.research(body.query, typeof body.limit === 'number' ? body.limit : 12);
     const service = this.rag as RagService & {
       chatStreamWithEvidencePack?: (query: string, pack: unknown, userId?: string, tradition?: string) => AsyncGenerator<{ type: string; data: unknown }>;
