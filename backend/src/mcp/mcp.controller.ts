@@ -6,7 +6,7 @@ import { McpProtocolService } from './mcp.protocol.service';
 
 @Controller('mcp')
 export class McpController {
-  private readonly sessions = new Set<string>();
+  private readonly sessions = new Map<string, string>();
 
   constructor(
     private readonly protocol: McpProtocolService,
@@ -27,35 +27,70 @@ export class McpController {
   ) {
     this.authorize(authorization);
     this.validateAccept(accept);
-    const modern = requestedVersion === '2026-07-28';
+    const modern = requestedVersion === this.protocol.protocolVersion;
     if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) {
       throw new BadRequestException('Unsupported MCP protocol version');
     }
     const modernMethod = typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>).method : undefined;
-    if (modern && mcpMethod !== modernMethod) throw new BadRequestException('Mcp-Method header must match JSON-RPC method');
-    if (modern && modernMethod === 'tools/call') {
-      const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object' ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
-      if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
-    }
-    res.setHeader('MCP-Protocol-Version', modern ? this.protocol.protocolVersion : this.protocol.legacyProtocolVersion);
-    const request = body as Record<string, unknown>;
-    if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) throw new BadRequestException('initialize is not part of MCP 2026-07-28');
-    if (!modern && request.method === 'server/discover') throw new BadRequestException('server/discover requires MCP 2026-07-28');
-    if (!modern && request.method === 'initialize') {
-      const id = sessionId ?? randomUUID();
-      this.sessions.add(id);
-      res.setHeader('MCP-Session-Id', id);
-    } else if (sessionId) {
-      if (!this.sessions.has(sessionId)) throw new UnauthorizedException('Unknown MCP-Session-Id');
-      res.setHeader('MCP-Session-Id', sessionId);
+    if (modern) {
+      if (sessionId) throw new BadRequestException('MCP 2026-07-28 is stateless; MCP-Session-Id must not be sent');
+      if (mcpMethod !== modernMethod) throw new BadRequestException('Mcp-Method header must match JSON-RPC method');
+      if (modernMethod === 'tools/call') {
+        const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
+          ? ((body as Record<string, unknown>).params as Record<string, unknown>).name
+          : undefined;
+        if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
+      }
     }
 
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
+    if (!body || typeof body !== 'object') throw new BadRequestException('MCP request body must be a JSON-RPC object');
 
-    if (!body || typeof body !== 'object') {
-      throw new BadRequestException('MCP request body must be a JSON-RPC object');
+    const request = body as Record<string, unknown>;
+    const rawParams = request.params;
+    const params = rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)
+      ? rawParams as Record<string, unknown>
+      : undefined;
+    const meta = params?._meta;
+    const requestMeta = meta && typeof meta === 'object' && !Array.isArray(meta)
+      ? meta as Record<string, unknown>
+      : undefined;
+
+    if (modern && requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) {
+      throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
     }
-    const response = await this.protocol.handle(body as Record<string, unknown>, modern ? this.protocol.protocolVersion : this.protocol.legacyProtocolVersion);
+    if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) {
+      throw new BadRequestException('initialize is not part of MCP 2026-07-28');
+    }
+    if (!modern && request.method === 'server/discover') {
+      throw new BadRequestException('server/discover requires MCP 2026-07-28');
+    }
+
+    let effectiveProtocolVersion = this.protocol.legacyProtocolVersion;
+    if (modern) {
+      effectiveProtocolVersion = this.protocol.protocolVersion;
+    } else if (request.method === 'initialize') {
+      const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : undefined;
+      effectiveProtocolVersion = requested && ['2025-11-25', '2025-06-18'].includes(requested)
+        ? requested
+        : this.protocol.legacyProtocolVersion;
+      const id = randomUUID();
+      this.sessions.set(id, effectiveProtocolVersion);
+      res.setHeader('MCP-Session-Id', id);
+    } else if (sessionId) {
+      const sessionVersion = this.sessions.get(sessionId);
+      if (!sessionVersion) throw new UnauthorizedException('Unknown MCP-Session-Id');
+      if (requestedVersion && requestedVersion !== sessionVersion) {
+        throw new BadRequestException('MCP protocol version does not match the session');
+      }
+      effectiveProtocolVersion = sessionVersion;
+      res.setHeader('MCP-Session-Id', sessionId);
+    } else if (requestedVersion) {
+      effectiveProtocolVersion = requestedVersion;
+    }
+
+    res.setHeader('MCP-Protocol-Version', effectiveProtocolVersion);
+    const response = await this.protocol.handle(body as Record<string, unknown>, effectiveProtocolVersion);
     if (!response) {
       res.statusCode = 202;
       return undefined;
@@ -72,12 +107,15 @@ export class McpController {
     @Res() res: Response,
   ) {
     this.authorize(authorization);
-    if (requestedVersion === '2026-07-28') throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
-    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
+    if (requestedVersion === this.protocol.protocolVersion) throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
+    const sessionVersion = sessionId ? this.sessions.get(sessionId) : undefined;
+    if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
+    if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('MCP-Protocol-Version', this.protocol.protocolVersion);
+    res.setHeader('MCP-Protocol-Version', sessionVersion);
     res.setHeader('MCP-Session-Id', sessionId);
     res.write(': theosphere-mcp stream ready\\n\\n');
     return res;
@@ -91,8 +129,11 @@ export class McpController {
     @Headers('mcp-protocol-version') requestedVersion: string | undefined,
   ) {
     this.authorize(authorization);
-    if (requestedVersion === '2026-07-28') throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
-    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for session termination');
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
+    if (requestedVersion === this.protocol.protocolVersion) throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
+    const sessionVersion = sessionId ? this.sessions.get(sessionId) : undefined;
+    if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for session termination');
+    if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
     this.sessions.delete(sessionId);
   }
 
