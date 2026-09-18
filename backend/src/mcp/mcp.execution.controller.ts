@@ -92,7 +92,12 @@ export class McpExecutionController {
           ? receipt.artifactRefs as string[]
           : (() => { throw new BadRequestException('Execution receipt artifactRefs must contain only strings'); })(),
       }),
-      ...(receipt.agentVersion === undefined ? {} : { agentVersion: typeof receipt.agentVersion === 'string' ? receipt.agentVersion : String(receipt.agentVersion) }),
+      ...(receipt.agentVersion === undefined ? {} : {
+        agentVersion: (() => {
+          if (typeof receipt.agentVersion !== 'string') throw new BadRequestException('Execution receipt agentVersion must be a string');
+          return receipt.agentVersion;
+        })(),
+      }),
     };
   }
 
