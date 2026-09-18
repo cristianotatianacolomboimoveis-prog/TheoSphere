@@ -10,7 +10,7 @@ describe('McpController', () => {
 
   it('rejects an untrusted Origin', async () => {
     const controller = new McpController(protocol, config);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 0, method: 'ping' }, undefined, undefined, 'application/json', undefined, undefined, undefined, 'https://evil.example', response)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(controller.handle({ jsonrpc: '2.0', id: 0, method: 'ping' }, undefined, undefined, 'application/json', undefined, undefined, undefined, 'https://evil.example', response)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('allows localhost Origin', async () => {
