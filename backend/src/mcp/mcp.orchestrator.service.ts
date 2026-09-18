@@ -35,6 +35,9 @@ export class McpOrchestratorService {
 
   assign(taskId: string, capability?: string): McpTask {
     const task = this.tasks.get(taskId);
+    if (task.files.length > 0 && !task.requiredCapabilities.includes('coding')) {
+      throw new ConflictException('MCP file-mutating tasks must require the coding capability');
+    }
     const candidates = capability
       ? this.agents.findCapable(capability)
       : this.agents.findCapable(task.requiredCapabilities[0] ?? 'coding');
@@ -47,9 +50,14 @@ export class McpOrchestratorService {
   lockAndStart(taskId: string): McpTask {
     const task = this.tasks.get(taskId);
     if (!task.assignedAgent) throw new ConflictException('MCP task must be assigned before locking');
-    this.locks.acquire(task.files, taskId, task.assignedAgent);
-    this.tasks.transition(taskId, 'LOCKED', this.actor);
-    return this.tasks.transition(taskId, 'IN_PROGRESS', this.actor);
+    try {
+      this.locks.acquire(task.files, taskId, task.assignedAgent);
+      this.tasks.transition(taskId, 'LOCKED', this.actor);
+      return this.tasks.transition(taskId, 'IN_PROGRESS', this.actor);
+    } catch (error) {
+      try { this.locks.release(taskId, task.assignedAgent); } catch { /* best-effort rollback */ }
+      throw error;
+    }
   }
 
   advance(taskId: string, next: Extract<McpTaskState, 'IMPLEMENTED' | 'TESTING' | 'AUDITING' | 'VERIFIED' | 'REWORK' | 'FAILED'>): McpTask {
