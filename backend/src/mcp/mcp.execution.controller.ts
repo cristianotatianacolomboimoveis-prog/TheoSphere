@@ -16,6 +16,16 @@ export class McpExecutionController {
     private readonly autonomy: McpAutonomyService,
   ) {}
 
+  @Post(':agentId/tasks/:taskId/heartbeat')
+  async heartbeat(
+    @Param('agentId') agentId: string,
+    @Param('taskId') taskId: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    this.authorize(authorization);
+    return this.autonomy.renewLocks(taskId, agentId);
+  }
+
   @Post(':agentId/tasks/:taskId/result')
   async recordResult(
     @Param('agentId') agentId: string,
