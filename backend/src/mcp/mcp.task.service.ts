@@ -19,14 +19,10 @@ export class McpTaskService {
 
   async onModuleInit(): Promise<void> {
     if (!this.memory) return;
-    const entries = await this.memory.list('tasks', 500);
-    const latest = new Map<string, string>();
+    const entries = await this.memory.latestByKeyPrefix('tasks', 'mcp:task:');
     for (const entry of entries) {
-      if (entry.memoryKey.startsWith('mcp:task:') && !latest.has(entry.memoryKey)) latest.set(entry.memoryKey, entry.content);
-    }
-    for (const content of latest.values()) {
       try {
-        const task = JSON.parse(content) as McpTask;
+        const task = JSON.parse(entry.content) as McpTask;
         if (task?.id && task.status && Array.isArray(task.files)) this.tasks.set(task.id, task);
       } catch { /* ignore malformed historical state */ }
     }
@@ -60,13 +56,7 @@ export class McpTaskService {
     };
     this.tasks.set(task.id, task);
     this.persist(task);
-    this.audit.append({
-      actor,
-      action: 'task.created',
-      resourceType: 'task',
-      resourceId: task.id,
-      outcome: 'success',
-    });
+    this.audit.append({ actor, action: 'task.created', resourceType: 'task', resourceId: task.id, outcome: 'success' });
     return task;
   }
 
@@ -91,20 +81,12 @@ export class McpTaskService {
       if (unresolved.length > 0) throw new ConflictException('MCP dependencies are not verified: ' + unresolved.join(', '));
     }
     if (!MCP_STATE_TRANSITIONS[task.status].includes(next)) {
-      throw new ConflictException(
-        `Invalid MCP task transition: ${task.status} -> ${next}`,
-      );
+      throw new ConflictException(`Invalid MCP task transition: ${task.status} -> ${next}`);
     }
     const updated = { ...task, status: next, updatedAt: new Date().toISOString(), version: task.version + 1 };
     this.tasks.set(taskId, updated);
     this.persist(updated);
-    this.audit.append({
-      actor,
-      action: `task.transition.${task.status}_to_${next}`,
-      resourceType: 'task',
-      resourceId: taskId,
-      outcome: 'success',
-    });
+    this.audit.append({ actor, action: `task.transition.${task.status}_to_${next}`, resourceType: 'task', resourceId: taskId, outcome: 'success' });
     return updated;
   }
 
@@ -112,27 +94,10 @@ export class McpTaskService {
     this.security.assertAllowed(actor, 'task:transition');
     const task = this.get(taskId);
     if (task.assignedAgent !== agentId) throw new ConflictException(`MCP result agent mismatch for task ${taskId}`);
-    const updated: McpTask = {
-      ...task,
-      executionReceipt: receipt,
-      updatedAt: new Date().toISOString(),
-      version: task.version + 1,
-    };
+    const updated: McpTask = { ...task, executionReceipt: receipt, updatedAt: new Date().toISOString(), version: task.version + 1 };
     this.tasks.set(taskId, updated);
     this.persist(updated);
-    this.audit.append({
-      actor,
-      action: 'task.execution-receipt-recorded',
-      resourceType: 'task',
-      resourceId: taskId,
-      outcome: 'success',
-      metadata: {
-        agentId,
-        commitSha: receipt.commitSha,
-        changedFiles: receipt.changedFiles.length,
-        tests: receipt.tests.length,
-      },
-    });
+    this.audit.append({ actor, action: 'task.execution-receipt-recorded', resourceType: 'task', resourceId: taskId, outcome: 'success', metadata: { agentId, commitSha: receipt.commitSha, changedFiles: receipt.changedFiles.length, tests: receipt.tests.length } });
     return updated;
   }
 
@@ -143,22 +108,10 @@ export class McpTaskService {
     if (!agent || !agent.enabled) throw new NotFoundException('MCP agent not found or disabled: ' + agentId);
     const missing = task.requiredCapabilities.filter((capability) => !agent.capabilities.includes(capability));
     if (missing.length > 0) throw new ConflictException('MCP agent lacks capabilities: ' + missing.join(', '));
-    const updated = {
-      ...task,
-      assignedAgent: agentId,
-      updatedAt: new Date().toISOString(),
-      version: task.version + 1,
-    };
+    const updated = { ...task, assignedAgent: agentId, updatedAt: new Date().toISOString(), version: task.version + 1 };
     this.tasks.set(taskId, updated);
-    this.audit.append({
-      actor,
-      action: 'task.assigned',
-      resourceType: 'task',
-      resourceId: taskId,
-      outcome: 'success',
-      metadata: { agentId },
-    });
+    this.persist(updated);
+    this.audit.append({ actor, action: 'task.assigned', resourceType: 'task', resourceId: taskId, outcome: 'success', metadata: { agentId } });
     return updated;
   }
-
 }
