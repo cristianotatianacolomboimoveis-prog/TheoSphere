@@ -56,6 +56,13 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).structuredContent.status).toBe('PLANNED');
   });
 
+  it('routes Theo Engine research and preserves the EvidencePack contract', async () => {
+    theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [{ id: 'ev-1', kind: 'primary', provenance: 'bible', reference: 'John 1:14' }], sourceCount: 1, primaryCount: 1, hasCounterEvidence: false, confidence: 0.9 });
+    const response = await service.handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'theosphere_research', arguments: { query: 'grace', limit: 5 } } });
+    expect(theology.research).toHaveBeenCalledWith('grace', 5);
+    expect((response?.result as any).structuredContent).toEqual(expect.objectContaining({ items: [expect.objectContaining({ reference: 'John 1:14' })] }));
+  });
+
   it('routes autonomous execution tools', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'theosphere_dispatch_task', arguments: { taskId: 'TSK-1' } } });
     expect(autonomy.dispatch).toHaveBeenCalledWith('TSK-1');
