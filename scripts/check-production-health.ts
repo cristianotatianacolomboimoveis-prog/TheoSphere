@@ -4,7 +4,6 @@ import https from 'https';
 // Configuration
 const RAILWAY_TOKEN = process.env.RAILWAY_TOKEN || '';
 const BACKEND_URL = 'https://theosphere-production.up.railway.app';
-const CLOUDFLARE_URL = 'https://api.theosphere.app/api/v1/health/live'; // Optional custom edge
 
 function getRequest(url: string): Promise<{ status: number; data: string }> {
   return new Promise((resolve, reject) => {
@@ -53,7 +52,7 @@ async function runCheck() {
   console.log('');
 
   // 3. HTTP Probe checks
-  console.log('[3/4] Performing HTTP Probes on Backend...');
+  console.log('[3/3] Performing HTTP Probes on Backend...');
   const backendEndp = [
     { name: 'Liveness', url: `${BACKEND_URL}/api/v1/health/live` },
     { name: 'Readiness', url: `${BACKEND_URL}/api/v1/health/ready` },
@@ -69,16 +68,6 @@ async function runCheck() {
     }
   }
   console.log('');
-
-  // 4. Cloudflare edge cache status check
-  console.log('[4/4] Performing HTTP Probes on Edge Cache...');
-  try {
-    const res = await getRequest(CLOUDFLARE_URL);
-    console.log(`✅ Cloudflare Edge check: HTTP ${res.status}`);
-    console.log(`   Response: ${res.data.trim()}`);
-  } catch (err: any) {
-    console.log('⚠️ Cloudflare edge check returned connection error or offline (not fully routed yet).');
-  }
 
   console.log('\n===================================================');
   console.log('             MONITORING CHECK COMPLETED            ');
