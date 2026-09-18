@@ -51,6 +51,7 @@ describe('McpProtocolService', () => {
       } },
       '2026-07-28',
     );
+    expect((response?.result as any).supportedVersions).toEqual(['2026-07-28', '2025-11-25', '2025-06-18']);
     expect((response?.result as any).capabilities.extensions).toEqual({
       'io.modelcontextprotocol/tasks': {},
     });
@@ -93,6 +94,8 @@ describe('McpProtocolService', () => {
     );
     expect((response?.result as any).resultType).toBe('task');
     expect((response?.result as any).taskId).toBe('task-1');
+    expect((response?.result as any).content).toBeUndefined();
+    expect((response?.result as any).structuredContent).toBeUndefined();
   });
 
   it('requires the tasks extension capability for task polling and cancellation', async () => {
