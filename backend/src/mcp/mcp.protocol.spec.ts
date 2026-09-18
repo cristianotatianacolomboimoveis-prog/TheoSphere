@@ -89,7 +89,7 @@ describe('McpProtocolService', () => {
   });
 
   it('returns an async task handle for research calls from a tasks-capable client', async () => {
-    protocolTasks.get.mockReturnValue({ taskId: 'task-research-1', status: 'cancelled' });
+    protocolTasks.get.mockReturnValue({ taskId: 'task-research-1', status: 'working' });
     theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [] });
     protocolTasks.create.mockResolvedValueOnce({
       taskId: 'task-research-1',
@@ -122,6 +122,11 @@ describe('McpProtocolService', () => {
     );
     expect((response?.result as any).resultType).toBe('task');
     expect((response?.result as any).taskId).toBe('task-research-1');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(theology.research).toHaveBeenCalledWith('grace', 5);
+    expect(protocolTasks.complete).toHaveBeenCalledWith('task-research-1', expect.objectContaining({
+      structuredContent: expect.objectContaining({ query: 'grace' }),
+    }));
   });
 
   it('does not start or complete a cancelled asynchronous research task', async () => {
