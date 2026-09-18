@@ -2,13 +2,21 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { McpProtocolTaskService } from './mcp.protocol-task.service';
 
 describe('McpProtocolTaskService', () => {
+  const snapshots = new Map<string, { content: string }>();
   const memory = {
     latestByKeyPrefix: jest.fn(async () => []),
-    append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
+    latest: jest.fn(async (memoryKey: string) => snapshots.get(memoryKey) ?? null),
+    append: jest.fn(async (input: any) => {
+      snapshots.set(input.memoryKey, { content: input.content });
+      return { id: 'MEM-1', ...input };
+    }),
   } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    snapshots.clear();
+    memory.latestByKeyPrefix.mockResolvedValue([]);
+    memory.latest.mockImplementation(async (memoryKey: string) => snapshots.get(memoryKey) ?? null);
   });
 
   it('persists a task before returning its handle', async () => {
@@ -52,6 +60,27 @@ describe('McpProtocolTaskService', () => {
       content: [{ type: 'text', text: 'late result' }],
     })).rejects.toBeInstanceOf(ConflictException);
     expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
+  });
+
+  it('refreshes a task from durable memory before a cross-instance transition', async () => {
+    const first = new McpProtocolTaskService(memory);
+    const task = await first.create('theosphere_answer');
+
+    const second = new McpProtocolTaskService(memory);
+    await second.onModuleInit();
+    expect(() => second.get(task.taskId)).toThrow(NotFoundException);
+
+    await first.cancel(task.taskId);
+
+    const persistedCancelled = snapshots.get('mcp:protocol-task:' + task.taskId);
+    expect(persistedCancelled).toBeDefined();
+    memory.latestByKeyPrefix.mockResolvedValueOnce([{ content: persistedCancelled!.content }]);
+    await second.onModuleInit();
+
+    await expect(second.complete(task.taskId, {
+      content: [{ type: 'text', text: 'late result from another instance' }],
+    })).rejects.toBeInstanceOf(ConflictException);
+    await expect(second.getFresh(task.taskId)).resolves.toEqual(expect.objectContaining({ status: 'cancelled' }));
   });
 
   it('fails incomplete tasks after a restart rather than reporting false progress', async () => {
