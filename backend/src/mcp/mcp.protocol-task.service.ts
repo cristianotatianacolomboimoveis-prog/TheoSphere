@@ -178,9 +178,6 @@ export class McpProtocolTaskService {
           error: { code: -32603, message: 'Task execution interrupted by server restart' },
         };
       });
-    } catch {
-      return fallback;
-    }
   }
 
   private ensureNotExpired(task: McpProtocolTask): void {
