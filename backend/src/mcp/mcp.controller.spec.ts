@@ -72,13 +72,13 @@ describe('McpController', () => {
     const controller = new McpController(protocol, config);
     const missingMethod = await controller.handle(
       { jsonrpc: '2.0', id: 20, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {} } } },
-      undefined, undefined, 'application/json', '2026-07-28', undefined, undefined, response,
+      undefined, undefined, 'application/json', '2026-07-28', undefined, undefined, undefined, response,
     );
     expect(missingMethod).toEqual({ jsonrpc: '2.0', id: 20, error: expect.objectContaining({ code: -32020 }) });
 
     const unsupported = await controller.handle(
       { jsonrpc: '2.0', id: 21, method: 'ping' },
-      undefined, undefined, 'application/json', '2099-01-01', undefined, undefined, response,
+      undefined, undefined, 'application/json', '2099-01-01', undefined, undefined, undefined, response,
     );
     expect(unsupported).toEqual({ jsonrpc: '2.0', id: 21, error: expect.objectContaining({ code: -32022 }) });
   });
