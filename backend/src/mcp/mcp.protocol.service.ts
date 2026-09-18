@@ -249,7 +249,18 @@ export class McpProtocolService {
         case 'tasks/get':
           if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/get requires MCP 2026-07-28');
           if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
-          return this.modernize(this.taskResponse(request.id ?? null, this.protocolTasks.get(this.string(request.params?.taskId, 'taskId'))), protocolVersion);
+          try {
+            return this.modernize(
+              this.taskResponse(
+                request.id ?? null,
+                this.protocolTasks.get(this.string(request.params?.taskId, 'taskId')),
+              ),
+              protocolVersion,
+            );
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to retrieve MCP task';
+            return this.error(request.id ?? null, -32602, message);
+          }
         case 'tasks/update':
           if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/update requires MCP 2026-07-28');
           if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
@@ -257,8 +268,16 @@ export class McpProtocolService {
         case 'tasks/cancel':
           if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/cancel requires MCP 2026-07-28');
           if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
-          await this.protocolTasks.cancel(this.string(request.params?.taskId, 'taskId'));
-          return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } }, protocolVersion);
+          try {
+            await this.protocolTasks.cancel(this.string(request.params?.taskId, 'taskId'));
+            return this.modernize(
+              { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } },
+              protocolVersion,
+            );
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to cancel MCP task';
+            return this.error(request.id ?? null, -32602, message);
+          }
         case 'ping':
           return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: {} }, protocolVersion);
         case 'tools/list':
