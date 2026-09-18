@@ -32,6 +32,10 @@ export class McpAutonomyService {
     return await this.orchestrator.lockAndStart(taskId);
   }
 
+  async renewLocks(taskId: string, agentId: string): Promise<{ taskId: string; renewed: number; ttlMs: number }> {
+    return this.orchestrator.renewLocks(taskId, agentId);
+  }
+
   async recordResult(taskId: string, agentId: string, success: boolean, summary?: string, receipt?: McpExecutionReceipt): Promise<McpExecutionResult> {
     const task = this.tasks.get(taskId);
     if (!task.assignedAgent || task.assignedAgent !== agentId) {
