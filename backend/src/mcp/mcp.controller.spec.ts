@@ -82,8 +82,7 @@ describe('McpController', () => {
     const controller = new McpController(protocol, config);
     response.statusCode = 200;
     await controller.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' }, undefined, undefined, 'application/json, text/event-stream', undefined, undefined, undefined, response);
-    const session = (response.setHeader as jest.Mock).mock.calls.find(([key]) => key === 'MCP-Session-Id')?.[1];
-    expect(session).toEqual(expect.any(String));
-    expect((response.setHeader as jest.Mock).mock.calls.find(([key]) => key === 'MCP-Protocol-Version')?.[1]).toBe('2025-11-25');
+    expect(response.setHeader).toHaveBeenCalledWith('MCP-Session-Id', expect.any(String));
+    expect(response.setHeader).toHaveBeenCalledWith('MCP-Protocol-Version', '2025-11-25');
   });
 });
