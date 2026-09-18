@@ -417,3 +417,23 @@ model InterlinearWord {
   @@index([bookId, chapter])
   @@index([strongId])
 }
+
+
+// MCP Project Memory — persistent knowledge for autonomous work.
+model ProjectMemory {
+  id           String   @id @default(uuid())
+  category     String
+  memoryKey    String
+  content      String
+  tags         String[]
+  source       String?
+  taskId       String?
+  agentId      String?
+  supersedesId String?
+  createdAt    DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([memoryKey, createdAt])
+  @@index([taskId])
+  @@index([agentId])
+}

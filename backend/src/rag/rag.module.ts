@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { RagService } from './rag.service';
+import { EvidenceAwareRagService } from './evidence-aware-rag.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagController } from './rag.controller';
+import { EvidenceController } from './evidence.controller';
 import { EmbeddingModule } from './embedding.module';
 import { SemanticCacheService } from './semantic-cache.service';
 import { UserContextService } from './user-context.service';
@@ -15,6 +17,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { SearchModule } from '../search/search.module';
 import { TheologicalSourcesService } from './theological-sources.service';
 import { RerankerService } from './reranker.service';
+import { EvidencePackService } from './evidence-pack.service';
+import { EvidencePackContextService } from './evidence-pack-context.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -25,9 +29,17 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     SearchModule,
   ],
-  controllers: [RagController, DriveRagController, LibraryController],
+  controllers: [
+    RagController,
+    EvidenceController,
+    DriveRagController,
+    LibraryController,
+  ],
   providers: [
-    RagService,
+    {
+      provide: RagService,
+      useClass: EvidenceAwareRagService,
+    },
     AiQuotaService,
     SemanticCacheService,
     UserContextService,
@@ -35,8 +47,15 @@ import { ConfigModule } from '@nestjs/config';
     LibraryService,
     TheologicalSourcesService,
     RerankerService,
-    RolesGuard, // class-based guard used by @UseGuards(RolesGuard) — needs DI
+    EvidencePackService,
+    EvidencePackContextService,
+    RolesGuard,
   ],
-  exports: [RagService, AiQuotaService],
+  exports: [
+    RagService,
+    AiQuotaService,
+    EvidencePackService,
+    EvidencePackContextService,
+  ],
 })
 export class RagModule {}

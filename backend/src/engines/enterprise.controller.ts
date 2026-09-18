@@ -40,6 +40,13 @@ export class EnterpriseController {
     return { success: true, data };
   }
 
+  @Get('research')
+  async research(@Query('q') q: string, @Query('limit') limit?: string) {
+    const safeLimit = limit ? Math.min(Math.max(Number.parseInt(limit, 10) || 12, 1), 50) : 12;
+    const data = await this.theo.research(q ?? '', safeLimit);
+    return { success: true, data };
+  }
+
   @Get('waypoints/:id')
   async getWaypoint(@Param('id') id: string) {
     // Implementar busca direta de waypoint se necessário

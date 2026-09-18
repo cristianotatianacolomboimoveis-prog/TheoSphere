@@ -4,19 +4,13 @@ import {
   Get,
   Param,
   Query,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { LinguisticsService } from './linguistics.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CacheControlInterceptor } from '../common/interceptors/cache-control.interceptor';
 
 /**
- * Routes for lexical / morphological analysis (BDAG / HALOT / Strong's).
- *
- * Previously these endpoints lived inside BibleController; they now live in
- * their own module to keep concerns isolated and to allow Linguistics to be
- * imported standalone (e.g. by future ML pipelines).
+ * Routes for lexical / morphological analysis (Strong's + interlinear).
  */
 @Controller('api/v1/linguistics')
 export class LinguisticsController {
@@ -24,18 +18,30 @@ export class LinguisticsController {
 
   @Get('lexical/:strongId')
   async getLexical(@Param('strongId') strongId: string) {
+    if (!/^[GH]\d{1,5}[A-Z]?$/i.test(strongId)) {
+      throw new BadRequestException('strongId inválido (ex: G976, H430)');
+    }
     const data = await this.linguistics.getRootAnalysis(strongId);
     return { success: true, data };
   }
 
   @Get('search-root/:strongId')
-  async searchByRoot(@Param('strongId') strongId: string) {
-    const occurrences = await this.linguistics.findOccurrencesByRoot(strongId);
+  async searchByRoot(
+    @Param('strongId') strongId: string,
+    @Query('translation') translation?: string,
+  ) {
+    if (!/^[GH]\d{1,5}[A-Z]?$/i.test(strongId)) {
+      throw new BadRequestException('strongId inválido (ex: G976, H430)');
+    }
+    const occurrences = await this.linguistics.findOccurrencesByRoot(
+      strongId,
+      translation || 'BLIVRE',
+    );
     return { success: true, data: occurrences };
   }
 
   /**
-   * Interlinear real palavra-a-palavra (STEP Bible TAGNT, CC BY 4.0).
+   * Interlinear real palavra-a-palavra (STEP Bible TAGNT/TAHOT).
    * GET /api/v1/linguistics/interlinear/:bookId/:chapter
    */
   @Get('interlinear/:bookId/:chapter')
@@ -46,7 +52,7 @@ export class LinguisticsController {
   ) {
     const b = parseInt(bookId, 10);
     const c = parseInt(chapter, 10);
-    if (isNaN(b) || isNaN(c) || b < 1 || b > 66 || c < 1) {
+    if (!Number.isInteger(b) || !Number.isInteger(c) || b < 1 || b > 66 || c < 1) {
       throw new BadRequestException('bookId (1-66) e chapter são obrigatórios');
     }
     const data = await this.linguistics.getInterlinearChapter(b, c);
@@ -54,7 +60,7 @@ export class LinguisticsController {
   }
 
   /**
-   * Ocorrências de um Strong's no texto original (dados interlineares reais).
+   * Ocorrências de um Strong's no texto original.
    * GET /api/v1/linguistics/occurrences/:strongId?limit=100
    */
   @Get('occurrences/:strongId')
@@ -63,12 +69,41 @@ export class LinguisticsController {
     @Param('strongId') strongId: string,
     @Query('limit') limit?: string,
   ) {
-    if (!/^[GH]\d{1,5}$/i.test(strongId)) {
+    if (!/^[GH]\d{1,5}[A-Z]?$/i.test(strongId)) {
       throw new BadRequestException('strongId inválido (ex: G976, H430)');
     }
-    const data = await this.linguistics.getOccurrences(
-      strongId,
-      limit ? parseInt(limit, 10) : undefined,
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const safeLimit = Number.isInteger(parsedLimit)
+      ? Math.min(Math.max(parsedLimit as number, 1), 200)
+      : undefined;
+    const data = await this.linguistics.getOccurrences(strongId, safeLimit);
+    return { success: true, data };
+  }
+
+  /**
+   * Resolve uma forma flexionada para as análises presentes no corpus.
+   * Não inventa lemas via IA; devolve também candidatos para tornar
+   * ambiguidades explícitas.
+   *
+   * GET /api/v1/linguistics/analyze-word?word=ἠγάπησεν&language=greek
+   */
+  @Get('analyze-word')
+  @UseInterceptors(new CacheControlInterceptor(86400))
+  async analyzeWord(
+    @Query('word') word: string,
+    @Query('language') language: string,
+  ) {
+    const normalizedLanguage = language?.toLowerCase();
+    if (normalizedLanguage !== 'greek' && normalizedLanguage !== 'hebrew') {
+      throw new BadRequestException('language deve ser greek ou hebrew');
+    }
+    if (!word || word.trim().length === 0 || word.length > 200) {
+      throw new BadRequestException('word é obrigatório e deve ter até 200 caracteres');
+    }
+
+    const data = await this.linguistics.lemmatize(
+      word,
+      normalizedLanguage as 'greek' | 'hebrew',
     );
     return { success: true, data };
   }

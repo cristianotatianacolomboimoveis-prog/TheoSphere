@@ -23,6 +23,7 @@ import { EnginesModule } from './engines/engines.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { ArchaeologyModule } from './archaeology/archaeology.module';
 import { AiModule } from './common/ai/ai.module';
+import { McpModule } from './mcp/mcp.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -31,6 +32,8 @@ interface EnvShape {
   NODE_ENV: string;
   OPENAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  MCP_API_KEY?: string;
+  REDIS_URL?: string;
 }
 
 @Module({
@@ -55,6 +58,7 @@ interface EnvShape {
         OPENAI_API_KEY: Joi.string().optional().allow(''),
         GEMINI_API_KEY: Joi.string().optional().allow(''),
         REDIS_URL: Joi.string().optional().allow(''),
+        MCP_API_KEY: Joi.string().min(32).optional().allow(''),
         SENTRY_DSN: Joi.string().uri().optional().allow(''),
         SENTRY_RELEASE: Joi.string().optional().allow(''),
         SENTRY_TRACES_SAMPLE_RATE: Joi.number().min(0).max(1).optional(),
@@ -69,6 +73,12 @@ interface EnvShape {
             message:
               'OPENAI_API_KEY or GEMINI_API_KEY is required in production',
           });
+        }
+        if (typedEnv.NODE_ENV === 'production' && !typedEnv.MCP_API_KEY) {
+          return helpers.error('any.invalid', { message: 'MCP_API_KEY is required in production' });
+        }
+        if (typedEnv.NODE_ENV === 'production' && !typedEnv.REDIS_URL) {
+          return helpers.error('any.invalid', { message: 'REDIS_URL is required in production for distributed throttling' });
         }
         return typedEnv;
       }),
@@ -107,6 +117,7 @@ interface EnvShape {
     CollaborationModule,
     ArchaeologyModule,
     AiModule,
+    McpModule,
   ],
   controllers: [AppController],
   providers: [

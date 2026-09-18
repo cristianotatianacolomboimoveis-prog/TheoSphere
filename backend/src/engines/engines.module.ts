@@ -6,11 +6,14 @@ import { GraphEngineService } from './graph/graph-engine.service';
 import { AIEngineService } from './ai/ai-engine.service';
 import { ThreeEngineService } from './3d/three-engine.service';
 import { RagModule } from '../rag/rag.module';
+import { SearchModule } from '../search/search.module';
 import { EnterpriseController } from './enterprise.controller';
+import { BibleModule } from '../bible.module';
+import { LinguisticsModule } from '../linguistics/linguistics.module';
 
 @Global()
 @Module({
-  imports: [RagModule],
+  imports: [RagModule, SearchModule, BibleModule, LinguisticsModule],
   providers: [
     PrismaService,
     GeoEngineService,
