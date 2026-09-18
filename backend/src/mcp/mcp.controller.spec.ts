@@ -66,6 +66,29 @@ describe('McpController', () => {
     expect(malformedCapabilities).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32602 }) }));
   });
 
+  it('returns a modern protocol error for missing Tasks capability', async () => {
+    const controller = new McpController(protocol, config);
+    const body = {
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tasks/get',
+      params: {
+        taskId: 'task-123',
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
+    };
+    const result = await controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tasks/get', 'task-123', undefined, response);
+    expect(response.statusCode).toBe(400);
+    expect(result).toEqual(expect.objectContaining({
+      error: expect.objectContaining({
+        code: -32021,
+      }),
+    }));
+  });
+
   it('requires Mcp-Name to match taskId for Tasks extension methods', async () => {
     const controller = new McpController(protocol, config);
     const body = {
