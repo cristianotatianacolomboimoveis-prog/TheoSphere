@@ -1,5 +1,6 @@
-import { Body, Controller, Headers, Param, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, Param, Post, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'node:crypto';
 import { McpAutonomyService } from './mcp.autonomy.service';
 import type { McpExecutionReceipt } from './mcp.types';
 
@@ -34,7 +35,7 @@ export class McpExecutionController {
     @Headers('authorization') authorization?: string,
   ) {
     this.authorize(authorization);
-    if (typeof body?.success !== 'boolean') throw new UnauthorizedException('Agent execution result requires boolean success');
+    if (typeof body?.success !== 'boolean') throw new BadRequestException('Agent execution result requires boolean success');
     return this.autonomy.recordResult(taskId, agentId, body.success, typeof body.summary === 'string' ? body.summary : undefined, this.parseReceipt(body.receipt));
   }
 
@@ -51,7 +52,7 @@ export class McpExecutionController {
 
   private parseReceipt(value: unknown): McpExecutionReceipt | undefined {
     if (value === undefined) return undefined;
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new UnauthorizedException('Invalid MCP execution receipt');
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException('Invalid MCP execution receipt');
     const receipt = value as Record<string, unknown>;
     if (
       typeof receipt.commitSha !== 'string' ||
@@ -62,17 +63,17 @@ export class McpExecutionController {
     ) throw new UnauthorizedException('Invalid MCP execution receipt');
 
     if (receipt.changedFiles.some((v) => typeof v !== 'string')) {
-      throw new UnauthorizedException('Execution receipt changedFiles must contain only strings');
+      throw new BadRequestException('Execution receipt changedFiles must contain only strings');
     }
     const changedFiles = receipt.changedFiles as string[];
     const tests = receipt.tests.map((test) => {
-      if (!test || typeof test !== 'object' || Array.isArray(test)) throw new UnauthorizedException('Invalid MCP execution receipt test');
+      if (!test || typeof test !== 'object' || Array.isArray(test)) throw new BadRequestException('Invalid MCP execution receipt test');
       const item = test as Record<string, unknown>;
       if (typeof item.command !== 'string' || !['passed', 'failed', 'skipped'].includes(String(item.status))) {
         throw new UnauthorizedException('Invalid MCP execution receipt test');
       }
       if (item.durationMs !== undefined && (typeof item.durationMs !== 'number' || !Number.isFinite(item.durationMs) || item.durationMs < 0)) {
-        throw new UnauthorizedException('Invalid MCP execution receipt test durationMs');
+        throw new BadRequestException('Invalid MCP execution receipt test durationMs');
       }
       return {
         command: item.command,
@@ -89,7 +90,7 @@ export class McpExecutionController {
       ...(receipt.artifactRefs === undefined ? {} : {
         artifactRefs: Array.isArray(receipt.artifactRefs) && receipt.artifactRefs.every((v) => typeof v === 'string')
           ? receipt.artifactRefs as string[]
-          : (() => { throw new UnauthorizedException('Execution receipt artifactRefs must contain only strings'); })(),
+          : (() => { throw new BadRequestException('Execution receipt artifactRefs must contain only strings'); })(),
       }),
       ...(receipt.agentVersion === undefined ? {} : { agentVersion: typeof receipt.agentVersion === 'string' ? receipt.agentVersion : String(receipt.agentVersion) }),
     };
@@ -97,7 +98,10 @@ export class McpExecutionController {
 
   private authorize(authorization?: string): void {
     const configured = this.config.get<string>('MCP_API_KEY');
-    if (!configured || authorization !== `Bearer ${configured}`) {
+    if (!configured) throw new UnauthorizedException('MCP agent authorization is not configured');
+    const expected = Buffer.from(`Bearer ${configured}`);
+    const received = Buffer.from(authorization ?? '');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
       throw new UnauthorizedException('Invalid MCP agent authorization');
     }
   }
