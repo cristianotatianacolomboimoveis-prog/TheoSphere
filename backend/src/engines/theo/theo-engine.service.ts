@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma.service';
 import { SearchService } from '../../search/search.service';
 import { EvidencePackService } from '../../rag/evidence-pack.service';
 import { CrossReferencesService } from '../../bible/cross-references.service';
+import { LinguisticsService } from '../../linguistics/linguistics.service';
 
 @Injectable()
 export class TheologyEngineService {
@@ -13,6 +14,7 @@ export class TheologyEngineService {
     private readonly search: SearchService,
     private readonly evidencePacks: EvidencePackService,
     private readonly crossReferences: CrossReferencesService,
+    private readonly linguistics: LinguisticsService,
   ) {}
 
   /** Pesquisa unificada: retrieval -> cross-references -> EvidencePack. */
@@ -58,7 +60,42 @@ export class TheologyEngineService {
       }));
     }))).flat();
 
-    return this.evidencePacks.build(normalized, [...primary, ...crossReferenceItems], Math.min(100, safeLimit + crossReferenceItems.length));
+    const chapterKeys = [...new Set(hits.map((hit) => `${hit.bookId}:${hit.chapter}`))].slice(0, 4);
+    const linguisticItems = (await Promise.all(chapterKeys.map(async (key) => {
+      const [bookId, chapter] = key.split(':').map(Number);
+      const chapterData = await this.linguistics.getInterlinearChapter(bookId, chapter);
+      return Object.values(chapterData.verses).flat().slice(0, 20).map((word) => ({
+        source: {
+          type: 'interlinear' as const,
+          title: `STEP Bible ${bookId < 40 ? 'TAHOT' : 'TAGNT'}`,
+          reference: `${bookNames.get(bookId) ?? bookId} ${chapter}:${word.verse}`,
+          snippet: [word.word, word.translit, word.lemma ? `lemma=${word.lemma}` : '', word.morph ? `morph=${word.morph}` : '', `Strong=${word.strongId}`].filter(Boolean).join(' · '),
+          score: 0.65,
+        },
+        kind: 'linguistic' as const,
+        provenance: 'interlinear' as const,
+        supports: [`${bookId}:${chapter}:${word.verse}`],
+      }));
+    }))).flat();
+
+    const commentaryItems = (await this.prisma.technicalCommentary.findMany({
+      where: { OR: hits.slice(0, 12).map((hit) => ({ bookId: hit.bookId, chapter: hit.chapter, verse: hit.verse })) },
+      take: 24,
+      orderBy: { createdAt: 'desc' },
+    })).map((entry) => ({
+      source: {
+        type: 'commentary' as const,
+        title: `${entry.author} — ${entry.source}`,
+        reference: `${bookNames.get(entry.bookId) ?? entry.bookId} ${entry.chapter}:${entry.verse}`,
+        snippet: entry.content,
+        score: 0.7,
+      },
+      kind: 'commentary' as const,
+      provenance: 'commentary' as const,
+      supports: [`${entry.bookId}:${entry.chapter}:${entry.verse}`],
+    }));
+
+    return this.evidencePacks.build(normalized, [...primary, ...linguisticItems, ...commentaryItems, ...crossReferenceItems], Math.min(100, safeLimit + linguisticItems.length + commentaryItems.length + crossReferenceItems.length));
   }
 
   async getWaypointContent(waypointId: string, language: string = 'pt-BR') {
