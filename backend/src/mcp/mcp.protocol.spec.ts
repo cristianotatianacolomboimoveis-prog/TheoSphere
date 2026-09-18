@@ -265,6 +265,14 @@ describe('McpProtocolService', () => {
     expect((invalid?.error as any).code).toBe(-32600);
   });
 
+  it('rejects ping in modern protocol while retaining legacy compatibility', async () => {
+    const modern = await service.handle({ jsonrpc: '2.0', id: 90, method: 'ping' }, '2026-07-28');
+    expect(modern?.error).toEqual(expect.objectContaining({ code: -32601 }));
+
+    const legacy = await service.handle({ jsonrpc: '2.0', id: 91, method: 'ping' }, '2025-11-25');
+    expect(legacy).toEqual({ jsonrpc: '2.0', id: 91, result: {} });
+  });
+
   it('rejects malformed tool call arguments', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 42 as any, arguments: [] as any } });
     expect((response?.error as any).code).toBe(-32602);
