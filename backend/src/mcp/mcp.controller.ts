@@ -39,6 +39,10 @@ export class McpController {
         const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
           ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
         if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
+      } else if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
+        const taskId = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
+          ? ((body as Record<string, unknown>).params as Record<string, unknown>).taskId : undefined;
+        if (mcpName !== taskId) throw new BadRequestException('Mcp-Name header must match taskId');
       }
     }
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
