@@ -54,6 +54,7 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).capabilities.extensions).toEqual({
       'io.modelcontextprotocol/tasks': {},
     });
+    expect((response?.result as any).resultType).toBe('complete');
   });
 
   it('returns an async task handle for answer calls from a tasks-capable client', async () => {
