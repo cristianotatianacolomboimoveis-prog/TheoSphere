@@ -256,7 +256,7 @@ export class McpProtocolService {
             return this.modernize(
               this.taskResponse(
                 request.id ?? null,
-                this.protocolTasks.get(this.string(request.params?.taskId, 'taskId')),
+                await this.protocolTasks.get(this.string(request.params?.taskId, 'taskId')),
               ),
               protocolVersion,
             );
@@ -527,10 +527,10 @@ export class McpProtocolService {
 
   private async executeResearchTask(taskId: string, query: string, limit: number): Promise<void> {
     try {
-      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+      if ((await this.protocolTasks.get(taskId)).status === 'cancelled') return;
 
       const research = await this.theology.research(query, limit);
-      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+      if ((await this.protocolTasks.get(taskId)).status === 'cancelled') return;
 
       await this.protocolTasks.complete(taskId, {
         content: [{ type: 'text', text: JSON.stringify(research) }],
@@ -544,10 +544,10 @@ export class McpProtocolService {
 
   private async executeAnswerTask(taskId: string, query: string, limit: number, tradition?: string): Promise<void> {
     try {
-      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+      if ((await this.protocolTasks.get(taskId)).status === 'cancelled') return;
 
       const pack = await this.theology.research(query, limit);
-      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+      if ((await this.protocolTasks.get(taskId)).status === 'cancelled') return;
 
       const service = this.rag as RagService & {
         chatWithEvidencePack?: (query: string, pack: unknown, userId?: string, tradition?: string) => Promise<unknown>;
@@ -555,7 +555,7 @@ export class McpProtocolService {
       if (typeof service.chatWithEvidencePack !== 'function') throw new Error('Evidence-aware RAG adapter is not installed');
 
       const answer = await service.chatWithEvidencePack(query, pack, undefined, tradition);
-      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+      if ((await this.protocolTasks.get(taskId)).status === 'cancelled') return;
 
       await this.protocolTasks.complete(taskId, {
         content: [{ type: 'text', text: JSON.stringify(answer) }],
