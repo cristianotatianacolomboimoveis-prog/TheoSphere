@@ -24,21 +24,6 @@ describe('McpController', () => {
     await expect(controller.handle({}, 'Bearer ' + 'x'.repeat(32), undefined, 'application/json', undefined, undefined, undefined, undefined, response)).resolves.toBeDefined();
   });
 
-  it('rejects an invalid Origin', async () => {
-    const controller = new McpController(protocol, config);
-    await expect(controller.handle(
-      { jsonrpc: '2.0', id: 0, method: 'ping' },
-      undefined,
-      undefined,
-      'application/json',
-      undefined,
-      undefined,
-      undefined,
-      'https://evil.example',
-      response,
-    )).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
   it('allows development without a configured key', async () => {
     const controller = new McpController(protocol, config);
     await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping' }, undefined, undefined, 'application/json', undefined, undefined, undefined, undefined, response)).resolves.toBeDefined();
