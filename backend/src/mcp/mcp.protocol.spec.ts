@@ -31,6 +31,7 @@ describe('McpProtocolService', () => {
     const listed = await service.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
     expect((listed?.result as any).tools).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'theosphere_register_agent' }),
+      expect.objectContaining({ name: 'theosphere_verify_result' }),
       expect.objectContaining({ name: 'theosphere_snapshot' }),
       expect.objectContaining({ name: 'theosphere_memory_search' }),
     ]));
@@ -99,3 +100,11 @@ describe('McpProtocolService', () => {
     await expect(service.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).resolves.toBeNull();
   });
 });
+
+
+  it('routes independent verification separately from worker result recording', async () => {
+    autonomy.verifyResult = jest.fn(async (id: string, verifierId: string) => ({ taskId: id, status: 'VERIFIED', verifierAgentId: verifierId }));
+    const response = await service.handle({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'theosphere_verify_result', arguments: { taskId: 'TSK-1', verifierAgentId: 'verifier-1' } } });
+    expect(autonomy.verifyResult).toHaveBeenCalledWith('TSK-1', 'verifier-1', undefined);
+    expect((response?.result as any).structuredContent.status).toBe('VERIFIED');
+  });
