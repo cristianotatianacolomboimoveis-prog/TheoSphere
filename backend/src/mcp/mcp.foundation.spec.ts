@@ -46,15 +46,15 @@ describe('MCP control-plane foundation', () => {
     );
   });
 
-  it('prevents concurrent file locks', () => {
+  it('prevents concurrent file locks', async () => {
     const security = new McpSecurityService();
     const audit = new McpAuditService();
     const locks = new McpLockService(security, audit);
-    locks.acquire(['src/a.ts'], 'TSK-1', 'mcp-orchestrator');
+    await locks.acquire(['src/a.ts'], 'TSK-1', 'mcp-orchestrator');
 
-    expect(() =>
+    await expect(
       locks.acquire(['src/a.ts'], 'TSK-2', 'mcp-orchestrator'),
-    ).toThrow('MCP file lock conflict');
+    ).rejects.toThrow('MCP file lock conflict');
   });
 
   it('uses default-deny permissions for unknown agents', () => {
