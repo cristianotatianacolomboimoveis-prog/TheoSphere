@@ -1,0 +1,14 @@
+# Vercel deployment input hygiene
+# The Vercel project uses frontend-v2 as its root directory. Keep only files
+# required to install/build/serve the Next.js application.
+README.md
+CLAUDE.md
+AGENTS.md
+vitest.config.ts
+eslint.config.mjs
+test/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+postcss.config.js
