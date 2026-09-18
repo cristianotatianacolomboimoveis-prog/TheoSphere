@@ -166,18 +166,17 @@ export class McpProtocolTaskService {
   }
 
   private async recoverIfInterrupted(taskId: string, fallback: McpProtocolTask): Promise<McpProtocolTask> {
-    try {
-      return await this.memory.mutateLatestJson<McpProtocolTask>('tasks', this.prefix + taskId, (current) => {
-        const task = current?.taskId === taskId ? current : fallback;
-        if (task.status !== 'working' && task.status !== 'input_required') return task;
-        return {
-          ...task,
-          status: 'failed',
-          statusMessage: 'Task execution was interrupted by a server restart.',
-          lastUpdatedAt: new Date().toISOString(),
-          error: { code: -32603, message: 'Task execution interrupted by server restart' },
-        };
-      });
+    return this.memory.mutateLatestJson<McpProtocolTask>('tasks', this.prefix + taskId, (current) => {
+      const task = current?.taskId === taskId ? current : fallback;
+      if (task.status !== 'working' && task.status !== 'input_required') return task;
+      return {
+        ...task,
+        status: 'failed',
+        statusMessage: 'Task execution was interrupted by a server restart.',
+        lastUpdatedAt: new Date().toISOString(),
+        error: { code: -32603, message: 'Task execution interrupted by server restart' },
+      };
+    });
   }
 
   private ensureNotExpired(task: McpProtocolTask): void {
