@@ -121,7 +121,42 @@ export class McpProtocolService {
       {
         name: 'theosphere_record_result',
         description: 'Record a worker result; successful work stops at AUDITING until an independent verifier confirms it.',
-        inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, agentId: { type: 'string' }, success: { type: 'boolean' }, summary: { type: 'string' } }, required: ['taskId', 'agentId', 'success'], additionalProperties: false },
+        inputSchema: {
+          type: 'object',
+          properties: {
+            taskId: { type: 'string' },
+            agentId: { type: 'string' },
+            success: { type: 'boolean' },
+            summary: { type: 'string' },
+            receipt: {
+              type: 'object',
+              properties: {
+                commitSha: { type: 'string' },
+                changedFiles: { type: 'array', items: { type: 'string' } },
+                tests: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      command: { type: 'string' },
+                      status: { type: 'string', enum: ['passed', 'failed', 'skipped'] },
+                      durationMs: { type: 'number' },
+                    },
+                    required: ['command', 'status'],
+                    additionalProperties: false,
+                  },
+                },
+                startedAt: { type: 'string' },
+                finishedAt: { type: 'string' },
+                artifactRefs: { type: 'array', items: { type: 'string' } },
+                agentVersion: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+          },
+          required: ['taskId', 'agentId', 'success'],
+          additionalProperties: false,
+        },
       },
       {
         name: 'theosphere_verify_result',
@@ -326,7 +361,7 @@ export class McpProtocolService {
         break;
       case 'theosphere_record_result':
         if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
-        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), this.string(args.agentId, 'agentId'), args.success, typeof args.summary === 'string' ? args.summary : undefined);
+        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), this.string(args.agentId, 'agentId'), args.success, typeof args.summary === 'string' ? args.summary : undefined, this.executionReceipt(args.receipt));
         break;
       case 'theosphere_verify_result':
         result = await this.autonomy.verifyResult(this.string(args.taskId, 'taskId'), this.string(args.verifierAgentId, 'verifierAgentId'), typeof args.summary === 'string' ? args.summary : undefined);
@@ -368,6 +403,42 @@ export class McpProtocolService {
     }
 
     return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result } };
+  }
+
+  private executionReceipt(value: unknown) {
+    if (value === undefined) return undefined;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException('MCP execution receipt must be an object');
+    const receipt = value as Record<string, unknown>;
+    const tests = receipt.tests;
+    if (
+      typeof receipt.commitSha !== 'string' ||
+      !Array.isArray(receipt.changedFiles) ||
+      !Array.isArray(tests) ||
+      typeof receipt.startedAt !== 'string' ||
+      typeof receipt.finishedAt !== 'string'
+    ) {
+      throw new BadRequestException('MCP execution receipt is incomplete');
+    }
+    return {
+      commitSha: receipt.commitSha,
+      changedFiles: this.stringArray(receipt.changedFiles, 'receipt.changedFiles'),
+      tests: tests.map((test) => {
+        if (!test || typeof test !== 'object' || Array.isArray(test)) throw new BadRequestException('MCP receipt test must be an object');
+        const item = test as Record<string, unknown>;
+        if (typeof item.command !== 'string' || !['passed', 'failed', 'skipped'].includes(String(item.status))) {
+          throw new BadRequestException('MCP receipt test is invalid');
+        }
+        return {
+          command: item.command,
+          status: item.status as 'passed' | 'failed' | 'skipped',
+          ...(item.durationMs === undefined ? {} : { durationMs: item.durationMs }),
+        };
+      }),
+      startedAt: receipt.startedAt,
+      finishedAt: receipt.finishedAt,
+      ...(receipt.artifactRefs === undefined ? {} : { artifactRefs: this.stringArray(receipt.artifactRefs, 'receipt.artifactRefs') }),
+      ...(receipt.agentVersion === undefined ? {} : { agentVersion: this.string(receipt.agentVersion, 'receipt.agentVersion') }),
+    };
   }
 
   private string(value: unknown, name: string): string {
