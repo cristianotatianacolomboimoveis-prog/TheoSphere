@@ -13,6 +13,22 @@ export const MCP_TASK_STATES = [
 
 export type McpTaskState = (typeof MCP_TASK_STATES)[number];
 
+export interface McpExecutionTest {
+  command: string;
+  status: 'passed' | 'failed' | 'skipped';
+  durationMs?: number;
+}
+
+export interface McpExecutionReceipt {
+  commitSha: string;
+  changedFiles: string[];
+  tests: McpExecutionTest[];
+  startedAt: string;
+  finishedAt: string;
+  artifactRefs?: string[];
+  agentVersion?: string;
+}
+
 export interface McpTask {
   id: string;
   title: string;
@@ -24,6 +40,7 @@ export interface McpTask {
   dependencies: string[];
   files: string[];
   requiredCapabilities: string[];
+  executionReceipt?: McpExecutionReceipt;
   branch?: string;
   createdAt: string;
   updatedAt: string;
