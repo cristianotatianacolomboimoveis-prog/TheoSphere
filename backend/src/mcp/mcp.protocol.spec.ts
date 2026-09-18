@@ -2,6 +2,10 @@ import { McpProtocolService } from './mcp.protocol.service';
 import { McpSecurityService } from './mcp.security.service';
 
 describe('McpProtocolService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const orchestrator = {
     snapshot: jest.fn(() => ({ tasks: [], agents: [], locks: [] })),
     plan: jest.fn((id: string) => ({ id, status: 'PLANNED' })),
