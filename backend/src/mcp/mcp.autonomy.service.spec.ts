@@ -20,7 +20,7 @@ describe('McpAutonomyService', () => {
     const orchestrator = { advance: jest.fn((id: string, next: string) => { tasks.current = { ...tasks.current, status: next, version: tasks.current.version + 1 }; return tasks.current; }) } as any;
     const memory = { append: jest.fn(async () => undefined) } as any;
     const service = new McpAutonomyService(orchestrator, tasks, memory);
-    const result = await service.recordResult('TSK-1', true, 'All worker checks passed.');
+    const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.');
     expect(result.status).toBe('VERIFIED');
     expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED']);
     expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'TSK-1', agentId: 'agent-1', category: 'tasks' }));
