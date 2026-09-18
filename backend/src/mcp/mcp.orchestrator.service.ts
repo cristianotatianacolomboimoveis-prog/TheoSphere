@@ -61,6 +61,16 @@ export class McpOrchestratorService {
     }
   }
 
+  async renewLocks(taskId: string, agentId: string): Promise<{ taskId: string; renewed: number; ttlMs: number }> {
+    const task = this.tasks.get(taskId);
+    if (task.assignedAgent !== agentId) throw new ConflictException(`MCP lock renewal agent mismatch for task ${taskId}`);
+    if (!['LOCKED', 'IN_PROGRESS', 'IMPLEMENTED', 'TESTING', 'AUDITING'].includes(task.status)) {
+      throw new ConflictException(`Task ${taskId} cannot renew locks from ${task.status}`);
+    }
+    const renewed = await this.locks.renew(taskId, agentId);
+    return { taskId, renewed, ttlMs: Number(process.env.MCP_LOCK_TTL_MS ?? 7_200_000) };
+  }
+
   async advance(taskId: string, next: Extract<McpTaskState, 'IMPLEMENTED' | 'TESTING' | 'AUDITING' | 'VERIFIED' | 'REWORK' | 'FAILED'>): Promise<McpTask> {
     const task = this.tasks.get(taskId);
     const updated = this.tasks.transition(taskId, next, this.actor);
