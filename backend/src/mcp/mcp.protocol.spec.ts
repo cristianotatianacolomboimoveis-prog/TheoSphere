@@ -122,6 +122,32 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).taskId).toBe('task-research-1');
   });
 
+  it('does not start a second execution when polling an existing task', async () => {
+    protocolTasks.get.mockReturnValue({
+      taskId: 'task-1',
+      status: 'working',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+    });
+    await service.handle({
+      jsonrpc: '2.0',
+      id: 15.5,
+      method: 'tasks/get',
+      params: {
+        taskId: 'task-1',
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {
+            extensions: { 'io.modelcontextprotocol/tasks': {} },
+          },
+        },
+      },
+    }, '2026-07-28');
+    expect(theology.research).not.toHaveBeenCalled();
+    expect(protocolTasks.create).not.toHaveBeenCalled();
+  });
+
   it('requires the tasks extension capability for task polling and cancellation', async () => {
     const missing = await service.handle({ jsonrpc: '2.0', id: 16, method: 'tasks/get', params: { taskId: 'task-1' } }, '2026-07-28');
     expect(missing?.error).toEqual(expect.objectContaining({ code: -32021, data: { requiredCapabilities: { extensions: { 'io.modelcontextprotocol/tasks': {} } } } }));
