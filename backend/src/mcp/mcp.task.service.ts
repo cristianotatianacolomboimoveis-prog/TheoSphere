@@ -24,17 +24,25 @@ export class McpTaskService {
       try {
         const task = JSON.parse(entry.content) as McpTask;
         if (task?.id && task.status && Array.isArray(task.files)) this.tasks.set(task.id, task);
-      } catch { /* ignore malformed historical state */ }
+      } catch (error) {
+        void error;
+      }
     }
   }
 
   private persist(task: McpTask): void {
     if (!this.memory) return;
-    void this.memory.append({
-      category: 'tasks', memoryKey: `mcp:task:${task.id}`, content: JSON.stringify(task),
-      tags: ['mcp', 'task-state', task.status.toLowerCase()], source: 'mcp-task-service',
-      taskId: task.id, agentId: task.assignedAgent,
-    }).catch(() => undefined);
+    void this.memory
+      .append({
+        category: 'tasks',
+        memoryKey: `mcp:task:${task.id}`,
+        content: JSON.stringify(task),
+        tags: ['mcp', 'task-state', task.status.toLowerCase()],
+        source: 'mcp-task-service',
+        taskId: task.id,
+        agentId: task.assignedAgent,
+      })
+      .catch(() => undefined);
   }
 
   create(
