@@ -76,7 +76,14 @@ describe('McpProtocolService', () => {
     expect(memory.search).not.toHaveBeenCalled();
   });
 
-\n  it('requires the assigned worker identity when recording results', async () => {\n    const response = await service.handle({ jsonrpc: '2.0', id: 11, method: 'tools/call', params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', success: true } } });\n    expect(response?.error).toEqual(expect.objectContaining({ code: -32000 }));\n    expect(autonomy.recordResult).not.toHaveBeenCalled();\n  });\n\n  it('rejects unknown tools and invalid JSON-RPC', async () => {
+
+  it('requires the assigned worker identity when recording results', async () => {
+    const response = await service.handle({ jsonrpc: '2.0', id: 11, method: 'tools/call', params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', success: true } } });
+    expect(response?.error).toEqual(expect.objectContaining({ code: -32000 }));
+    expect(autonomy.recordResult).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown tools and invalid JSON-RPC', async () => {
     const unknown = await service.handle({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'nope', arguments: {} } });
     expect((unknown?.error as any).code).toBe(-32602);
     const invalid = await service.handle({ jsonrpc: '1.0', id: 5, method: 'ping' });
