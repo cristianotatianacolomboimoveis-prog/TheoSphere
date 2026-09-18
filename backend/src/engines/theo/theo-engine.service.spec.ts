@@ -27,7 +27,7 @@ describe('TheologyEngineService', () => {
   it('clamps research limits and handles empty queries', async () => {
     const evidencePacks = { build: jest.fn((query: string, inputs: any[]) => ({ query, inputs })) } as any;
     const search = { hybridSearchVerses: jest.fn(async () => []) } as any;
-    const prisma = { book: { findMany: jest.fn(async () => []), technicalCommentary: { findMany: jest.fn(async () => []) } } } as any;
+    const prisma = { book: { findMany: jest.fn(async () => []) }, technicalCommentary: { findMany: jest.fn(async () => []) } } as any;
     const crossReferences = { list: jest.fn(async () => []) } as any;
     const linguistics = { getInterlinearChapter: jest.fn(async () => ({ verses: {} })) } as any;
     const service = new TheologyEngineService(prisma, search, evidencePacks, crossReferences, linguistics);
