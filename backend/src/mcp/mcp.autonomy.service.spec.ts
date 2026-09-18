@@ -4,12 +4,12 @@ describe('McpAutonomyService', () => {
   it('dispatches a created task through planning, assignment and start', async () => {
     const tasks = {
       current: { id: 'TSK-1', status: 'CREATED', assignedAgent: undefined },
-      get: jest.fn(function(this: any) { return this.current; }),
+      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
     } as any;
     const orchestrator = {
-      plan: jest.fn(async () => { tasks.current = { ...tasks.current, status: 'PLANNED' }; }),
-      assign: jest.fn(async () => { tasks.current = { ...tasks.current, assignedAgent: 'agent-1' }; }),
-      lockAndStart: jest.fn(async () => {
+      plan: jest.fn(() => { tasks.current = { ...tasks.current, status: 'PLANNED' }; }),
+      assign: jest.fn(() => { tasks.current = { ...tasks.current, assignedAgent: 'agent-1' }; }),
+      lockAndStart: jest.fn(() => {
         tasks.current = { ...tasks.current, status: 'IN_PROGRESS' };
         return tasks.current;
       }),
@@ -31,7 +31,7 @@ describe('McpAutonomyService', () => {
   it('drives a successful worker result to AUDITING and records memory', async () => {
     const tasks = {
       current: { id: 'TSK-1', status: 'IN_PROGRESS', assignedAgent: 'agent-1', version: 2 },
-      get: jest.fn(function(this: any) { return this.current; }),
+      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
     } as any;
     const orchestrator = {
       advance: jest.fn(async (id: string, next: string) => {
@@ -47,12 +47,12 @@ describe('McpAutonomyService', () => {
     });
 
     const receipt = {
-  commitSha: 'abc1234',
-  changedFiles: ['src/a.ts'],
-  tests: [{ command: 'npm test -- mcp', status: 'passed', durationMs: 1200 }],
-  startedAt: '2026-09-18T02:00:00.000Z',
-  finishedAt: '2026-09-18T02:01:00.000Z',
-};
+      commitSha: 'abc1234',
+      changedFiles: ['src/a.ts'],
+      tests: [{ command: 'npm test -- mcp', status: 'passed', durationMs: 1200 }],
+      startedAt: '2026-09-18T02:00:00.000Z',
+      finishedAt: '2026-09-18T02:01:00.000Z',
+    };
     const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.', receipt);
     expect(result.status).toBe('AUDITING');
     expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING']);
@@ -65,7 +65,7 @@ describe('McpAutonomyService', () => {
         commitSha: 'abc1234', changedFiles: ['src/a.ts'], tests: [{ command: 'npm test -- mcp', status: 'passed' }],
         startedAt: '2026-09-18T02:00:00.000Z', finishedAt: '2026-09-18T02:01:00.000Z',
       } },
-      get: jest.fn(function(this: any) { return this.current; }),
+      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
     } as any;
     const orchestrator = {
       advance: jest.fn(async (id: string, next: string) => {
