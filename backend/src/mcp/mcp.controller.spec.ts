@@ -57,14 +57,18 @@ describe('McpController', () => {
 
   it('rejects modern requests with missing or mismatched protocol metadata', async () => {
     const controller = new McpController(protocol, config);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 2, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2025-11-25', 'io.modelcontextprotocol/clientCapabilities': {} } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+    const missingProtocolMeta = await controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response);
+    expect(missingProtocolMeta).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32602 }) }));
+    const mismatchedProtocolMeta = await controller.handle({ jsonrpc: '2.0', id: 2, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2025-11-25', 'io.modelcontextprotocol/clientCapabilities': {} } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response);
+    expect(mismatchedProtocolMeta).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32602 }) }));
   });
 
   it('rejects modern requests with missing or malformed client capabilities metadata', async () => {
     const controller = new McpController(protocol, config);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 2, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': [] } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+    const missingCapabilities = await controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response);
+    expect(missingCapabilities).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32602 }) }));
+    const malformedCapabilities = await controller.handle({ jsonrpc: '2.0', id: 2, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': [] } } }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response);
+    expect(malformedCapabilities).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32602 }) }));
   });
 
   it('requires Mcp-Name to match taskId for Tasks extension methods', async () => {
