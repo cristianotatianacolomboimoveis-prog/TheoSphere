@@ -1,10 +1,13 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { McpProtocolService } from './mcp.protocol.service';
 
 @Controller('mcp')
 export class McpController {
+  private readonly sessions = new Set<string>();
+
   constructor(
     private readonly protocol: McpProtocolService,
     private readonly config: ConfigService,
@@ -22,7 +25,15 @@ export class McpController {
     this.authorize(authorization);
     this.validateAccept(accept);
     res.setHeader('MCP-Protocol-Version', this.protocol.protocolVersion);
-    if (sessionId) res.setHeader('MCP-Session-Id', sessionId);
+    const request = body as Record<string, unknown>;
+    if (request.method === 'initialize') {
+      const id = sessionId ?? randomUUID();
+      this.sessions.add(id);
+      res.setHeader('MCP-Session-Id', id);
+    } else if (sessionId) {
+      if (!this.sessions.has(sessionId)) throw new UnauthorizedException('Unknown MCP-Session-Id');
+      res.setHeader('MCP-Session-Id', sessionId);
+    }
 
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
 
@@ -45,7 +56,7 @@ export class McpController {
     @Res() res: Response,
   ) {
     this.authorize(authorization);
-    if (!sessionId) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
+    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -62,7 +73,8 @@ export class McpController {
     @Headers('mcp-session-id') sessionId: string | undefined,
   ) {
     this.authorize(authorization);
-    if (!sessionId) throw new BadRequestException('MCP-Session-Id is required for session termination');
+    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for session termination');
+    this.sessions.delete(sessionId);
   }
 
   private validateAccept(accept?: string): void {
