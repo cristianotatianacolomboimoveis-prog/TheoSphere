@@ -6,7 +6,7 @@ describe('TheologyEngineService', () => {
     const search = { hybridSearchVerses: jest.fn(async () => [
       { id: 'v1', bookId: 43, chapter: 3, verse: 16, translation: 'WEB', text: 'For God so loved the world', score: 0.91, vectorRank: 1, keywordRank: 1 },
     ]) } as any;
-    const evidencePacks = { build: jest.fn((query: string, inputs: any[], limit: number) => ({ query, inputs, limit })) } as any;
+    const evidencePacks = { build: jest.fn((query: string, inputs: any[], limit: number) => ({ query, items: inputs.map((input) => ({ reference: input.source.reference, kind: input.kind })), limit })) } as any;
     const service = new TheologyEngineService(prisma, search, evidencePacks);
     const result = await service.research('João 3:16', 12);
     expect(result.query).toBe('João 3:16');
