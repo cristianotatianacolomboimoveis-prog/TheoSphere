@@ -46,8 +46,8 @@ describe('McpProtocolTaskService', () => {
     const working = {
       taskId: 'task-recovered',
       status: 'working',
-      createdAt: '2026-09-18T09:00:00.000Z',
-      lastUpdatedAt: '2026-09-18T09:00:00.000Z',
+      createdAt: new Date(Date.now() - 60_000).toISOString(),
+      lastUpdatedAt: new Date(Date.now() - 60_000).toISOString(),
       ttlMs: 3_600_000,
       operation: 'theosphere_answer',
     };
