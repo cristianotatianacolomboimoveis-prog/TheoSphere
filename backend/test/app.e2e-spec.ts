@@ -42,6 +42,31 @@ describe('AppController (e2e)', () => {
       expect.objectContaining({ name: 'theosphere-mcp', version: expect.any(String) }),
     );
 
+    const research = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tools/call')
+      .set('Mcp-Name', 'theosphere_research')
+      .send({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_research',
+          arguments: { query: 'John 3:16', limit: 5 },
+          ...modernMeta,
+        },
+      })
+      .expect(200);
+
+    expect(research.body.result.resultType).toBe('complete');
+    expect(Array.isArray(research.body.result.content)).toBe(true);
+    expect(research.body.result.structuredContent).toEqual(expect.objectContaining({
+      query: 'John 3:16',
+      items: expect.any(Array),
+    }));
+
     const listed = await request(app.getHttpServer())
       .post('/mcp')
       .set('Accept', 'application/json')
