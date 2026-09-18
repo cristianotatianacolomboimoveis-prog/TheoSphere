@@ -114,7 +114,7 @@ export class McpProtocolTaskService {
 
   async cancel(taskId: string): Promise<void> {
     const task = this.mutable(taskId);
-    if (task.status === 'completed' || task.status === 'failed') throw new ConflictException('MCP task is already terminal');
+    if (task.status === 'completed' || task.status === 'cancelled' || task.status === 'failed') throw new ConflictException('MCP task is already terminal');
     task.status = 'cancelled';
     task.statusMessage = 'Cancellation requested.';
     task.lastUpdatedAt = new Date().toISOString();
