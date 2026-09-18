@@ -267,7 +267,17 @@ export class McpProtocolService {
         case 'tasks/update':
           if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/update requires MCP 2026-07-28');
           if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
-          return this.error(request.id ?? null, -32602, 'TheoSphere protocol tasks do not currently expose input_required tasks');
+          try {
+            const inputResponses = request.params?.inputResponses;
+            if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) {
+              return this.error(request.id ?? null, -32602, 'MCP task inputResponses must be an object');
+            }
+            await this.protocolTasks.update(this.string(request.params?.taskId, 'taskId'), inputResponses as Record<string, unknown>);
+            return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: {} }, protocolVersion);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update MCP task';
+            return this.error(request.id ?? null, -32602, message);
+          }
         case 'tasks/cancel':
           if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/cancel requires MCP 2026-07-28');
           if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
