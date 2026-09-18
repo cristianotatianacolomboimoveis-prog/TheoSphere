@@ -7,6 +7,7 @@ import { McpTaskService } from './mcp.task.service';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { McpProtocolService } from './mcp.protocol.service';
+import { McpAutonomyService } from './mcp.autonomy.service';
 import { McpController } from './mcp.controller';
 
 @Module({
@@ -20,6 +21,7 @@ import { McpController } from './mcp.controller';
     McpProjectMemoryService,
     McpOrchestratorService,
     McpProtocolService,
+    McpAutonomyService,
   ],
   exports: [
     McpAuditService,
