@@ -76,7 +76,13 @@ describe('MCP control-plane foundation', () => {
     const snapshots: any[] = [];
     const append = jest.fn(async (entry: any) => { snapshots.push(entry); return entry; });
     const latestByKeyPrefix = jest.fn(async () => snapshots.length ? [snapshots[snapshots.length - 1]] : []);
-    const memory = { append, latestByKeyPrefix } as any;
+    const mutateLatestJson = jest.fn(async <T>(_category: string, memoryKey: string, mutate: (current: T) => T) => {
+      const current = snapshots[snapshots.length - 1];
+      const next = mutate(JSON.parse(current.content) as T);
+      snapshots.push({ ...current, content: JSON.stringify(next) });
+      return next;
+    });
+    const memory = { append, latestByKeyPrefix, mutateLatestJson } as any;
     const first = new McpProtocolTaskService(memory);
     const created = await first.create('theosphere_answer', { query: 'John 3:16' });
     await first.complete(created.taskId, { content: [{ type: 'text', text: 'Evidence-grounded answer' }], isError: false });
@@ -89,7 +95,13 @@ describe('MCP control-plane foundation', () => {
   it('cancels a protocol task and rejects terminal completion', async () => {
     const append = jest.fn(async (entry: unknown) => entry);
     const latestByKeyPrefix = jest.fn(async () => []);
-    const memory = { append, latestByKeyPrefix } as any;
+    const mutateLatestJson = jest.fn(async <T>(_category: string, memoryKey: string, mutate: (current: T) => T) => {
+      const current = snapshots?.[0];
+      if (!current) throw new Error('missing snapshot');
+      const next = mutate(JSON.parse(current.content) as T);
+      return next;
+    });
+    const memory = { append, latestByKeyPrefix, mutateLatestJson } as any;
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await service.cancel(task.taskId);
