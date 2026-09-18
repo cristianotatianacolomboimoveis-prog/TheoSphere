@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 
-export const MCP_MEMORY_CATEGORIES = ['decisions','bugs','discoveries','benchmarks','architecture','incidents','audits','datasets','licenses','tasks'] as const;
+export const MCP_MEMORY_CATEGORIES = ['decisions','bugs','discoveries','benchmarks','architecture','incidents','audits','datasets','licenses','tasks','agents'] as const;
 export type McpMemoryCategory = (typeof MCP_MEMORY_CATEGORIES)[number];
 
 export interface McpMemoryInput {
@@ -46,8 +46,8 @@ export class McpProjectMemoryService {
 
   /**
    * Returns only the newest snapshot for each memory key under a prefix.
-   * Task state is append-only, so loading a fixed number of history rows can
-   * silently drop older tasks after enough state transitions accumulate.
+   * Task/agent state is append-only, so loading a fixed number of history rows
+   * can silently drop older entities after enough state transitions accumulate.
    */
   async latestByKeyPrefix(category: McpMemoryCategory, prefix: string) {
     const normalizedPrefix = prefix.trim();
