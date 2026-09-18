@@ -1,4 +1,4 @@
-import { ConfigService } from '@nestjs/config';
+import { BadRequestException, ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 import { McpExecutionController } from './mcp.execution.controller';
 
@@ -61,7 +61,7 @@ describe('McpExecutionController', () => {
         { summary: 'done' },
         'Bearer ' + 'x'.repeat(32),
       ),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(autonomy.recordResult).not.toHaveBeenCalled();
   });
 });
