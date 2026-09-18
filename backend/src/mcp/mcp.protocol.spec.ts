@@ -46,6 +46,7 @@ describe('McpProtocolService', () => {
   });
 
   it('returns an async task handle for answer calls from a tasks-capable client', async () => {
+    protocolTasks.get.mockReturnValue({ taskId: 'task-1', status: 'cancelled' });
     const response = await service.handle({ jsonrpc: '2.0', id: 1.5, method: 'tools/call', params: { name: 'theosphere_answer', arguments: { query: 'grace' }, _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': { extensions: { 'io.modelcontextprotocol/tasks': {} } } } } }, '2026-07-28');
     expect(protocolTasks.create).toHaveBeenCalledWith('theosphere_answer', { query: 'grace', limit: 12 }, 'TheoSphere answer is running asynchronously.');
     expect((response?.result as any).resultType).toBe('task');
@@ -88,6 +89,7 @@ describe('McpProtocolService', () => {
   });
 
   it('returns an async task handle for research calls from a tasks-capable client', async () => {
+    protocolTasks.get.mockReturnValue({ taskId: 'task-research-1', status: 'cancelled' });
     theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [] });
     protocolTasks.create.mockResolvedValueOnce({
       taskId: 'task-research-1',
@@ -123,8 +125,10 @@ describe('McpProtocolService', () => {
   });
 
   it('does not start or complete a cancelled asynchronous research task', async () => {
+    let releaseResearch!: () => void;
+    const researchReleased = new Promise<void>((resolve) => { releaseResearch = resolve; });
     theology.research.mockImplementationOnce(async () => {
-      await new Promise((resolve) => setImmediate(resolve));
+      await researchReleased;
       return { version: 1, query: 'grace', items: [] };
     });
     protocolTasks.create.mockResolvedValueOnce({
@@ -157,7 +161,9 @@ describe('McpProtocolService', () => {
       },
     }, '2026-07-28');
     expect((response?.result as any).resultType).toBe('task');
+    await new Promise((resolve) => setImmediate(resolve));
     cancelled = true;
+    releaseResearch();
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
     expect(theology.research).toHaveBeenCalledWith('grace', 12);
