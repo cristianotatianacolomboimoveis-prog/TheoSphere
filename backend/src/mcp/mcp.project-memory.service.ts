@@ -74,6 +74,54 @@ export class McpProjectMemoryService {
     `);
   }
 
+  /**
+   * Atomically read, mutate, and append the latest snapshot for a memory key.
+   * PostgreSQL's transaction-scoped advisory lock serializes mutations across
+   * independent application instances while keeping the read and append in
+   * the same transaction.
+   */
+  async mutateLatestJson<T>(
+    category: McpMemoryCategory,
+    memoryKey: string,
+    mutate: (current: T) => T,
+  ): Promise<T> {
+    const normalizedKey = memoryKey.trim();
+    if (!normalizedKey) throw new Error('MCP memory key is required');
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${normalizedKey}))`);
+      const current = await tx.projectMemory.findFirst({
+        where: { category, memoryKey: normalizedKey },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+      if (!current) throw new Error(`MCP memory key not found: ${normalizedKey}`);
+
+      let parsed: T;
+      try {
+        parsed = JSON.parse(current.content) as T;
+      } catch {
+        throw new Error(`MCP memory content is not valid JSON: ${normalizedKey}`);
+      }
+
+      const next = mutate(parsed);
+      const content = JSON.stringify(next);
+      await tx.projectMemory.create({
+        data: {
+          id: 'MEM-' + randomUUID(),
+          category,
+          memoryKey: normalizedKey,
+          content,
+          tags: current.tags,
+          source: current.source ?? undefined,
+          taskId: current.taskId ?? undefined,
+          agentId: current.agentId ?? undefined,
+          supersedesId: current.id,
+        },
+      });
+      return next;
+    });
+  }
+
   async list(category?: McpMemoryCategory, limit = 100) {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 500);
     return this.prisma.projectMemory.findMany({ where: category ? { category } : undefined, orderBy: { createdAt: 'desc' }, take: safeLimit });
