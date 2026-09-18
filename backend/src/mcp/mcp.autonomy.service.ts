@@ -29,8 +29,11 @@ export class McpAutonomyService {
     return this.orchestrator.lockAndStart(taskId);
   }
 
-  async recordResult(taskId: string, success: boolean, summary?: string): Promise<McpExecutionResult> {
+  async recordResult(taskId: string, agentId: string, success: boolean, summary?: string): Promise<McpExecutionResult> {
     const task = this.tasks.get(taskId);
+    if (!task.assignedAgent || task.assignedAgent !== agentId) {
+      throw new ConflictException(`MCP result agent mismatch for task ${taskId}`);
+    }
     if (!['IN_PROGRESS', 'IMPLEMENTED', 'TESTING', 'AUDITING'].includes(task.status)) {
       throw new ConflictException(`Task ${taskId} cannot record a result from ${task.status}`);
     }
