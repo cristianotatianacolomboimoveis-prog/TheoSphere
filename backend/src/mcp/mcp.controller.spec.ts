@@ -33,9 +33,31 @@ describe('McpController', () => {
 
   it('supports modern stateless discovery and rejects legacy session transport for modern requests', async () => {
     const controller = new McpController(protocol, { get: jest.fn((key: string) => key === 'NODE_ENV' ? 'development' : undefined) } as unknown as ConfigService);
-    await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'server/discover' }, undefined, undefined, 'application/json', '2026-07-28', 'server/discover', undefined, response)).resolves.toBeDefined();
-    await expect(controller.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, undefined, undefined, 'application/json', '2026-07-28', 'tools/list', undefined, response)).resolves.toBeDefined();
-    await expect(controller.handle({ jsonrpc: '2.0', id: 3, method: 'initialize' }, undefined, undefined, 'application/json', '2026-07-28', 'initialize', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+    const modernMeta = { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } };
+    await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'server/discover', params: modernMeta }, undefined, undefined, 'application/json', '2026-07-28', 'server/discover', undefined, response)).resolves.toBeDefined();
+    await expect(controller.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: modernMeta }, undefined, undefined, 'application/json', '2026-07-28', 'tools/list', undefined, response)).resolves.toBeDefined();
+    await expect(controller.handle({ jsonrpc: '2.0', id: 3, method: 'initialize', params: modernMeta }, undefined, undefined, 'application/json', '2026-07-28', 'initialize', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects modern requests with missing or mismatched protocol metadata', async () => {
+    const controller = new McpController(protocol, { get: jest.fn((key: string) => key === 'NODE_ENV' ? 'development' : undefined) } as unknown as ConfigService);
+    await expect(controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.handle({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'ping',
+      params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2025-11-25' } },
+    }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects session ids on modern stateless requests', async () => {
+    const controller = new McpController(protocol, { get: jest.fn((key: string) => key === 'NODE_ENV' ? 'development' : undefined) } as unknown as ConfigService);
+    await expect(controller.handle({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'ping',
+      params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } },
+    }, undefined, 'legacy-session', 'application/json', '2026-07-28', 'ping', undefined, response)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('supports session lifecycle for Streamable HTTP GET/DELETE', async () => {
@@ -44,5 +66,6 @@ describe('McpController', () => {
     await controller.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' }, undefined, undefined, 'application/json, text/event-stream', undefined, undefined, response);
     const session = (response.setHeader as jest.Mock).mock.calls.find(([key]) => key === 'MCP-Session-Id')?.[1];
     expect(session).toEqual(expect.any(String));
+    expect((response.setHeader as jest.Mock).mock.calls.find(([key]) => key === 'MCP-Protocol-Version')?.[1]).toBe('2025-11-25');
   });
 });
