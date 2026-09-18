@@ -108,8 +108,6 @@ describe('McpProtocolService', () => {
   it('does not answer notifications', async () => {
     await expect(service.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).resolves.toBeNull();
   });
-});
-
 
   it('rejects verification without a verifier identity', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'theosphere_verify_result', arguments: { taskId: 'TSK-1' } } });
