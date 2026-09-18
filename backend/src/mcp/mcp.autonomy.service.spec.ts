@@ -41,8 +41,19 @@ describe('McpAutonomyService', () => {
     } as any;
     const memory = { append: jest.fn(async () => undefined) } as any;
     const service = new McpAutonomyService(orchestrator, { get: jest.fn(() => undefined) } as any, tasks, memory);
+    tasks.recordExecutionReceipt = jest.fn((id: string, _agentId: string, value: unknown) => {
+      tasks.current = { ...tasks.current, executionReceipt: value, version: tasks.current.version + 1 };
+      return tasks.current;
+    });
 
-    const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.');
+    const receipt = {
+  commitSha: 'abc1234',
+  changedFiles: ['src/a.ts'],
+  tests: [{ command: 'npm test -- mcp', status: 'passed', durationMs: 1200 }],
+  startedAt: '2026-09-18T02:00:00.000Z',
+  finishedAt: '2026-09-18T02:01:00.000Z',
+};
+    const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.', receipt);
     expect(result.status).toBe('AUDITING');
     expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING']);
     expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'TSK-1', agentId: 'agent-1', category: 'tasks' }));
@@ -50,7 +61,10 @@ describe('McpAutonomyService', () => {
 
   it('requires an independent verifier before VERIFIED', async () => {
     const tasks = {
-      current: { id: 'TSK-2', status: 'AUDITING', assignedAgent: 'agent-1', version: 5 },
+      current: { id: 'TSK-2', status: 'AUDITING', assignedAgent: 'agent-1', version: 5, executionReceipt: {
+        commitSha: 'abc1234', changedFiles: ['src/a.ts'], tests: [{ command: 'npm test -- mcp', status: 'passed' }],
+        startedAt: '2026-09-18T02:00:00.000Z', finishedAt: '2026-09-18T02:01:00.000Z',
+      } },
       get: jest.fn(function(this: any) { return this.current; }),
     } as any;
     const orchestrator = {
