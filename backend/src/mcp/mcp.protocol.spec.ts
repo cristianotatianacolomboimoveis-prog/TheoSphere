@@ -18,12 +18,114 @@ describe('McpProtocolService', () => {
     search: jest.fn(async () => []),
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
   } as any;
+  const protocolTasks = {
+    create: jest.fn(async (operation: string) => ({
+      taskId: 'task-1',
+      status: 'working',
+      statusMessage: 'Running',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+      pollIntervalMs: 2_000,
+      operation,
+    })),
+    get: jest.fn(() => ({
+      taskId: 'task-1', status: 'working', createdAt: '2026-09-18T10:00:00.000Z', lastUpdatedAt: '2026-09-18T10:00:00.000Z', ttlMs: 3_600_000,
+    })),
+    cancel: jest.fn(async () => undefined),
+    complete: jest.fn(async () => undefined),
+    fail: jest.fn(async () => undefined),
+  } as any;
 
   const security = new McpSecurityService();
   const rag = { chatWithEvidencePack: jest.fn(async (query: string) => ({ content: 'answer:' + query })) } as any;
-  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy, security, rag);
+  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy, security, rag, protocolTasks);
 
-  it('supports MCP initialize and tool discovery', async () => {
+  it('advertises the Tasks extension in modern discovery', async () => {
+    const response = await service.handle(
+      { jsonrpc: '2.0', id: 0, method: 'server/discover', params: {
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      } },
+      '2026-07-28',
+    );
+    expect((response?.result as any).capabilities.extensions).toEqual({
+      'io.modelcontextprotocol/tasks': {},
+    });
+  });
+
+  it('returns an async task handle for answer calls from a tasks-capable client', async () => {
+    theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [] });
+    protocolTasks.create.mockResolvedValueOnce({
+      taskId: 'task-1',
+      status: 'working',
+      statusMessage: 'Running',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+      pollIntervalMs: 2_000,
+    });
+    const response = await service.handle(
+      {
+        jsonrpc: '2.0',
+        id: 1.5,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_answer',
+          arguments: { query: 'grace' },
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {
+              extensions: { 'io.modelcontextprotocol/tasks': {} },
+            },
+          },
+        },
+      },
+      '2026-07-28',
+    );
+    expect(protocolTasks.create).toHaveBeenCalledWith(
+      'theosphere_answer',
+      { query: 'grace', limit: 12 },
+      'TheoSphere answer is running asynchronously.',
+    );
+    expect((response?.result as any).resultType).toBe('task');
+    expect((response?.result as any).taskId).toBe('task-1');
+  });
+
+  it('requires the tasks extension capability for task polling and cancellation', async () => {
+    const missing = await service.handle(
+      { jsonrpc: '2.0', id: 16, method: 'tasks/get', params: { taskId: 'task-1' } },
+      '2026-07-28',
+    );
+    expect(missing?.error).toEqual(expect.objectContaining({
+      code: -32021,
+      data: { requiredCapabilities: { extensions: { 'io.modelcontextprotocol/tasks': {} } } },
+    }));
+
+    const current = await service.handle(
+      {
+        jsonrpc: '2.0',
+        id: 17,
+        method: 'tasks/get',
+        params: {
+          taskId: 'task-1',
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {
+              extensions: { 'io.modelcontextprotocol/tasks': {} },
+            },
+          },
+        },
+      },
+      '2026-07-28',
+    );
+    expect((current?.result as any).resultType).toBe('complete');
+    expect(protocolTasks.get).toHaveBeenCalledWith('task-1');
+  });
+
+    it('supports MCP initialize and tool discovery', async () => {
     const initialized = await service.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
     expect(initialized?.result).toEqual(expect.objectContaining({
       protocolVersion: '2025-11-25',
