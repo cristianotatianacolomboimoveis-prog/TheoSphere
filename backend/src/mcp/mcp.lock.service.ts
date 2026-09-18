@@ -41,19 +41,46 @@ export class McpLockService implements OnModuleDestroy {
 
     if (!this.redis) {
       const conflicts = normalized.filter((path) => this.locks.has(path));
-      if (conflicts.length > 0) throw new ConflictException(`MCP file lock conflict: ${conflicts.join(', ')}`);
+      if (conflicts.length > 0) {
+        throw new ConflictException(`MCP file lock conflict: ${conflicts.join(', ')}`);
+      }
       const acquiredAt = new Date().toISOString();
-      const locks = normalized.map((path) => ({ path, taskId, agentId, acquiredAt, token: randomUUID() }));
+      const locks = normalized.map((path) => ({
+        path,
+        taskId,
+        agentId,
+        acquiredAt,
+        token: randomUUID(),
+      }));
       for (const lock of locks) this.locks.set(lock.path, lock);
-      this.audit.append({ actor: agentId, action: 'lock.acquired', resourceType: 'lock', resourceId: taskId, outcome: 'success', metadata: { paths: normalized, backend: 'memory' } });
+      this.audit.append({
+        actor: agentId,
+        action: 'lock.acquired',
+        resourceType: 'lock',
+        resourceId: taskId,
+        outcome: 'success',
+        metadata: { paths: normalized, backend: 'memory' },
+      });
       return locks.map(({ token: _token, ...lock }) => lock);
     }
 
     const acquired: StoredLock[] = [];
     try {
       for (const path of normalized) {
-        const lock: StoredLock = { path, taskId, agentId, acquiredAt: new Date().toISOString(), token: randomUUID() };
-        const result = await this.redis.set(this.key(path), JSON.stringify(lock), 'NX', 'PX', this.ttlMs);
+        const lock: StoredLock = {
+          path,
+          taskId,
+          agentId,
+          acquiredAt: new Date().toISOString(),
+          token: randomUUID(),
+        };
+        const result = await this.redis.set(
+          this.key(path),
+          JSON.stringify(lock),
+          'NX',
+          'PX',
+          this.ttlMs,
+        );
         if (result !== 'OK') {
           const existing = await this.read(path);
           const owner = existing ? ` (${existing.taskId}/${existing.agentId})` : '';
@@ -62,7 +89,9 @@ export class McpLockService implements OnModuleDestroy {
         acquired.push(lock);
       }
     } catch (error) {
-      await Promise.allSettled(acquired.map((lock) => this.deleteIfOwner(lock.path, lock.token)));
+      await Promise.allSettled(
+        acquired.map((lock) => this.deleteIfOwner(lock.path, lock.token)),
+      );
       throw error;
     }
 
@@ -79,9 +108,12 @@ export class McpLockService implements OnModuleDestroy {
 
   async release(taskId: string, agentId: string): Promise<void> {
     this.security.assertAllowed(agentId, 'lock:release');
+
     if (!this.redis) {
       for (const [path, lock] of this.locks) {
-        if (lock.taskId === taskId && lock.agentId === agentId) this.locks.delete(path);
+        if (lock.taskId === taskId && lock.agentId === agentId) {
+          this.locks.delete(path);
+        }
       }
     } else {
       const keys = await this.scanKeys();
@@ -93,31 +125,51 @@ export class McpLockService implements OnModuleDestroy {
         }
       }
     }
-    this.audit.append({ actor: agentId, action: 'lock.released', resourceType: 'lock', resourceId: taskId, outcome: 'success' });
+
+    this.audit.append({
+      actor: agentId,
+      action: 'lock.released',
+      resourceType: 'lock',
+      resourceId: taskId,
+      outcome: 'success',
+    });
   }
 
   async renew(taskId: string, agentId: string): Promise<number> {
     this.security.assertAllowed(agentId, 'lock:renew');
     let renewed = 0;
+
     if (!this.redis) {
       for (const lock of this.locks.values()) {
         if (lock.taskId === taskId && lock.agentId === agentId) renewed++;
+      }
     } else {
-      const keys = await this.scanKeys();
-      for (const key of keys) {
+      for (const key of await this.scanKeys()) {
         const raw = await this.redis.get(key);
         const lock = this.parse(raw);
-        if (!lock || lock.taskId !== taskId || lock.agentId !== agentId) continue;
-        const expires = await this.redis.pexpire(key, this.ttlMs);
-        if (expires) renewed++;
+        if (!lock || !raw || lock.taskId !== taskId || lock.agentId !== agentId) continue;
+        if (await this.renewIfOwner(lock.path, raw)) renewed++;
       }
     }
-    this.audit.append({ actor: agentId, action: 'lock.renewed', resourceType: 'lock', resourceId: taskId, outcome: 'success', metadata: { renewed, ttlMs: this.ttlMs } });
+
+    this.audit.append({
+      actor: agentId,
+      action: 'lock.renewed',
+      resourceType: 'lock',
+      resourceId: taskId,
+      outcome: 'success',
+      metadata: { renewed, ttlMs: this.ttlMs },
+    });
     return renewed;
   }
 
   async list(): Promise<readonly McpFileLock[]> {
-    if (!this.redis) return [...this.locks.values()].map(({ token: _token, ...lock }) => lock);
+    if (!this.redis) {
+      return [...this.locks.values()]
+        .map(({ token: _token, ...lock }) => lock)
+        .sort((a, b) => a.path.localeCompare(b.path));
+    }
+
     const result: McpFileLock[] = [];
     for (const key of await this.scanKeys()) {
       const lock = this.parse(await this.redis.get(key));
@@ -143,7 +195,9 @@ export class McpLockService implements OnModuleDestroy {
         typeof parsed.agentId !== 'string' ||
         typeof parsed.acquiredAt !== 'string' ||
         typeof parsed.token !== 'string'
-      ) return null;
+      ) {
+        return null;
+      }
       return parsed as StoredLock;
     } catch {
       return null;
@@ -151,7 +205,7 @@ export class McpLockService implements OnModuleDestroy {
   }
 
   private async read(path: string): Promise<StoredLock | null> {
-    return this.parse(await this.redis?.get(this.key(path)) ?? null);
+    return this.parse((await this.redis?.get(this.key(path))) ?? null);
   }
 
   private async deleteIfOwner(path: string, token: string): Promise<void> {
@@ -160,14 +214,36 @@ export class McpLockService implements OnModuleDestroy {
       if (current?.token === token) this.locks.delete(path);
       return;
     }
+
+    const current = await this.redis.get(this.key(path));
+    if (!current) return;
+
     const script = `
-      local current = redis.call("GET", KEYS[1])
-      if current == ARGV[1] then
+      if redis.call("GET", KEYS[1]) == ARGV[1] then
         return redis.call("DEL", KEYS[1])
       end
       return 0
     `;
-    await this.redis.eval(script, 1, this.key(path), JSON.stringify({ ...(this.parse(await this.redis.get(this.key(path))) ?? {}), token }));
+    await this.redis.eval(script, 1, this.key(path), current);
+  }
+
+  private async renewIfOwner(path: string, raw: string): Promise<boolean> {
+    if (!this.redis) return false;
+
+    const script = `
+      if redis.call("GET", KEYS[1]) == ARGV[1] then
+        return redis.call("PEXPIRE", KEYS[1], ARGV[2])
+      end
+      return 0
+    `;
+    const renewed = await this.redis.eval(
+      script,
+      1,
+      this.key(path),
+      raw,
+      String(this.ttlMs),
+    );
+    return Number(renewed) === 1;
   }
 
   private async scanKeys(): Promise<string[]> {
@@ -175,7 +251,13 @@ export class McpLockService implements OnModuleDestroy {
     const keys: string[] = [];
     let cursor = '0';
     do {
-      const [next, batch] = await this.redis.scan(cursor, 'MATCH', `${this.prefix}*`, 'COUNT', 100);
+      const [next, batch] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        `${this.prefix}*`,
+        'COUNT',
+        100,
+      );
       cursor = next;
       keys.push(...batch);
     } while (cursor !== '0');
