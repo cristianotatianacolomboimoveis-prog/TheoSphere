@@ -421,9 +421,22 @@ export class McpProtocolService {
       case 'theosphere_verify_result':
         result = await this.autonomy.verifyResult(this.string(args.taskId, 'taskId'), this.string(args.verifierAgentId, 'verifierAgentId'), typeof args.summary === 'string' ? args.summary : undefined);
         break;
-      case 'theosphere_research':
-        result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
+      case 'theosphere_research': {
+        const query = this.string(args.query, 'query');
+        const limit = typeof args.limit === 'number' ? args.limit : 12;
+        if (this.hasTasksCapabilityFromCallParams(params)) {
+          const task = await this.protocolTasks.create(
+            'theosphere_research',
+            { query, limit },
+            'TheoSphere research is running asynchronously.',
+          );
+          void this.executeResearchTask(task.taskId, query, limit);
+          result = { resultType: 'task', ...task };
+        } else {
+          result = await this.theology.research(query, limit);
+        }
         break;
+      }
       case 'theosphere_answer': {
         const query = this.string(args.query, 'query');
         const limit = typeof args.limit === 'number' ? args.limit : 12;
@@ -509,6 +522,19 @@ export class McpProtocolService {
 
   private taskResponse(id: string | number | null, task: unknown): JsonRpcResponse {
     return { jsonrpc: '2.0', id, result: { resultType: 'complete', ...(task as Record<string, unknown>) } };
+  }
+
+  private async executeResearchTask(taskId: string, query: string, limit: number): Promise<void> {
+    try {
+      const research = await this.theology.research(query, limit);
+      await this.protocolTasks.complete(taskId, {
+        content: [{ type: 'text', text: JSON.stringify(research) }],
+        structuredContent: research,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MCP research task execution failed';
+      await this.protocolTasks.fail(taskId, -32603, message).catch(() => undefined);
+    }
   }
 
   private async executeAnswerTask(taskId: string, query: string, limit: number, tradition?: string): Promise<void> {
