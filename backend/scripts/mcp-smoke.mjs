@@ -4,10 +4,11 @@ const base = (process.env.MCP_BASE_URL || 'http://localhost:3002/mcp').replace(/
 const apiKey = process.env.MCP_API_KEY || '';
 const query = process.env.MCP_QUERY || 'John 3:16';
 const runAnswer = process.env.MCP_RUN_ANSWER === '1';
+const runResearch = process.env.MCP_RUN_RESEARCH === '1';
 const timeoutMs = Number(process.env.MCP_TIMEOUT_MS || 60000);
 
 const headers = {
-  Accept: 'application/json',
+  Accept: 'application/json, text/event-stream',
   'Content-Type': 'application/json',
   'MCP-Protocol-Version': '2026-07-28',
 };
@@ -51,6 +52,8 @@ report.steps.push({
   resultType: discovery.resultType,
   supportedVersions: discovery.supportedVersions,
   tasks: Boolean(discovery.capabilities?.extensions?.['io.modelcontextprotocol/tasks']),
+  ttlMs: discovery.ttlMs,
+  cacheScope: discovery.cacheScope,
 });
 
 const tools = await post('tools/list', meta());
@@ -61,21 +64,23 @@ report.steps.push({
   hasTheoAnswer: Array.isArray(tools.tools) && tools.tools.some((tool) => tool?.name === 'theosphere_answer'),
 });
 
-const research = await post(
-  'tools/call',
-  {
+if (runResearch) {
+  const research = await post(
+    'tools/call',
+    {
+      name: 'theosphere_research',
+      arguments: { query, limit: 5 },
+      ...meta(),
+    },
+    'theosphere_research',
+  );
+  report.steps.push({
     name: 'theosphere_research',
-    arguments: { query, limit: 5 },
-    ...meta(),
-  },
-  'theosphere_research',
-);
-report.steps.push({
-  name: 'theosphere_research',
-  resultType: research.resultType || 'complete',
-  itemCount: Array.isArray(research.structuredContent?.items) ? research.structuredContent.items.length : null,
-  sourceCount: research.structuredContent?.sourceCount ?? null,
-});
+    resultType: research.resultType || 'complete',
+    itemCount: Array.isArray(research.structuredContent?.items) ? research.structuredContent.items.length : null,
+    sourceCount: research.structuredContent?.sourceCount ?? null,
+  });
+}
 
 if (runAnswer) {
   const answer = await post(
