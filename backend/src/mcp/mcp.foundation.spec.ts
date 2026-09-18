@@ -3,7 +3,7 @@ import { McpAuditService } from './mcp.audit.service';
 import { McpLockService } from './mcp.lock.service';
 import { McpSecurityService } from './mcp.security.service';
 import { McpTaskService } from './mcp.task.service';
-import type { McpAgent } from './mcp.types';
+import type { McpAgent, McpAuditEvent } from './mcp.types';
 import type { McpProjectMemoryService } from './mcp.project-memory.service';
 
 describe('MCP control-plane foundation', () => {
@@ -97,5 +97,28 @@ describe('MCP control-plane foundation', () => {
 
     expect(memory.latestByKeyPrefix).toHaveBeenCalledWith('agents', 'mcp:agent:');
     expect(registry.get('claude')).toEqual({ ...agent, capabilities: ['coding'] });
+  });
+
+  it('recovers the complete persisted audit history instead of a fixed history window', async () => {
+    const older: McpAuditEvent = {
+      id: 'audit-1', timestamp: '2026-09-18T01:00:00.000Z', actor: 'agent-a',
+      action: 'task.created', resourceType: 'task', resourceId: 'TSK-1', outcome: 'success',
+    };
+    const newer: McpAuditEvent = {
+      id: 'audit-2', timestamp: '2026-09-18T02:00:00.000Z', actor: 'agent-b',
+      action: 'task.verified', resourceType: 'task', resourceId: 'TSK-1', outcome: 'success',
+    };
+    const memory = {
+      latestByKeyPrefix: jest.fn().mockResolvedValue([
+        { content: JSON.stringify(newer), createdAt: new Date('2026-09-18T02:00:00.000Z') },
+        { content: JSON.stringify(older), createdAt: new Date('2026-09-18T01:00:00.000Z') },
+      ]),
+    } as unknown as McpProjectMemoryService;
+    const audit = new McpAuditService(memory);
+
+    await audit.onModuleInit();
+
+    expect(memory.latestByKeyPrefix).toHaveBeenCalledWith('audits', 'mcp:audit:');
+    expect(audit.list()).toEqual([newer, older]);
   });
 });
