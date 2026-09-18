@@ -102,6 +102,11 @@ describe('McpProtocolService', () => {
 });
 
 
+  it('rejects verification without a verifier identity', async () => {
+    const response = await service.handle({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'theosphere_verify_result', arguments: { taskId: 'TSK-1' } } });
+    expect(response?.error).toEqual(expect.objectContaining({ code: -32602 }));
+  });
+
   it('routes independent verification separately from worker result recording', async () => {
     autonomy.verifyResult = jest.fn(async (id: string, verifierId: string) => ({ taskId: id, status: 'VERIFIED', verifierAgentId: verifierId }));
     const response = await service.handle({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'theosphere_verify_result', arguments: { taskId: 'TSK-1', verifierAgentId: 'verifier-1' } } });
