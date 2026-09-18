@@ -61,6 +61,8 @@ describe('McpProtocolService', () => {
       'io.modelcontextprotocol/tasks': {},
     });
     expect((response?.result as any).resultType).toBe('complete');
+    expect((response?.result as any).ttlMs).toBe(0);
+    expect((response?.result as any).cacheScope).toBe('private');
 
     const listed = await service.handle(
       { jsonrpc: '2.0', id: 0.5, method: 'tools/list', params: { _meta: {
