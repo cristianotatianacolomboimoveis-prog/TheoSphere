@@ -69,9 +69,9 @@ export class McpController {
     const requestMeta = meta && typeof meta === 'object' && !Array.isArray(meta) ? meta as Record<string, unknown> : undefined;
 
     if (modern) {
-      if (requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
+      if (requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) return this.protocolError(res, requestId, -32602, 'MCP protocol version metadata is required and must match 2026-07-28');
       const clientCapabilities = requestMeta['io.modelcontextprotocol/clientCapabilities'];
-      if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) throw new BadRequestException('MCP 2026-07-28 requires io.modelcontextprotocol/clientCapabilities metadata');
+      if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) return this.protocolError(res, requestId, -32602, 'MCP client capabilities metadata is required');
       if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
         const extensions = (clientCapabilities as Record<string, unknown>).extensions;
         if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions) || !('io.modelcontextprotocol/tasks' in extensions)) return { jsonrpc: '2.0', id: request.id ?? null, error: { code: -32021, message: 'MCP Tasks extension capability is required' } };
