@@ -8,6 +8,7 @@ import { McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { McpProtocolService } from './mcp.protocol.service';
 import { McpAutonomyService } from './mcp.autonomy.service';
+import { McpProtocolTaskService } from './mcp.protocol-task.service';
 import { McpController } from './mcp.controller';
 import { McpExecutionController } from './mcp.execution.controller';
 import { McpAnswerController } from './mcp.answer.controller';
@@ -24,6 +25,7 @@ import { McpAnswerController } from './mcp.answer.controller';
     McpOrchestratorService,
     McpProtocolService,
     McpAutonomyService,
+    McpProtocolTaskService,
   ],
   exports: [
     McpAuditService,
@@ -34,6 +36,7 @@ import { McpAnswerController } from './mcp.answer.controller';
     McpProjectMemoryService,
     McpOrchestratorService,
     McpProtocolService,
+    McpProtocolTaskService,
   ],
 })
 export class McpModule {}
