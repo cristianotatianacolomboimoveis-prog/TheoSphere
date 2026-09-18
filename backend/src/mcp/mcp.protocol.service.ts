@@ -428,6 +428,9 @@ export class McpProtocolService {
         if (typeof item.command !== 'string' || !['passed', 'failed', 'skipped'].includes(String(item.status))) {
           throw new BadRequestException('MCP receipt test is invalid');
         }
+        if (item.durationMs !== undefined && (typeof item.durationMs !== 'number' || !Number.isFinite(item.durationMs) || item.durationMs < 0)) {
+          throw new BadRequestException('MCP receipt test durationMs is invalid');
+        }
         return {
           command: item.command,
           status: item.status as 'passed' | 'failed' | 'skipped',
