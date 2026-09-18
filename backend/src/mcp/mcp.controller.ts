@@ -30,83 +30,54 @@ export class McpController {
     this.authorize(authorization);
     this.validateAccept(accept);
     const modern = requestedVersion === this.protocol.protocolVersion;
-    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) {
-      throw new BadRequestException('Unsupported MCP protocol version');
-    }
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
     const modernMethod = typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>).method : undefined;
     if (modern) {
       if (sessionId) throw new BadRequestException('MCP 2026-07-28 is stateless; MCP-Session-Id must not be sent');
       if (mcpMethod !== modernMethod) throw new BadRequestException('Mcp-Method header must match JSON-RPC method');
       if (modernMethod === 'tools/call') {
         const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
-          ? ((body as Record<string, unknown>).params as Record<string, unknown>).name
-          : undefined;
+          ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
         if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
       } else if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
         const taskId = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
-          ? ((body as Record<string, unknown>).params as Record<string, unknown>).taskId
-          : undefined;
+          ? ((body as Record<string, unknown>).params as Record<string, unknown>).taskId : undefined;
         if (mcpName !== taskId) throw new BadRequestException('Mcp-Name header must match taskId');
       }
     }
-
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
     if (!body || typeof body !== 'object') throw new BadRequestException('MCP request body must be a JSON-RPC object');
 
     const request = body as Record<string, unknown>;
     const rawParams = request.params;
-    const params = rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)
-      ? rawParams as Record<string, unknown>
-      : undefined;
+    const params = rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams) ? rawParams as Record<string, unknown> : undefined;
     const meta = params?._meta;
-    const requestMeta = meta && typeof meta === 'object' && !Array.isArray(meta)
-      ? meta as Record<string, unknown>
-      : undefined;
+    const requestMeta = meta && typeof meta === 'object' && !Array.isArray(meta) ? meta as Record<string, unknown> : undefined;
 
     if (modern) {
-      if (requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) {
-        throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
-      }
+      if (requestMeta?.['io.modelcontextprotocol/protocolVersion'] !== this.protocol.protocolVersion) throw new BadRequestException('MCP protocol version metadata must match MCP-Protocol-Version');
       const clientCapabilities = requestMeta['io.modelcontextprotocol/clientCapabilities'];
-      if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) {
-        throw new BadRequestException('MCP 2026-07-28 requires io.modelcontextprotocol/clientCapabilities metadata');
-      }
+      if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) throw new BadRequestException('MCP 2026-07-28 requires io.modelcontextprotocol/clientCapabilities metadata');
       if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
         const extensions = (clientCapabilities as Record<string, unknown>).extensions;
-        if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions) || !('io.modelcontextprotocol/tasks' in extensions)) {
-          return { jsonrpc: '2.0', id: request.id ?? null, error: { code: -32021, message: 'MCP Tasks extension capability is required' } };
-        }
+        if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions) || !('io.modelcontextprotocol/tasks' in extensions)) return { jsonrpc: '2.0', id: request.id ?? null, error: { code: -32021, message: 'MCP Tasks extension capability is required' } };
       }
     }
-    if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) {
-      throw new BadRequestException('initialize is not part of MCP 2026-07-28');
-    }
-    if (!modern && request.method === 'server/discover') {
-      throw new BadRequestException('server/discover requires MCP 2026-07-28');
-    }
+    if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) throw new BadRequestException('initialize is not part of MCP 2026-07-28');
+    if (!modern && request.method === 'server/discover') throw new BadRequestException('server/discover requires MCP 2026-07-28');
 
     let effectiveProtocolVersion = this.protocol.legacyProtocolVersion;
-    if (modern) {
-      effectiveProtocolVersion = this.protocol.protocolVersion;
-    } else if (request.method === 'initialize') {
+    if (modern) effectiveProtocolVersion = this.protocol.protocolVersion;
+    else if (request.method === 'initialize') {
       const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : undefined;
-      effectiveProtocolVersion = requested && ['2025-11-25', '2025-06-18'].includes(requested)
-        ? requested
-        : this.protocol.legacyProtocolVersion;
-      const id = randomUUID();
-      this.sessions.set(id, effectiveProtocolVersion);
-      res.setHeader('MCP-Session-Id', id);
+      effectiveProtocolVersion = requested && ['2025-11-25', '2025-06-18'].includes(requested) ? requested : this.protocol.legacyProtocolVersion;
+      const id = randomUUID(); this.sessions.set(id, effectiveProtocolVersion); res.setHeader('MCP-Session-Id', id);
     } else if (sessionId) {
       const sessionVersion = this.sessions.get(sessionId);
       if (!sessionVersion) throw new UnauthorizedException('Unknown MCP-Session-Id');
-      if (requestedVersion && requestedVersion !== sessionVersion) {
-        throw new BadRequestException('MCP protocol version does not match the session');
-      }
-      effectiveProtocolVersion = sessionVersion;
-      res.setHeader('MCP-Session-Id', sessionId);
-    } else if (requestedVersion) {
-      effectiveProtocolVersion = requestedVersion;
-    }
+      if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
+      effectiveProtocolVersion = sessionVersion; res.setHeader('MCP-Session-Id', sessionId);
+    } else if (requestedVersion) effectiveProtocolVersion = requestedVersion;
 
     res.setHeader('MCP-Protocol-Version', effectiveProtocolVersion);
     if (modern && this.protocolTasks && request.method === 'tools/call' && this.shouldAugmentAsTask(params)) {
@@ -119,9 +90,7 @@ export class McpController {
     }
     if (modern && this.protocolTasks && (request.method === 'tasks/get' || request.method === 'tasks/update' || request.method === 'tasks/cancel')) {
       const taskId = this.stringParam(params?.taskId, 'taskId');
-      if (request.method === 'tasks/get') {
-        return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete', ...this.protocolTasks.get(taskId) } };
-      }
+      if (request.method === 'tasks/get') return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete', ...this.protocolTasks.get(taskId) } };
       if (request.method === 'tasks/update') {
         const inputResponses = params?.inputResponses;
         if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) throw new BadRequestException('MCP task inputResponses must be an object');
@@ -131,44 +100,33 @@ export class McpController {
       await this.protocolTasks.cancel(taskId);
       return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } };
     }
+
     const response = await this.protocol.handle(body as Record<string, unknown>, effectiveProtocolVersion);
-    if (!response) {
-      res.statusCode = 202;
-      return undefined;
+    if (modern && request.method === 'server/discover' && response?.result && typeof response.result === 'object' && !Array.isArray(response.result)) {
+      const result = response.result as Record<string, unknown>;
+      const capabilities = result.capabilities && typeof result.capabilities === 'object' && !Array.isArray(result.capabilities) ? result.capabilities as Record<string, unknown> : {};
+      const extensions = capabilities.extensions && typeof capabilities.extensions === 'object' && !Array.isArray(capabilities.extensions) ? capabilities.extensions as Record<string, unknown> : {};
+      return { ...response, result: { ...result, capabilities: { ...capabilities, extensions: { ...extensions, 'io.modelcontextprotocol/tasks': {} } } } };
     }
+    if (!response) { res.statusCode = 202; return undefined; }
     return response;
   }
 
   @Get()
   @HttpCode(200)
-  handleGet(
-    @Headers('authorization') authorization: string | undefined,
-    @Headers('mcp-session-id') sessionId: string | undefined,
-    @Headers('mcp-protocol-version') requestedVersion: string | undefined,
-    @Res() res: Response,
-  ) {
+  handleGet(@Headers('authorization') authorization: string | undefined, @Headers('mcp-session-id') sessionId: string | undefined, @Headers('mcp-protocol-version') requestedVersion: string | undefined, @Res() res: Response) {
     this.authorize(authorization);
     if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
     if (requestedVersion === this.protocol.protocolVersion) throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
     const sessionVersion = sessionId ? this.sessions.get(sessionId) : undefined;
     if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
     if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('MCP-Protocol-Version', sessionVersion);
-    res.setHeader('MCP-Session-Id', sessionId);
-    res.write(': theosphere-mcp stream ready\\n\\n');
-    return res;
+    res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive'); res.setHeader('MCP-Protocol-Version', sessionVersion); res.setHeader('MCP-Session-Id', sessionId); res.write(': theosphere-mcp stream ready\\n\\n'); return res;
   }
 
   @Delete()
   @HttpCode(204)
-  handleDelete(
-    @Headers('authorization') authorization: string | undefined,
-    @Headers('mcp-session-id') sessionId: string | undefined,
-    @Headers('mcp-protocol-version') requestedVersion: string | undefined,
-  ) {
+  handleDelete(@Headers('authorization') authorization: string | undefined, @Headers('mcp-session-id') sessionId: string | undefined, @Headers('mcp-protocol-version') requestedVersion: string | undefined) {
     this.authorize(authorization);
     if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
     if (requestedVersion === this.protocol.protocolVersion) throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
@@ -190,14 +148,8 @@ export class McpController {
   private async executeProtocolTask(taskId: string, request: Record<string, unknown>, protocolVersion: string): Promise<void> {
     try {
       const response = await this.protocol.handle(request, protocolVersion);
-      if (!response) {
-        await this.protocolTasks?.fail(taskId, -32603, 'Task execution produced no response');
-        return;
-      }
-      if (response.error) {
-        await this.protocolTasks?.fail(taskId, response.error.code, response.error.message);
-        return;
-      }
+      if (!response) { await this.protocolTasks?.fail(taskId, -32603, 'Task execution produced no response'); return; }
+      if (response.error) { await this.protocolTasks?.fail(taskId, response.error.code, response.error.message); return; }
       await this.protocolTasks?.complete(taskId, (response.result ?? {}) as Record<string, unknown>);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Task execution failed';
@@ -205,25 +157,12 @@ export class McpController {
     }
   }
 
-  private stringParam(value: unknown, name: string): string {
-    if (typeof value !== 'string' || !value.trim()) throw new BadRequestException(`MCP ${name} must be a non-empty string`);
-    return value.trim();
-  }
-
-  private validateAccept(accept?: string): void {
-    const normalized = accept ?? '';
-    if (!normalized.includes('application/json') && !normalized.includes('text/event-stream')) throw new BadRequestException('MCP Accept must include application/json or text/event-stream');
-  }
-
+  private stringParam(value: unknown, name: string): string { if (typeof value !== 'string' || !value.trim()) throw new BadRequestException(`MCP ${name} must be a non-empty string`); return value.trim(); }
+  private validateAccept(accept?: string): void { const normalized = accept ?? ''; if (!normalized.includes('application/json') && !normalized.includes('text/event-stream')) throw new BadRequestException('MCP Accept must include application/json or text/event-stream'); }
   private authorize(authorization?: string): void {
-    const configured = this.config.get<string>('MCP_API_KEY');
-    const production = this.config.get<string>('NODE_ENV') === 'production';
-    if (!configured) {
-      if (production) throw new UnauthorizedException('MCP endpoint is disabled until MCP_API_KEY is configured');
-      return;
-    }
-    const expected = Buffer.from(`Bearer ${configured}`);
-    const received = Buffer.from(authorization ?? '');
+    const configured = this.config.get<string>('MCP_API_KEY'); const production = this.config.get<string>('NODE_ENV') === 'production';
+    if (!configured) { if (production) throw new UnauthorizedException('MCP endpoint is disabled until MCP_API_KEY is configured'); return; }
+    const expected = Buffer.from(`Bearer ${configured}`); const received = Buffer.from(authorization ?? '');
     if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new UnauthorizedException('Invalid MCP authorization');
   }
 }
