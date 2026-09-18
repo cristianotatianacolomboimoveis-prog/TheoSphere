@@ -4,7 +4,10 @@ import type { McpPermission } from './mcp.types';
 const DEFAULT_PERMISSIONS: Record<string, readonly McpPermission[]> = {
   'mcp-orchestrator': [
     'task:create','task:assign','task:transition','lock:acquire','lock:release',
-    'agent:register','audit:read','memory:write','memory:read',
+    'agent:register','audit:read','memory:write','memory:read','research:read',
+  ],
+  'mcp-protocol': [
+    'task:create','task:assign','task:transition','agent:register','audit:read','memory:write','memory:read','research:read',
   ],
 };
 
