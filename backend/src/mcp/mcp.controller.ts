@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, HttpCode, MethodNotAllowedException, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -23,9 +23,11 @@ export class McpController {
     @Headers('mcp-protocol-version') requestedVersion: string | undefined,
     @Headers('mcp-method') mcpMethod: string | undefined,
     @Headers('mcp-name') mcpName: string | undefined,
+    @Headers('origin') origin: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
     this.authorize(authorization);
+    this.validateOrigin(origin);
     this.validateAccept(accept);
     const modern = requestedVersion === this.protocol.protocolVersion;
     if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
@@ -110,6 +112,19 @@ export class McpController {
   }
 
   private stringParam(value: unknown, name: string): string { if (typeof value !== 'string' || !value.trim()) throw new BadRequestException(`MCP ${name} must be a non-empty string`); return value.trim(); }
+  private validateOrigin(origin?: string): void {
+    if (!origin) return;
+    const configured = this.config.get<string>('ALLOWED_ORIGINS')
+      ?.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean) ?? [];
+    const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(origin);
+    const isVercel = /^https:\/\/(frontend-v2|cristianocolombo)[\\w-]*\.vercel\.app$/.test(origin);
+    if (!isLocalhost && !isVercel && !configured.includes(origin)) {
+      throw new ForbiddenException('MCP Origin is not allowed');
+    }
+  }
+
   private validateAccept(accept?: string): void { const normalized = accept ?? ''; if (!normalized.includes('application/json') && !normalized.includes('text/event-stream')) throw new BadRequestException('MCP Accept must include application/json or text/event-stream'); }
   private authorize(authorization?: string): void {
     const configured = this.config.get<string>('MCP_API_KEY'); const production = this.config.get<string>('NODE_ENV') === 'production';
