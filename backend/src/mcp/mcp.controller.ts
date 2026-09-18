@@ -68,10 +68,12 @@ export class McpController {
   handleGet(
     @Headers('authorization') authorization: string | undefined,
     @Headers('mcp-session-id') sessionId: string | undefined,
+    @Headers('mcp-protocol-version') requestedVersion: string | undefined,
     @Res() res: Response,
   ) {
     this.authorize(authorization);
-    throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
+    if (requestedVersion === '2026-07-28') throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
+    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -86,9 +88,11 @@ export class McpController {
   handleDelete(
     @Headers('authorization') authorization: string | undefined,
     @Headers('mcp-session-id') sessionId: string | undefined,
+    @Headers('mcp-protocol-version') requestedVersion: string | undefined,
   ) {
     this.authorize(authorization);
-    throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
+    if (requestedVersion === '2026-07-28') throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
+    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for session termination');
     this.sessions.delete(sessionId);
   }
 
