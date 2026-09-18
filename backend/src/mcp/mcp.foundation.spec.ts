@@ -3,6 +3,8 @@ import { McpAuditService } from './mcp.audit.service';
 import { McpLockService } from './mcp.lock.service';
 import { McpSecurityService } from './mcp.security.service';
 import { McpTaskService } from './mcp.task.service';
+import type { McpAgent } from './mcp.types';
+import type { McpProjectMemoryService } from './mcp.project-memory.service';
 
 describe('MCP control-plane foundation', () => {
   it('enforces the task lifecycle and records audit events', () => {
@@ -76,5 +78,24 @@ describe('MCP control-plane foundation', () => {
 
     expect(registry.findCapable('coding').map((agent) => agent.id)).toEqual(['claude']);
     expect(registry.get('claude')?.capabilities).toEqual(['coding', 'architecture']);
+  });
+
+  it('recovers the latest persisted agent snapshot without restoring stale duplicates', async () => {
+    const agent: McpAgent = {
+      id: 'claude', name: 'Claude', provider: 'claude',
+      capabilities: ['coding', 'coding', ' architecture '], enabled: true,
+    };
+    const memory = {
+      latestByKeyPrefix: jest.fn().mockResolvedValue([
+        { content: JSON.stringify({ ...agent, capabilities: ['coding'] }) },
+      ]),
+      append: jest.fn().mockResolvedValue(undefined),
+    } as unknown as McpProjectMemoryService;
+    const registry = new McpAgentRegistryService(memory);
+
+    await registry.onModuleInit();
+
+    expect(memory.latestByKeyPrefix).toHaveBeenCalledWith('agents', 'mcp:agent:');
+    expect(registry.get('claude')).toEqual({ ...agent, capabilities: ['coding'] });
   });
 });
