@@ -35,6 +35,24 @@ describe('McpController', () => {
     await expect(controller.handle([], undefined, undefined, 'application/json', undefined, undefined, undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('accepts a modern notification without routing headers', async () => {
+    const controller = new McpController(protocol, config);
+    protocol.handle.mockResolvedValueOnce(null);
+    response.statusCode = 200;
+    const result = await controller.handle({
+      jsonrpc: '2.0',
+      method: 'notifications/test',
+      params: {
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
+    }, undefined, undefined, 'application/json', '2026-07-28', undefined, undefined, undefined, response);
+    expect(result).toBeUndefined();
+    expect(response.statusCode).toBe(202);
+  });
+
   it('returns 202 for a notification-only request', async () => {
     const controller = new McpController(protocol, config);
     protocol.handle.mockResolvedValueOnce(null);
