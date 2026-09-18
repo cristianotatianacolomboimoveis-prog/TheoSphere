@@ -37,14 +37,8 @@ export class McpProtocolTaskService {
       try {
         const task = JSON.parse(entry.content) as McpProtocolTask;
         if (!task?.taskId || !task.status || !task.createdAt || !task.lastUpdatedAt) continue;
-        if (task.status === 'working' || task.status === 'input_required') {
-          task.status = 'failed';
-          task.statusMessage = 'Task execution was interrupted by a server restart.';
-          task.lastUpdatedAt = new Date().toISOString();
-          task.error = { code: -32603, message: 'Task execution interrupted by server restart' };
-          await this.persist(task);
-        }
-        this.tasks.set(task.taskId, task);
+        const recovered = await this.recoverIfInterrupted(task.taskId, task);
+        this.tasks.set(task.taskId, recovered);
       } catch {
         // Ignore malformed historical task snapshots; they must not break startup.
       }
@@ -69,69 +63,131 @@ export class McpProtocolTaskService {
     return this.publicTask(task);
   }
 
-  get(taskId: string): McpProtocolTask {
-    const task = this.mutable(taskId);
+  async get(taskId: string): Promise<McpProtocolTask> {
+    const task = await this.loadLatest(taskId);
     return this.publicTask(task);
   }
 
   async update(taskId: string, inputResponses: Record<string, unknown>): Promise<void> {
-    const task = this.mutable(taskId);
-    if (task.status !== 'input_required') throw new ConflictException('MCP task is not awaiting input');
     if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) {
       throw new ConflictException('MCP task inputResponses must be an object');
     }
-    const outstanding = task.inputRequests ?? {};
-    const remaining = Object.fromEntries(Object.entries(outstanding).filter(([key]) => !(key in inputResponses)));
-    task.inputRequests = remaining;
-    if (Object.keys(remaining).length === 0) {
-      task.status = 'working';
-      task.statusMessage = 'Task input received; execution resumed.';
-    } else {
-      task.statusMessage = 'Task input partially received; additional input is still required.';
-    }
-    task.lastUpdatedAt = new Date().toISOString();
-    await this.persist(task);
+    const updated = await this.mutate(taskId, (task) => {
+      if (task.status !== 'input_required') throw new ConflictException('MCP task is not awaiting input');
+      const outstanding = task.inputRequests ?? {};
+      const remaining = Object.fromEntries(Object.entries(outstanding).filter(([key]) => !(key in inputResponses)));
+      return {
+        ...task,
+        inputRequests: remaining,
+        status: Object.keys(remaining).length === 0 ? 'working' : 'input_required',
+        statusMessage: Object.keys(remaining).length === 0
+          ? 'Task input received; execution resumed.'
+          : 'Task input partially received; additional input is still required.',
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    });
+    this.tasks.set(taskId, updated);
   }
 
   async complete(taskId: string, result: Record<string, unknown>): Promise<McpProtocolTask> {
-    const task = this.mutable(taskId);
-    this.ensureNotTerminal(task);
-    task.status = 'completed';
-    task.statusMessage = 'Task completed.';
-    task.result = result;
-    task.lastUpdatedAt = new Date().toISOString();
-    await this.persist(task);
-    return this.publicTask(task);
+    const updated = await this.mutate(taskId, (task) => {
+      this.ensureNotTerminal(task);
+      return {
+        ...task,
+        status: 'completed',
+        statusMessage: 'Task completed.',
+        result,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    });
+    this.tasks.set(taskId, updated);
+    return this.publicTask(updated);
   }
 
   async fail(taskId: string, code: number, message: string): Promise<McpProtocolTask> {
-    const task = this.mutable(taskId);
-    if (task.status === 'cancelled' || task.status === 'completed' || task.status === 'failed') return this.publicTask(task);
-    task.status = 'failed';
-    task.statusMessage = message;
-    task.error = { code, message };
-    task.lastUpdatedAt = new Date().toISOString();
-    await this.persist(task);
-    return this.publicTask(task);
+    const updated = await this.mutate(taskId, (task) => {
+      if (task.status === 'cancelled' || task.status === 'completed' || task.status === 'failed') return task;
+      return {
+        ...task,
+        status: 'failed',
+        statusMessage: message,
+        error: { code, message },
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    });
+    this.tasks.set(taskId, updated);
+    return this.publicTask(updated);
   }
 
   async cancel(taskId: string): Promise<void> {
-    const task = this.mutable(taskId);
-    if (task.status === 'completed' || task.status === 'cancelled' || task.status === 'failed') throw new ConflictException('MCP task is already terminal');
-    task.status = 'cancelled';
-    task.statusMessage = 'Cancellation requested.';
-    task.lastUpdatedAt = new Date().toISOString();
-    await this.persist(task);
+    const updated = await this.mutate(taskId, (task) => {
+      if (task.status === 'completed' || task.status === 'cancelled' || task.status === 'failed') {
+        throw new ConflictException('MCP task is already terminal');
+      }
+      return {
+        ...task,
+        status: 'cancelled',
+        statusMessage: 'Cancellation requested.',
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    });
+    this.tasks.set(taskId, updated);
   }
 
-  private mutable(taskId: string): McpProtocolTask {
-    const task = this.tasks.get(taskId);
-    if (!task) throw new NotFoundException('MCP task not found');
-    if (task.ttlMs !== null && Date.now() - Date.parse(task.createdAt) > task.ttlMs) {
+  private async loadLatest(taskId: string): Promise<McpProtocolTask> {
+    const key = this.prefix + taskId;
+    const entry = await this.memory.latest(key);
+    if (!entry) {
       this.tasks.delete(taskId);
+      throw new NotFoundException('MCP task not found');
+    }
+    let task: McpProtocolTask;
+    try {
+      task = JSON.parse(entry.content) as McpProtocolTask;
+    } catch {
+      throw new NotFoundException('MCP task state is invalid');
+    }
+    if (!task?.taskId || task.taskId !== taskId || !task.status || !task.createdAt || !task.lastUpdatedAt) {
+      throw new NotFoundException('MCP task state is invalid');
+    }
+    this.ensureNotExpired(task);
+    this.tasks.set(taskId, task);
+    return task;
+  }
+
+  private async mutate(taskId: string, mutation: (task: McpProtocolTask) => McpProtocolTask): Promise<McpProtocolTask> {
+    const key = this.prefix + taskId;
+    const updated = await this.memory.mutateLatestJson<McpProtocolTask>('tasks', key, (current) => {
+      if (!current?.taskId || current.taskId !== taskId) throw new NotFoundException('MCP task not found');
+      this.ensureNotExpired(current);
+      return mutation(current);
+    });
+    return updated;
+  }
+
+  private async recoverIfInterrupted(taskId: string, fallback: McpProtocolTask): Promise<McpProtocolTask> {
+    try {
+      return await this.memory.mutateLatestJson<McpProtocolTask>('tasks', this.prefix + taskId, (current) => {
+        const task = current?.taskId === taskId ? current : fallback;
+        if (task.status !== 'working' && task.status !== 'input_required') return task;
+        return {
+          ...task,
+          status: 'failed',
+          statusMessage: 'Task execution was interrupted by a server restart.',
+          lastUpdatedAt: new Date().toISOString(),
+          error: { code: -32603, message: 'Task execution interrupted by server restart' },
+        };
+      });
+    } catch {
+      return fallback;
+    }
+  }
+
+  private ensureNotExpired(task: McpProtocolTask): void {
+    if (task.ttlMs !== null && Date.now() - Date.parse(task.createdAt) > task.ttlMs) {
+      this.tasks.delete(task.taskId);
       throw new NotFoundException('MCP task has expired');
     }
-    return task;
   }
 
   private ensureNotTerminal(task: McpProtocolTask): void {
