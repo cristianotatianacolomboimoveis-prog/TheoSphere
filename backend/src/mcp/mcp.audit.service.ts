@@ -1,5 +1,4 @@
 import { Injectable, Optional } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import type { McpAuditEvent } from './mcp.types';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
 
@@ -11,9 +10,8 @@ export class McpAuditService {
 
   async onModuleInit(): Promise<void> {
     if (!this.memory) return;
-    const entries = await this.memory.list('audits', 1000);
-    for (const entry of [...entries].reverse()) {
-      if (!entry.memoryKey.startsWith('mcp:audit:')) continue;
+    const entries = await this.memory.latestByKeyPrefix('audits', 'mcp:audit:');
+    for (const entry of entries.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
       try {
         const event = JSON.parse(entry.content) as McpAuditEvent;
         if (event?.id && event.timestamp) this.events.push(Object.freeze(event));
@@ -24,7 +22,7 @@ export class McpAuditService {
   append(event: Omit<McpAuditEvent, 'id' | 'timestamp'>): McpAuditEvent {
     const record: McpAuditEvent = {
       ...event,
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
     };
     this.events.push(Object.freeze(record));
