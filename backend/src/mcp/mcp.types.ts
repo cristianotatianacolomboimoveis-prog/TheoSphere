@@ -62,6 +62,7 @@ export type McpPermission =
   | 'task:transition'
   | 'lock:acquire'
   | 'lock:release'
+  | 'lock:renew'
   | 'agent:register'
   | 'audit:read'
   | 'memory:write'
