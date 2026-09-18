@@ -114,8 +114,13 @@ export class McpProtocolService {
       },
       {
         name: 'theosphere_record_result',
-        description: 'Record a worker result and drive successful execution through testing, auditing and verification.',
+        description: 'Record a worker result; successful work stops at AUDITING until an independent verifier confirms it.',
         inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, agentId: { type: 'string' }, success: { type: 'boolean' }, summary: { type: 'string' } }, required: ['taskId', 'agentId', 'success'], additionalProperties: false },
+      },
+      {
+        name: 'theosphere_verify_result',
+        description: 'Independently verify an audited task and move it to VERIFIED.',
+        inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, verifierAgentId: { type: 'string' }, summary: { type: 'string' } }, required: ['taskId', 'verifierAgentId'], additionalProperties: false },
       },
       {
         name: 'theosphere_research',
@@ -210,6 +215,7 @@ export class McpProtocolService {
       theosphere_advance_task: 'task:transition',
       theosphere_dispatch_task: 'task:transition',
       theosphere_record_result: 'task:transition',
+      theosphere_verify_result: 'task:transition',
       theosphere_research: 'research:read',
       theosphere_memory_search: 'memory:read',
       theosphere_memory_append: 'memory:write',
@@ -267,6 +273,9 @@ export class McpProtocolService {
       case 'theosphere_record_result':
         if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
         result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), this.string(args.agentId, 'agentId'), args.success, typeof args.summary === 'string' ? args.summary : undefined);
+        break;
+      case 'theosphere_verify_result':
+        result = await this.autonomy.verifyResult(this.string(args.taskId, 'taskId'), this.string(args.verifierAgentId, 'verifierAgentId'), typeof args.summary === 'string' ? args.summary : undefined);
         break;
       case 'theosphere_research':
         result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
