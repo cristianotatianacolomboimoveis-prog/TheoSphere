@@ -109,6 +109,14 @@ export class McpController {
     }
 
     res.setHeader('MCP-Protocol-Version', effectiveProtocolVersion);
+    if (modern && this.protocolTasks && request.method === 'tools/call' && this.shouldAugmentAsTask(params)) {
+      const toolName = this.stringParam(params?.name, 'tool name');
+      if (toolName === 'theosphere_answer' || toolName === 'theosphere_research') {
+        const task = await this.protocolTasks.create(toolName, params?.arguments as Record<string, unknown> | undefined);
+        void this.executeProtocolTask(task.taskId, request, effectiveProtocolVersion);
+        return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'task', ...task } };
+      }
+    }
     if (modern && this.protocolTasks && (request.method === 'tasks/get' || request.method === 'tasks/update' || request.method === 'tasks/cancel')) {
       const taskId = this.stringParam(params?.taskId, 'taskId');
       if (request.method === 'tasks/get') {
@@ -168,6 +176,33 @@ export class McpController {
     if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for session termination');
     if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
     this.sessions.delete(sessionId);
+  }
+
+  private shouldAugmentAsTask(params?: Record<string, unknown>): boolean {
+    const meta = params?._meta;
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return false;
+    const capabilities = (meta as Record<string, unknown>)['io.modelcontextprotocol/clientCapabilities'];
+    if (!capabilities || typeof capabilities !== 'object' || Array.isArray(capabilities)) return false;
+    const extensions = (capabilities as Record<string, unknown>).extensions;
+    return !!extensions && typeof extensions === 'object' && !Array.isArray(extensions) && 'io.modelcontextprotocol/tasks' in extensions;
+  }
+
+  private async executeProtocolTask(taskId: string, request: Record<string, unknown>, protocolVersion: string): Promise<void> {
+    try {
+      const response = await this.protocol.handle(request, protocolVersion);
+      if (!response) {
+        await this.protocolTasks?.fail(taskId, -32603, 'Task execution produced no response');
+        return;
+      }
+      if (response.error) {
+        await this.protocolTasks?.fail(taskId, response.error.code, response.error.message);
+        return;
+      }
+      await this.protocolTasks?.complete(taskId, (response.result ?? {}) as Record<string, unknown>);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Task execution failed';
+      await this.protocolTasks?.fail(taskId, -32603, message);
+    }
   }
 
   private stringParam(value: unknown, name: string): string {
