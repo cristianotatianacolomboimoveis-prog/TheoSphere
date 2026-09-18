@@ -141,8 +141,8 @@ export class McpController {
   private validateOrigin(origin?: string): void {
     if (!origin) return;
     const configured = this.config.get<string>('ALLOWED_ORIGINS')?.split(',').map((value) => value.trim()).filter(Boolean) ?? [];
-    const isLocalhost = /^(https?:\\/\\/)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d+)?$/.test(origin);
-    const isVercel = /^https:\\/\\/(frontend-v2|cristianocolombo)[\\w-]*\\.vercel\\.app$/.test(origin);
+    const isLocalhost = /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+    const isVercel = /^https:\/\/(frontend-v2|cristianocolombo)[\w-]*\.vercel\.app$/.test(origin);
     if (!isLocalhost && !isVercel && !configured.includes(origin)) {
       throw new ForbiddenException('Invalid MCP Origin');
     }
