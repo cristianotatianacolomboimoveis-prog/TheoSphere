@@ -41,7 +41,7 @@ export class McpProjectMemoryService {
   }
 
   async latest(memoryKey: string) {
-    return this.prisma.projectMemory.findFirst({ where: { memoryKey: memoryKey.trim() }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.projectMemory.findFirst({ where: { memoryKey: memoryKey.trim() }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
   }
 
   /**
