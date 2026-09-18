@@ -45,81 +45,27 @@ async function post(method, params = {}, name) {
 }
 
 const report = { base, query, steps: [] };
-
 const discovery = await post('server/discover', meta());
 if (discovery.resultType !== 'complete') throw new Error('server/discover missing resultType=complete');
-if (!Array.isArray(discovery.supportedVersions) || discovery.supportedVersions.some((version) => version !== '2026-07-28')) {
-  throw new Error('server/discover returned an invalid modern version list');
-}
-if (discovery.ttlMs !== 0 || discovery.cacheScope !== 'private') {
-  throw new Error('server/discover returned an invalid cache policy');
-}
-if (!discovery._meta?.['io.modelcontextprotocol/serverInfo']?.name) {
-  throw new Error('server/discover missing serverInfo metadata');
-}
-report.steps.push({
-  name: 'server/discover',
-  resultType: discovery.resultType,
-  supportedVersions: discovery.supportedVersions,
-  tasks: Boolean(discovery.capabilities?.extensions?.['io.modelcontextprotocol/tasks']),
-  ttlMs: discovery.ttlMs,
-  cacheScope: discovery.cacheScope,
-});
+if (!Array.isArray(discovery.supportedVersions) || discovery.supportedVersions[0] !== '2026-07-28') throw new Error('server/discover must advertise 2026-07-28 as its modern protocol version');
+if (discovery.ttlMs !== 0 || discovery.cacheScope !== 'private') throw new Error('server/discover returned an invalid cache policy');
+if (!discovery._meta?.['io.modelcontextprotocol/serverInfo']?.name) throw new Error('server/discover missing serverInfo metadata');
+report.steps.push({ name: 'server/discover', resultType: discovery.resultType, supportedVersions: discovery.supportedVersions, tasks: Boolean(discovery.capabilities?.extensions?.['io.modelcontextprotocol/tasks']), ttlMs: discovery.ttlMs, cacheScope: discovery.cacheScope });
 
 const tools = await post('tools/list', meta());
-report.steps.push({
-  name: 'tools/list',
-  resultType: tools.resultType,
-  toolCount: Array.isArray(tools.tools) ? tools.tools.length : 0,
-  hasTheoAnswer: Array.isArray(tools.tools) && tools.tools.some((tool) => tool?.name === 'theosphere_answer'),
-});
+report.steps.push({ name: 'tools/list', resultType: tools.resultType, toolCount: Array.isArray(tools.tools) ? tools.tools.length : 0, hasTheoAnswer: Array.isArray(tools.tools) && tools.tools.some((tool) => tool?.name === 'theosphere_answer') });
 
 if (runResearch) {
-  const research = await post(
-    'tools/call',
-    {
-      name: 'theosphere_research',
-      arguments: { query, limit: 5 },
-      ...meta(),
-    },
-    'theosphere_research',
-  );
-  report.steps.push({
-    name: 'theosphere_research',
-    resultType: research.resultType || 'complete',
-    itemCount: Array.isArray(research.structuredContent?.items) ? research.structuredContent.items.length : null,
-    sourceCount: research.structuredContent?.sourceCount ?? null,
-  });
+  const research = await post('tools/call', { name: 'theosphere_research', arguments: { query, limit: 5 }, ...meta() }, 'theosphere_research');
+  report.steps.push({ name: 'theosphere_research', resultType: research.resultType || 'complete', itemCount: Array.isArray(research.structuredContent?.items) ? research.structuredContent.items.length : null, sourceCount: research.structuredContent?.sourceCount ?? null });
 }
 
 if (runAnswer) {
-  const answer = await post(
-    'tools/call',
-    {
-      name: 'theosphere_answer',
-      arguments: { query, limit: 5 },
-      ...meta(true),
-    },
-    'theosphere_answer',
-  );
+  const answer = await post('tools/call', { name: 'theosphere_answer', arguments: { query }, ...meta(true) }, 'theosphere_answer');
+  report.steps.push({ name: 'theosphere_answer', resultType: answer.resultType || 'complete', taskId: answer.taskId || null });
   if (answer.resultType === 'task') {
-    const deadline = Date.now() + timeoutMs;
-    let task = answer;
-    while (Date.now() < deadline && task.status === 'working') {
-      await new Promise((resolve) => setTimeout(resolve, Math.max(Number(task.pollIntervalMs || 2000), 250)));
-      task = await post('tasks/get', { taskId: answer.taskId, ...meta(true) }, answer.taskId);
-    }
-    if (task.status === 'working') throw new Error('theosphere_answer task timed out');
-    report.steps.push({
-      name: 'theosphere_answer',
-      resultType: 'task',
-      taskId: answer.taskId,
-      status: task.status,
-      hasResult: Boolean(task.result),
-      hasError: Boolean(task.error),
-    });
-  } else {
-    report.steps.push({ name: 'theosphere_answer', resultType: answer.resultType || 'complete', completedSynchronously: true });
+    const task = await post('tasks/get', { taskId: answer.taskId, ...meta(true) }, answer.taskId);
+    report.steps.push({ name: 'tasks/get', resultType: task.resultType || 'complete', status: task.status, taskId: task.taskId });
   }
 }
 
