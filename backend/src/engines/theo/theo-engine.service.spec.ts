@@ -10,8 +10,8 @@ describe('TheologyEngineService', () => {
     const service = new TheologyEngineService(prisma, search, evidencePacks);
     const result = await service.research('João 3:16', 12);
     expect(result.query).toBe('João 3:16');
-    expect(result.inputs[0].source.reference).toBe('43:3:16');
-    expect(result.inputs[0].kind).toBe('primary');
+    expect(result.items[0].reference).toBe('43:3:16');
+    expect(result.items[0].kind).toBe('primary');
     expect(evidencePacks.build).toHaveBeenCalled();
   });
 
