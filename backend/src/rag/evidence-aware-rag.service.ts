@@ -10,6 +10,7 @@ import { RerankerService } from './reranker.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagService, type ChatMessage } from './rag.service';
 import { EvidencePackService, type EvidenceInput } from './evidence-pack.service';
+import type { EvidencePack } from './evidence-pack';
 import { EvidencePackContextService } from './evidence-pack-context.service';
 
 type BuilderParams = Record<string, unknown>;
@@ -67,6 +68,37 @@ export class EvidenceAwareRagService extends RagService {
     return this.withEvidenceContext(evidence, () =>
       super.chat(query, userId, tradition, conversationHistory, jsonMode),
     );
+  }
+
+  async chatWithEvidencePack(
+    query: string,
+    pack: EvidencePack,
+    userId?: string,
+    tradition?: string,
+    conversationHistory: ChatMessage[] = [],
+    jsonMode = false,
+  ) {
+    const evidence = this.evidenceContext.render(pack, 12000);
+    return this.withEvidenceContext(evidence, () =>
+      super.chat(query, userId, tradition, conversationHistory, jsonMode),
+    );
+  }
+
+  async *chatStreamWithEvidencePack(
+    query: string,
+    pack: EvidencePack,
+    userId?: string,
+    tradition?: string,
+    conversationHistory: ChatMessage[] = [],
+    jsonMode = false,
+  ) {
+    const evidence = this.evidenceContext.render(pack, 12000);
+    const iterator = super.chatStream(query, userId, tradition, conversationHistory, jsonMode);
+    while (true) {
+      const step = await this.withEvidenceContext(evidence, () => iterator.next());
+      if (step.done) return;
+      yield step.value;
+    }
   }
 
   /**
