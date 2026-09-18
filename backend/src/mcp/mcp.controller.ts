@@ -29,20 +29,34 @@ export class McpController {
     this.authorize(authorization);
     this.validateOrigin(origin);
     this.validateAccept(accept);
+    const requestObject = typeof body === 'object' && body !== null && !Array.isArray(body)
+      ? body as Record<string, unknown>
+      : undefined;
+    const requestId = requestObject?.id ?? null;
+    const declaredProtocolVersion = requestObject?.params && typeof requestObject.params === 'object' && !Array.isArray(requestObject.params)
+      ? ((requestObject.params as Record<string, unknown>)._meta && typeof (requestObject.params as Record<string, unknown>)._meta === 'object' && !Array.isArray((requestObject.params as Record<string, unknown>)._meta)
+        ? ((requestObject.params as Record<string, unknown>)._meta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion']
+        : undefined)
+      : undefined;
     const modern = requestedVersion === this.protocol.protocolVersion;
-    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) throw new BadRequestException('Unsupported MCP protocol version');
-    const modernMethod = typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>).method : undefined;
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) {
+      return this.protocolError(res, requestId, -32022, 'Unsupported MCP protocol version');
+    }
+    if (declaredProtocolVersion === this.protocol.protocolVersion && requestedVersion !== this.protocol.protocolVersion) {
+      return this.protocolError(res, requestId, -32020, 'MCP-Protocol-Version header must match request metadata');
+    }
+    const modernMethod = requestObject?.method;
     if (modern) {
-      if (sessionId) throw new BadRequestException('MCP 2026-07-28 is stateless; MCP-Session-Id must not be sent');
-      if (mcpMethod !== modernMethod) throw new BadRequestException('Mcp-Method header must match JSON-RPC method');
+      if (sessionId) return this.protocolError(res, requestId, -32020, 'MCP-Session-Id must not be sent for MCP 2026-07-28');
+      if (mcpMethod !== modernMethod) return this.protocolError(res, requestId, -32020, 'Mcp-Method header must match JSON-RPC method');
       if (modernMethod === 'tools/call') {
-        const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
-          ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
-        if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
+        const toolName = requestObject?.params && typeof requestObject.params === 'object' && !Array.isArray(requestObject.params)
+          ? (requestObject.params as Record<string, unknown>).name : undefined;
+        if (mcpName !== toolName) return this.protocolError(res, requestId, -32020, 'Mcp-Name header must match tools/call name');
       } else if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
-        const taskId = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
-          ? ((body as Record<string, unknown>).params as Record<string, unknown>).taskId : undefined;
-        if (mcpName !== taskId) throw new BadRequestException('Mcp-Name header must match taskId');
+        const taskId = requestObject?.params && typeof requestObject.params === 'object' && !Array.isArray(requestObject.params)
+          ? (requestObject.params as Record<string, unknown>).taskId : undefined;
+        if (mcpName !== taskId) return this.protocolError(res, requestId, -32020, 'Mcp-Name header must match taskId');
       }
     }
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
@@ -113,6 +127,12 @@ export class McpController {
     if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for session termination');
     if (requestedVersion && requestedVersion !== sessionVersion) throw new BadRequestException('MCP protocol version does not match the session');
     this.sessions.delete(sessionId);
+  }
+
+  private protocolError(res: Response, id: unknown, code: number, message: string): JsonRpcResponse {
+    res.statusCode = 400;
+    const requestId = typeof id === 'string' || typeof id === 'number' ? id : null;
+    return { jsonrpc: '2.0', id: requestId, error: { code, message } };
   }
 
   private stringParam(value: unknown, name: string): string { if (typeof value !== 'string' || !value.trim()) throw new BadRequestException(`MCP ${name} must be a non-empty string`); return value.trim(); }
