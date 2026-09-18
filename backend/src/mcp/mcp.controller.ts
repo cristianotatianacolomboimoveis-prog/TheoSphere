@@ -37,7 +37,7 @@ export class McpController {
         const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object'
           ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
         if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
-
+      }
     }
     if (Array.isArray(body)) throw new BadRequestException('MCP JSON-RPC batching is not supported by protocol 2025-06-18+');
     if (!body || typeof body !== 'object') throw new BadRequestException('MCP request body must be a JSON-RPC object');
