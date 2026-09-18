@@ -11,7 +11,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-15**. Repositório limpo, suíte inteira passando
+Última sessão: **2026-09-18**. Repositório limpo, suíte inteira passando
 (**145 testes backend** — +4 sobre o baseline de 141, cobrindo `meta.vectorArm`;
 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
@@ -34,6 +34,12 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 11. **Migração cross-tool para Claude Code (2026-09-15):** Removido o TheoSphere do workspace do Antigravity IDE — `storage.json` (2 refs), `state.vscdb` (5 chaves com `TheoSphere` limpas) e `workspaceStorage/d66ebd…c6bb/` deletado. Backups `.bak.<ts>` mantidos ao lado dos originais. `~/.gemini/GEMINI.md` global já é agnóstico (só instrui a ler AGENTS.md). `.agent/workflows/audit-weekly.md` reescrito para ser cross-tool. Repositório agora é operado exclusivamente pelo Claude Code / Cowork.
 12. **Sinalização `meta.vectorArm` verificada, corrigida e coberta por teste (2026-09-15):** o item que estava listado em §6 como "melhoria sugerida, ainda não aplicada" tinha a instrumentação de saída aplicada (`search.controller.ts:38-40` expõe `meta: { vectorArm: (data as any).vectorStatus || 'ok' }` sobre a propriedade não-enumerável anexada em `search.service.ts:135-161`), mas o teste que escrevi para o cenário `gemini 429` — o que motivou a instrumentação — falhou revelando um bug: `vectorSearch` engolia o erro de `createEmbedding` no `try/catch` interno e devolvia `[]`, o que virava `vectorStatus='empty'` em vez de `'failed'`. Ou seja, teto de gastos do Gemini era indistinguível de "biblioteca sem embeddings povoados" — exatamente o tipo de falha silenciosa que a sinalização existe para tornar visível. **Corrigido**: removido o `try/catch` interno de `vectorSearch`, deixando o erro propagar para o outer `.catch` de `hybridSearchVerses` que já marca `'failed'`. **Testes**: adicionados 4 casos em `search.service.spec.ts` (`describe('meta.vectorArm exposure')`) cobrindo os estados `ok`, `empty`, `failed` (via `createEmbedding` rejeitado) e o invariante de não-enumerabilidade (para não vazar `vectorStatus` no `JSON.stringify` do array de hits, evitando duplicação com o `meta.vectorArm` que já vem no envelope). 18/18 do spec, 145/145 do backend, lint e typecheck limpos.
 
+**Entregas MCP/autonomia na sessão de 2026-09-18:**
+
+13. **Control-plane MCP expandido e governado:** tarefas persistentes, registro de agentes, permissões default-deny, locks Redis distribuídos com renew/heartbeat, receipts estruturados de execução e verificação independente. O fluxo de sucesso permanece bloqueado em `AUDITING` até um verificador independente mover a tarefa para `VERIFIED`.
+14. **Persistência de tarefas corrigida:** snapshots de tarefas usam `latestByKeyPrefix()` no ProjectMemory, sem limite fixo de histórico, e atribuições também são persistidas. Há cobertura dedicada em `mcp.task.persistence.spec.ts`.
+15. **MCP 2026-07-28 Tasks:** adicionada extensão `io.modelcontextprotocol/tasks` com capability negotiation em `server/discover`, task handles duráveis para `theosphere_answer`, polling `tasks/get` e cancelamento `tasks/cancel`. Tarefas são persistidas antes do handle ser devolvido; estados em andamento são carregados de forma conservadora no restart.
+16. **CI:** o último run confirmado do commit `52c5acb` falhou apenas no lint do backend (2 `await` indevidos + validação de `agentVersion`), enquanto Prisma drift e frontend passaram e Security Audit passou. Esses 3 erros foram corrigidos em commits posteriores; a execução correspondente aos commits novos ainda não foi confirmada pela API de runs disponível nesta integração. Vercel continua acusando limite de builds do plano, não erro de compilação.
 **Próximos passos:**
 
 1. **Expansão Contínua do Acervo:** Adição e ingestão de novos volumes clássicos de domínio público conforme demanda exegética.
