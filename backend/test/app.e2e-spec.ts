@@ -38,6 +38,8 @@ describe('AppController (e2e)', () => {
     expect(discovery.body.result.capabilities.extensions).toEqual({
       'io.modelcontextprotocol/tasks': {},
     });
+    expect(discovery.body.result.ttlMs).toBe(0);
+    expect(discovery.body.result.cacheScope).toBe('private');
     expect(discovery.body.result._meta['io.modelcontextprotocol/serverInfo']).toEqual(
       expect.objectContaining({ name: 'theosphere-mcp', version: expect.any(String) }),
     );
