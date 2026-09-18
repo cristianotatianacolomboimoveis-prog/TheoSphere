@@ -9,10 +9,11 @@ import { RagModule } from '../rag/rag.module';
 import { SearchModule } from '../search/search.module';
 import { EnterpriseController } from './enterprise.controller';
 import { BibleModule } from '../bible.module';
+import { LinguisticsModule } from '../linguistics/linguistics.module';
 
 @Global()
 @Module({
-  imports: [RagModule, SearchModule, BibleModule],
+  imports: [RagModule, SearchModule, BibleModule, LinguisticsModule],
   providers: [
     PrismaService,
     GeoEngineService,
