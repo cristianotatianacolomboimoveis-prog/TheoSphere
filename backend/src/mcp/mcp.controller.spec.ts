@@ -4,7 +4,7 @@ import { McpController } from './mcp.controller';
 
 describe('McpController', () => {
   const response = { setHeader: jest.fn(), statusCode: 200 } as any;
-  const protocol = { protocolVersion: '2026-07-28', supportedProtocolVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], handle: jest.fn(async (body: unknown) => ({ jsonrpc: '2.0', id: 1, result: body })) } as any;
+  const protocol = { protocolVersion: '2026-07-28', legacyProtocolVersion: '2025-11-25', supportedProtocolVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], handle: jest.fn(async (body: unknown) => ({ jsonrpc: '2.0', id: 1, result: body })) } as any;
   const modernMeta = { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {} } };
   const config = { get: jest.fn((key: string) => key === 'NODE_ENV' ? 'development' : undefined) } as unknown as ConfigService;
 
