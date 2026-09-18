@@ -46,7 +46,8 @@ export class McpController {
       return this.protocolError(res, requestId, -32020, 'MCP-Protocol-Version header must match request metadata');
     }
     const modernMethod = requestObject?.method;
-    if (modern) {
+    const modernNotification = typeof modernMethod === 'string' && modernMethod.startsWith('notifications/');
+    if (modern && !modernNotification) {
       if (sessionId) return this.protocolError(res, requestId, -32020, 'MCP-Session-Id must not be sent for MCP 2026-07-28');
       if (mcpMethod !== modernMethod) return this.protocolError(res, requestId, -32020, 'Mcp-Method header must match JSON-RPC method');
       if (modernMethod === 'tools/call') {
