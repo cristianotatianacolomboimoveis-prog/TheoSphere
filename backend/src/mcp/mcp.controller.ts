@@ -78,19 +78,6 @@ export class McpController {
     } else if (requestedVersion) effectiveProtocolVersion = requestedVersion;
 
     res.setHeader('MCP-Protocol-Version', effectiveProtocolVersion);
-    if (modern && this.protocolTasks && (request.method === 'tasks/get' || request.method === 'tasks/update' || request.method === 'tasks/cancel')) {
-      const taskId = this.stringParam(params?.taskId, 'taskId');
-      if (request.method === 'tasks/get') return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete', ...this.protocolTasks.get(taskId) } };
-      if (request.method === 'tasks/update') {
-        const inputResponses = params?.inputResponses;
-        if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) throw new BadRequestException('MCP task inputResponses must be an object');
-        await this.protocolTasks.update(taskId, inputResponses as Record<string, unknown>);
-        return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } };
-      }
-      await this.protocolTasks.cancel(taskId);
-      return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } };
-    }
-
     const response = await this.protocol.handle(body as Record<string, unknown>, effectiveProtocolVersion);
     if (modern && request.method === 'server/discover' && response?.result && typeof response.result === 'object' && !Array.isArray(response.result)) {
       const result = response.result as Record<string, unknown>;
