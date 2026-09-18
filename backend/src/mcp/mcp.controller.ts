@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { McpProtocolService } from './mcp.protocol.service';
@@ -23,16 +23,24 @@ export class McpController {
     if (sessionId) res.setHeader('MCP-Session-Id', sessionId);
 
     if (Array.isArray(body)) {
+      if (body.length === 0) throw new BadRequestException('MCP batch must not be empty');
       const responses: JsonRpcResponse[] = [];
       for (const item of body) {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          throw new BadRequestException('MCP batch entries must be JSON-RPC objects');
+        }
         const response = await this.protocol.handle(item as Record<string, unknown>);
         if (response) responses.push(response);
+      }
+      if (responses.length === 0) {
+        res.statusCode = 202;
+        return undefined;
       }
       return responses;
     }
 
     if (!body || typeof body !== 'object') {
-      throw new UnauthorizedException('MCP request body must be a JSON-RPC object');
+      throw new BadRequestException('MCP request body must be a JSON-RPC object');
     }
     const response = await this.protocol.handle(body as Record<string, unknown>);
     if (!response) {
