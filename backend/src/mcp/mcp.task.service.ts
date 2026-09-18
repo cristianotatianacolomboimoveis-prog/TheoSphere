@@ -1,8 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { McpAuditService } from './mcp.audit.service';
 import { McpSecurityService } from './mcp.security.service';
 import { McpAgentRegistryService } from './mcp.agent-registry.service';
+import { McpProjectMemoryService } from './mcp.project-memory.service';
 import { MCP_STATE_TRANSITIONS, type McpTask, type McpTaskState } from './mcp.types';
 
 @Injectable()
@@ -13,7 +14,32 @@ export class McpTaskService {
     private readonly security: McpSecurityService,
     private readonly audit: McpAuditService,
     private readonly registry: McpAgentRegistryService,
+    @Optional() private readonly memory?: McpProjectMemoryService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    if (!this.memory) return;
+    const entries = await this.memory.list('tasks', 500);
+    const latest = new Map<string, string>();
+    for (const entry of entries) {
+      if (entry.memoryKey.startsWith('mcp:task:') && !latest.has(entry.memoryKey)) latest.set(entry.memoryKey, entry.content);
+    }
+    for (const content of latest.values()) {
+      try {
+        const task = JSON.parse(content) as McpTask;
+        if (task?.id && task.status && Array.isArray(task.files)) this.tasks.set(task.id, task);
+      } catch { /* ignore malformed historical state */ }
+    }
+  }
+
+  private persist(task: McpTask): void {
+    if (!this.memory) return;
+    void this.memory.append({
+      category: 'tasks', memoryKey: `mcp:task:${task.id}`, content: JSON.stringify(task),
+      tags: ['mcp', 'task-state', task.status.toLowerCase()], source: 'mcp-task-service',
+      taskId: task.id, agentId: task.assignedAgent,
+    }).catch(() => undefined);
+  }
 
   create(
     input: Pick<McpTask, 'title' | 'description' | 'priority' | 'files' | 'dependencies' | 'requiredCapabilities'>,
@@ -33,6 +59,7 @@ export class McpTaskService {
       version: 1,
     };
     this.tasks.set(task.id, task);
+    this.persist(task);
     this.audit.append({
       actor,
       action: 'task.created',
@@ -70,6 +97,7 @@ export class McpTaskService {
     }
     const updated = { ...task, status: next, updatedAt: new Date().toISOString(), version: task.version + 1 };
     this.tasks.set(taskId, updated);
+    this.persist(updated);
     this.audit.append({
       actor,
       action: `task.transition.${task.status}_to_${next}`,
