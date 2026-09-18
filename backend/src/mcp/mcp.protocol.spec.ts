@@ -57,6 +57,7 @@ describe('McpProtocolService', () => {
     );
     expect((response?.result as any).supportedVersions).toEqual(['2026-07-28', '2025-11-25', '2025-06-18']);
     expect((response?.result as any).supportedVersions).toEqual(['2026-07-28', '2025-11-25', '2025-06-18']);
+    expect((response?.result as any).supportedVersions).toEqual(['2026-07-28']);
     expect((response?.result as any).capabilities.extensions).toEqual({
       'io.modelcontextprotocol/tasks': {},
     });
