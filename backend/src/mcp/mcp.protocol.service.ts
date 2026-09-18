@@ -526,7 +526,11 @@ export class McpProtocolService {
 
   private async executeResearchTask(taskId: string, query: string, limit: number): Promise<void> {
     try {
+      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+
       const research = await this.theology.research(query, limit);
+      if (this.protocolTasks.get(taskId).status === 'cancelled') return;
+
       await this.protocolTasks.complete(taskId, {
         content: [{ type: 'text', text: JSON.stringify(research) }],
         structuredContent: research,
