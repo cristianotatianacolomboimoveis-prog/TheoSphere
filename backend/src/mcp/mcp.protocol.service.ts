@@ -5,6 +5,7 @@ import { MCP_MEMORY_CATEGORIES, McpProjectMemoryService } from './mcp.project-me
 import { McpTaskService } from './mcp.task.service';
 import { McpAutonomyService } from './mcp.autonomy.service';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
+import { McpSecurityService } from './mcp.security.service';
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -24,6 +25,7 @@ type JsonRpcResponse = {
 export class McpProtocolService {
   readonly protocolVersion = '2025-06-18';
   readonly serverVersion = '0.3.0';
+  private readonly actor = 'mcp-protocol';
 
   constructor(
     private readonly orchestrator: McpOrchestratorService,
@@ -32,6 +34,7 @@ export class McpProtocolService {
     private readonly memory: McpProjectMemoryService,
     private readonly theology: TheologyEngineService,
     private readonly autonomy: McpAutonomyService,
+    private readonly security: McpSecurityService,
   ) {}
 
   tools() {
@@ -195,6 +198,30 @@ export class McpProtocolService {
     const args = (params.arguments ?? {}) as Record<string, unknown>;
     if (name !== 'theosphere_snapshot' && name !== 'theosphere_audit_list' && name !== 'theosphere_research' && !Object.keys(args).length) return this.error(id, -32602, 'MCP tool arguments are required');
     let result: unknown;
+
+    const requiredPermission: Record<string, import('./mcp.types').McpPermission> = {
+      theosphere_register_agent: 'agent:register',
+      theosphere_audit_list: 'audit:read',
+      theosphere_snapshot: 'audit:read',
+      theosphere_create_task: 'task:create',
+      theosphere_plan_task: 'task:transition',
+      theosphere_assign_task: 'task:assign',
+      theosphere_start_task: 'task:transition',
+      theosphere_advance_task: 'task:transition',
+      theosphere_dispatch_task: 'task:transition',
+      theosphere_record_result: 'task:transition',
+      theosphere_research: 'research:read',
+      theosphere_memory_search: 'memory:read',
+      theosphere_memory_append: 'memory:write',
+    };
+    const permission = requiredPermission[name];
+    if (!permission) return this.error(id, -32602, `Unknown MCP tool: ${name}`);
+    try {
+      this.security.assertAllowed(this.actor, permission);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MCP permission denied';
+      return this.error(id, -32001, message);
+    }
 
     switch (name) {
       case 'theosphere_register_agent':
