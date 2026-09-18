@@ -15,7 +15,7 @@ describe('MCP task persistence', () => {
   };
 
   it('persists assignment changes as task snapshots', async () => {
-    const append = jest.fn(async () => undefined);
+    const append = jest.fn(async (_entry: { content: string }) => undefined);
     const memory = { append } as unknown as McpProjectMemoryService;
     const security = new McpSecurityService();
     const audit = new McpAuditService();
@@ -28,9 +28,9 @@ describe('MCP task persistence', () => {
     await Promise.resolve();
 
     expect(append).toHaveBeenCalledTimes(2);
-    const persistedAssignment = append.mock.calls[1]?.[0] as { content: string } | undefined;
+    const persistedAssignment = append.mock.calls[1]?.[0];
     expect(persistedAssignment).toBeDefined();
-    expect(JSON.parse(persistedAssignment!.content)).toMatchObject({ id: task.id, assignedAgent: 'agent-1', version: 2 });
+    expect(JSON.parse(persistedAssignment?.content ?? '')).toMatchObject({ id: task.id, assignedAgent: 'agent-1', version: 2 });
   });
 
   it('recovers the newest snapshot per task without a fixed history-row cap', async () => {
