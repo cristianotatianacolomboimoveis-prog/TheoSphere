@@ -16,6 +16,7 @@ export interface McpProtocolTask {
   error?: Record<string, unknown>;
   operation?: string;
   payload?: Record<string, unknown>;
+  inputRequests?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -69,13 +70,24 @@ export class McpProtocolTaskService {
   }
 
   get(taskId: string): McpProtocolTask {
-    const task = this.tasks.get(taskId);
-    if (!task) throw new NotFoundException('MCP task not found');
-    if (task.ttlMs !== null && Date.now() - Date.parse(task.createdAt) > task.ttlMs) {
-      this.tasks.delete(taskId);
-      throw new NotFoundException('MCP task has expired');
-    }
+    const task = this.mutable(taskId);
     return this.publicTask(task);
+  }
+
+  async update(taskId: string, inputResponses: Record<string, unknown>): Promise<void> {
+    const task = this.mutable(taskId);
+    if (task.status !== 'input_required') throw new ConflictException('MCP task is not awaiting input');
+    if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) {
+      throw new ConflictException('MCP task inputResponses must be an object');
+    }
+    const outstanding = task.inputRequests ?? {};
+    const unknown = Object.keys(inputResponses).filter((key) => !(key in outstanding));
+    if (unknown.length > 0) return;
+    task.inputRequests = {};
+    task.status = 'working';
+    task.statusMessage = 'Task input received; execution resumed.';
+    task.lastUpdatedAt = new Date().toISOString();
+    await this.persist(task);
   }
 
   async complete(taskId: string, result: Record<string, unknown>): Promise<McpProtocolTask> {
@@ -146,6 +158,7 @@ export class McpProtocolTaskService {
       ...(task.pollIntervalMs !== undefined ? { pollIntervalMs: task.pollIntervalMs } : {}),
       ...(task.result ? { result: task.result } : {}),
       ...(task.error ? { error: task.error } : {}),
+      ...(task.status === 'input_required' && task.inputRequests ? { inputRequests: task.inputRequests } : {}),
     };
   }
 }
