@@ -13,7 +13,7 @@ describe('McpProtocolService', () => {
   const tasks = { create: jest.fn((input: unknown) => ({ id: 'TSK-1', ...(input as object) })) } as any;
   const audit = { list: jest.fn(() => []) } as any;
   const theology = { research: jest.fn(async () => ({ version: 1, items: [] })) } as any;
-  const autonomy = { dispatch: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })), recordResult: jest.fn(async (id: string, _agentId: string) => ({ taskId: id, status: 'VERIFIED' })) } as any;
+  const autonomy = { dispatch: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })), recordResult: jest.fn(async (id: string, _agentId: string, _success: boolean, _summary: string | undefined, receipt: unknown) => ({ taskId: id, status: 'VERIFIED', receipt })) } as any;
   const memory = {
     search: jest.fn(async () => []),
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
@@ -86,6 +86,24 @@ describe('McpProtocolService', () => {
     expect(memory.search).not.toHaveBeenCalled();
   });
 
+
+  it('passes a structured execution receipt to autonomy', async () => {
+    const receipt = {
+      commitSha: 'abc1234',
+      changedFiles: ['src/a.ts'],
+      tests: [{ command: 'npm test -- mcp', status: 'passed' }],
+      startedAt: '2026-09-18T02:00:00.000Z',
+      finishedAt: '2026-09-18T02:01:00.000Z',
+    };
+    const response = await service.handle({
+      jsonrpc: '2.0',
+      id: 10.5,
+      method: 'tools/call',
+      params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', agentId: 'agent-1', success: true, receipt } },
+    });
+    expect(autonomy.recordResult).toHaveBeenCalledWith('TSK-1', 'agent-1', true, undefined, receipt);
+    expect((response?.result as any).structuredContent.receipt).toEqual(receipt);
+  });
 
   it('requires the assigned worker identity when recording results', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 11, method: 'tools/call', params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', success: true } } });
