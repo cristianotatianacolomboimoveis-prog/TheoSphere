@@ -160,6 +160,87 @@ describe('AppController (e2e)', () => {
     expect(legacy.headers['mcp-protocol-version']).toBe('2025-11-25');
   });
 
+  it('cancels a modern task and returns invalid task handles as JSON-RPC errors', async () => {
+    const taskMeta = {
+      'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+      'io.modelcontextprotocol/clientInfo': { name: 'theosphere-e2e', version: '1.0.0' },
+      'io.modelcontextprotocol/clientCapabilities': {
+        extensions: { 'io.modelcontextprotocol/tasks': {} },
+      },
+    };
+
+    const created = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tools/call')
+      .set('Mcp-Name', 'theosphere_research')
+      .send({
+        jsonrpc: '2.0',
+        id: 20,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_research',
+          arguments: { query: 'Romans 8:28', limit: 2 },
+          _meta: taskMeta,
+        },
+      })
+      .expect(200);
+
+    const taskId = created.body.result.taskId;
+    expect(created.body.result.resultType).toBe('task');
+    expect(taskId).toEqual(expect.any(String));
+
+    const cancelled = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tasks/cancel')
+      .set('Mcp-Name', taskId)
+      .send({
+        jsonrpc: '2.0',
+        id: 21,
+        method: 'tasks/cancel',
+        params: { taskId, _meta: taskMeta },
+      })
+      .expect(200);
+
+    expect(cancelled.body.result).toEqual(expect.objectContaining({ resultType: 'complete' }));
+
+    const state = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tasks/get')
+      .set('Mcp-Name', taskId)
+      .send({
+        jsonrpc: '2.0',
+        id: 22,
+        method: 'tasks/get',
+        params: { taskId, _meta: taskMeta },
+      })
+      .expect(200);
+
+    expect(state.body.result.resultType).toBe('complete');
+    expect(state.body.result.status).toBe('cancelled');
+
+    const missing = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tasks/get')
+      .set('Mcp-Name', 'does-not-exist')
+      .send({
+        jsonrpc: '2.0',
+        id: 23,
+        method: 'tasks/get',
+        params: { taskId: 'does-not-exist', _meta: taskMeta },
+      })
+      .expect(200);
+
+    expect(missing.body.error).toEqual(expect.objectContaining({ code: -32602 }));
+  });
+
   it('/api/v1/ai/locations (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/ai/locations')
