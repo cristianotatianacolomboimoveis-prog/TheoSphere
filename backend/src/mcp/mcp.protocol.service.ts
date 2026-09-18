@@ -15,6 +15,8 @@ type JsonRpcRequest = {
   params?: Record<string, unknown>;
 };
 
+const SERVER_INFO_META_KEY = 'io.modelcontextprotocol/serverInfo';
+
 type JsonRpcResponse = {
   jsonrpc: '2.0';
   id: string | number | null;
@@ -180,20 +182,22 @@ export class McpProtocolService {
     try {
       switch (request.method) {
         case 'server/discover':
-          return {
-            jsonrpc: '2.0', id: request.id ?? null,
+          if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'server/discover requires MCP 2026-07-28');
+          return this.modernize({
+            jsonrpc: '2.0',
+            id: request.id ?? null,
             result: {
               protocolVersions: this.supportedProtocolVersions,
-              serverInfo: { name: 'theosphere-mcp', version: this.serverVersion },
               capabilities: { tools: { listChanged: false } },
             },
-          };
+          }, protocolVersion);
         case 'initialize': {
+          if (protocolVersion === this.protocolVersion) return this.error(request.id ?? null, -32601, 'initialize is not part of MCP 2026-07-28');
           return {
             jsonrpc: '2.0',
             id: request.id ?? null,
             result: {
-              protocolVersion: typeof request.params?.protocolVersion === 'string' && this.supportedProtocolVersions.includes(request.params.protocolVersion)
+              protocolVersion: typeof request.params?.protocolVersion === 'string' && ['2025-11-25', '2025-06-18'].includes(request.params.protocolVersion)
                 ? request.params.protocolVersion
                 : this.legacyProtocolVersion,
               capabilities: { tools: { listChanged: false } },
@@ -203,11 +207,18 @@ export class McpProtocolService {
           };
         }
         case 'ping':
-          return { jsonrpc: '2.0', id: request.id ?? null, result: {} };
+          return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: {} }, protocolVersion);
         case 'tools/list':
-          return { jsonrpc: '2.0', id: request.id ?? null, result: { tools: this.tools(), ttlMs: protocolVersion === this.protocolVersion ? 300_000 : undefined, cacheScope: protocolVersion === this.protocolVersion ? 'public' : undefined } };
+          return this.modernize({
+            jsonrpc: '2.0',
+            id: request.id ?? null,
+            result: {
+              tools: this.tools(),
+              ...(protocolVersion === this.protocolVersion ? { ttlMs: 300_000, cacheScope: 'public' } : {}),
+            },
+          }, protocolVersion);
         case 'tools/call':
-          return this.callTool(request.id ?? null, request.params ?? {});
+          return this.modernize(await this.callTool(request.id ?? null, request.params ?? {}), protocolVersion);
         default:
           return this.error(request.id ?? null, -32601, `Method not found: ${request.method}`);
       }
@@ -215,6 +226,26 @@ export class McpProtocolService {
       const message = error instanceof Error ? error.message : 'MCP tool execution failed';
       return this.error(request.id ?? null, -32000, message);
     }
+  }
+
+  private modernize(response: JsonRpcResponse, protocolVersion: string): JsonRpcResponse {
+    if (protocolVersion !== this.protocolVersion || !response.result || typeof response.result !== 'object' || Array.isArray(response.result)) {
+      return response;
+    }
+    const result = response.result as Record<string, unknown>;
+    const existingMeta = result._meta && typeof result._meta === 'object' && !Array.isArray(result._meta)
+      ? result._meta as Record<string, unknown>
+      : {};
+    return {
+      ...response,
+      result: {
+        ...result,
+        _meta: {
+          ...existingMeta,
+          [SERVER_INFO_META_KEY]: { name: 'theosphere-mcp', version: this.serverVersion },
+        },
+      },
+    };
   }
 
   private async callTool(id: string | number | null, params: Record<string, unknown>): Promise<JsonRpcResponse> {
