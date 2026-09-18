@@ -65,6 +65,14 @@ describe('McpProtocolService', () => {
     expect((response?.result as any).structuredContent).toEqual(expect.objectContaining({ items: [expect.objectContaining({ reference: 'John 1:14' })] }));
   });
 
+  it('routes end-to-end Theo research into evidence-aware RAG', async () => {
+    theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [], sourceCount: 0, primaryCount: 0, hasCounterEvidence: false, confidence: 0 });
+    const response = await service.handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'theosphere_answer', arguments: { query: 'grace' } } });
+    expect(theology.research).toHaveBeenCalledWith('grace', 12);
+    expect(rag.chatWithEvidencePack).toHaveBeenCalledWith('grace', expect.anything(), undefined, undefined);
+    expect((response?.result as any).structuredContent.content).toBe('answer:grace');
+  });
+
   it('routes autonomous execution tools', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'theosphere_dispatch_task', arguments: { taskId: 'TSK-1' } } });
     expect(autonomy.dispatch).toHaveBeenCalledWith('TSK-1');
