@@ -95,7 +95,7 @@ jobs:
         run: npm test -- --ci --coverage --maxWorkers=2
 
       - name: MCP HTTP E2E smoke
-        run: npm run test:e2e -- --runInBand
+        run: npx jest --config ./test/jest-e2e.json --runInBand test/app.e2e-spec.ts
 
       - name: Upload coverage
         if: always()
