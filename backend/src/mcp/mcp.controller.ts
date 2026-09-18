@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -20,13 +20,28 @@ export class McpController {
     @Headers('authorization') authorization: string | undefined,
     @Headers('mcp-session-id') sessionId: string | undefined,
     @Headers('accept') accept: string | undefined,
+    @Headers('mcp-protocol-version') requestedVersion: string | undefined,
+    @Headers('mcp-method') mcpMethod: string | undefined,
+    @Headers('mcp-name') mcpName: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
     this.authorize(authorization);
     this.validateAccept(accept);
-    res.setHeader('MCP-Protocol-Version', this.protocol.protocolVersion);
+    const modern = requestedVersion === '2026-07-28';
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) {
+      throw new BadRequestException('Unsupported MCP protocol version');
+    }
+    const modernMethod = typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>).method : undefined;
+    if (modern && mcpMethod !== modernMethod) throw new BadRequestException('Mcp-Method header must match JSON-RPC method');
+    if (modern && modernMethod === 'tools/call') {
+      const toolName = (body as Record<string, unknown>).params && typeof (body as Record<string, unknown>).params === 'object' ? ((body as Record<string, unknown>).params as Record<string, unknown>).name : undefined;
+      if (mcpName !== toolName) throw new BadRequestException('Mcp-Name header must match tools/call name');
+    }
+    res.setHeader('MCP-Protocol-Version', modern ? this.protocol.protocolVersion : this.protocol.legacyProtocolVersion);
     const request = body as Record<string, unknown>;
-    if (request.method === 'initialize') {
+    if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) throw new BadRequestException('initialize is not part of MCP 2026-07-28');
+    if (!modern && request.method === 'server/discover') throw new BadRequestException('server/discover requires MCP 2026-07-28');
+    if (!modern && request.method === 'initialize') {
       const id = sessionId ?? randomUUID();
       this.sessions.add(id);
       res.setHeader('MCP-Session-Id', id);
@@ -40,7 +55,7 @@ export class McpController {
     if (!body || typeof body !== 'object') {
       throw new BadRequestException('MCP request body must be a JSON-RPC object');
     }
-    const response = await this.protocol.handle(body as Record<string, unknown>);
+    const response = await this.protocol.handle(body as Record<string, unknown>, modern ? this.protocol.protocolVersion : this.protocol.legacyProtocolVersion);
     if (!response) {
       res.statusCode = 202;
       return undefined;
@@ -56,7 +71,7 @@ export class McpController {
     @Res() res: Response,
   ) {
     this.authorize(authorization);
-    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
+    throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -73,7 +88,7 @@ export class McpController {
     @Headers('mcp-session-id') sessionId: string | undefined,
   ) {
     this.authorize(authorization);
-    if (!sessionId || !this.sessions.has(sessionId)) throw new BadRequestException('MCP-Session-Id is required for session termination');
+    throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; DELETE session is unavailable');
     this.sessions.delete(sessionId);
   }
 
