@@ -53,26 +53,30 @@ describe('MCP control-plane foundation', () => {
 
   it('recovers the latest persisted agent snapshot without restoring stale duplicates', async () => {
     const agent: McpAgent = { id: 'claude', name: 'Claude', provider: 'claude', capabilities: ['coding', 'coding', ' architecture '], enabled: true };
-    const memory = { latestByKeyPrefix: jest.fn().mockResolvedValue([{ content: JSON.stringify({ ...agent, capabilities: ['coding'] }) }]), append: jest.fn().mockResolvedValue(undefined) } as unknown as McpProjectMemoryService;
+    const latestByKeyPrefix = jest.fn().mockResolvedValue([{ content: JSON.stringify({ ...agent, capabilities: ['coding'] }) }]);
+    const memory = { latestByKeyPrefix, append: jest.fn().mockResolvedValue(undefined) } as unknown as McpProjectMemoryService;
     const registry = new McpAgentRegistryService(memory);
     await registry.onModuleInit();
-    expect(memory.latestByKeyPrefix).toHaveBeenCalledWith('agents', 'mcp:agent:');
+    expect(latestByKeyPrefix).toHaveBeenCalledWith('agents', 'mcp:agent:');
     expect(registry.get('claude')).toEqual({ ...agent, capabilities: ['coding'] });
   });
 
   it('recovers the complete persisted audit history instead of a fixed history window', async () => {
     const older: McpAuditEvent = { id: 'audit-1', timestamp: '2026-09-18T01:00:00.000Z', actor: 'agent-a', action: 'task.created', resourceType: 'task', resourceId: 'TSK-1', outcome: 'success' };
     const newer: McpAuditEvent = { id: 'audit-2', timestamp: '2026-09-18T02:00:00.000Z', actor: 'agent-b', action: 'task.verified', resourceType: 'task', resourceId: 'TSK-1', outcome: 'success' };
-    const memory = { latestByKeyPrefix: jest.fn().mockResolvedValue([{ content: JSON.stringify(newer), createdAt: new Date('2026-09-18T02:00:00.000Z') }, { content: JSON.stringify(older), createdAt: new Date('2026-09-18T01:00:00.000Z') }]) } as unknown as McpProjectMemoryService;
+    const latestByKeyPrefix = jest.fn().mockResolvedValue([{ content: JSON.stringify(newer), createdAt: new Date('2026-09-18T02:00:00.000Z') }, { content: JSON.stringify(older), createdAt: new Date('2026-09-18T01:00:00.000Z') }]);
+    const memory = { latestByKeyPrefix } as unknown as McpProjectMemoryService;
     const audit = new McpAuditService(memory);
     await audit.onModuleInit();
-    expect(memory.latestByKeyPrefix).toHaveBeenCalledWith('audits', 'mcp:audit:');
+    expect(latestByKeyPrefix).toHaveBeenCalledWith('audits', 'mcp:audit:');
     expect(audit.list()).toEqual([newer, older]);
   });
 
   it('persists and reloads a completed protocol task', async () => {
     const snapshots: any[] = [];
-    const memory = { append: jest.fn(async (entry: any) => { snapshots.push(entry); return entry; }), latestByKeyPrefix: jest.fn(async () => snapshots) } as any;
+    const append = jest.fn(async (entry: any) => { snapshots.push(entry); return entry; });
+    const latestByKeyPrefix = jest.fn(async () => snapshots);
+    const memory = { append, latestByKeyPrefix } as any;
     const first = new McpProtocolTaskService(memory);
     const created = await first.create('theosphere_answer', { query: 'John 3:16' });
     await first.complete(created.taskId, { content: [{ type: 'text', text: 'Evidence-grounded answer' }], isError: false });
@@ -83,7 +87,9 @@ describe('MCP control-plane foundation', () => {
   });
 
   it('cancels a protocol task and rejects terminal completion', async () => {
-    const memory = { append: jest.fn(async (entry: unknown) => entry), latestByKeyPrefix: jest.fn(async () => []) } as any;
+    const append = jest.fn(async (entry: unknown) => entry);
+    const latestByKeyPrefix = jest.fn(async () => []);
+    const memory = { append, latestByKeyPrefix } as any;
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await service.cancel(task.taskId);
