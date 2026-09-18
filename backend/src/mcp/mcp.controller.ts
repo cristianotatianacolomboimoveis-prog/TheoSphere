@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, MethodNotAllowedException, Optional, Post, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +12,7 @@ export class McpController {
   constructor(
     private readonly protocol: McpProtocolService,
     private readonly config: ConfigService,
-    private readonly protocolTasks: McpProtocolTaskService,
+    @Optional() private readonly protocolTasks?: McpProtocolTaskService,
   ) {}
 
   @Post()
@@ -109,7 +109,7 @@ export class McpController {
     }
 
     res.setHeader('MCP-Protocol-Version', effectiveProtocolVersion);
-    if (modern && (request.method === 'tasks/get' || request.method === 'tasks/update' || request.method === 'tasks/cancel')) {
+    if (modern && this.protocolTasks && (request.method === 'tasks/get' || request.method === 'tasks/update' || request.method === 'tasks/cancel')) {
       const taskId = this.stringParam(params?.taskId, 'taskId');
       if (request.method === 'tasks/get') {
         return { jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete', ...this.protocolTasks.get(taskId) } };
