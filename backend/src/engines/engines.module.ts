@@ -8,10 +8,11 @@ import { ThreeEngineService } from './3d/three-engine.service';
 import { RagModule } from '../rag/rag.module';
 import { SearchModule } from '../search/search.module';
 import { EnterpriseController } from './enterprise.controller';
+import { BibleModule } from '../bible.module';
 
 @Global()
 @Module({
-  imports: [RagModule, SearchModule],
+  imports: [RagModule, SearchModule, BibleModule],
   providers: [
     PrismaService,
     GeoEngineService,
