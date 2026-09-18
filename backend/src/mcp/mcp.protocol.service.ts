@@ -202,6 +202,7 @@ export class McpProtocolService {
     const name = typeof params.name === 'string' ? params.name : '';
     const args = (params.arguments ?? {}) as Record<string, unknown>;
     if (name !== 'theosphere_snapshot' && name !== 'theosphere_audit_list' && name !== 'theosphere_research' && !Object.keys(args).length) return this.error(id, -32602, 'MCP tool arguments are required');
+    if (name === 'theosphere_verify_result' && typeof args.verifierAgentId !== 'string') return this.error(id, -32602, 'MCP verifierAgentId is required');
     let result: unknown;
 
     const requiredPermission: Record<string, import('./mcp.types').McpPermission> = {
