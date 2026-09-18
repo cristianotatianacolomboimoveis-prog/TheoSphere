@@ -61,12 +61,18 @@ export class McpExecutionController {
       typeof receipt.finishedAt !== 'string'
     ) throw new UnauthorizedException('Invalid MCP execution receipt');
 
-    const changedFiles = receipt.changedFiles.filter((v): v is string => typeof v === 'string');
+    if (receipt.changedFiles.some((v) => typeof v !== 'string')) {
+      throw new UnauthorizedException('Execution receipt changedFiles must contain only strings');
+    }
+    const changedFiles = receipt.changedFiles as string[];
     const tests = receipt.tests.map((test) => {
       if (!test || typeof test !== 'object' || Array.isArray(test)) throw new UnauthorizedException('Invalid MCP execution receipt test');
       const item = test as Record<string, unknown>;
       if (typeof item.command !== 'string' || !['passed', 'failed', 'skipped'].includes(String(item.status))) {
         throw new UnauthorizedException('Invalid MCP execution receipt test');
+      }
+      if (item.durationMs !== undefined && (typeof item.durationMs !== 'number' || !Number.isFinite(item.durationMs) || item.durationMs < 0)) {
+        throw new UnauthorizedException('Invalid MCP execution receipt test durationMs');
       }
       return {
         command: item.command,
@@ -80,7 +86,11 @@ export class McpExecutionController {
       tests,
       startedAt: receipt.startedAt,
       finishedAt: receipt.finishedAt,
-      ...(receipt.artifactRefs === undefined ? {} : { artifactRefs: receipt.artifactRefs.filter((v): v is string => typeof v === 'string') }),
+      ...(receipt.artifactRefs === undefined ? {} : {
+        artifactRefs: Array.isArray(receipt.artifactRefs) && receipt.artifactRefs.every((v) => typeof v === 'string')
+          ? receipt.artifactRefs as string[]
+          : (() => { throw new UnauthorizedException('Execution receipt artifactRefs must contain only strings'); })(),
+      }),
       ...(receipt.agentVersion === undefined ? {} : { agentVersion: typeof receipt.agentVersion === 'string' ? receipt.agentVersion : String(receipt.agentVersion) }),
     };
   }
