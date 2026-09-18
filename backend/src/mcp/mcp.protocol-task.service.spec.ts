@@ -38,7 +38,7 @@ describe('McpProtocolTaskService', () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await expect(service.cancel(task.taskId)).resolves.toBeUndefined();
-    await expect(service.get(task.taskId)).resolves.toEqual(expect.objectContaining({ status: 'cancelled' }));
+    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
     await expect(service.cancel(task.taskId)).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -55,7 +55,7 @@ describe('McpProtocolTaskService', () => {
     const service = new McpProtocolTaskService(memory);
     await service.onModuleInit();
 
-    await expect(service.get('task-recovered')).resolves.toEqual(expect.objectContaining({
+    expect(service.get('task-recovered')).toEqual(expect.objectContaining({
       status: 'failed',
       error: expect.objectContaining({ code: -32603 }),
     }));
