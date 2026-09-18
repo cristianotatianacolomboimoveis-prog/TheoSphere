@@ -111,7 +111,7 @@ export class McpController {
   @HttpCode(200)
   handleGet(@Headers('authorization') authorization: string | undefined, @Headers('mcp-session-id') sessionId: string | undefined, @Headers('mcp-protocol-version') requestedVersion: string | undefined, @Res() res: Response) {
     this.authorize(authorization);
-    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) return this.protocolError(body, -32022, 'Unsupported MCP protocol version', { requested: requestedVersion, supported: this.protocol.supportedProtocolVersions });
+    if (requestedVersion && !this.protocol.supportedProtocolVersions.includes(requestedVersion)) return this.protocolError(res, null, -32022, 'Unsupported MCP protocol version');
     if (requestedVersion === this.protocol.protocolVersion) throw new MethodNotAllowedException('MCP 2026-07-28 is stateless; GET stream is unavailable');
     const sessionVersion = sessionId ? this.sessions.get(sessionId) : undefined;
     if (!sessionId || !sessionVersion) throw new BadRequestException('MCP-Session-Id is required for the Streamable HTTP GET stream');
@@ -135,11 +135,6 @@ export class McpController {
     res.statusCode = 400;
     const requestId = typeof id === 'string' || typeof id === 'number' ? id : null;
     return { jsonrpc: '2.0', id: requestId, error: { code, message } };
-  }
-
-  private protocolError(body: unknown, code: number, message: string, data?: unknown) {
-    const id = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>).id ?? null : null;
-    return { jsonrpc: '2.0', id: id as string | number | null, error: { code, message, ...(data === undefined ? {} : { data }) } };
   }
 
   private stringParam(value: unknown, name: string): string { if (typeof value !== 'string' || !value.trim()) throw new BadRequestException(`MCP ${name} must be a non-empty string`); return value.trim(); }
