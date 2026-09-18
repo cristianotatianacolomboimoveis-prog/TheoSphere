@@ -15,14 +15,26 @@ describe('McpAutonomyService', () => {
     expect(orchestrator.assign).toHaveBeenCalledWith('TSK-1');
   });
 
-  it('drives a successful worker result to VERIFIED and records memory', async () => {
+  it('drives a successful worker result to AUDITING and records memory', async () => {
     const tasks = { current: { id: 'TSK-1', status: 'IN_PROGRESS', assignedAgent: 'agent-1', version: 2 }, get: jest.fn(function(this: any) { return this.current; }) } as any;
     const orchestrator = { advance: jest.fn((id: string, next: string) => { tasks.current = { ...tasks.current, status: next, version: tasks.current.version + 1 }; return tasks.current; }) } as any;
     const memory = { append: jest.fn(async () => undefined) } as any;
     const service = new McpAutonomyService(orchestrator, tasks, memory);
     const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.');
-    expect(result.status).toBe('VERIFIED');
-    expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED']);
+    expect(result.status).toBe('AUDITING');
+    expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING']);
     expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'TSK-1', agentId: 'agent-1', category: 'tasks' }));
   });
 });
+
+
+  it('requires an independent verifier before VERIFIED', async () => {
+    const tasks = { current: { id: 'TSK-2', status: 'AUDITING', assignedAgent: 'agent-1', version: 5 }, get: jest.fn(function(this: any) { return this.current; }) } as any;
+    const orchestrator = { advance: jest.fn((id: string, next: string) => { tasks.current = { ...tasks.current, status: next, version: tasks.current.version + 1 }; return tasks.current; }) } as any;
+    const memory = { append: jest.fn(async () => undefined) } as any;
+    const service = new McpAutonomyService(orchestrator, tasks, memory);
+    await expect(service.verifyResult('TSK-2', 'agent-1')).rejects.toThrow('independent agent');
+    const result = await service.verifyResult('TSK-2', 'verifier-1', 'Independent checks passed.');
+    expect(result.status).toBe('VERIFIED');
+    expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ category: 'audits', agentId: 'verifier-1' }));
+  });
