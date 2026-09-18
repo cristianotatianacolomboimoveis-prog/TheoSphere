@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Headers, Post, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'node:crypto';
 import type { Response } from 'express';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 import { RagService } from '../rag/rag.service';
@@ -40,6 +41,11 @@ export class McpAnswerController {
 
   private authorize(authorization?: string): void {
     const configured = this.config.get<string>('MCP_API_KEY');
-    if (!configured || authorization !== `Bearer ${configured}`) throw new UnauthorizedException('Invalid MCP answer authorization');
+    if (!configured) throw new UnauthorizedException('MCP answer authorization is not configured');
+    const expected = Buffer.from(`Bearer ${configured}`);
+    const received = Buffer.from(authorization ?? '');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      throw new UnauthorizedException('Invalid MCP answer authorization');
+    }
   }
 }
