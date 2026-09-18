@@ -224,7 +224,7 @@ export class McpProtocolService {
             jsonrpc: '2.0',
             id: request.id ?? null,
             result: {
-              protocolVersions: this.supportedProtocolVersions,
+              supportedVersions: this.supportedProtocolVersions,
               capabilities: {
                 tools: { listChanged: false },
                 extensions: { 'io.modelcontextprotocol/tasks': {} },
@@ -452,7 +452,16 @@ export class McpProtocolService {
         return this.error(id, -32602, `Unknown MCP tool: ${name}`);
     }
 
+    if (this.isTaskResult(result)) {
+      return { jsonrpc: '2.0', id, result: result as Record<string, unknown> };
+    }
     return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result } };
+  }
+
+  private isTaskResult(value: unknown): value is { resultType: 'task'; taskId: string; status: 'working' | 'input_required' | 'completed' | 'cancelled' | 'failed' } {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const task = value as Record<string, unknown>;
+    return task.resultType === 'task' && typeof task.taskId === 'string' && typeof task.status === 'string';
   }
 
   private hasTasksCapability(params?: Record<string, unknown>): boolean {
