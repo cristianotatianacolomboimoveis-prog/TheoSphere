@@ -28,7 +28,9 @@ describe('MCP task persistence', () => {
     await Promise.resolve();
 
     expect(append).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(append.mock.calls[1][0].content)).toMatchObject({ id: task.id, assignedAgent: 'agent-1', version: 2 });
+    const persistedAssignment = append.mock.calls[1]?.[0] as { content: string } | undefined;
+    expect(persistedAssignment).toBeDefined();
+    expect(JSON.parse(persistedAssignment!.content)).toMatchObject({ id: task.id, assignedAgent: 'agent-1', version: 2 });
   });
 
   it('recovers the newest snapshot per task without a fixed history-row cap', async () => {
