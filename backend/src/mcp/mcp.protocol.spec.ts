@@ -20,12 +20,13 @@ describe('McpProtocolService', () => {
   } as any;
 
   const security = new McpSecurityService();
-  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy, security);
+  const rag = { chatWithEvidencePack: jest.fn(async (query: string) => ({ content: 'answer:' + query })) } as any;
+  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy, security, rag);
 
   it('supports MCP initialize and tool discovery', async () => {
     const initialized = await service.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
     expect(initialized?.result).toEqual(expect.objectContaining({
-      protocolVersion: '2025-06-18',
+      protocolVersion: '2025-11-25',
       capabilities: expect.objectContaining({ tools: expect.any(Object) }),
     }));
     const listed = await service.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
@@ -113,3 +114,4 @@ describe('McpProtocolService', () => {
     expect(autonomy.verifyResult).toHaveBeenCalledWith('TSK-1', 'verifier-1', undefined);
     expect((response?.result as any).structuredContent.status).toBe('VERIFIED');
   });
+});
