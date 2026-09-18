@@ -12,12 +12,13 @@ describe('McpProtocolService', () => {
   const tasks = { create: jest.fn((input: unknown) => ({ id: 'TSK-1', ...(input as object) })) } as any;
   const audit = { list: jest.fn(() => []) } as any;
   const theology = { research: jest.fn(async () => ({ version: 1, items: [] })) } as any;
+  const autonomy = { dispatch: jest.fn((id: string) => ({ id, status: 'IN_PROGRESS' })), recordResult: jest.fn(async (id: string) => ({ taskId: id, status: 'VERIFIED' })) } as any;
   const memory = {
     search: jest.fn(async () => []),
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
   } as any;
 
-  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology);
+  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy);
 
   it('supports MCP initialize and tool discovery', async () => {
     const initialized = await service.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
@@ -51,6 +52,12 @@ describe('McpProtocolService', () => {
     });
     expect(orchestrator.plan).toHaveBeenCalledWith('TSK-1');
     expect((response?.result as any).structuredContent.status).toBe('PLANNED');
+  });
+
+  it('routes autonomous execution tools', async () => {
+    const response = await service.handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'theosphere_dispatch_task', arguments: { taskId: 'TSK-1' } } });
+    expect(autonomy.dispatch).toHaveBeenCalledWith('TSK-1');
+    expect((response?.result as any).structuredContent.status).toBe('IN_PROGRESS');
   });
 
   it('rejects unknown tools and invalid JSON-RPC', async () => {
