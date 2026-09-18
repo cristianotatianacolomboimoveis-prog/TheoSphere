@@ -4,7 +4,7 @@ import { McpAuditService } from './mcp.audit.service';
 import { McpSecurityService } from './mcp.security.service';
 import { McpAgentRegistryService } from './mcp.agent-registry.service';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
-import { MCP_STATE_TRANSITIONS, type McpTask, type McpTaskState } from './mcp.types';
+import { MCP_STATE_TRANSITIONS, type McpExecutionReceipt, type McpTask, type McpTaskState } from './mcp.types';
 
 @Injectable()
 export class McpTaskService {
@@ -104,6 +104,34 @@ export class McpTaskService {
       resourceType: 'task',
       resourceId: taskId,
       outcome: 'success',
+    });
+    return updated;
+  }
+
+  recordExecutionReceipt(taskId: string, agentId: string, receipt: McpExecutionReceipt, actor = 'mcp-orchestrator'): McpTask {
+    this.security.assertAllowed(actor, 'task:transition');
+    const task = this.get(taskId);
+    if (task.assignedAgent !== agentId) throw new ConflictException(`MCP result agent mismatch for task ${taskId}`);
+    const updated: McpTask = {
+      ...task,
+      executionReceipt: receipt,
+      updatedAt: new Date().toISOString(),
+      version: task.version + 1,
+    };
+    this.tasks.set(taskId, updated);
+    this.persist(updated);
+    this.audit.append({
+      actor,
+      action: 'task.execution-receipt-recorded',
+      resourceType: 'task',
+      resourceId: taskId,
+      outcome: 'success',
+      metadata: {
+        agentId,
+        commitSha: receipt.commitSha,
+        changedFiles: receipt.changedFiles.length,
+        tests: receipt.tests.length,
+      },
     });
     return updated;
   }
