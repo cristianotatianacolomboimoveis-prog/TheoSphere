@@ -50,6 +50,21 @@ describe('McpController', () => {
     await expect(controller.handle({ jsonrpc: '2.0', id: 3, method: 'initialize', params: modernMeta }, undefined, undefined, 'application/json', '2026-07-28', 'initialize', undefined, undefined, response)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('returns in-band header mismatch and unsupported-version errors for modern transport', async () => {
+    const controller = new McpController(protocol, config);
+    const missingMethod = await controller.handle(
+      { jsonrpc: '2.0', id: 20, method: 'ping', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {} } } },
+      undefined, undefined, 'application/json', '2026-07-28', undefined, undefined, response,
+    );
+    expect(missingMethod).toEqual({ jsonrpc: '2.0', id: 20, error: expect.objectContaining({ code: -32020 }) });
+
+    const unsupported = await controller.handle(
+      { jsonrpc: '2.0', id: 21, method: 'ping' },
+      undefined, undefined, 'application/json', '2099-01-01', undefined, undefined, response,
+    );
+    expect(unsupported).toEqual({ jsonrpc: '2.0', id: 21, error: expect.objectContaining({ code: -32022 }) });
+  });
+
   it('rejects modern requests with missing or mismatched protocol metadata', async () => {
     const controller = new McpController(protocol, config);
     const missingProtocolMeta = await controller.handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }, undefined, undefined, 'application/json', '2026-07-28', 'ping', undefined, undefined, response);
