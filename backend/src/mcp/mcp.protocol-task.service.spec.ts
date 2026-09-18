@@ -61,6 +61,24 @@ describe('McpProtocolTaskService', () => {
     }));
   });
 
+  it('keeps a task input-required when only a subset of responses arrives', async () => {
+    const service = new McpProtocolTaskService(memory);
+    const task = await service.create('test');
+    const stored = (service as any).tasks.get(task.taskId) as {
+      status: string;
+      inputRequests?: Record<string, unknown>;
+    };
+    stored.status = 'input_required';
+    stored.inputRequests = { first: { request: 'a' }, second: { request: 'b' } };
+
+    await service.update(task.taskId, { first: { value: 1 } });
+
+    expect(service.get(task.taskId)).toEqual(expect.objectContaining({
+      status: 'input_required',
+      inputRequests: { second: { request: 'b' } },
+    }));
+  });
+
   it('rejects unknown task ids', async () => {
     const service = new McpProtocolTaskService(memory);
     expect(() => service.get('missing')).toThrow(NotFoundException);
