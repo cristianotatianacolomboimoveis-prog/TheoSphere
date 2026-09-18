@@ -6,6 +6,7 @@ import { McpTaskService } from './mcp.task.service';
 import { McpAutonomyService } from './mcp.autonomy.service';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 import { McpSecurityService } from './mcp.security.service';
+import { RagService } from '../rag/rag.service';
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -36,6 +37,7 @@ export class McpProtocolService {
     private readonly theology: TheologyEngineService,
     private readonly autonomy: McpAutonomyService,
     private readonly security: McpSecurityService,
+    private readonly rag: RagService,
   ) {}
 
   tools() {
@@ -127,6 +129,11 @@ export class McpProtocolService {
         name: 'theosphere_research',
         description: 'Run TheoSphere hybrid Bible retrieval and return a deterministic EvidencePack.',
         inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'], additionalProperties: false },
+      },
+      {
+        name: 'theosphere_answer',
+        description: 'Run Theo Engine research, pass the resulting EvidencePack into the production RAG pipeline, and return an evidence-grounded answer.',
+        inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' }, tradition: { type: 'string' } }, required: ['query'], additionalProperties: false },
       },
       {
         name: 'theosphere_memory_search',
@@ -222,6 +229,7 @@ export class McpProtocolService {
       theosphere_record_result: 'task:transition',
       theosphere_verify_result: 'task:transition',
       theosphere_research: 'research:read',
+      theosphere_answer: 'research:read',
       theosphere_memory_search: 'memory:read',
       theosphere_memory_append: 'memory:write',
     };
@@ -285,6 +293,16 @@ export class McpProtocolService {
       case 'theosphere_research':
         result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
         break;
+      case 'theosphere_answer': {
+        const query = this.string(args.query, 'query');
+        const pack = await this.theology.research(query, typeof args.limit === 'number' ? args.limit : 12);
+        const service = this.rag as RagService & {
+          chatWithEvidencePack?: (query: string, pack: unknown, userId?: string, tradition?: string) => Promise<unknown>;
+        };
+        if (typeof service.chatWithEvidencePack !== 'function') throw new BadRequestException('Evidence-aware RAG adapter is not installed');
+        result = await service.chatWithEvidencePack(query, pack, undefined, typeof args.tradition === 'string' ? args.tradition : undefined);
+        break;
+      }
       case 'theosphere_memory_search':
         result = await this.memory.search(
           this.string(args.query, 'query'),
