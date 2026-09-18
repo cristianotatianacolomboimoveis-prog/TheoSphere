@@ -1,4 +1,5 @@
 import { McpAutonomyService } from './mcp.autonomy.service';
+import type { McpExecutionReceipt } from './mcp.types';
 
 describe('McpAutonomyService', () => {
   it('dispatches a created task through planning, assignment and start', async () => {
@@ -46,7 +47,7 @@ describe('McpAutonomyService', () => {
       return tasks.current;
     });
 
-    const receipt = {
+    const receipt: McpExecutionReceipt = {
       commitSha: 'abc1234',
       changedFiles: ['src/a.ts'],
       tests: [{ command: 'npm test -- mcp', status: 'passed', durationMs: 1200 }],
