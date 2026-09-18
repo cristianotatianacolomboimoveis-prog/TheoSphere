@@ -115,7 +115,7 @@ export class McpProtocolService {
       {
         name: 'theosphere_record_result',
         description: 'Record a worker result and drive successful execution through testing, auditing and verification.',
-        inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, success: { type: 'boolean' }, summary: { type: 'string' } }, required: ['taskId', 'success'], additionalProperties: false },
+        inputSchema: { type: 'object', properties: { taskId: { type: 'string' }, agentId: { type: 'string' }, success: { type: 'boolean' }, summary: { type: 'string' } }, required: ['taskId', 'agentId', 'success'], additionalProperties: false },
       },
       {
         name: 'theosphere_research',
@@ -266,7 +266,7 @@ export class McpProtocolService {
         break;
       case 'theosphere_record_result':
         if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
-        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), args.success, typeof args.summary === 'string' ? args.summary : undefined);
+        result = await this.autonomy.recordResult(this.string(args.taskId, 'taskId'), this.string(args.agentId, 'agentId'), args.success, typeof args.summary === 'string' ? args.summary : undefined);
         break;
       case 'theosphere_research':
         result = await this.theology.research(this.string(args.query, 'query'), typeof args.limit === 'number' ? args.limit : 12);
