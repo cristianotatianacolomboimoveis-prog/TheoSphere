@@ -30,6 +30,7 @@ export class McpProtocolService {
   readonly protocolVersion = '2026-07-28';
   readonly legacyProtocolVersion = '2025-11-25';
   readonly supportedProtocolVersions = ['2026-07-28', '2025-11-25', '2025-06-18'];
+  readonly modernProtocolVersions = ['2026-07-28'];
   readonly serverVersion = '0.3.0';
   private readonly actor = 'mcp-protocol';
 
