@@ -8,6 +8,7 @@ export interface McpExecutionResult {
   taskId: string;
   status: McpTask['status'];
   agentId?: string;
+  verifierAgentId?: string;
   summary?: string;
 }
 
@@ -37,22 +38,48 @@ export class McpAutonomyService {
     if (!['IN_PROGRESS', 'IMPLEMENTED', 'TESTING', 'AUDITING'].includes(task.status)) {
       throw new ConflictException(`Task ${taskId} cannot record a result from ${task.status}`);
     }
+
     let updated = task;
     if (task.status === 'IN_PROGRESS') updated = this.orchestrator.advance(taskId, success ? 'IMPLEMENTED' : 'REWORK');
     if (success && updated.status === 'IMPLEMENTED') updated = this.orchestrator.advance(taskId, 'TESTING');
     if (success && updated.status === 'TESTING') updated = this.orchestrator.advance(taskId, 'AUDITING');
-    if (success && updated.status === 'AUDITING') updated = this.orchestrator.advance(taskId, 'VERIFIED');
     if (!success && updated.status !== 'REWORK') updated = this.orchestrator.advance(taskId, 'REWORK');
+
+    const content = summary?.trim() || (success
+      ? 'Worker execution completed; awaiting independent verification.'
+      : 'Worker execution returned to rework.');
 
     await this.memory.append({
       category: 'tasks',
       memoryKey: `execution:${taskId}:${updated.version}`,
-      content: summary?.trim() || (success ? 'Autonomous execution completed successfully.' : 'Autonomous execution returned to rework.'),
-      tags: ['autonomy', success ? 'verified' : 'rework'],
+      content,
+      tags: ['autonomy', success ? 'awaiting-verification' : 'rework'],
       source: 'mcp-autonomy',
       taskId,
       agentId: task.assignedAgent,
     });
+
     return { taskId, status: updated.status, agentId: task.assignedAgent, summary };
+  }
+
+  async verifyResult(taskId: string, verifierAgentId: string, summary?: string): Promise<McpExecutionResult> {
+    const task = this.tasks.get(taskId);
+    if (task.status !== 'AUDITING') {
+      throw new ConflictException(`Task ${taskId} cannot be verified from ${task.status}`);
+    }
+    if (!task.assignedAgent || task.assignedAgent === verifierAgentId) {
+      throw new ConflictException('MCP verification requires an independent agent');
+    }
+    const updated = this.orchestrator.advance(taskId, 'VERIFIED');
+    await this.memory.append({
+      category: 'audits',
+      memoryKey: `verification:${taskId}:${updated.version}`,
+      content: summary?.trim() || 'Independent worker verification completed.',
+      tags: ['autonomy', 'verified'],
+      source: 'mcp-autonomy',
+      taskId,
+      agentId: verifierAgentId,
+    });
+    return { taskId, status: updated.status, agentId: task.assignedAgent, verifierAgentId, summary };
   }
 }
