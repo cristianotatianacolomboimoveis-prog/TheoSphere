@@ -311,6 +311,7 @@ export class McpProtocolService {
     return {
       ...response,
       result: {
+        resultType: typeof result.resultType === 'string' ? result.resultType : 'complete',
         ...result,
         _meta: {
           ...existingMeta,
