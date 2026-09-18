@@ -87,6 +87,41 @@ describe('McpProtocolService', () => {
     expect(protocolTasks.update).toHaveBeenCalledWith('task-1', { approval: { action: 'accept' } });
   });
 
+  it('returns an async task handle for research calls from a tasks-capable client', async () => {
+    theology.research.mockResolvedValueOnce({ version: 1, query: 'grace', items: [] });
+    protocolTasks.create.mockResolvedValueOnce({
+      taskId: 'task-research-1',
+      status: 'working',
+      statusMessage: 'TheoSphere research is running asynchronously.',
+      createdAt: '2026-09-18T10:00:00.000Z',
+      lastUpdatedAt: '2026-09-18T10:00:00.000Z',
+      ttlMs: 3_600_000,
+      pollIntervalMs: 2_000,
+    });
+    const response = await service.handle({
+      jsonrpc: '2.0',
+      id: 1.6,
+      method: 'tools/call',
+      params: {
+        name: 'theosphere_research',
+        arguments: { query: 'grace', limit: 5 },
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {
+            extensions: { 'io.modelcontextprotocol/tasks': {} },
+          },
+        },
+      },
+    }, '2026-07-28');
+    expect(protocolTasks.create).toHaveBeenCalledWith(
+      'theosphere_research',
+      { query: 'grace', limit: 5 },
+      'TheoSphere research is running asynchronously.',
+    );
+    expect((response?.result as any).resultType).toBe('task');
+    expect((response?.result as any).taskId).toBe('task-research-1');
+  });
+
   it('requires the tasks extension capability for task polling and cancellation', async () => {
     const missing = await service.handle({ jsonrpc: '2.0', id: 16, method: 'tasks/get', params: { taskId: 'task-1' } }, '2026-07-28');
     expect(missing?.error).toEqual(expect.objectContaining({ code: -32021, data: { requiredCapabilities: { extensions: { 'io.modelcontextprotocol/tasks': {} } } } }));
