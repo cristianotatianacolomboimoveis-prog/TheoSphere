@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { McpAuditEvent } from './mcp.types';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
 
@@ -22,7 +23,7 @@ export class McpAuditService {
   append(event: Omit<McpAuditEvent, 'id' | 'timestamp'>): McpAuditEvent {
     const record: McpAuditEvent = {
       ...event,
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       timestamp: new Date().toISOString(),
     };
     this.events.push(Object.freeze(record));
