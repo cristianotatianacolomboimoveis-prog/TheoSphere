@@ -213,7 +213,7 @@ describe('McpProtocolService', () => {
 
   it('requires the assigned worker identity when recording results', async () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 11, method: 'tools/call', params: { name: 'theosphere_record_result', arguments: { taskId: 'TSK-1', success: true } } });
-    expect(response?.error).toEqual(expect.objectContaining({ code: -32000 }));
+    expect(response?.error).toEqual(expect.objectContaining({ code: -32602 }));
     expect(autonomy.recordResult).not.toHaveBeenCalled();
   });
 
