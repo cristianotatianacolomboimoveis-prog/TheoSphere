@@ -1,4 +1,5 @@
 import { McpProtocolService } from './mcp.protocol.service';
+import { McpSecurityService } from './mcp.security.service';
 
 describe('McpProtocolService', () => {
   const orchestrator = {
@@ -18,7 +19,8 @@ describe('McpProtocolService', () => {
     append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
   } as any;
 
-  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy);
+  const security = new McpSecurityService();
+  const service = new McpProtocolService(orchestrator, tasks, audit, memory, theology, autonomy, security);
 
   it('supports MCP initialize and tool discovery', async () => {
     const initialized = await service.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
@@ -58,6 +60,13 @@ describe('McpProtocolService', () => {
     const response = await service.handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'theosphere_dispatch_task', arguments: { taskId: 'TSK-1' } } });
     expect(autonomy.dispatch).toHaveBeenCalledWith('TSK-1');
     expect((response?.result as any).structuredContent.status).toBe('IN_PROGRESS');
+  });
+
+  it('enforces protocol permissions before tool execution', async () => {
+    security.revoke('mcp-protocol', 'memory:read');
+    const denied = await service.handle({ jsonrpc: '2.0', id: 10, method: 'tools/call', params: { name: 'theosphere_memory_search', arguments: { query: 'x' } } });
+    expect(denied?.error).toEqual(expect.objectContaining({ code: -32001 }));
+    expect(memory.search).not.toHaveBeenCalled();
   });
 
   it('rejects unknown tools and invalid JSON-RPC', async () => {
