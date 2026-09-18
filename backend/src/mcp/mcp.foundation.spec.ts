@@ -78,7 +78,8 @@ describe('MCP control-plane foundation', () => {
     await first.complete(created.taskId, { content: [{ type: 'text', text: 'Evidence-grounded answer' }], isError: false });
     const second = new McpProtocolTaskService(memory);
     await second.onModuleInit();
-    expect(second.get(created.taskId)).toEqual(expect.objectContaining({ status: 'completed', result: expect.any(Object) }));
+    const recovered = second.get(created.taskId);
+    expect(recovered).toEqual(expect.objectContaining({ status: 'completed', result: expect.any(Object) }));
   });
 
   it('cancels a protocol task and rejects terminal completion', async () => {
@@ -86,7 +87,8 @@ describe('MCP control-plane foundation', () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await service.cancel(task.taskId);
-    expect(service.get(task.taskId).status).toBe('cancelled');
+    const cancelled = service.get(task.taskId);
+    expect(cancelled.status).toBe('cancelled');
     await expect(service.complete(task.taskId, {})).rejects.toThrow('already terminal');
   });
 });
