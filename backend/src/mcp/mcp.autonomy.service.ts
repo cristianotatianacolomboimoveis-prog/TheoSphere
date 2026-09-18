@@ -22,14 +22,14 @@ export class McpAutonomyService {
     private readonly memory: McpProjectMemoryService,
   ) {}
 
-  dispatch(taskId: string): McpTask {
+  async dispatch(taskId: string): Promise<McpTask> {
     const initial = this.tasks.get(taskId);
     const rework = initial.status === 'REWORK';
-    if (initial.status === 'CREATED' || rework) this.orchestrator.plan(taskId);
+    if (initial.status === 'CREATED' || rework) await this.orchestrator.plan(taskId);
     const planned = this.tasks.get(taskId);
     if (planned.status !== 'PLANNED') throw new ConflictException(`Task ${taskId} is not dispatchable from ${planned.status}`);
-    if (!planned.assignedAgent || rework) this.orchestrator.assign(taskId);
-    return this.orchestrator.lockAndStart(taskId);
+    if (!planned.assignedAgent || rework) await this.orchestrator.assign(taskId);
+    return await this.orchestrator.lockAndStart(taskId);
   }
 
   async recordResult(taskId: string, agentId: string, success: boolean, summary?: string): Promise<McpExecutionResult> {
@@ -42,10 +42,10 @@ export class McpAutonomyService {
     }
 
     let updated = task;
-    if (task.status === 'IN_PROGRESS') updated = this.orchestrator.advance(taskId, success ? 'IMPLEMENTED' : 'REWORK');
-    if (success && updated.status === 'IMPLEMENTED') updated = this.orchestrator.advance(taskId, 'TESTING');
-    if (success && updated.status === 'TESTING') updated = this.orchestrator.advance(taskId, 'AUDITING');
-    if (!success && updated.status !== 'REWORK') updated = this.orchestrator.advance(taskId, 'REWORK');
+    if (task.status === 'IN_PROGRESS') updated = await this.orchestrator.advance(taskId, success ? 'IMPLEMENTED' : 'REWORK');
+    if (success && updated.status === 'IMPLEMENTED') updated = await this.orchestrator.advance(taskId, 'TESTING');
+    if (success && updated.status === 'TESTING') updated = await this.orchestrator.advance(taskId, 'AUDITING');
+    if (!success && updated.status !== 'REWORK') updated = await this.orchestrator.advance(taskId, 'REWORK');
 
     const content = summary?.trim() || (success
       ? 'Worker execution completed; awaiting independent verification.'
@@ -76,7 +76,7 @@ export class McpAutonomyService {
     if (!verifier || !verifier.enabled || !verifier.capabilities.includes('verification')) {
       throw new ConflictException('MCP verifier must be a registered enabled agent with verification capability');
     }
-    const updated = this.orchestrator.advance(taskId, 'VERIFIED');
+    const updated = await this.orchestrator.advance(taskId, 'VERIFIED');
     await this.memory.append({
       category: 'audits',
       memoryKey: `verification:${taskId}:${updated.version}`,
