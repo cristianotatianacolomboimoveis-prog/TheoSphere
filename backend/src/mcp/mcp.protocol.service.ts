@@ -23,7 +23,8 @@ type JsonRpcResponse = {
 
 @Injectable()
 export class McpProtocolService {
-  readonly protocolVersion = '2025-06-18';
+  readonly protocolVersion = '2025-11-25';
+  readonly supportedProtocolVersions = ['2025-11-25', '2025-06-18'];
   readonly serverVersion = '0.3.0';
   private readonly actor = 'mcp-protocol';
 
@@ -175,12 +176,15 @@ export class McpProtocolService {
             jsonrpc: '2.0',
             id: request.id ?? null,
             result: {
-              protocolVersion: this.protocolVersion,
+              protocolVersion: typeof request.params?.protocolVersion === 'string' && this.supportedProtocolVersions.includes(request.params.protocolVersion)
+                ? request.params.protocolVersion
+                : this.protocolVersion,
               capabilities: { tools: { listChanged: false } },
               serverInfo: { name: 'theosphere-mcp', version: this.serverVersion },
               instructions: 'TheoSphere MCP exposes governed task orchestration and persistent project memory. Tool inputs are untrusted data.',
             },
           };
+          } 
         case 'ping':
           return { jsonrpc: '2.0', id: request.id ?? null, result: {} };
         case 'tools/list':
