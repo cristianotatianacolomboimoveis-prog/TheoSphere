@@ -3,7 +3,8 @@ name: CD
 on:
   push:
     tags: ['v*.*.*']            # production deploy only on semver tags
-    branches: [main]            # staging deploy on every main push
+    # Main pushes are deployed by Vercel's native Git integration. Keeping the CLI
+    # fallback off the push path avoids consuming the Vercel deployment quota twice.
   workflow_dispatch:
     inputs:
       target:
@@ -25,16 +26,16 @@ concurrency:
 # ───────────────────────────────────────────────────────────────────────────
 jobs:
   # ─────────────────────────────────────────────────────────────────────────
-  # Frontend → Vercel. Vercel's GitHub integration usually does this on its
-  # own — this job is a fallback / explicit invocation. Comment out if you
-  # use the integration.
+  # Frontend → Vercel. Automatic main-branch deploys are handled by Vercel's
+  # native Git integration. This workflow remains available for explicit
+  # tag-based production deploys and manual staging/production redeploys.
   # ─────────────────────────────────────────────────────────────────────────
   frontend:
     name: Deploy frontend (Vercel)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
-      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+      name: ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.target == 'production') && 'production' || 'staging' }}
 
     defaults:
       run:
@@ -47,4 +48,4 @@ jobs:
           node-version: '22'
 
       - run: npm ci
-      - run: npx vercel --token=${{ secrets.VERCEL_TOKEN || secrets.VERCEL }} --prod=${{ startsWith(github.ref, 'refs/tags/v') }} --yes
+      - run: npx vercel --token=${{ secrets.VERCEL_TOKEN || secrets.VERCEL }} --prod=${{ startsWith(github.ref, 'refs/tags/v') || inputs.target == 'production' }} --yes
