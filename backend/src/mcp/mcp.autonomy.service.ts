@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { McpAgentRegistryService } from './mcp.agent-registry.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
 import { McpTaskService } from './mcp.task.service';
@@ -16,6 +17,7 @@ export interface McpExecutionResult {
 export class McpAutonomyService {
   constructor(
     private readonly orchestrator: McpOrchestratorService,
+    private readonly agents: McpAgentRegistryService,
     private readonly tasks: McpTaskService,
     private readonly memory: McpProjectMemoryService,
   ) {}
@@ -69,6 +71,10 @@ export class McpAutonomyService {
     }
     if (!task.assignedAgent || task.assignedAgent === verifierAgentId) {
       throw new ConflictException('MCP verification requires an independent agent');
+    }
+    const verifier = this.agents.get(verifierAgentId);
+    if (!verifier || !verifier.enabled || !verifier.capabilities.includes('verification')) {
+      throw new ConflictException('MCP verifier must be a registered enabled agent with verification capability');
     }
     const updated = this.orchestrator.advance(taskId, 'VERIFIED');
     await this.memory.append({
