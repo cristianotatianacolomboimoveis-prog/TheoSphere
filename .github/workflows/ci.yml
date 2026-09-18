@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
+  workflow_dispatch:
 
 # Cancel in-flight runs for the same branch when a new commit is pushed.
 # Saves CI minutes on rapid-fire commits and avoids confusing stale results.
