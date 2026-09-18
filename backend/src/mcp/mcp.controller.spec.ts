@@ -8,6 +8,16 @@ describe('McpController', () => {
   const modernMeta = { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {} } };
   const config = { get: jest.fn((key: string) => key === 'NODE_ENV' ? 'development' : undefined) } as unknown as ConfigService;
 
+  it('rejects an untrusted Origin', async () => {
+    const controller = new McpController(protocol, config);
+    await expect(controller.handle({ jsonrpc: '2.0', id: 0, method: 'ping' }, undefined, undefined, 'application/json', undefined, undefined, undefined, 'https://evil.example', response)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('allows localhost Origin', async () => {
+    const controller = new McpController(protocol, config);
+    await expect(controller.handle({ jsonrpc: '2.0', id: 0, method: 'ping' }, undefined, undefined, 'application/json', undefined, undefined, undefined, 'http://localhost:3000', response)).resolves.toBeDefined();
+  });
+
   it('requires the configured bearer key', async () => {
     const controller = new McpController(protocol, { get: jest.fn((key: string) => key === 'MCP_API_KEY' ? 'x'.repeat(32) : 'production') } as unknown as ConfigService);
     await expect(controller.handle({}, undefined, undefined, 'application/json', undefined, undefined, undefined, undefined, response)).rejects.toBeInstanceOf(UnauthorizedException);
