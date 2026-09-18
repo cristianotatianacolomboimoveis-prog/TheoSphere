@@ -35,8 +35,16 @@ export class McpExecutionController {
     @Headers('authorization') authorization?: string,
   ) {
     this.authorize(authorization);
-    if (typeof body?.success !== 'boolean') throw new BadRequestException('Agent execution result requires boolean success');
-    return this.autonomy.recordResult(taskId, agentId, body.success, typeof body.summary === 'string' ? body.summary : undefined, this.parseReceipt(body.receipt));
+    if (typeof body?.success !== 'boolean') {
+      throw new BadRequestException('Agent execution result requires boolean success');
+    }
+    return this.autonomy.recordResult(
+      taskId,
+      agentId,
+      body.success,
+      typeof body.summary === 'string' ? body.summary : undefined,
+      this.parseReceipt(body.receipt),
+    );
   }
 
   @Post(':agentId/tasks/:taskId/verify')
@@ -47,12 +55,19 @@ export class McpExecutionController {
     @Headers('authorization') authorization?: string,
   ) {
     this.authorize(authorization);
-    return this.autonomy.verifyResult(taskId, verifierAgentId, typeof body?.summary === 'string' ? body.summary : undefined);
+    return this.autonomy.verifyResult(
+      taskId,
+      verifierAgentId,
+      typeof body?.summary === 'string' ? body.summary : undefined,
+    );
   }
 
   private parseReceipt(value: unknown): McpExecutionReceipt | undefined {
     if (value === undefined) return undefined;
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException('Invalid MCP execution receipt');
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new BadRequestException('Invalid MCP execution receipt');
+    }
+
     const receipt = value as Record<string, unknown>;
     if (
       typeof receipt.commitSha !== 'string' ||
@@ -60,44 +75,65 @@ export class McpExecutionController {
       !Array.isArray(receipt.tests) ||
       typeof receipt.startedAt !== 'string' ||
       typeof receipt.finishedAt !== 'string'
-    ) throw new UnauthorizedException('Invalid MCP execution receipt');
+    ) {
+      throw new BadRequestException('Invalid MCP execution receipt');
+    }
 
-    if (receipt.changedFiles.some((v) => typeof v !== 'string')) {
+    if (receipt.changedFiles.some((item) => typeof item !== 'string')) {
       throw new BadRequestException('Execution receipt changedFiles must contain only strings');
     }
-    const changedFiles = receipt.changedFiles as string[];
-    const tests = receipt.tests.map((test) => {
-      if (!test || typeof test !== 'object' || Array.isArray(test)) throw new BadRequestException('Invalid MCP execution receipt test');
-      const item = test as Record<string, unknown>;
-      if (typeof item.command !== 'string' || !['passed', 'failed', 'skipped'].includes(String(item.status))) {
-        throw new UnauthorizedException('Invalid MCP execution receipt test');
+
+    const tests: McpExecutionReceipt['tests'] = [];
+    for (const test of receipt.tests) {
+      if (!test || typeof test !== 'object' || Array.isArray(test)) {
+        throw new BadRequestException('Invalid MCP execution receipt test');
       }
-      if (item.durationMs !== undefined && (typeof item.durationMs !== 'number' || !Number.isFinite(item.durationMs) || item.durationMs < 0)) {
+      const item = test as Record<string, unknown>;
+      const command = item.command;
+      const status = item.status;
+      if (
+        typeof command !== 'string' ||
+        (status !== 'passed' && status !== 'failed' && status !== 'skipped')
+      ) {
+        throw new BadRequestException('Invalid MCP execution receipt test');
+      }
+
+      const durationMs = item.durationMs;
+      if (
+        durationMs !== undefined &&
+        (typeof durationMs !== 'number' || !Number.isFinite(durationMs) || durationMs < 0)
+      ) {
         throw new BadRequestException('Invalid MCP execution receipt test durationMs');
       }
-      return {
-        command: item.command,
-        status: item.status as 'passed' | 'failed' | 'skipped',
-        ...(item.durationMs === undefined ? {} : { durationMs: item.durationMs }),
-      };
-    });
+
+      tests.push({
+        command,
+        status,
+        ...(durationMs === undefined ? {} : { durationMs }),
+      });
+    }
+
+    const artifactRefs = receipt.artifactRefs;
+    if (
+      artifactRefs !== undefined &&
+      (!Array.isArray(artifactRefs) || artifactRefs.some((item) => typeof item !== 'string'))
+    ) {
+      throw new BadRequestException('Execution receipt artifactRefs must contain only strings');
+    }
+
+    const agentVersion = receipt.agentVersion;
+    if (agentVersion !== undefined && typeof agentVersion !== 'string') {
+      throw new BadRequestException('Execution receipt agentVersion must be a string');
+    }
+
     return {
       commitSha: receipt.commitSha,
-      changedFiles,
+      changedFiles: receipt.changedFiles as string[],
       tests,
       startedAt: receipt.startedAt,
       finishedAt: receipt.finishedAt,
-      ...(receipt.artifactRefs === undefined ? {} : {
-        artifactRefs: Array.isArray(receipt.artifactRefs) && receipt.artifactRefs.every((v) => typeof v === 'string')
-          ? receipt.artifactRefs as string[]
-          : (() => { throw new BadRequestException('Execution receipt artifactRefs must contain only strings'); })(),
-      }),
-      ...(receipt.agentVersion === undefined ? {} : {
-        agentVersion: (() => {
-          if (typeof receipt.agentVersion !== 'string') throw new BadRequestException('Execution receipt agentVersion must be a string');
-          return receipt.agentVersion;
-        })(),
-      }),
+      ...(artifactRefs === undefined ? {} : { artifactRefs: artifactRefs as string[] }),
+      ...(agentVersion === undefined ? {} : { agentVersion }),
     };
   }
 
