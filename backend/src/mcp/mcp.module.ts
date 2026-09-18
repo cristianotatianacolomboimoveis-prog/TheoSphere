@@ -10,9 +10,10 @@ import { McpProtocolService } from './mcp.protocol.service';
 import { McpAutonomyService } from './mcp.autonomy.service';
 import { McpController } from './mcp.controller';
 import { McpExecutionController } from './mcp.execution.controller';
+import { McpAnswerController } from './mcp.answer.controller';
 
 @Module({
-  controllers: [McpController, McpExecutionController],
+  controllers: [McpController, McpExecutionController, McpAnswerController],
   providers: [
     McpAuditService,
     McpAgentRegistryService,
