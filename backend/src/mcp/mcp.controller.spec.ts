@@ -142,6 +142,25 @@ describe('McpController', () => {
       .resolves.toBeDefined();
   });
 
+  it('requires Mcp-Name to match tools/call name', async () => {
+    const controller = new McpController(protocol, config);
+    const body = {
+      jsonrpc: '2.0', id: 8, method: 'tools/call',
+      params: {
+        name: 'theosphere_snapshot',
+        arguments: {},
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
+    };
+    const mismatch = await controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tools/call', 'wrong-tool', undefined, response);
+    expect(mismatch).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32020 }) }));
+    await expect(controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tools/call', 'theosphere_snapshot', undefined, response))
+      .resolves.toBeDefined();
+  });
+
   it('supports session lifecycle for Streamable HTTP GET/DELETE', async () => {
     const controller = new McpController(protocol, config);
     response.statusCode = 200;
