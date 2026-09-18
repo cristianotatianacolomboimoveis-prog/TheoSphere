@@ -69,6 +69,63 @@ describe('AppController (e2e)', () => {
       items: expect.any(Array),
     }));
 
+    const taskMeta = {
+      'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+      'io.modelcontextprotocol/clientInfo': { name: 'theosphere-e2e', version: '1.0.0' },
+      'io.modelcontextprotocol/clientCapabilities': {
+        extensions: { 'io.modelcontextprotocol/tasks': {} },
+      },
+    };
+
+    const taskCreation = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('Accept', 'application/json')
+      .set('MCP-Protocol-Version', '2026-07-28')
+      .set('Mcp-Method', 'tools/call')
+      .set('Mcp-Name', 'theosphere_research')
+      .send({
+        jsonrpc: '2.0',
+        id: 2.5,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_research',
+          arguments: { query: 'John 3:16', limit: 3 },
+          _meta: taskMeta,
+        },
+      })
+      .expect(200);
+
+    expect(taskCreation.body.result.resultType).toBe('task');
+    const taskId = taskCreation.body.result.taskId;
+    expect(taskId).toEqual(expect.any(String));
+
+    let taskState: any;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      taskState = await request(app.getHttpServer())
+        .post('/mcp')
+        .set('Accept', 'application/json')
+        .set('MCP-Protocol-Version', '2026-07-28')
+        .set('Mcp-Method', 'tasks/get')
+        .set('Mcp-Name', taskId)
+        .send({
+          jsonrpc: '2.0',
+          id: 2.6 + attempt,
+          method: 'tasks/get',
+          params: { taskId, _meta: taskMeta },
+        })
+        .expect(200);
+
+      if (taskState.body.result.status === 'completed') break;
+      if (taskState.body.result.status !== 'working') throw new Error('Unexpected task status: ' + taskState.body.result.status);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    expect(taskState.body.result.resultType).toBe('complete');
+    expect(taskState.body.result.status).toBe('completed');
+    expect(taskState.body.result.result).toEqual(expect.objectContaining({
+      structuredContent: expect.objectContaining({ query: 'John 3:16' }),
+    }));
+
     const listed = await request(app.getHttpServer())
       .post('/mcp')
       .set('Accept', 'application/json')
