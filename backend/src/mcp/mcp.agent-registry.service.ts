@@ -20,7 +20,9 @@ export class McpAgentRegistryService {
             capabilities: [...new Set(agent.capabilities.map((value) => value.trim()).filter(Boolean))],
           });
         }
-      } catch { /* ignore malformed historical state */ }
+      } catch (error) {
+        void error;
+      }
     }
   }
 
@@ -50,13 +52,15 @@ export class McpAgentRegistryService {
 
   private persist(agent: McpAgent): void {
     if (!this.memory) return;
-    void this.memory.append({
-      category: 'agents',
-      memoryKey: `mcp:agent:${agent.id}`,
-      content: JSON.stringify(agent),
-      tags: ['mcp', 'agent-registry', agent.enabled ? 'enabled' : 'disabled'],
-      source: 'mcp-agent-registry',
-      agentId: agent.id,
-    }).catch(() => undefined);
+    void this.memory
+      .append({
+        category: 'agents',
+        memoryKey: `mcp:agent:${agent.id}`,
+        content: JSON.stringify(agent),
+        tags: ['mcp', 'agent-registry', agent.enabled ? 'enabled' : 'disabled'],
+        source: 'mcp-agent-registry',
+        agentId: agent.id,
+      })
+      .catch(() => undefined);
   }
 }
