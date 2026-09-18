@@ -38,7 +38,8 @@
     "db:seed:interlinear": "ts-node prisma/seed-interlinear.ts",
     "db:studio": "prisma studio",
     "ingest:drive": "ts-node trigger-ingest.ts",
-    "tsk:import": "ts-node scripts/import-tsk-full.ts"
+    "tsk:import": "ts-node scripts/import-tsk-full.ts",
+    "mcp:smoke": "node scripts/mcp-smoke.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.5.0",
