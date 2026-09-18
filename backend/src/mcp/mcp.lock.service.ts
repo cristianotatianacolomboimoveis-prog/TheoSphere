@@ -77,9 +77,9 @@ export class McpLockService implements OnModuleDestroy {
         const result = await this.redis.set(
           this.key(path),
           JSON.stringify(lock),
-          'NX',
           'PX',
           this.ttlMs,
+          'NX',
         );
         if (result !== 'OK') {
           const existing = await this.read(path);
