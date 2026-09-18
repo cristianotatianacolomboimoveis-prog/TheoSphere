@@ -74,8 +74,19 @@ export class McpProtocolTaskService {
     return this.publicTask(task);
   }
 
+  /**
+   * Refreshes a task from durable project memory before a cross-instance operation.
+   * The in-process map is only a cache; a second backend instance may have written a
+   * newer snapshot since this instance started. Callers that make state transitions
+   * must use this method so terminal states cannot be bypassed by stale cache data.
+   */
+  async getFresh(taskId: string): Promise<McpProtocolTask> {
+    const task = await this.refreshFromMemory(taskId);
+    return this.publicTask(task);
+  }
+
   async update(taskId: string, inputResponses: Record<string, unknown>): Promise<void> {
-    const task = this.mutable(taskId);
+    const task = await this.refreshFromMemory(taskId);
     if (task.status !== 'input_required') throw new ConflictException('MCP task is not awaiting input');
     if (!inputResponses || typeof inputResponses !== 'object' || Array.isArray(inputResponses)) {
       throw new ConflictException('MCP task inputResponses must be an object');
@@ -94,7 +105,7 @@ export class McpProtocolTaskService {
   }
 
   async complete(taskId: string, result: Record<string, unknown>): Promise<McpProtocolTask> {
-    const task = this.mutable(taskId);
+    const task = await this.refreshFromMemory(taskId);
     this.ensureNotTerminal(task);
     task.status = 'completed';
     task.statusMessage = 'Task completed.';
@@ -105,7 +116,7 @@ export class McpProtocolTaskService {
   }
 
   async fail(taskId: string, code: number, message: string): Promise<McpProtocolTask> {
-    const task = this.mutable(taskId);
+    const task = await this.refreshFromMemory(taskId);
     if (task.status === 'cancelled' || task.status === 'completed' || task.status === 'failed') return this.publicTask(task);
     task.status = 'failed';
     task.statusMessage = message;
@@ -116,12 +127,31 @@ export class McpProtocolTaskService {
   }
 
   async cancel(taskId: string): Promise<void> {
-    const task = this.mutable(taskId);
+    const task = await this.refreshFromMemory(taskId);
     if (task.status === 'completed' || task.status === 'cancelled' || task.status === 'failed') throw new ConflictException('MCP task is already terminal');
     task.status = 'cancelled';
     task.statusMessage = 'Cancellation requested.';
     task.lastUpdatedAt = new Date().toISOString();
     await this.persist(task);
+  }
+
+  private async refreshFromMemory(taskId: string): Promise<McpProtocolTask> {
+    const local = this.mutable(taskId);
+    const entry = await this.memory.latest(this.prefix + taskId);
+    if (!entry?.content) return local;
+    try {
+      const persisted = JSON.parse(entry.content) as McpProtocolTask;
+      if (!persisted?.taskId || persisted.taskId !== taskId || !persisted.status || !persisted.createdAt || !persisted.lastUpdatedAt) {
+        return local;
+      }
+      if (Date.parse(persisted.lastUpdatedAt) >= Date.parse(local.lastUpdatedAt)) {
+        this.tasks.set(taskId, persisted);
+        return persisted;
+      }
+    } catch {
+      // Keep the in-process snapshot when the latest durable entry is malformed.
+    }
+    return local;
   }
 
   private mutable(taskId: string): McpProtocolTask {
