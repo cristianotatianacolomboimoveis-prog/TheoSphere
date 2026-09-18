@@ -81,8 +81,8 @@ describe('McpController', () => {
         },
       },
     };
-    await expect(controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tasks/get', undefined, undefined, response))
-      .rejects.toBeInstanceOf(BadRequestException);
+    const mismatch = await controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tasks/get', undefined, undefined, response);
+    expect(mismatch).toEqual(expect.objectContaining({ error: expect.objectContaining({ code: -32020 }) }));
     await expect(controller.handle(body, undefined, undefined, 'application/json', '2026-07-28', 'tasks/get', 'task-123', undefined, response))
       .resolves.toBeDefined();
   });
