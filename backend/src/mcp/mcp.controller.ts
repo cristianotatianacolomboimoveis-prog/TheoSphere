@@ -74,7 +74,9 @@ export class McpController {
       if (!clientCapabilities || typeof clientCapabilities !== 'object' || Array.isArray(clientCapabilities)) return this.protocolError(res, requestId, -32602, 'MCP client capabilities metadata is required');
       if (modernMethod === 'tasks/get' || modernMethod === 'tasks/update' || modernMethod === 'tasks/cancel') {
         const extensions = (clientCapabilities as Record<string, unknown>).extensions;
-        if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions) || !('io.modelcontextprotocol/tasks' in extensions)) return { jsonrpc: '2.0', id: request.id ?? null, error: { code: -32021, message: 'MCP Tasks extension capability is required' } };
+        if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions) || !('io.modelcontextprotocol/tasks' in extensions)) {
+          return this.protocolError(res, requestId, -32021, 'Missing required client capability: io.modelcontextprotocol/tasks');
+        }
       }
     }
     if (modern && (request.method === 'initialize' || request.method === 'notifications/initialized')) throw new BadRequestException('initialize is not part of MCP 2026-07-28');
