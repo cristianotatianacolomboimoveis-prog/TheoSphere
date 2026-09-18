@@ -16,7 +16,9 @@ export class McpAuditService {
       try {
         const event = JSON.parse(entry.content) as McpAuditEvent;
         if (event?.id && event.timestamp) this.events.push(Object.freeze(event));
-      } catch { /* ignore malformed historical audit */ }
+      } catch (error) {
+        void error;
+      }
     }
   }
 
@@ -28,12 +30,17 @@ export class McpAuditService {
     };
     this.events.push(Object.freeze(record));
     if (this.memory) {
-      void this.memory.append({
-        category: 'audits', memoryKey: `mcp:audit:${record.id}`, content: JSON.stringify(record),
-        tags: ['mcp', 'audit', record.action], source: 'mcp-audit-service',
-        taskId: record.resourceType === 'task' ? record.resourceId : undefined,
-        agentId: typeof record.metadata?.agentId === 'string' ? record.metadata.agentId : undefined,
-      }).catch(() => undefined);
+      void this.memory
+        .append({
+          category: 'audits',
+          memoryKey: `mcp:audit:${record.id}`,
+          content: JSON.stringify(record),
+          tags: ['mcp', 'audit', record.action],
+          source: 'mcp-audit-service',
+          taskId: record.resourceType === 'task' ? record.resourceId : undefined,
+          agentId: typeof record.metadata?.agentId === 'string' ? record.metadata.agentId : undefined,
+        })
+        .catch(() => undefined);
     }
     return record;
   }
