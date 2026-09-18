@@ -297,7 +297,7 @@ export class McpProtocolService {
         result = this.audit.list(typeof args.limit === 'number' ? Math.min(Math.max(Math.trunc(args.limit), 1), 200) : 100);
         break;
       case 'theosphere_snapshot':
-        result = this.orchestrator.snapshot();
+        result = await this.orchestrator.snapshot();
         break;
       case 'theosphere_create_task':
         result = this.tasks.create({
@@ -316,13 +316,13 @@ export class McpProtocolService {
         result = this.orchestrator.assign(this.string(args.taskId, 'taskId'), args.capability === undefined ? undefined : this.string(args.capability, 'capability'));
         break;
       case 'theosphere_start_task':
-        result = this.orchestrator.lockAndStart(this.string(args.taskId, 'taskId'));
+        result = await this.orchestrator.lockAndStart(this.string(args.taskId, 'taskId'));
         break;
       case 'theosphere_advance_task':
-        result = this.orchestrator.advance(this.string(args.taskId, 'taskId'), this.enumValue(args.next, ['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED', 'REWORK', 'FAILED'], 'next') as any);
+        result = await this.orchestrator.advance(this.string(args.taskId, 'taskId'), this.enumValue(args.next, ['IMPLEMENTED', 'TESTING', 'AUDITING', 'VERIFIED', 'REWORK', 'FAILED'], 'next') as any);
         break;
       case 'theosphere_dispatch_task':
-        result = this.autonomy.dispatch(this.string(args.taskId, 'taskId'));
+        result = await this.autonomy.dispatch(this.string(args.taskId, 'taskId'));
         break;
       case 'theosphere_record_result':
         if (typeof args.success !== 'boolean') return this.error(id, -32602, 'MCP success must be a boolean');
