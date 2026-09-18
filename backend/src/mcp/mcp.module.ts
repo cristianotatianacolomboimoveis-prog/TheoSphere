@@ -9,9 +9,10 @@ import { McpOrchestratorService } from './mcp.orchestrator.service';
 import { McpProtocolService } from './mcp.protocol.service';
 import { McpAutonomyService } from './mcp.autonomy.service';
 import { McpController } from './mcp.controller';
+import { McpExecutionController } from './mcp.execution.controller';
 
 @Module({
-  controllers: [McpController],
+  controllers: [McpController, McpExecutionController],
   providers: [
     McpAuditService,
     McpAgentRegistryService,
