@@ -22,6 +22,6 @@ import { ArchaeologyModule } from './archaeology/archaeology.module';
     CrossReferencesService,
     PassageGuideService,
   ],
-  exports: [BibleIngestionService],
+  exports: [BibleIngestionService, CrossReferencesService],
 })
 export class BibleModule {}
