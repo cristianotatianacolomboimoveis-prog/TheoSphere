@@ -7,6 +7,7 @@ import { McpAutonomyService } from './mcp.autonomy.service';
 import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 import { McpSecurityService } from './mcp.security.service';
 import { RagService } from '../rag/rag.service';
+import { McpProtocolTaskService } from './mcp.protocol-task.service';
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -41,6 +42,7 @@ export class McpProtocolService {
     private readonly autonomy: McpAutonomyService,
     private readonly security: McpSecurityService,
     private readonly rag: RagService,
+    private readonly protocolTasks: McpProtocolTaskService,
   ) {}
 
   tools() {
@@ -223,7 +225,10 @@ export class McpProtocolService {
             id: request.id ?? null,
             result: {
               protocolVersions: this.supportedProtocolVersions,
-              capabilities: { tools: { listChanged: false } },
+              capabilities: {
+                tools: { listChanged: false },
+                extensions: { 'io.modelcontextprotocol/tasks': {} },
+              },
             },
           }, protocolVersion);
         case 'initialize': {
@@ -241,6 +246,19 @@ export class McpProtocolService {
             },
           };
         }
+        case 'tasks/get':
+          if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/get requires MCP 2026-07-28');
+          if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
+          return this.modernize(this.taskResponse(request.id ?? null, this.protocolTasks.get(this.string(request.params?.taskId, 'taskId'))), protocolVersion);
+        case 'tasks/update':
+          if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/update requires MCP 2026-07-28');
+          if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
+          return this.error(request.id ?? null, -32602, 'TheoSphere protocol tasks do not currently expose input_required tasks');
+        case 'tasks/cancel':
+          if (protocolVersion !== this.protocolVersion) return this.error(request.id ?? null, -32601, 'tasks/cancel requires MCP 2026-07-28');
+          if (!this.hasTasksCapability(request.params)) return this.missingTasksCapability(request.id ?? null);
+          await this.protocolTasks.cancel(this.string(request.params?.taskId, 'taskId'));
+          return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: { resultType: 'complete' } }, protocolVersion);
         case 'ping':
           return this.modernize({ jsonrpc: '2.0', id: request.id ?? null, result: {} }, protocolVersion);
         case 'tools/list':
@@ -371,12 +389,24 @@ export class McpProtocolService {
         break;
       case 'theosphere_answer': {
         const query = this.string(args.query, 'query');
-        const pack = await this.theology.research(query, typeof args.limit === 'number' ? args.limit : 12);
+        const limit = typeof args.limit === 'number' ? args.limit : 12;
+        const tradition = typeof args.tradition === 'string' ? args.tradition : undefined;
         const service = this.rag as RagService & {
           chatWithEvidencePack?: (query: string, pack: unknown, userId?: string, tradition?: string) => Promise<unknown>;
         };
         if (typeof service.chatWithEvidencePack !== 'function') throw new BadRequestException('Evidence-aware RAG adapter is not installed');
-        result = await service.chatWithEvidencePack(query, pack, undefined, typeof args.tradition === 'string' ? args.tradition : undefined);
+        if (this.hasTasksCapabilityFromCallParams(params)) {
+          const task = await this.protocolTasks.create(
+            'theosphere_answer',
+            { query, limit, ...(tradition ? { tradition } : {}) },
+            'TheoSphere answer is running asynchronously.',
+          );
+          void this.executeAnswerTask(task.taskId, query, limit, tradition);
+          result = { resultType: 'task', ...task };
+        } else {
+          const pack = await this.theology.research(query, limit);
+          result = await service.chatWithEvidencePack(query, pack, undefined, tradition);
+        }
         break;
       }
       case 'theosphere_memory_search':
@@ -403,6 +433,54 @@ export class McpProtocolService {
     }
 
     return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result } };
+  }
+
+  private hasTasksCapability(params?: Record<string, unknown>): boolean {
+    const meta = params?._meta;
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return false;
+    const capabilities = (meta as Record<string, unknown>)['io.modelcontextprotocol/clientCapabilities'];
+    if (!capabilities || typeof capabilities !== 'object' || Array.isArray(capabilities)) return false;
+    const extensions = (capabilities as Record<string, unknown>).extensions;
+    if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions)) return false;
+    return Object.prototype.hasOwnProperty.call(extensions, 'io.modelcontextprotocol/tasks');
+  }
+
+  private hasTasksCapabilityFromCallParams(params: Record<string, unknown>): boolean {
+    return this.hasTasksCapability(params);
+  }
+
+  private missingTasksCapability(id: string | number | null): JsonRpcResponse {
+    return {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code: -32021,
+        message: 'Missing required client capability',
+        data: { requiredCapabilities: { extensions: { 'io.modelcontextprotocol/tasks': {} } } },
+      },
+    };
+  }
+
+  private taskResponse(id: string | number | null, task: unknown): JsonRpcResponse {
+    return { jsonrpc: '2.0', id, result: { resultType: 'complete', ...(task as Record<string, unknown>) } };
+  }
+
+  private async executeAnswerTask(taskId: string, query: string, limit: number, tradition?: string): Promise<void> {
+    try {
+      const pack = await this.theology.research(query, limit);
+      const service = this.rag as RagService & {
+        chatWithEvidencePack?: (query: string, pack: unknown, userId?: string, tradition?: string) => Promise<unknown>;
+      };
+      if (typeof service.chatWithEvidencePack !== 'function') throw new Error('Evidence-aware RAG adapter is not installed');
+      const answer = await service.chatWithEvidencePack(query, pack, undefined, tradition);
+      await this.protocolTasks.complete(taskId, {
+        content: [{ type: 'text', text: JSON.stringify(answer) }],
+        structuredContent: answer,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MCP task execution failed';
+      await this.protocolTasks.fail(taskId, -32603, message).catch(() => undefined);
+    }
   }
 
   private executionReceipt(value: unknown) {
