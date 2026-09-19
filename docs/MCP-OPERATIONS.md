@@ -45,6 +45,18 @@ npm run mcp:smoke
 
 The script validates discovery, tool catalog, EvidencePack research, and—when explicitly enabled—the task handle plus polling lifecycle.
 
+With `MCP_RUN_ANSWER=1` it polls `tasks/get` until the task is terminal and **fails** unless `theosphere_answer` ended `completed` with a result (a task that stays `working`, ends `failed`, or completes empty is an error). This spends real Gemini/OpenAI quota, so use a short query.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `MCP_RUN_RESEARCH=1` | off | also call `theosphere_research` (no LLM cost) |
+| `MCP_RUN_ANSWER=1` | off | create a `theosphere_answer` task and wait for its terminal state |
+| `MCP_RUN_CANCEL=1` | off | cancel a research task and require it to stay `cancelled` (no LLM cost). If the task finishes first it is reported as `already-terminal`, not a failure |
+| `MCP_TASK_TIMEOUT_MS` | 180000 | how long a task may take to reach a terminal state |
+| `MCP_TIMEOUT_MS` | 60000 | per-request timeout |
+
+On failure the script prints the partial report (`ok: false`, the error, and the steps that passed) to stderr and exits 1.
+
 ## Deployment note
 
 Do not expose the MCP endpoint in production without setting `MCP_API_KEY`. For multiple backend instances, configure Redis so file locks are shared across instances. Keep API keys in Render/Vercel environment settings or the equivalent secret manager, never in Git.
