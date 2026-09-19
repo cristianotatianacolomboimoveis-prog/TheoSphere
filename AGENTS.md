@@ -19,6 +19,12 @@ Instruções para agentes de IA que trabalham neste repositório. Arquivo cross-
 
 1. **Validação em ambiente real (não feita):** Render (`theosphere-backend`, `theosphere-redis`), Supabase (conectividade, pgvector, migrations), health `/api/v1/health/live` e `/ready`, e `npm run mcp:smoke` contra a URL real (ver `docs/MCP-OPERATIONS.md`). Só depois considerar o caminho MCP/EvidencePack/RAG pronto para teste de produção controlado.
 
+## Produção observada (Render) — 2026-09-19
+
+Sondagem somente-leitura de `https://theosphere.onrender.com`: `/api/v1/health/live`, `/ready` e `/health` respondem 200 (banco e Redis `up`), `/api/v1/health/ai` reporta `gemini` configurado e `/api/v1/search/verses` responde com `meta.timing`. Porém `POST /mcp` e `GET /api/v1/rag/evidence` respondem **404**: o processo no ar é uma build **anterior** ao commit `769d282` (MCP/EvidencePack), não a `main` atual. A Vercel, ao contrário, serve `main@859253f` (deploy `READY`).
+
+Hipótese (não confirmada — exige os logs de deploy do Render): builds novas falham no boot pela validação Joi abaixo (`MCP_API_KEY` ausente) e o Render mantém a última versão saudável. Antes de qualquer `mcp:smoke`, confirmar no Render que o último deploy da `main` está `Live` e que `MCP_API_KEY` está definida.
+
 ## Requisitos de boot em produção
 
 `app.module.ts` (Joi) recusa iniciar com `NODE_ENV=production` sem: `MCP_API_KEY` (mín. 32 caracteres), `REDIS_URL` e ao menos uma de `GEMINI_API_KEY`/`OPENAI_API_KEY`. Toda variável exigida deve estar declarada em `backend/render.yaml` (com `sync: false` para segredos), senão o Blueprint não a solicita e o deploy quebra no boot.
