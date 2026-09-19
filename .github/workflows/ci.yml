@@ -85,8 +85,10 @@ jobs:
       - name: Run Prisma migrations
         run: npx prisma migrate deploy
 
+      # `npm run lint` passes --fix, which rewrites files on the runner and can
+      # never fail on formatting. `lint:check` is read-only so violations fail CI.
       - name: Lint
-        run: npm run lint -- --max-warnings 0
+        run: npm run lint:check
 
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.json
