@@ -110,6 +110,21 @@ jobs:
           retention-days: 7
 
   # ─────────────────────────────────────────────────────────────────────────
+  # Secret scan: fails when a tracked file holds a real-looking credential.
+  # Git history keeps old values, so prevention here is cheaper than rotation.
+  # ─────────────────────────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node scripts/check-secrets.mjs
+
+  # ─────────────────────────────────────────────────────────────────────────
   # Frontend: lint + typecheck + build (Next.js)
   # ─────────────────────────────────────────────────────────────────────────
   frontend:
