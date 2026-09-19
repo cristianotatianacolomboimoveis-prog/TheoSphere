@@ -3,11 +3,26 @@ import type { McpPermission } from './mcp.types';
 
 const DEFAULT_PERMISSIONS: Record<string, readonly McpPermission[]> = {
   'mcp-orchestrator': [
-    'task:create','task:assign','task:transition','lock:acquire','lock:release',
-    'agent:register','audit:read','memory:write','memory:read','research:read',
+    'task:create',
+    'task:assign',
+    'task:transition',
+    'lock:acquire',
+    'lock:release',
+    'agent:register',
+    'audit:read',
+    'memory:write',
+    'memory:read',
+    'research:read',
   ],
   'mcp-protocol': [
-    'task:create','task:assign','task:transition','agent:register','audit:read','memory:write','memory:read','research:read',
+    'task:create',
+    'task:assign',
+    'task:transition',
+    'agent:register',
+    'audit:read',
+    'memory:write',
+    'memory:read',
+    'research:read',
   ],
 };
 
@@ -37,7 +52,9 @@ export class McpSecurityService {
 
   assertAllowed(agentId: string, permission: McpPermission): void {
     if (!this.has(agentId, permission)) {
-      throw new ForbiddenException(`MCP permission denied: ${agentId} cannot ${permission}`);
+      throw new ForbiddenException(
+        `MCP permission denied: ${agentId} cannot ${permission}`,
+      );
     }
   }
 }

@@ -9,7 +9,10 @@ import { TheologicalSourcesService } from './theological-sources.service';
 import { RerankerService } from './reranker.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagService, type ChatMessage } from './rag.service';
-import { EvidencePackService, type EvidenceInput } from './evidence-pack.service';
+import {
+  EvidencePackService,
+  type EvidenceInput,
+} from './evidence-pack.service';
 import type { EvidencePack } from './evidence-pack';
 import { EvidencePackContextService } from './evidence-pack-context.service';
 
@@ -29,7 +32,10 @@ type Builder = (params: BuilderParams) => BuilderResult;
  */
 @Injectable()
 export class EvidenceAwareRagService extends RagService {
-  private readonly evidenceContextStorage = new AsyncLocalStorage<string>();
+  private readonly evidenceContextStorage = new AsyncLocalStorage<{
+    evidence: string;
+    explicitPack: boolean;
+  }>();
 
   constructor(
     embeddingService: EmbeddingService,
@@ -79,8 +85,10 @@ export class EvidenceAwareRagService extends RagService {
     jsonMode = false,
   ) {
     const evidence = this.evidenceContext.render(pack, 12000);
-    return this.withEvidenceContext(evidence, () =>
-      super.chat(query, userId, tradition, conversationHistory, jsonMode),
+    return this.withEvidenceContext(
+      evidence,
+      () => super.chat(query, userId, tradition, conversationHistory, jsonMode),
+      true,
     );
   }
 
@@ -93,9 +101,19 @@ export class EvidenceAwareRagService extends RagService {
     jsonMode = false,
   ) {
     const evidence = this.evidenceContext.render(pack, 12000);
-    const iterator = super.chatStream(query, userId, tradition, conversationHistory, jsonMode);
+    const iterator = super.chatStream(
+      query,
+      userId,
+      tradition,
+      conversationHistory,
+      jsonMode,
+    );
     while (true) {
-      const step = await this.withEvidenceContext(evidence, () => iterator.next());
+      const step = await this.withEvidenceContext(
+        evidence,
+        () => iterator.next(),
+        true,
+      );
       if (step.done) return;
       yield step.value;
     }
@@ -131,11 +149,23 @@ export class EvidenceAwareRagService extends RagService {
     }
   }
 
+  /**
+   * `explicitPack` marks evidence supplied by the caller (as opposed to derived
+   * from the query), which the query-keyed semantic cache cannot represent.
+   */
   protected withEvidenceContext<T>(
     evidence: string,
     callback: () => Promise<T> | T,
+    explicitPack = false,
   ): Promise<T> | T {
-    return this.evidenceContextStorage.run(evidence, callback);
+    return this.evidenceContextStorage.run(
+      { evidence, explicitPack },
+      callback,
+    );
+  }
+
+  protected override bypassSemanticCache(): boolean {
+    return this.evidenceContextStorage.getStore()?.explicitPack === true;
   }
 
   private installBuilderAdapters(): void {
@@ -152,7 +182,7 @@ export class EvidenceAwareRagService extends RagService {
         ...params,
         bibleContext: this.mergeEvidence(
           params.bibleContext,
-          this.evidenceContextStorage.getStore() ?? '',
+          this.evidenceContextStorage.getStore()?.evidence ?? '',
         ),
       });
 
@@ -161,7 +191,7 @@ export class EvidenceAwareRagService extends RagService {
         ...params,
         bibleContext: this.mergeEvidence(
           params.bibleContext,
-          this.evidenceContextStorage.getStore() ?? '',
+          this.evidenceContextStorage.getStore()?.evidence ?? '',
         ),
       });
   }

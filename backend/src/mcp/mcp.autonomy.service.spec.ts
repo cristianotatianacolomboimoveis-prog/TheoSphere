@@ -5,11 +5,17 @@ describe('McpAutonomyService', () => {
   it('dispatches a created task through planning, assignment and start', async () => {
     const tasks = {
       current: { id: 'TSK-1', status: 'CREATED', assignedAgent: undefined },
-      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
+      get: jest.fn(function (this: { current: unknown }) {
+        return this.current;
+      }),
     } as any;
     const orchestrator = {
-      plan: jest.fn(() => { tasks.current = { ...tasks.current, status: 'PLANNED' }; }),
-      assign: jest.fn(() => { tasks.current = { ...tasks.current, assignedAgent: 'agent-1' }; }),
+      plan: jest.fn(() => {
+        tasks.current = { ...tasks.current, status: 'PLANNED' };
+      }),
+      assign: jest.fn(() => {
+        tasks.current = { ...tasks.current, assignedAgent: 'agent-1' };
+      }),
       lockAndStart: jest.fn(() => {
         tasks.current = { ...tasks.current, status: 'IN_PROGRESS' };
         return tasks.current;
@@ -23,7 +29,9 @@ describe('McpAutonomyService', () => {
       memory,
     );
 
-    await expect(service.dispatch('TSK-1')).resolves.toEqual(expect.objectContaining({ status: 'IN_PROGRESS' }));
+    await expect(service.dispatch('TSK-1')).resolves.toEqual(
+      expect.objectContaining({ status: 'IN_PROGRESS' }),
+    );
     expect(orchestrator.plan).toHaveBeenCalledWith('TSK-1');
     expect(orchestrator.assign).toHaveBeenCalledWith('TSK-1');
     expect(orchestrator.lockAndStart).toHaveBeenCalledWith('TSK-1');
@@ -31,46 +39,99 @@ describe('McpAutonomyService', () => {
 
   it('drives a successful worker result to AUDITING and records memory', async () => {
     const tasks = {
-      current: { id: 'TSK-1', status: 'IN_PROGRESS', assignedAgent: 'agent-1', version: 2 },
-      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
+      current: {
+        id: 'TSK-1',
+        status: 'IN_PROGRESS',
+        assignedAgent: 'agent-1',
+        version: 2,
+      },
+      get: jest.fn(function (this: { current: unknown }) {
+        return this.current;
+      }),
     } as any;
     const orchestrator = {
       advance: jest.fn(async (id: string, next: string) => {
-        tasks.current = { ...tasks.current, status: next, version: tasks.current.version + 1 };
+        tasks.current = {
+          ...tasks.current,
+          status: next,
+          version: tasks.current.version + 1,
+        };
         return tasks.current;
       }),
     } as any;
     const memory = { append: jest.fn(async () => undefined) } as any;
-    const service = new McpAutonomyService(orchestrator, { get: jest.fn(() => undefined) } as any, tasks, memory);
-    tasks.recordExecutionReceipt = jest.fn((id: string, _agentId: string, value: unknown) => {
-      tasks.current = { ...tasks.current, executionReceipt: value, version: tasks.current.version + 1 };
-      return tasks.current;
-    });
+    const service = new McpAutonomyService(
+      orchestrator,
+      { get: jest.fn(() => undefined) } as any,
+      tasks,
+      memory,
+    );
+    tasks.recordExecutionReceipt = jest.fn(
+      (id: string, _agentId: string, value: unknown) => {
+        tasks.current = {
+          ...tasks.current,
+          executionReceipt: value,
+          version: tasks.current.version + 1,
+        };
+        return tasks.current;
+      },
+    );
 
     const receipt: McpExecutionReceipt = {
       commitSha: 'abc1234',
       changedFiles: ['src/a.ts'],
-      tests: [{ command: 'npm test -- mcp', status: 'passed', durationMs: 1200 }],
+      tests: [
+        { command: 'npm test -- mcp', status: 'passed', durationMs: 1200 },
+      ],
       startedAt: '2026-09-18T02:00:00.000Z',
       finishedAt: '2026-09-18T02:01:00.000Z',
     };
-    const result = await service.recordResult('TSK-1', 'agent-1', true, 'All worker checks passed.', receipt);
+    const result = await service.recordResult(
+      'TSK-1',
+      'agent-1',
+      true,
+      'All worker checks passed.',
+      receipt,
+    );
     expect(result.status).toBe('AUDITING');
-    expect(orchestrator.advance.mock.calls.map((call: any[]) => call[1])).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING']);
-    expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'TSK-1', agentId: 'agent-1', category: 'tasks' }));
+    expect(
+      orchestrator.advance.mock.calls.map((call: any[]) => call[1]),
+    ).toEqual(['IMPLEMENTED', 'TESTING', 'AUDITING']);
+    expect(memory.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: 'TSK-1',
+        agentId: 'agent-1',
+        category: 'tasks',
+      }),
+    );
   });
 
   it('requires an independent verifier before VERIFIED', async () => {
     const tasks = {
-      current: { id: 'TSK-2', status: 'AUDITING', assignedAgent: 'agent-1', version: 5, executionReceipt: {
-        commitSha: 'abc1234', changedFiles: ['src/a.ts'], tests: [{ command: 'npm test -- mcp', status: 'passed' }],
-        startedAt: '2026-09-18T02:00:00.000Z', finishedAt: '2026-09-18T02:01:00.000Z',
-      } },
-      get: jest.fn(function(this: { current: unknown }) { return this.current; }),
+      current: {
+        id: 'TSK-2',
+        status: 'AUDITING',
+        assignedAgent: 'agent-1',
+        version: 5,
+        executionReceipt: {
+          commitSha: 'abc1234',
+          changedFiles: ['src/a.ts'],
+          tests: [{ command: 'npm test -- mcp', status: 'passed' }],
+          startedAt: '2026-09-18T02:00:00.000Z',
+          finishedAt: '2026-09-18T02:01:00.000Z',
+        },
+      },
+      get: jest.fn(function (this: { current: unknown }) {
+        return this.current;
+      }),
     } as any;
     const orchestrator = {
       advance: jest.fn(async (id: string, next: string) => {
-        tasks.current = { ...tasks.current, status: next, version: tasks.current.version + 1 };
+        tasks.current = {
+          ...tasks.current,
+          status: next,
+          version: tasks.current.version + 1,
+        };
         return tasks.current;
       }),
     } as any;
@@ -78,16 +139,32 @@ describe('McpAutonomyService', () => {
     const agents = {
       get: jest.fn((id: string) =>
         id === 'verifier-1'
-          ? { id: 'verifier-1', name: 'Verifier', provider: 'internal', enabled: true, capabilities: ['verification'] }
+          ? {
+              id: 'verifier-1',
+              name: 'Verifier',
+              provider: 'internal',
+              enabled: true,
+              capabilities: ['verification'],
+            }
           : undefined,
       ),
     } as any;
     const service = new McpAutonomyService(orchestrator, agents, tasks, memory);
 
-    await expect(service.verifyResult('TSK-2', 'agent-1')).rejects.toThrow('independent agent');
-    await expect(service.verifyResult('TSK-2', 'unknown')).rejects.toThrow('registered enabled agent with verification capability');
-    const result = await service.verifyResult('TSK-2', 'verifier-1', 'Independent checks passed.');
+    await expect(service.verifyResult('TSK-2', 'agent-1')).rejects.toThrow(
+      'independent agent',
+    );
+    await expect(service.verifyResult('TSK-2', 'unknown')).rejects.toThrow(
+      'registered enabled agent with verification capability',
+    );
+    const result = await service.verifyResult(
+      'TSK-2',
+      'verifier-1',
+      'Independent checks passed.',
+    );
     expect(result.status).toBe('VERIFIED');
-    expect(memory.append).toHaveBeenCalledWith(expect.objectContaining({ category: 'audits', agentId: 'verifier-1' }));
+    expect(memory.append).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'audits', agentId: 'verifier-1' }),
+    );
   });
 });

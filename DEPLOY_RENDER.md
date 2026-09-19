@@ -24,18 +24,26 @@ Na seção **Environment Variables**, adicione TODAS as variáveis abaixo:
 
 ```
 NODE_ENV=production
-DATABASE_URL=postgresql://postgres.chjywahtwktqqxqlthvc:TheoSphere2026Prod%20@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.chjywahtwktqqxqlthvc:TheoSphere2026Prod%20@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://<usuario>:<senha>@<host-do-pooler>:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://<usuario>:<senha>@<host-direto>:5432/postgres
 GEMINI_API_KEY=<sua_chave_gemini>
-JWT_SECRET=<copie_do_railway>
+JWT_SECRET=<segredo_com_32+_caracteres>
 JWT_EXPIRES_IN=7d
+MCP_API_KEY=<segredo_com_32+_caracteres>   # openssl rand -hex 32
+REDIS_URL=<connection string do theosphere-redis (Render Key Value)>
 ALLOWED_ORIGINS=https://frontend-v2-omega-seven.vercel.app,http://localhost:3000
-GOOGLE_CLIENT_EMAIL=<copie_do_railway>
-GOOGLE_DRIVE_FOLDER_ID=<copie_do_railway>
-GOOGLE_PRIVATE_KEY=<copie_do_railway>
+GOOGLE_CLIENT_EMAIL=<email_da_service_account>
+GOOGLE_DRIVE_FOLDER_ID=<id_da_pasta>
+GOOGLE_PRIVATE_KEY=<chave_privada_da_service_account>
 ```
 
-> **DICA**: Copie os valores sensíveis (JWT*SECRET, GEMINI_API_KEY, GOOGLE*\*) diretamente do Railway > Variables > Raw Editor.
+> **NUNCA** cole valores reais neste arquivo: o repositório é público e o histórico do Git é permanente. Segredos ficam só no painel do Render.
+>
+> **Obrigatórias em produção** (o boot é recusado sem elas, ver `backend/src/app.module.ts`): `MCP_API_KEY` (mín. 32 caracteres), `REDIS_URL` e uma de `GEMINI_API_KEY`/`OPENAI_API_KEY`. Sem `MCP_API_KEY` um deploy novo falha ao subir e o Render mantém a versão anterior no ar.
+>
+> Este serviço foi criado manualmente (Root Directory `backend`); o `backend/render.yaml` só vale se o serviço for criado/sincronizado por Blueprint. Adicionar uma variável ao `render.yaml` **não** altera um serviço existente: crie-a também em **Environment** no painel.
+
+> **Rotação:** credenciais que já apareceram em arquivos do repositório (senha do banco, chave Gemini, `JWT_SECRET`, chave da service account do Google, tokens da Vercel/Railway) devem ser tratadas como vazadas e **trocadas**, não copiadas de ambientes antigos.
 
 ## Passo 3: Health Check
 
@@ -75,7 +83,7 @@ Volte ao Render → **theosphere-backend** → **Environment** e confirme que `A
 
 - **Sleep Mode**: O free tier do Render dorme após 15 min de inatividade. O primeiro request após sleep demora ~60s para acordar.
 - **O backend NestJS já tem auto-detect de URLs Vercel** (`frontend-v2*.vercel.app`) no CORS, então preview deploys também funcionam.
-- **Sem Redis**: O throttler usa memória local no free tier — funciona bem para testes.
+- **Redis**: em produção `REDIS_URL` é obrigatória (throttler distribuído, EventBus, locks do MCP).
 
 ---
 

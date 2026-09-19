@@ -48,3 +48,6 @@ acervo-traduzido/*.pdf
 # de produção ou geram artefatos temporários. Não são código do produto.
 backend/scratch/*.json
 backend/scratch/ingestion-checkpoint.json
+
+# Local AI-assistant conversation stores: contain pasted credentials. Never commit.
+audit/brains-antigravity/**/conversation.db

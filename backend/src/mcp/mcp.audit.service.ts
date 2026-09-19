@@ -12,10 +12,13 @@ export class McpAuditService {
   async onModuleInit(): Promise<void> {
     if (!this.memory) return;
     const entries = await this.memory.latestByKeyPrefix('audits', 'mcp:audit:');
-    for (const entry of entries.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
+    for (const entry of entries.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    )) {
       try {
         const event = JSON.parse(entry.content) as McpAuditEvent;
-        if (event?.id && event.timestamp) this.events.push(Object.freeze(event));
+        if (event?.id && event.timestamp)
+          this.events.push(Object.freeze(event));
       } catch (error) {
         void error;
       }
@@ -37,8 +40,12 @@ export class McpAuditService {
           content: JSON.stringify(record),
           tags: ['mcp', 'audit', record.action],
           source: 'mcp-audit-service',
-          taskId: record.resourceType === 'task' ? record.resourceId : undefined,
-          agentId: typeof record.metadata?.agentId === 'string' ? record.metadata.agentId : undefined,
+          taskId:
+            record.resourceType === 'task' ? record.resourceId : undefined,
+          agentId:
+            typeof record.metadata?.agentId === 'string'
+              ? record.metadata.agentId
+              : undefined,
         })
         .catch(() => undefined);
     }

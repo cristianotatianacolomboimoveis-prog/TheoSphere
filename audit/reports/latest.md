@@ -18,7 +18,7 @@ vulnerabilidades sérias e latência de busca 2-3× acima da meta declarada.
 - 🔴 **56 vulnerabilidades npm** somadas (28 backend + 28 frontend), incluindo
   **2 critical no frontend** (undici family)
 - 🔴 **Token Railway no histórico do git** — corrigido no HEAD mas
-  `0f404c6d-4b84-4225-ac0d-bbb0eae2577c` permanece no commit inicial
+  `REDACTED-RAILWAY-TOKEN` permanece no commit inicial
 - 🟡 **Latência search/verses**: 0.46-0.59s warm, 2.26s cold — meta declarada
   no projeto é <200ms para buscas complexas; hoje está 2-3× acima warm,
   11× acima cold
@@ -107,7 +107,7 @@ Não aplicar sem avaliar cada advisory individualmente.
 (seguro no HEAD), mas o commit inicial contém o token em texto puro:
 
 ```
-const RAILWAY_TOKEN = '0f404c6d-4b84-4225-ac0d-bbb0eae2577c';
+const RAILWAY_TOKEN = 'REDACTED';
 ```
 
 O token permanece em qualquer clone do repositório, mesmo após a correção.

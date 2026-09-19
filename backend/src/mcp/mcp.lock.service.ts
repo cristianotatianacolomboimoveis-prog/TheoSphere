@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { McpAuditService } from './mcp.audit.service';
@@ -27,22 +32,32 @@ export class McpLockService implements OnModuleDestroy {
     this.redis = url
       ? new Redis(url, { maxRetriesPerRequest: 2, enableOfflineQueue: false })
       : null;
-    this.redis?.on('error', (err) => this.logger.warn(`Redis lock error: ${err.message}`));
+    this.redis?.on('error', (err) =>
+      this.logger.warn(`Redis lock error: ${err.message}`),
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.redis?.quit().catch(() => undefined);
   }
 
-  async acquire(paths: readonly string[], taskId: string, agentId: string): Promise<readonly McpFileLock[]> {
+  async acquire(
+    paths: readonly string[],
+    taskId: string,
+    agentId: string,
+  ): Promise<readonly McpFileLock[]> {
     this.security.assertAllowed(agentId, 'lock:acquire');
-    const normalized = [...new Set(paths.map((path) => path.trim()).filter(Boolean))].sort();
+    const normalized = [
+      ...new Set(paths.map((path) => path.trim()).filter(Boolean)),
+    ].sort();
     if (normalized.length === 0) return [];
 
     if (!this.redis) {
       const conflicts = normalized.filter((path) => this.locks.has(path));
       if (conflicts.length > 0) {
-        throw new ConflictException(`MCP file lock conflict: ${conflicts.join(', ')}`);
+        throw new ConflictException(
+          `MCP file lock conflict: ${conflicts.join(', ')}`,
+        );
       }
       const acquiredAt = new Date().toISOString();
       const locks = normalized.map((path) => ({
@@ -83,8 +98,12 @@ export class McpLockService implements OnModuleDestroy {
         );
         if (result !== 'OK') {
           const existing = await this.read(path);
-          const owner = existing ? ` (${existing.taskId}/${existing.agentId})` : '';
-          throw new ConflictException(`MCP file lock conflict: ${path}${owner}`);
+          const owner = existing
+            ? ` (${existing.taskId}/${existing.agentId})`
+            : '';
+          throw new ConflictException(
+            `MCP file lock conflict: ${path}${owner}`,
+          );
         }
         acquired.push(lock);
       }
@@ -147,7 +166,8 @@ export class McpLockService implements OnModuleDestroy {
       for (const key of await this.scanKeys()) {
         const raw = await this.redis.get(key);
         const lock = this.parse(raw);
-        if (!lock || !raw || lock.taskId !== taskId || lock.agentId !== agentId) continue;
+        if (!lock || !raw || lock.taskId !== taskId || lock.agentId !== agentId)
+          continue;
         if (await this.renewIfOwner(lock.path, raw)) renewed++;
       }
     }

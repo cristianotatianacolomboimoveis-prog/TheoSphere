@@ -86,7 +86,10 @@ export type McpPermission =
   | 'memory:read'
   | 'research:read';
 
-export const MCP_STATE_TRANSITIONS: Record<McpTaskState, readonly McpTaskState[]> = {
+export const MCP_STATE_TRANSITIONS: Record<
+  McpTaskState,
+  readonly McpTaskState[]
+> = {
   CREATED: ['PLANNED', 'FAILED'],
   PLANNED: ['LOCKED', 'FAILED'],
   LOCKED: ['IN_PROGRESS', 'FAILED'],

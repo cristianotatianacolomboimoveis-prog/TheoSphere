@@ -14,10 +14,20 @@ export class McpAgentRegistryService {
     for (const entry of entries) {
       try {
         const agent = JSON.parse(entry.content) as McpAgent;
-        if (agent?.id && agent.name && agent.provider && Array.isArray(agent.capabilities) && typeof agent.enabled === 'boolean') {
+        if (
+          agent?.id &&
+          agent.name &&
+          agent.provider &&
+          Array.isArray(agent.capabilities) &&
+          typeof agent.enabled === 'boolean'
+        ) {
           this.agents.set(agent.id, {
             ...agent,
-            capabilities: [...new Set(agent.capabilities.map((value) => value.trim()).filter(Boolean))],
+            capabilities: [
+              ...new Set(
+                agent.capabilities.map((value) => value.trim()).filter(Boolean),
+              ),
+            ],
           });
         }
       } catch (error) {
@@ -29,7 +39,11 @@ export class McpAgentRegistryService {
   register(agent: McpAgent): McpAgent {
     const normalized: McpAgent = {
       ...agent,
-      capabilities: [...new Set(agent.capabilities.map((value) => value.trim()).filter(Boolean))],
+      capabilities: [
+        ...new Set(
+          agent.capabilities.map((value) => value.trim()).filter(Boolean),
+        ),
+      ],
     };
     this.agents.set(normalized.id, normalized);
     this.persist(normalized);

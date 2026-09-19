@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { EvidenceItem, EvidenceKind, EvidencePack, EvidenceProvenance } from './evidence-pack';
+import type {
+  EvidenceItem,
+  EvidenceKind,
+  EvidencePack,
+  EvidenceProvenance,
+} from './evidence-pack';
 import type { RagSource } from './rag.service';
 
 export interface EvidenceInput {
@@ -56,7 +61,8 @@ export class EvidencePackService {
     const items = [...byKey.values()]
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
-        if (a.provenance !== b.provenance) return a.provenance.localeCompare(b.provenance);
+        if (a.provenance !== b.provenance)
+          return a.provenance.localeCompare(b.provenance);
         if (a.title !== b.title) return a.title.localeCompare(b.title);
         if ((a.reference ?? '') !== (b.reference ?? '')) {
           return (a.reference ?? '').localeCompare(b.reference ?? '');
@@ -67,8 +73,8 @@ export class EvidencePackService {
       .map((item, index) => ({ ...item, rank: index + 1 }));
 
     const primaryCount = items.filter((item) => item.kind === 'primary').length;
-    const hasCounterEvidence = items.some((item) =>
-      (item.contradicts?.length ?? 0) > 0,
+    const hasCounterEvidence = items.some(
+      (item) => (item.contradicts?.length ?? 0) > 0,
     );
 
     return {
@@ -94,32 +100,56 @@ export class EvidencePackService {
       const rankWeight = 1 / (index + 1);
       return sum + item.score * rankWeight;
     }, 0);
-    const normalization = items.reduce((sum, _, index) => sum + 1 / (index + 1), 0);
-    const primaryBonus = items.some((item) => item.kind === 'primary') ? 0.1 : 0;
-    const linguisticBonus = items.some((item) => item.kind === 'linguistic') ? 0.05 : 0;
-    return Math.min(1, Number((weighted / normalization + primaryBonus + linguisticBonus).toFixed(4)));
+    const normalization = items.reduce(
+      (sum, _, index) => sum + 1 / (index + 1),
+      0,
+    );
+    const primaryBonus = items.some((item) => item.kind === 'primary')
+      ? 0.1
+      : 0;
+    const linguisticBonus = items.some((item) => item.kind === 'linguistic')
+      ? 0.05
+      : 0;
+    return Math.min(
+      1,
+      Number(
+        (weighted / normalization + primaryBonus + linguisticBonus).toFixed(4),
+      ),
+    );
   }
 
   private inferProvenance(type: RagSource['type']): EvidenceProvenance {
     switch (type) {
-      case 'bible': return 'bible';
-      case 'lexicon': return 'lexicon';
-      case 'commentary': return 'commentary';
-      case 'personal': return 'personal';
-      case 'classic': return 'classic';
-      case 'sefaria': return 'sefaria';
-      default: return 'theology';
+      case 'bible':
+        return 'bible';
+      case 'lexicon':
+        return 'lexicon';
+      case 'commentary':
+        return 'commentary';
+      case 'personal':
+        return 'personal';
+      case 'classic':
+        return 'classic';
+      case 'sefaria':
+        return 'sefaria';
+      default:
+        return 'theology';
     }
   }
 
   private inferKind(provenance: EvidenceProvenance): EvidenceKind {
     switch (provenance) {
       case 'bible':
-      case 'interlinear': return 'primary';
-      case 'lexicon': return 'linguistic';
-      case 'commentary': return 'commentary';
-      case 'personal': return 'personal';
-      default: return 'secondary';
+      case 'interlinear':
+        return 'primary';
+      case 'lexicon':
+        return 'linguistic';
+      case 'commentary':
+        return 'commentary';
+      case 'personal':
+        return 'personal';
+      default:
+        return 'secondary';
     }
   }
 
@@ -137,7 +167,8 @@ export class EvidencePackService {
     reference: string | undefined,
     snippet: string,
   ): string {
-    const raw = `${provenance}|${title}|${reference ?? ''}|${snippet}`.toLowerCase();
+    const raw =
+      `${provenance}|${title}|${reference ?? ''}|${snippet}`.toLowerCase();
     let hash = 2166136261;
     for (let i = 0; i < raw.length; i += 1) {
       hash ^= raw.charCodeAt(i);
