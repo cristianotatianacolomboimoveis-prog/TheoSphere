@@ -17,6 +17,8 @@ Instruções para agentes de IA que trabalham neste repositório. Arquivo cross-
 
 ## Pendências vivas
 
+0. **SEGURANÇA — rotação obrigatória (só o dono pode fazer):** o repositório é público e o histórico do Git guardou credenciais reais (removidas do HEAD em 2026-09-19, mas ainda no histórico). Trate como vazadas e **troque**: senha do banco Supabase, chave Gemini, `JWT_SECRET` (invalida sessões), chave privada da service account do Google (apague a chave no GCP), tokens da Vercel e do Railway. Não há como apagar o histórico sem reescrevê-lo. O CI roda `scripts/check-secrets.mjs` para evitar reincidência.
+
 1. **Validação em ambiente real (não feita):** Render (`theosphere-backend`, `theosphere-redis`), Supabase (conectividade, pgvector, migrations), health `/api/v1/health/live` e `/ready`, e `npm run mcp:smoke` contra a URL real (ver `docs/MCP-OPERATIONS.md`). Só depois considerar o caminho MCP/EvidencePack/RAG pronto para teste de produção controlado.
 
 ## Produção observada (Render) — 2026-09-19
