@@ -1,14 +1,30 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { McpProtocolTaskService } from './mcp.protocol-task.service';
+import { McpProtocolTaskService, McpProtocolTask } from './mcp.protocol-task.service';
 
 describe('McpProtocolTaskService', () => {
+  const snapshots = new Map<string, McpProtocolTask>();
   const memory = {
     latestByKeyPrefix: jest.fn(async () => []),
-    append: jest.fn(async (input: unknown) => ({ id: 'MEM-1', ...(input as object) })),
+    append: jest.fn(async (input: { memoryKey: string; content: string }) => {
+      snapshots.set(input.memoryKey, JSON.parse(input.content) as McpProtocolTask);
+      return { id: 'MEM-1', ...input };
+    }),
+    latest: jest.fn(async (memoryKey: string) => {
+      const task = snapshots.get(memoryKey);
+      return task ? { content: JSON.stringify(task), id: 'MEM-1' } : null;
+    }),
+    mutateLatestJson: jest.fn(async <T>(_category: string, memoryKey: string, mutate: (current: T) => T) => {
+      const current = snapshots.get(memoryKey);
+      if (!current) throw new NotFoundException('MCP task not found');
+      const next = mutate(current as T);
+      snapshots.set(memoryKey, next as McpProtocolTask);
+      return next;
+    }),
   } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    snapshots.clear();
   });
 
   it('persists a task before returning its handle', async () => {
@@ -23,6 +39,33 @@ describe('McpProtocolTaskService', () => {
     }));
   });
 
+  it('reads the latest persistent state instead of trusting a stale local cache', async () => {
+    const first = new McpProtocolTaskService(memory);
+    const second = new McpProtocolTaskService(memory);
+    const task = await first.create('theosphere_answer');
+
+    await first.cancel(task.taskId);
+
+    expect(await second.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
+  });
+
+  it('serializes terminal races across independent service instances', async () => {
+    const first = new McpProtocolTaskService(memory);
+    const second = new McpProtocolTaskService(memory);
+    const task = await first.create('theosphere_answer');
+
+    await first.cancel(task.taskId);
+
+    await expect(second.complete(task.taskId, {
+      content: [{ type: 'text', text: 'late result' }],
+    })).rejects.toBeInstanceOf(ConflictException);
+
+    await expect(first.fail(task.taskId, -32603, 'late failure')).resolves.toEqual(
+      expect.objectContaining({ status: 'cancelled' }),
+    );
+    expect(await second.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
+  });
+
   it('returns completed results and preserves the result payload', async () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
@@ -34,28 +77,8 @@ describe('McpProtocolTaskService', () => {
     expect(completed.result).toEqual({ content: [{ type: 'text', text: 'done' }] });
   });
 
-  it('supports cooperative cancellation and rejects terminal cancellation', async () => {
-    const service = new McpProtocolTaskService(memory);
-    const task = await service.create('theosphere_answer');
-    await expect(service.cancel(task.taskId)).resolves.toBeUndefined();
-    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
-    await expect(service.cancel(task.taskId)).rejects.toBeInstanceOf(ConflictException);
-  });
-
-  it('does not allow completion to overwrite a cancellation race', async () => {
-    const service = new McpProtocolTaskService(memory);
-    const task = await service.create('theosphere_answer');
-
-    await service.cancel(task.taskId);
-
-    await expect(service.complete(task.taskId, {
-      content: [{ type: 'text', text: 'late result' }],
-    })).rejects.toBeInstanceOf(ConflictException);
-    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
-  });
-
-  it('fails incomplete tasks after a restart rather than reporting false progress', async () => {
-    const working = {
+  it('fails incomplete tasks after a restart without resurrecting stale progress', async () => {
+    const working: McpProtocolTask = {
       taskId: 'task-recovered',
       status: 'working',
       createdAt: new Date(Date.now() - 60_000).toISOString(),
@@ -63,11 +86,13 @@ describe('McpProtocolTaskService', () => {
       ttlMs: 3_600_000,
       operation: 'theosphere_answer',
     };
+    snapshots.set('mcp:protocol-task:task-recovered', working);
     memory.latestByKeyPrefix.mockResolvedValueOnce([{ content: JSON.stringify(working) }]);
+
     const service = new McpProtocolTaskService(memory);
     await service.onModuleInit();
 
-    expect(service.get('task-recovered')).toEqual(expect.objectContaining({
+    expect(await service.get('task-recovered')).toEqual(expect.objectContaining({
       status: 'failed',
       error: expect.objectContaining({ code: -32603 }),
     }));
@@ -76,49 +101,36 @@ describe('McpProtocolTaskService', () => {
   it('keeps a task input-required when only a subset of responses arrives', async () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('test');
-    const stored = (service as any).tasks.get(task.taskId) as {
-      status: string;
-      inputRequests?: Record<string, unknown>;
-    };
-    stored.status = 'input_required';
-    stored.inputRequests = { first: { request: 'a' }, second: { request: 'b' } };
+    snapshots.set('mcp:protocol-task:' + task.taskId, {
+      ...task,
+      status: 'input_required',
+      inputRequests: { first: { request: 'a' }, second: { request: 'b' } },
+    });
 
     await service.update(task.taskId, { first: { value: 1 } });
 
-    expect(service.get(task.taskId)).toEqual(expect.objectContaining({
+    expect(await service.get(task.taskId)).toEqual(expect.objectContaining({
       status: 'input_required',
       inputRequests: { second: { request: 'b' } },
     }));
   });
 
-  it('does not allow failure to overwrite a cancellation race', async () => {
-    const service = new McpProtocolTaskService(memory);
-    const task = await service.create('theosphere_answer');
-    await service.cancel(task.taskId);
-
-    const failed = await service.fail(task.taskId, -32603, 'late failure');
-    expect(failed.status).toBe('cancelled');
-    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'cancelled' }));
-  });
-
-  it('persists a resumed task after all required input is supplied', async () => {
+  it('resumes a task after all required input is supplied', async () => {
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('test');
-    const stored = (service as any).tasks.get(task.taskId) as { status: string; inputRequests?: Record<string, unknown> };
-    stored.status = 'input_required';
-    stored.inputRequests = { approval: { request: 'approve' } };
+    snapshots.set('mcp:protocol-task:' + task.taskId, {
+      ...task,
+      status: 'input_required',
+      inputRequests: { approval: { request: 'approve' } },
+    });
 
     await service.update(task.taskId, { approval: { value: true } });
 
-    expect(service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'working' }));
-    expect(memory.append).toHaveBeenLastCalledWith(expect.objectContaining({
-      memoryKey: 'mcp:protocol-task:' + task.taskId,
-      tags: expect.arrayContaining(['working']),
-    }));
+    expect(await service.get(task.taskId)).toEqual(expect.objectContaining({ status: 'working' }));
   });
 
   it('rejects unknown task ids', async () => {
     const service = new McpProtocolTaskService(memory);
-    expect(() => service.get('missing')).toThrow(NotFoundException);
+    await expect(service.get('missing')).rejects.toBeInstanceOf(NotFoundException);
   });
 });

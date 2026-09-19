@@ -76,24 +76,40 @@ describe('MCP control-plane foundation', () => {
     const snapshots: any[] = [];
     const append = jest.fn(async (entry: any) => { snapshots.push(entry); return entry; });
     const latestByKeyPrefix = jest.fn(async () => snapshots.length ? [snapshots[snapshots.length - 1]] : []);
-    const memory = { append, latestByKeyPrefix } as any;
+    const latest = jest.fn(async () => snapshots.length ? snapshots[snapshots.length - 1] : null);
+    const mutateLatestJson = jest.fn(async <T>(_category: string, memoryKey: string, mutate: (current: T) => T) => {
+      const current = snapshots[snapshots.length - 1];
+      const next = mutate(JSON.parse(current.content) as T);
+      snapshots.push({ ...current, content: JSON.stringify(next) });
+      return next;
+    });
+    const memory = { append, latestByKeyPrefix, latest, mutateLatestJson } as any;
     const first = new McpProtocolTaskService(memory);
     const created = await first.create('theosphere_answer', { query: 'John 3:16' });
     await first.complete(created.taskId, { content: [{ type: 'text', text: 'Evidence-grounded answer' }], isError: false });
     const second = new McpProtocolTaskService(memory);
     await second.onModuleInit();
-    const recovered = second.get(created.taskId);
+    const recovered = await second.get(created.taskId);
     expect(recovered).toEqual(expect.objectContaining({ status: 'completed', result: expect.any(Object) }));
   });
 
   it('cancels a protocol task and rejects terminal completion', async () => {
-    const append = jest.fn(async (entry: unknown) => entry);
-    const latestByKeyPrefix = jest.fn(async () => []);
-    const memory = { append, latestByKeyPrefix } as any;
+    const snapshots: any[] = [];
+    const append = jest.fn(async (entry: any) => { snapshots.push(entry); return entry; });
+    const latestByKeyPrefix = jest.fn(async () => snapshots.length ? [snapshots[snapshots.length - 1]] : []);
+    const latest = jest.fn(async () => snapshots.length ? snapshots[snapshots.length - 1] : null);
+    const mutateLatestJson = jest.fn(async <T>(_category: string, memoryKey: string, mutate: (current: T) => T) => {
+      const current = snapshots[snapshots.length - 1];
+      if (!current) throw new Error('missing snapshot');
+      const next = mutate(JSON.parse(current.content) as T);
+      snapshots.push({ ...current, content: JSON.stringify(next) });
+      return next;
+    });
+    const memory = { append, latestByKeyPrefix, latest, mutateLatestJson } as any;
     const service = new McpProtocolTaskService(memory);
     const task = await service.create('theosphere_answer');
     await service.cancel(task.taskId);
-    const cancelled = service.get(task.taskId);
+    const cancelled = await service.get(task.taskId);
     expect(cancelled.status).toBe('cancelled');
     await expect(service.complete(task.taskId, {})).rejects.toThrow('already terminal');
   });
