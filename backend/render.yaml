@@ -19,6 +19,10 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
+      # Bearer token do endpoint /mcp. Obrigatório em produção (mínimo 32
+      # caracteres, validado em app.module.ts): sem ele o backend não sobe.
+      - key: MCP_API_KEY
+        sync: false
       - key: ALLOWED_ORIGINS
         value: "https://cristianocolombo.vercel.app,https://theosphere.vercel.app,https://frontend-v2-omega-seven.vercel.app"
       # Redis (Render Key Value) — usado pelo EventBus (pub/sub), throttler
