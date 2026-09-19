@@ -94,8 +94,10 @@ jobs:
       - name: Unit tests
         run: npm test -- --ci --coverage --maxWorkers=2
 
-      - name: MCP HTTP E2E smoke
-        run: npx jest --config ./test/jest-e2e.json --runInBand test/app.e2e-spec.ts
+      # Second file runs MCP task persistence against the real CI Postgres
+      # (advisory-lock serialization, restart recovery), which unit mocks cannot prove.
+      - name: MCP HTTP E2E smoke + task persistence
+        run: npx jest --config ./test/jest-e2e.json --runInBand test/app.e2e-spec.ts test/mcp-task-persistence.e2e-spec.ts
 
       - name: Upload coverage
         if: always()
