@@ -9,6 +9,10 @@ class TestableEvidenceAwareRagService extends EvidenceAwareRagService {
     return this.buildEvidenceContext(query);
   }
 
+  public bypassCacheForTest(): boolean {
+    return this.bypassSemanticCache();
+  }
+
   public withEvidenceForTest<T>(
     evidence: string,
     callback: () => Promise<T> | T,
@@ -225,5 +229,53 @@ describe('EvidenceAwareRagService', () => {
   it('mantém o contrato de RagService', () => {
     const service = makeService({} as SearchService);
     expect(service).toBeInstanceOf(RagService);
+  });
+  describe('semantic cache and explicit EvidencePacks', () => {
+    const pack = new EvidencePackService().build('graça', [
+      {
+        source: {
+          type: 'bible',
+          title: 'BLIVRE',
+          reference: 'Efésios 2:8',
+          snippet: 'Pela graça sois salvos.',
+          score: 0.9,
+        },
+      },
+    ]);
+
+    it('bypasses the query-keyed cache for chatWithEvidencePack', async () => {
+      const seen: boolean[] = [];
+      jest
+        .spyOn(RagService.prototype, 'chat')
+        .mockImplementation(function (this: TestableEvidenceAwareRagService) {
+          seen.push(this.bypassCacheForTest());
+          return Promise.resolve({} as never);
+        });
+      const service = makeService({} as SearchService);
+
+      await service.chatWithEvidencePack('graça', pack);
+
+      expect(seen).toEqual([true]);
+      expect(service.bypassCacheForTest()).toBe(false);
+      jest.restoreAllMocks();
+    });
+
+    it('keeps the cache for evidence the adapter derives from the query itself', async () => {
+      const seen: boolean[] = [];
+      jest
+        .spyOn(RagService.prototype, 'chat')
+        .mockImplementation(function (this: TestableEvidenceAwareRagService) {
+          seen.push(this.bypassCacheForTest());
+          return Promise.resolve({} as never);
+        });
+      const service = makeService({
+        hybridSearchVerses: jest.fn().mockResolvedValue([]),
+      } as unknown as SearchService);
+
+      await service.chat('graça');
+
+      expect(seen).toEqual([false]);
+      jest.restoreAllMocks();
+    });
   });
 });

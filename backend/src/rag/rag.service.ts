@@ -350,6 +350,18 @@ export class RagService {
     };
   }
 
+  /**
+   * The semantic cache is keyed by query + user + tradition only. Subclasses
+   * that ground an answer in per-request evidence outside that key (an
+   * explicit EvidencePack) return true so the cache is neither read nor written
+   * for the request; otherwise a stale cached answer would be served as if it
+   * were grounded in the supplied evidence, and this answer would leak into
+   * unrelated requests.
+   */
+  protected bypassSemanticCache(): boolean {
+    return false;
+  }
+
   async chat(
     query: string,
     userId?: string,
@@ -441,7 +453,8 @@ export class RagService {
     // ═══ ETAPA 1: Semantic Cache ═══
     // Importante: No modo JSON (Exegese), ignoramos o cache semântico para evitar
     // retornar respostas textuais antigas que quebrariam o frontend.
-    if (!jsonMode) {
+    const bypassCache = this.bypassSemanticCache();
+    if (!jsonMode && !bypassCache) {
       const cached = await this.semanticCache.findSimilarResponse(
         sanitizedQuery,
         userId,
@@ -465,7 +478,7 @@ export class RagService {
           sources: [], // cache hit — fontes não rastreadas
         };
       }
-    } else {
+    } else if (jsonMode) {
       this.logger.log(
         `[RAG] Modo JSON Ativo: Forçando busca em tempo real para exegese.`,
       );
@@ -829,14 +842,14 @@ export class RagService {
     // fallback foi cacheado durante a queda de cota e passou a ser servido
     // com `cached: true` mesmo depois da IA voltar — o TTL padrão é de 30
     // dias, então a plataforma continuaria mentindo por um mês.
-    if (!degraded) {
+    if (!degraded && !bypassCache) {
       await this.semanticCache.cacheResponse(
         sanitizedQuery,
         responseContent,
         userId,
         tradition,
       );
-    } else {
+    } else if (degraded) {
       this.logger.warn(
         '[RAG] Resposta degradada não cacheada (evita envenenar o cache).',
       );
@@ -2060,7 +2073,8 @@ export class RagService {
     };
 
     // ═══ ETAPA 1: Semantic Cache ═══
-    if (!jsonMode) {
+    const bypassCache = this.bypassSemanticCache();
+    if (!jsonMode && !bypassCache) {
       const cached = await this.semanticCache.findSimilarResponse(
         sanitizedQuery,
         userId,
@@ -2305,7 +2319,7 @@ export class RagService {
     // ═══ ETAPA 5: Salvar no cache e calcular custos ═══
     // Mesma regra do chat(): texto de fallback não entra no cache, senão
     // continua sendo servido por 30 dias depois da IA voltar.
-    if (!streamDegraded) {
+    if (!streamDegraded && !bypassCache) {
       await this.semanticCache.cacheResponse(
         sanitizedQuery,
         fullResponse,
