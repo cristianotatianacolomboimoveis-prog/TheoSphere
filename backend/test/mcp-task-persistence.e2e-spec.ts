@@ -42,7 +42,10 @@ describe('MCP task persistence (PostgreSQL)', () => {
     await prisma.onModuleDestroy();
   });
 
-  it('serializes concurrent mutations of the same key', async () => {
+  it('serializes concurrent mutations of the same key without losing updates', async () => {
+    // 100-way contention: with a millisecond-resolution createdAt and a random
+    // id tiebreak, this used to end well below 100 (stale "latest" snapshots).
+    const writers = 100;
     await memory.append({
       category: 'tasks',
       memoryKey: counterKey,
@@ -50,7 +53,7 @@ describe('MCP task persistence (PostgreSQL)', () => {
     });
 
     await Promise.all(
-      Array.from({ length: 20 }, () =>
+      Array.from({ length: writers }, () =>
         memory.mutateLatestJson<{ n: number }>('tasks', counterKey, (c) => ({
           n: c.n + 1,
         })),
@@ -58,8 +61,15 @@ describe('MCP task persistence (PostgreSQL)', () => {
     );
 
     const latest = await memory.latest(counterKey);
-    expect(JSON.parse(latest!.content)).toEqual({ n: 20 });
-    expect(await rowCount(counterKey)).toBe(21);
+    expect(JSON.parse(latest!.content)).toEqual({ n: writers });
+    const rows = await prisma.projectMemory.findMany({
+      where: { memoryKey: counterKey },
+    });
+    expect(rows).toHaveLength(writers + 1);
+    // "Latest" is ordered by createdAt, so it must be unambiguous per key.
+    expect(new Set(rows.map((r) => r.createdAt.getTime())).size).toBe(
+      rows.length,
+    );
   });
 
   it('does not append a row when the mutation returns its input unchanged', async () => {
@@ -71,7 +81,7 @@ describe('MCP task persistence (PostgreSQL)', () => {
   it('returns only the newest snapshot per key for a prefix', async () => {
     const entries = await memory.latestByKeyPrefix('tasks', `e2e:${runId}:`);
     expect(entries).toHaveLength(1);
-    expect(JSON.parse(entries[0].content)).toEqual({ n: 20 });
+    expect(JSON.parse(entries[0].content)).toEqual({ n: 100 });
   });
 
   describe('protocol tasks across two service instances', () => {

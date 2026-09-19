@@ -109,12 +109,20 @@ export class McpProjectMemoryService {
       const next = mutate(parsed);
       if (Object.is(next, parsed)) return next;
       const content = JSON.stringify(next);
+      // "Latest" is defined by createdAt, so it must strictly increase per key.
+      // Under load several snapshots share one millisecond, and the random id
+      // tiebreak then makes readers pick an older snapshot: the next mutation
+      // starts from stale state and a transition (e.g. a cancellation) is lost.
+      // Serialized by the advisory lock, so max() against the previous
+      // snapshot is race-free, and it also holds when instance clocks drift.
+      const createdAt = new Date(Math.max(Date.now(), current.createdAt.getTime() + 1));
       await tx.projectMemory.create({
         data: {
           id: 'MEM-' + randomUUID(),
           category,
           memoryKey: normalizedKey,
           content,
+          createdAt,
           tags: current.tags,
           source: current.source ?? undefined,
           taskId: current.taskId ?? undefined,
