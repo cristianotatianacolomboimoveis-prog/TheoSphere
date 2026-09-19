@@ -79,6 +79,9 @@ export class McpProjectMemoryService {
    * PostgreSQL's transaction-scoped advisory lock serializes mutations across
    * independent application instances while keeping the read and append in
    * the same transaction.
+   *
+   * A mutation that returns the very object it received is a no-op: nothing
+   * is appended, so idempotent callers do not grow the append-only history.
    */
   async mutateLatestJson<T>(
     category: McpMemoryCategory,
@@ -104,6 +107,7 @@ export class McpProjectMemoryService {
       }
 
       const next = mutate(parsed);
+      if (Object.is(next, parsed)) return next;
       const content = JSON.stringify(next);
       await tx.projectMemory.create({
         data: {

@@ -37,8 +37,10 @@ export class McpProtocolTaskService {
       try {
         const task = JSON.parse(entry.content) as McpProtocolTask;
         if (!task?.taskId || !task.status || !task.createdAt || !task.lastUpdatedAt) continue;
-        const recovered = await this.recoverIfInterrupted(task.taskId, task);
-        this.tasks.set(task.taskId, recovered);
+        // Terminal snapshots need no recovery; touching them would only add a
+        // transaction per historical task on every boot.
+        const interrupted = task.status === 'working' || task.status === 'input_required';
+        this.tasks.set(task.taskId, interrupted ? await this.recoverIfInterrupted(task.taskId, task) : task);
       } catch {
         // Ignore malformed historical task snapshots; they must not break startup.
       }

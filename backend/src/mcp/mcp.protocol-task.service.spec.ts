@@ -77,6 +77,25 @@ describe('McpProtocolTaskService', () => {
     expect(completed.result).toEqual({ content: [{ type: 'text', text: 'done' }] });
   });
 
+  it('does not run recovery mutations for tasks that are already terminal', async () => {
+    const terminal = (status: McpProtocolTask['status'], taskId: string): McpProtocolTask => ({
+      taskId,
+      status,
+      createdAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      ttlMs: 3_600_000,
+    });
+    memory.latestByKeyPrefix.mockResolvedValueOnce(
+      (['completed', 'cancelled', 'failed'] as const).map((status) => ({
+        content: JSON.stringify(terminal(status, `task-${status}`)),
+      })),
+    );
+
+    await new McpProtocolTaskService(memory).onModuleInit();
+
+    expect(memory.mutateLatestJson).not.toHaveBeenCalled();
+  });
+
   it('fails incomplete tasks after a restart without resurrecting stale progress', async () => {
     const working: McpProtocolTask = {
       taskId: 'task-recovered',
