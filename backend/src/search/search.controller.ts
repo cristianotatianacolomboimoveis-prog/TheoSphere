@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { SearchService } from './search.service';
 

@@ -9,7 +9,10 @@ import { TheologicalSourcesService } from './theological-sources.service';
 import { RerankerService } from './reranker.service';
 import { AiQuotaService } from './ai-quota.service';
 import { RagService, type ChatMessage } from './rag.service';
-import { EvidencePackService, type EvidenceInput } from './evidence-pack.service';
+import {
+  EvidencePackService,
+  type EvidenceInput,
+} from './evidence-pack.service';
 import type { EvidencePack } from './evidence-pack';
 import { EvidencePackContextService } from './evidence-pack-context.service';
 
@@ -98,7 +101,13 @@ export class EvidenceAwareRagService extends RagService {
     jsonMode = false,
   ) {
     const evidence = this.evidenceContext.render(pack, 12000);
-    const iterator = super.chatStream(query, userId, tradition, conversationHistory, jsonMode);
+    const iterator = super.chatStream(
+      query,
+      userId,
+      tradition,
+      conversationHistory,
+      jsonMode,
+    );
     while (true) {
       const step = await this.withEvidenceContext(
         evidence,
@@ -149,7 +158,10 @@ export class EvidenceAwareRagService extends RagService {
     callback: () => Promise<T> | T,
     explicitPack = false,
   ): Promise<T> | T {
-    return this.evidenceContextStorage.run({ evidence, explicitPack }, callback);
+    return this.evidenceContextStorage.run(
+      { evidence, explicitPack },
+      callback,
+    );
   }
 
   protected override bypassSemanticCache(): boolean {

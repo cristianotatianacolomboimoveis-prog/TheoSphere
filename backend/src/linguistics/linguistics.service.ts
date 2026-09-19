@@ -232,7 +232,12 @@ export class LinguisticsService {
 
     const rows = await this.interlinear.findMany({
       where: { word: normalized },
-      orderBy: [{ strongId: 'asc' }, { bookId: 'asc' }, { chapter: 'asc' }, { verse: 'asc' }],
+      orderBy: [
+        { strongId: 'asc' },
+        { bookId: 'asc' },
+        { chapter: 'asc' },
+        { verse: 'asc' },
+      ],
       take: 100,
     });
 
@@ -264,7 +269,8 @@ export class LinguisticsService {
       translit: first?.translit ?? null,
       gloss: first?.gloss ?? null,
       candidates,
-      source: candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
+      source:
+        candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
     };
   }
 }

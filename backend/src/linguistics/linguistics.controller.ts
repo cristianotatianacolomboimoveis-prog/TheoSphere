@@ -52,7 +52,13 @@ export class LinguisticsController {
   ) {
     const b = parseInt(bookId, 10);
     const c = parseInt(chapter, 10);
-    if (!Number.isInteger(b) || !Number.isInteger(c) || b < 1 || b > 66 || c < 1) {
+    if (
+      !Number.isInteger(b) ||
+      !Number.isInteger(c) ||
+      b < 1 ||
+      b > 66 ||
+      c < 1
+    ) {
       throw new BadRequestException('bookId (1-66) e chapter são obrigatórios');
     }
     const data = await this.linguistics.getInterlinearChapter(b, c);
@@ -98,13 +104,12 @@ export class LinguisticsController {
       throw new BadRequestException('language deve ser greek ou hebrew');
     }
     if (!word || word.trim().length === 0 || word.length > 200) {
-      throw new BadRequestException('word é obrigatório e deve ter até 200 caracteres');
+      throw new BadRequestException(
+        'word é obrigatório e deve ter até 200 caracteres',
+      );
     }
 
-    const data = await this.linguistics.lemmatize(
-      word,
-      normalizedLanguage as 'greek' | 'hebrew',
-    );
+    const data = await this.linguistics.lemmatize(word, normalizedLanguage);
     return { success: true, data };
   }
 }

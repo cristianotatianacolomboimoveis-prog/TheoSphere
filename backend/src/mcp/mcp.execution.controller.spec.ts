@@ -3,17 +3,25 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { McpExecutionController } from './mcp.execution.controller';
 
 describe('McpExecutionController', () => {
-  const config = { get: jest.fn(() => 'x'.repeat(32)) } as unknown as ConfigService;
+  const config = {
+    get: jest.fn(() => 'x'.repeat(32)),
+  } as unknown as ConfigService;
 
   it('rejects invalid agent authorization', async () => {
     const autonomy = { renewLocks: jest.fn() } as any;
     const controller = new McpExecutionController(config, autonomy);
-    await expect(controller.heartbeat('agent-1', 'TSK-1', 'Bearer wrong')).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(
+      controller.heartbeat('agent-1', 'TSK-1', 'Bearer wrong'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('renews task locks through the governed autonomy service', async () => {
     const autonomy = {
-      renewLocks: jest.fn(async () => ({ taskId: 'TSK-1', renewed: 2, ttlMs: 7_200_000 })),
+      renewLocks: jest.fn(async () => ({
+        taskId: 'TSK-1',
+        renewed: 2,
+        ttlMs: 7_200_000,
+      })),
     } as any;
     const controller = new McpExecutionController(config, autonomy);
     await expect(
@@ -24,7 +32,10 @@ describe('McpExecutionController', () => {
 
   it('passes a structured receipt into the worker result pipeline', async () => {
     const autonomy = {
-      recordResult: jest.fn(async () => ({ taskId: 'TSK-1', status: 'AUDITING' })),
+      recordResult: jest.fn(async () => ({
+        taskId: 'TSK-1',
+        status: 'AUDITING',
+      })),
     } as any;
     const controller = new McpExecutionController(config, autonomy);
     const receipt = {

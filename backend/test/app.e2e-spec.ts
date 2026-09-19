@@ -20,7 +20,10 @@ describe('AppController (e2e)', () => {
     const modernMeta = {
       _meta: {
         'io.modelcontextprotocol/protocolVersion': '2026-07-28',
-        'io.modelcontextprotocol/clientInfo': { name: 'theosphere-e2e', version: '1.0.0' },
+        'io.modelcontextprotocol/clientInfo': {
+          name: 'theosphere-e2e',
+          version: '1.0.0',
+        },
         'io.modelcontextprotocol/clientCapabilities': {},
       },
     };
@@ -30,7 +33,12 @@ describe('AppController (e2e)', () => {
       .set('Accept', 'application/json')
       .set('MCP-Protocol-Version', '2026-07-28')
       .set('Mcp-Method', 'server/discover')
-      .send({ jsonrpc: '2.0', id: 1, method: 'server/discover', params: modernMeta })
+      .send({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'server/discover',
+        params: modernMeta,
+      })
       .expect(200);
 
     expect(discovery.body.result.resultType).toBe('complete');
@@ -40,8 +48,13 @@ describe('AppController (e2e)', () => {
     });
     expect(discovery.body.result.ttlMs).toBe(0);
     expect(discovery.body.result.cacheScope).toBe('private');
-    expect(discovery.body.result._meta['io.modelcontextprotocol/serverInfo']).toEqual(
-      expect.objectContaining({ name: 'theosphere-mcp', version: expect.any(String) }),
+    expect(
+      discovery.body.result._meta['io.modelcontextprotocol/serverInfo'],
+    ).toEqual(
+      expect.objectContaining({
+        name: 'theosphere-mcp',
+        version: expect.any(String),
+      }),
     );
 
     const research = await request(app.getHttpServer())
@@ -64,14 +77,19 @@ describe('AppController (e2e)', () => {
 
     expect(research.body.result.resultType).toBe('complete');
     expect(Array.isArray(research.body.result.content)).toBe(true);
-    expect(research.body.result.structuredContent).toEqual(expect.objectContaining({
-      query: 'John 3:16',
-      items: expect.any(Array),
-    }));
+    expect(research.body.result.structuredContent).toEqual(
+      expect.objectContaining({
+        query: 'John 3:16',
+        items: expect.any(Array),
+      }),
+    );
 
     const taskMeta = {
       'io.modelcontextprotocol/protocolVersion': '2026-07-28',
-      'io.modelcontextprotocol/clientInfo': { name: 'theosphere-e2e', version: '1.0.0' },
+      'io.modelcontextprotocol/clientInfo': {
+        name: 'theosphere-e2e',
+        version: '1.0.0',
+      },
       'io.modelcontextprotocol/clientCapabilities': {
         extensions: { 'io.modelcontextprotocol/tasks': {} },
       },
@@ -116,15 +134,20 @@ describe('AppController (e2e)', () => {
         .expect(200);
 
       if (taskState.body.result.status === 'completed') break;
-      if (taskState.body.result.status !== 'working') throw new Error('Unexpected task status: ' + taskState.body.result.status);
+      if (taskState.body.result.status !== 'working')
+        throw new Error(
+          'Unexpected task status: ' + taskState.body.result.status,
+        );
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
     expect(taskState.body.result.resultType).toBe('complete');
     expect(taskState.body.result.status).toBe('completed');
-    expect(taskState.body.result.result).toEqual(expect.objectContaining({
-      structuredContent: expect.objectContaining({ query: 'John 3:16' }),
-    }));
+    expect(taskState.body.result.result).toEqual(
+      expect.objectContaining({
+        structuredContent: expect.objectContaining({ query: 'John 3:16' }),
+      }),
+    );
 
     const listed = await request(app.getHttpServer())
       .post('/mcp')
@@ -138,7 +161,9 @@ describe('AppController (e2e)', () => {
     expect(listed.body.result.ttlMs).toBe(300_000);
     expect(listed.body.result.cacheScope).toBe('public');
     expect(listed.body.result.tools).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'theosphere_answer' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'theosphere_answer' }),
+      ]),
     );
 
     const legacy = await request(app.getHttpServer())
@@ -163,7 +188,10 @@ describe('AppController (e2e)', () => {
   it('cancels a modern task and returns invalid task handles as JSON-RPC errors', async () => {
     const taskMeta = {
       'io.modelcontextprotocol/protocolVersion': '2026-07-28',
-      'io.modelcontextprotocol/clientInfo': { name: 'theosphere-e2e', version: '1.0.0' },
+      'io.modelcontextprotocol/clientInfo': {
+        name: 'theosphere-e2e',
+        version: '1.0.0',
+      },
       'io.modelcontextprotocol/clientCapabilities': {
         extensions: { 'io.modelcontextprotocol/tasks': {} },
       },
@@ -205,7 +233,9 @@ describe('AppController (e2e)', () => {
       })
       .expect(200);
 
-    expect(cancelled.body.result).toEqual(expect.objectContaining({ resultType: 'complete' }));
+    expect(cancelled.body.result).toEqual(
+      expect.objectContaining({ resultType: 'complete' }),
+    );
 
     const state = await request(app.getHttpServer())
       .post('/mcp')
@@ -238,7 +268,9 @@ describe('AppController (e2e)', () => {
       })
       .expect(200);
 
-    expect(missing.body.error).toEqual(expect.objectContaining({ code: -32602 }));
+    expect(missing.body.error).toEqual(
+      expect.objectContaining({ code: -32602 }),
+    );
   });
 
   it('/api/v1/ai/locations (GET)', () => {
