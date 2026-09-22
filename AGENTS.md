@@ -26,3 +26,44 @@ Instruções para agentes de IA que trabalham neste repositório. Arquivo cross-
 - Commit `a54a523331bb7806d2496ef2eb88a0c18c113d89`: documentação operacional e estado de validação; o CI associado confirmou backend, frontend, Prisma drift, Security Audit e MCP HTTP E2E smoke verdes.
 - O smoke HTTP/E2E atual cobre criação de Task, cancelamento cooperativo, `tasks/get` posterior e `-32602` para Task inexistente.
 - Não extrapolar resultados de CI para commits posteriores sem consultar a execução correspondente.
+
+## Produção observada — 2026-09-20
+Validação end-to-end em produção (`https://theosphere.onrender.com`), após merge do PR #8 (`chore/backend-lint-gate`) em `main`.
+
+### Infraestrutura
+
+| Item | Estado | Evidência |
+|------|--------|-----------|
+| Render deploy | ✅ Live | Commit `859253f` no Render, status Live |
+| `MCP_API_KEY` em Render | ✅ Configurada | Env var presente no dashboard (valor não exposto) |
+| `render.yaml` inclui `MCP_API_KEY` | ✅ Corrigido no PR #8 | Commit `cb51d047` |
+| Redis interno | ✅ Ativo | `red-d9ckjpe7r5hc738odcb0` |
+
+### Health checks
+
+| Endpoint | Status | Body |
+|----------|--------|------|
+| `GET /` | 200 | `{"service":"TheoSphere API","version":"1.0.0","status":"operational"}` |
+| `GET /api/v1/health/live` | 200 | `{"status":"ok"}` |
+| `GET /api/v1/health/ready` | 200 | `{"status":"ok","info":{"database":{"status":"up"}}}` |
+
+### MCP smoke test (`scripts/mcp-smoke.mjs`)
+
+Executado uma única vez em 2026-09-20. Nenhuma tool de IA invocada (sem gasto de quota Gemini).
+
+```json
+{
+  "ok": true,
+  "steps": [
+    { "name": "server/discover", "resultType": "complete", "supportedVersions": ["2026-07-28","2025-11-25","2025-06-18"], "tasks": true },
+    { "name": "tools/list", "resultType": "complete", "toolCount": 15, "hasTheoAnswer": true }
+  ]
+}
+```
+
+### Observações
+
+- A URL de serviço é `https://theosphere.onrender.com` (não `theosphere-backend`).
+- Free tier do Render: spin-down após 15 min de inatividade; cold start leva 50+ segundos.
+- Credenciais expostas no histórico público do repositório devem ser rotacionadas conforme `docs/security/CREDENTIAL_ROTATION_GUIDE.md`.
+

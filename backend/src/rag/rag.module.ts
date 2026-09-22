@@ -21,6 +21,10 @@ import { EvidencePackService } from './evidence-pack.service';
 import { EvidencePackContextService } from './evidence-pack-context.service';
 import { ConfigModule } from '@nestjs/config';
 
+import { DomainClassifierService } from './domain-classifier.service';
+import { RagContextBuilderService } from './rag-context-builder.service';
+import { TheologyGraphService } from './theology-graph.service';
+
 @Module({
   imports: [
     ConfigModule,
@@ -40,6 +44,9 @@ import { ConfigModule } from '@nestjs/config';
       provide: RagService,
       useClass: EvidenceAwareRagService,
     },
+    DomainClassifierService,
+    RagContextBuilderService,
+    TheologyGraphService,
     AiQuotaService,
     SemanticCacheService,
     UserContextService,
@@ -56,6 +63,9 @@ import { ConfigModule } from '@nestjs/config';
     AiQuotaService,
     EvidencePackService,
     EvidencePackContextService,
+    DomainClassifierService,
+    RagContextBuilderService,
+    TheologyGraphService,
   ],
 })
 export class RagModule {}

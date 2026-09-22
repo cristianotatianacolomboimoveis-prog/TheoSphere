@@ -5,7 +5,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "resolvePackageJsonExports": false,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "isolatedModules": true
   },
   "include": ["src/**/*.ts"]
 }
