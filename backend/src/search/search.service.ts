@@ -8,6 +8,7 @@ import {
   type ParsedQuery,
 } from './query-parser';
 import { resolveBookId } from '../common/book-map';
+import { LruCache } from '../common/lru-cache';
 
 export interface HybridSearchOptions {
   /** Limit returned results. Default 20, capped at 100. */
@@ -72,10 +73,31 @@ interface KeywordRow {
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
 
+  // ── L1 In-Memory Caches (latência < 2ms para referências e buscas frequentes) ──
+  private readonly referenceCache = new LruCache<string, HybridHit[]>({
+    maxSize: 500,
+    ttlMs: 1000 * 60 * 30, // 30 minutos
+  });
+
+  private readonly hybridQueryCache = new LruCache<
+    string,
+    { hits: HybridHit[]; meta: Record<string, unknown> }
+  >({
+    maxSize: 300,
+    ttlMs: 1000 * 60 * 10, // 10 minutos
+  });
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly embeddings: EmbeddingService,
   ) {}
+
+  getCacheStats() {
+    return {
+      references: this.referenceCache.stats,
+      hybridQueries: this.hybridQueryCache.stats,
+    };
+  }
 
   async hybridSearchVerses(
     query: string,
@@ -90,15 +112,20 @@ export class SearchService {
       /^([1-3]?\s?[a-zA-Záéíóúâêîôûãõç]+)\s+(\d+)(?::(\d+))?$/i,
     );
     if (refMatch) {
+      const transFilter = opts.translation?.toUpperCase().trim();
+      const refKey = `${trimmed.toLowerCase()}:${transFilter ?? 'ALL'}:${opts.limit ?? 50}`;
+      const cached = this.referenceCache.get(refKey);
+      if (cached) {
+        return cached;
+      }
+
       const bookName = refMatch[1];
       const chapter = parseInt(refMatch[2]);
       const verse = refMatch[3] ? parseInt(refMatch[3]) : null;
 
       // Mapa canônico compartilhado (common/book-map.ts)
-
       const resolvedBookId = resolveBookId(bookName);
       if (resolvedBookId) {
-        const transFilter = opts.translation?.toUpperCase().trim();
         const results = await this.prisma.bibleVerse.findMany({
           where: {
             bookId: resolvedBookId,
@@ -111,7 +138,7 @@ export class SearchService {
         });
 
         if (results.length > 0) {
-          return results.map((r) => ({
+          const hits = results.map((r) => ({
             id: r.id,
             bookId: r.bookId,
             chapter: r.chapter,
@@ -122,6 +149,8 @@ export class SearchService {
             vectorRank: 1,
             keywordRank: 1,
           }));
+          this.referenceCache.set(refKey, hits);
+          return hits;
         }
       }
     }
@@ -130,6 +159,22 @@ export class SearchService {
     const poolSize = Math.min(opts.poolSize ?? 50, 200);
     const k = opts.rrfK ?? 60;
     const translation = opts.translation?.toUpperCase().trim();
+
+    // Cache L1 de queries híbridas repetidas
+    const queryKey = `${trimmed.toLowerCase()}:${translation ?? 'ALL'}:${limit}:${poolSize}:${k}`;
+    const cachedQuery = this.hybridQueryCache.get(queryKey);
+    if (cachedQuery) {
+      const res = [...cachedQuery.hits] as any;
+      for (const [key, value] of Object.entries(cachedQuery.meta)) {
+        Object.defineProperty(res, key, {
+          value,
+          enumerable: false,
+          writable: true,
+          configurable: true,
+        });
+      }
+      return res;
+    }
 
     // Run both retrievers in parallel; degrade gracefully if either fails.
     // Timing por braço serve para diagnosticar a meta declarada de <200ms:
@@ -190,6 +235,18 @@ export class SearchService {
         configurable: true,
       });
     }
+
+    this.hybridQueryCache.set(queryKey, {
+      hits: fused,
+      meta: {
+        vectorStatus,
+        vectorMs,
+        keywordMs,
+        fusionMs,
+        retrieversMs,
+      },
+    });
+
     return fused;
   }
 

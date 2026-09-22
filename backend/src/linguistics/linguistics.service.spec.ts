@@ -234,4 +234,57 @@ describe('LinguisticsService', () => {
       expect(prisma.interlinearWord.findMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('L1 in-memory cache', () => {
+    it('evita consultas duplicadas no banco para o mesmo capítulo interlinear', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([
+        word({ verse: 1, position: 1 }),
+      ]);
+
+      const first = await service.getInterlinearChapter(43, 3);
+      const second = await service.getInterlinearChapter(43, 3);
+
+      expect(first).toEqual(second);
+      expect(prisma.interlinearWord.findMany).toHaveBeenCalledTimes(1);
+
+      const stats = service.getCacheStats().interlinearChapters;
+      expect(stats.hits).toBe(1);
+      expect(stats.size).toBe(1);
+    });
+
+    it('evita consultas duplicadas no banco para a mesma raiz em getOccurrences', async () => {
+      prisma.interlinearWord.count.mockResolvedValue(10);
+      prisma.interlinearWord.findMany.mockResolvedValue([word()]);
+
+      const first = await service.getOccurrences('G25');
+      const second = await service.getOccurrences('G25');
+
+      expect(first).toEqual(second);
+      expect(prisma.interlinearWord.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.interlinearWord.count).toHaveBeenCalledTimes(1);
+
+      const stats = service.getCacheStats().occurrences;
+      expect(stats.hits).toBe(1);
+    });
+
+    it('evita consultas duplicadas no banco para o mesmo Strong em getRootAnalysis', async () => {
+      prisma.lexicalEntry.findFirst.mockResolvedValue({
+        id: 'l1',
+        strongId: 'G25',
+        word: 'ἀγαπάω',
+        pronunciation: 'agapaō',
+        definition: 'to love',
+      });
+
+      const first = await service.getRootAnalysis('G25');
+      const second = await service.getRootAnalysis('G25');
+
+      expect(first).toEqual(second);
+      expect(prisma.lexicalEntry.findFirst).toHaveBeenCalledTimes(1);
+
+      const stats = service.getCacheStats().rootAnalysis;
+      expect(stats.hits).toBe(1);
+    });
+  });
 });
+

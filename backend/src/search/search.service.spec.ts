@@ -396,4 +396,55 @@ describe('SearchService', () => {
       expect(embeddings.createEmbedding).toHaveBeenCalled();
     });
   });
+
+  describe('L1 in-memory cache', () => {
+    it('serve referências bíblicas repetidas do cache sem nova consulta ao banco', async () => {
+      prisma.bibleVerse.findMany.mockResolvedValue([
+        {
+          id: 'v1',
+          bookId: 43,
+          chapter: 3,
+          verse: 16,
+          translation: 'BLIVRE',
+          text: 'Porque Deus amou...',
+        },
+      ]);
+
+      const first = await service.hybridSearchVerses('João 3:16');
+      const second = await service.hybridSearchVerses('João 3:16');
+
+      expect(first).toEqual(second);
+      expect(prisma.bibleVerse.findMany).toHaveBeenCalledTimes(1);
+
+      const stats = service.getCacheStats().references;
+      expect(stats.hits).toBe(1);
+      expect(stats.size).toBe(1);
+    });
+
+    it('serve buscas híbridas repetidas do cache sem gerar novo embedding nem rodar SQL', async () => {
+      setRetrieverResults(
+        [
+          {
+            id: 'v1',
+            text: 'No princípio...',
+            distance: 0.1,
+          },
+        ],
+        [],
+      );
+
+      const first = await service.hybridSearchVerses('princípio');
+      const second = await service.hybridSearchVerses('princípio');
+
+      expect(first).toHaveLength(1);
+      expect(second).toHaveLength(1);
+      expect(embeddings.createEmbedding).toHaveBeenCalledTimes(1);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2); // 1 vector + 1 keyword na primeira chamada
+
+      const stats = service.getCacheStats().hybridQueries;
+      expect(stats.hits).toBe(1);
+      expect(stats.size).toBe(1);
+    });
+  });
 });
+

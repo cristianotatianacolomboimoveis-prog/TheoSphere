@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { LruCache } from '../common/lru-cache';
 
 /**
  * Palavra do interlinear (STEP Bible TAGNT/TAHOT, CC BY 4.0).
@@ -66,7 +67,49 @@ export interface LemmatizationResult {
 export class LinguisticsService {
   private readonly logger = new Logger(LinguisticsService.name);
 
+  // ── L1 In-Memory Caches (latência < 2ms para lemas e capítulos frequentes) ──
+  private readonly interlinearChapterCache = new LruCache<string, {
+    bookId: number;
+    chapter: number;
+    available: boolean;
+    source: string | null;
+    verses: Record<number, InterlinearWordRow[]>;
+  }>({
+    maxSize: 150,
+    ttlMs: 1000 * 60 * 60, // 1 hora
+  });
+
+  private readonly occurrencesCache = new LruCache<string, {
+    strongId: string;
+    total: number;
+    occurrences: Array<{
+      bookId: number;
+      chapter: number;
+      verse: number;
+      word: string;
+      translit: string;
+      gloss: string;
+      morph: string | null;
+    }>;
+  }>({
+    maxSize: 500,
+    ttlMs: 1000 * 60 * 60, // 1 hora
+  });
+
+  private readonly rootAnalysisCache = new LruCache<string, Record<string, unknown> | null>({
+    maxSize: 1000,
+    ttlMs: 1000 * 60 * 60 * 2, // 2 horas
+  });
+
   constructor(private prisma: PrismaService) {}
+
+  getCacheStats() {
+    return {
+      interlinearChapters: this.interlinearChapterCache.stats,
+      occurrences: this.occurrencesCache.stats,
+      rootAnalysis: this.rootAnalysisCache.stats,
+    };
+  }
 
   private get interlinear(): InterlinearDelegate {
     return (this.prisma as unknown as Record<string, InterlinearDelegate>)[
@@ -87,6 +130,10 @@ export class LinguisticsService {
    * Dados reais TAGNT (grego NT); OT retorna vazio até o TAHOT ser ingerido.
    */
   async getInterlinearChapter(bookId: number, chapter: number) {
+    const cacheKey = `${bookId}:${chapter}`;
+    const cached = this.interlinearChapterCache.get(cacheKey);
+    if (cached) return cached;
+
     const words = await this.interlinear.findMany({
       where: { bookId, chapter },
       orderBy: [{ verse: 'asc' }, { position: 'asc' }],
@@ -97,7 +144,7 @@ export class LinguisticsService {
       (verses[w.verse] ??= []).push(w);
     }
     const dataset = bookId < 40 ? 'TAHOT' : 'TAGNT';
-    return {
+    const result = {
       bookId,
       chapter,
       available: words.length > 0,
@@ -107,6 +154,9 @@ export class LinguisticsService {
           : null,
       verses,
     };
+
+    this.interlinearChapterCache.set(cacheKey, result);
+    return result;
   }
 
   /**
@@ -114,6 +164,10 @@ export class LinguisticsService {
    */
   async getOccurrences(strongId: string, limit = 100) {
     const normalized = strongId.toUpperCase().trim();
+    const cacheKey = `${normalized}:${limit}`;
+    const cached = this.occurrencesCache.get(cacheKey);
+    if (cached) return cached;
+
     const [total, rows] = await Promise.all([
       this.interlinear.count({ where: { strongId: normalized } }),
       this.interlinear.findMany({
@@ -122,7 +176,7 @@ export class LinguisticsService {
         take: Math.min(limit, 200),
       }),
     ]);
-    return {
+    const result = {
       strongId: normalized,
       total,
       occurrences: rows.map((r) => ({
@@ -135,6 +189,9 @@ export class LinguisticsService {
         morph: r.morph,
       })),
     };
+
+    this.occurrencesCache.set(cacheKey, result);
+    return result;
   }
 
   /**
@@ -143,6 +200,10 @@ export class LinguisticsService {
    */
   async getRootAnalysis(strongId: string) {
     const normalized = strongId.toUpperCase().trim();
+    if (this.rootAnalysisCache.has(normalized)) {
+      return this.rootAnalysisCache.get(normalized);
+    }
+
     this.logger.log(`Analisando raiz lexical para: ${normalized}`);
 
     const entry = await this.prisma.lexicalEntry.findFirst({
@@ -150,13 +211,16 @@ export class LinguisticsService {
     });
 
     if (entry) {
-      return {
+      const result = {
         ...entry,
         lemma: entry.word,
         source: 'Database (lexical entry)',
       };
+      this.rootAnalysisCache.set(normalized, result);
+      return result;
     }
 
+    this.rootAnalysisCache.set(normalized, null);
     return null;
   }
 

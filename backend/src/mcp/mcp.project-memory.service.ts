@@ -21,11 +21,15 @@ export interface McpMemoryInput {
 export class McpProjectMemoryService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private get memoryDelegate(): any {
+    return (this.prisma as any).projectMemory;
+  }
+
   async append(input: McpMemoryInput) {
     const memoryKey = input.memoryKey.trim();
     const content = input.content.trim();
     if (!memoryKey || !content) throw new Error('MCP memory key and content are required');
-    return this.prisma.projectMemory.create({
+    return this.memoryDelegate.create({
       data: {
         id: 'MEM-' + randomUUID(),
         category: input.category,
@@ -41,7 +45,7 @@ export class McpProjectMemoryService {
   }
 
   async latest(memoryKey: string) {
-    return this.prisma.projectMemory.findFirst({ where: { memoryKey: memoryKey.trim() }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+    return this.memoryDelegate.findFirst({ where: { memoryKey: memoryKey.trim() }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
   }
 
   /**
@@ -90,7 +94,7 @@ export class McpProjectMemoryService {
 
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${normalizedKey}))`);
-      const current = await tx.projectMemory.findFirst({
+      const current = await (tx as any).projectMemory.findFirst({
         where: { category, memoryKey: normalizedKey },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       });
@@ -105,7 +109,7 @@ export class McpProjectMemoryService {
 
       const next = mutate(parsed);
       const content = JSON.stringify(next);
-      await tx.projectMemory.create({
+      await (tx as any).projectMemory.create({
         data: {
           id: 'MEM-' + randomUUID(),
           category,
@@ -124,14 +128,14 @@ export class McpProjectMemoryService {
 
   async list(category?: McpMemoryCategory, limit = 100) {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 500);
-    return this.prisma.projectMemory.findMany({ where: category ? { category } : undefined, orderBy: { createdAt: 'desc' }, take: safeLimit });
+    return this.memoryDelegate.findMany({ where: category ? { category } : undefined, orderBy: { createdAt: 'desc' }, take: safeLimit });
   }
 
   async search(query: string, category?: McpMemoryCategory, limit = 20) {
     const q = query.trim();
     if (!q) return [];
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
-    return this.prisma.projectMemory.findMany({
+    return this.memoryDelegate.findMany({
       where: { ...(category ? { category } : {}), OR: [{ memoryKey: { contains: q, mode: 'insensitive' } }, { content: { contains: q, mode: 'insensitive' } }] },
       orderBy: { createdAt: 'desc' }, take: safeLimit,
     });
