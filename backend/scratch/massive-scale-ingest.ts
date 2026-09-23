@@ -27,8 +27,8 @@ const MANIFEST_PATH = path.resolve(__dirname, '../src/rag/license-manifest.ts');
 const CHECKPOINT_PATH = path.resolve(__dirname, 'ingestion-checkpoint.json');
 const ADMIN_USER_ID = '995ef324-b355-4786-8973-3fc8bb535745'; // cristianotatianacolomboimoveis@gmail.com
 const CHUNK_SIZE_WORDS = 500;
-const EMBEDDING_CONCURRENCY = 2;
-const THROTTLE_MS = 2500;
+const EMBEDDING_CONCURRENCY = 5;
+const THROTTLE_MS = 500;
 
 // Lista curada de obras teológicas clássicas — IDs do Project Gutenberg
 const CURATED_BOOKS: Array<{ id: number; title: string; author: string }> = [
@@ -230,6 +230,15 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
   ssl: { rejectUnauthorized: false },
   max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+pool.on('error', (err: any) => {
+  console.warn(
+    '  ⚠️ Conexão de background com Supabase resetada (reestabelecendo automaticamente):',
+    err.message,
+  );
 });
 
 // ── Utilitários ──────────────────────────────────────────────────────────────
@@ -312,50 +321,56 @@ async function upsertChunks(
   meta: { title: string; author: string; source: string; gutenbergId: number },
   chunkIndices?: number[],
 ) {
-  const client = await pool.connect();
-  let inserted = 0;
-  let skipped = 0;
-  try {
-    for (let i = 0; i < chunks.length; i++) {
-      const text = chunks[i];
-      const embedding = embeddings[i];
-      if (!embedding) {
-        skipped++;
-        continue;
+  return callWithRetry(
+    async () => {
+      const client = await pool.connect();
+      let inserted = 0;
+      let skipped = 0;
+      try {
+        for (let i = 0; i < chunks.length; i++) {
+          const text = chunks[i];
+          const embedding = embeddings[i];
+          if (!embedding) {
+            skipped++;
+            continue;
+          }
+
+          const actualIdx = chunkIndices ? chunkIndices[i] : i;
+          const chunkId = `gutenberg_${meta.gutenbergId}_chunk_${actualIdx}`;
+
+          const existing = await client.query(
+            `SELECT id FROM "UserEmbedding" WHERE metadata->>'chunkId' = $1 AND "userId" = $2 LIMIT 1`,
+            [chunkId, ADMIN_USER_ID],
+          );
+          if (existing.rowCount! > 0) {
+            skipped++;
+            continue;
+          }
+
+          const embeddingStr = `[${embedding.join(',')}]`;
+          const metadata = JSON.stringify({
+            chunkId,
+            title: meta.title,
+            author: meta.author,
+            source: meta.source,
+            gutenbergId: meta.gutenbergId,
+            chunkIndex: actualIdx,
+          });
+          await client.query(
+            `INSERT INTO "UserEmbedding" ("id","userId","type","content","metadata","embedding","createdAt")
+           VALUES (gen_random_uuid(), $1, 'book_chunk', $2, $3::jsonb, $4::vector, NOW())`,
+            [ADMIN_USER_ID, text, metadata, embeddingStr],
+          );
+          inserted++;
+        }
+        return { inserted, skipped };
+      } finally {
+        client.release();
       }
-
-      const actualIdx = chunkIndices ? chunkIndices[i] : i;
-      const chunkId = `gutenberg_${meta.gutenbergId}_chunk_${actualIdx}`;
-
-      const existing = await client.query(
-        `SELECT id FROM "UserEmbedding" WHERE metadata->>'chunkId' = $1 AND "userId" = $2 LIMIT 1`,
-        [chunkId, ADMIN_USER_ID],
-      );
-      if (existing.rowCount! > 0) {
-        skipped++;
-        continue;
-      }
-
-      const embeddingStr = `[${embedding.join(',')}]`;
-      const metadata = JSON.stringify({
-        chunkId,
-        title: meta.title,
-        author: meta.author,
-        source: meta.source,
-        gutenbergId: meta.gutenbergId,
-        chunkIndex: actualIdx,
-      });
-      await client.query(
-        `INSERT INTO "UserEmbedding" ("id","userId","type","content","metadata","embedding","createdAt")
-         VALUES (gen_random_uuid(), $1, 'book_chunk', $2, $3::jsonb, $4::vector, NOW())`,
-        [ADMIN_USER_ID, text, metadata, embeddingStr],
-      );
-      inserted++;
-    }
-  } finally {
-    client.release();
-  }
-  return { inserted, skipped };
+    },
+    4,
+    2000,
+  );
 }
 
 // ── Manifesto de Licenças ──────────────────────────────────────────────────
@@ -558,7 +573,7 @@ async function processBook(book: any, dryRun = false): Promise<void> {
     console.log(
       `  🧠 Processando e gravando incrementalmente ${missingChunks.length}/${chunks.length} chunks pendentes...`,
     );
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 50;
     let totalInserted = 0;
     let totalSkipped = 0;
 
