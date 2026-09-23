@@ -425,4 +425,64 @@ export const OBRAS: Readonly<Record<string, ObraLicenca>> = {
     fonte: 'CCEL',
     motivo: 'Coleção histórica de domínio público (Pais Nicenos e Pós-Nicenos)',
   },
+  'Grace_Abounding_to_the_Chief_of_Sinners_gutenberg_654.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #654',
+    motivo: 'John Bunyan (1666) — obra clássica puritana em domínio público',
+  },
+  'Grace_Abounding_to_the_Chief_of_Sinners_gutenberg_654.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #654',
+    motivo: 'John Bunyan (1666) — obra clássica puritana em domínio público',
+  },
+  'The_Holy_War_gutenberg_395.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #395',
+    motivo: 'John Bunyan (1682) — obra clássica puritana em domínio público',
+  },
+  'The_Holy_War_gutenberg_395.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #395',
+    motivo: 'John Bunyan (1682) — obra clássica puritana em domínio público',
+  },
+  'Foxes_Book_of_Martyrs_gutenberg_22400.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #22400',
+    motivo: 'John Foxe (1563) — obra histórica em domínio público',
+  },
+  'Foxes_Book_of_Martyrs_gutenberg_22400.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #22400',
+    motivo: 'John Foxe (1563) — obra histórica em domínio público',
+  },
+  'The_Antiquities_of_the_Jews_gutenberg_2848.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #2848',
+    motivo: 'Flávio Josefo (trad. William Whiston 1737) — domínio público',
+  },
+  'The_Antiquities_of_the_Jews_gutenberg_2848.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #2848',
+    motivo: 'Flávio Josefo (trad. William Whiston 1737) — domínio público',
+  },
+  'The_Wars_of_the_Jews_gutenberg_2850.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #2850',
+    motivo: 'Flávio Josefo (trad. William Whiston 1737) — domínio público',
+  },
+  'The_Wars_of_the_Jews_gutenberg_2850.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #2850',
+    motivo: 'Flávio Josefo (trad. William Whiston 1737) — domínio público',
+  },
+  'Commentary_on_the_Epistle_to_the_Galatians_gutenberg_3390.epub': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #3390',
+    motivo: 'Martinho Lutero (1535) — exegese clássica em domínio público',
+  },
+  'Commentary_on_the_Epistle_to_the_Galatians_gutenberg_3390.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #3390',
+    motivo: 'Martinho Lutero (1535) — exegese clássica em domínio público',
+  },
 };

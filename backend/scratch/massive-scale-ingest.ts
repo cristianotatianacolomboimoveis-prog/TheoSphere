@@ -13,23 +13,22 @@
  */
 
 import * as dotenv from 'dotenv';
-import { resolve } from 'path';
-dotenv.config({ path: resolve('/Users/cristianocolombo/Downloads/TheoSphere/backend/.env') });
+import * as path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import axios from 'axios';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as crypto from 'crypto';
 import { Pool } from 'pg';
 import { GoogleGenAI } from '@google/genai';
 
-const SAVE_DIR = '/Users/cristianocolombo/Downloads/TheoSphere/acervo-traduzido';
-const MANIFEST_PATH = '/Users/cristianocolombo/Downloads/TheoSphere/backend/src/rag/license-manifest.ts';
-const CHECKPOINT_PATH = '/Users/cristianocolombo/Downloads/TheoSphere/backend/scratch/ingestion-checkpoint.json';
+const SAVE_DIR = path.resolve(__dirname, '../../acervo-traduzido');
+const MANIFEST_PATH = path.resolve(__dirname, '../src/rag/license-manifest.ts');
+const CHECKPOINT_PATH = path.resolve(__dirname, 'ingestion-checkpoint.json');
 const ADMIN_USER_ID = '995ef324-b355-4786-8973-3fc8bb535745'; // cristianotatianacolomboimoveis@gmail.com
 const CHUNK_SIZE_WORDS = 500;
-const EMBEDDING_CONCURRENCY = 10;
-const THROTTLE_MS = 5000;
+const EMBEDDING_CONCURRENCY = 2;
+const THROTTLE_MS = 2500;
 
 // Lista curada de obras teológicas clássicas — IDs do Project Gutenberg
 const CURATED_BOOKS: Array<{ id: number; title: string; author: string }> = [
@@ -78,6 +77,12 @@ const CURATED_BOOKS: Array<{ id: number; title: string; author: string }> = [
   { id: 90005, title: 'Commentary on the Whole Bible Vol 5', author: 'Matthew Henry' },
   { id: 90006, title: 'Commentary on the Whole Bible Vol 6', author: 'Matthew Henry' },
   { id: 90007, title: "Easton's Bible Dictionary", author: 'M.G. Easton' },
+  // ── Bloco 2: Clássicos Puritanos e Históricos em Domínio Público ────────
+  { id: 654,   title: 'Grace Abounding to the Chief of Sinners', author: 'John Bunyan' },
+  { id: 395,   title: 'The Holy War', author: 'John Bunyan' },
+  { id: 22400, title: "Foxe's Book of Martyrs", author: 'John Foxe' },
+  { id: 2848,  title: 'The Antiquities of the Jews', author: 'Flavius Josephus' },
+  { id: 2850,  title: 'The Wars of the Jews', author: 'Flavius Josephus' },
 ];
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
@@ -105,12 +110,12 @@ function chunkText(text: string, wordsPerChunk: number): string[] {
 
 // ── Retry com Backoff Exponencial ──────────────────────────────────────────
 
-async function callWithRetry<T>(fn: () => Promise<T>, retries = 4, delay = 2000): Promise<T> {
+async function callWithRetry<T>(fn: () => Promise<T>, retries = 4, delay = 2500): Promise<T> {
   try {
     return await fn();
-  } catch (err) {
+  } catch (err: any) {
     if (retries <= 0) throw err;
-    console.warn(`  ⚠️ Falha temporária da API. Tentando novamente em ${delay}ms... (Retentativas restantes: ${retries})`);
+    console.warn(`  ⚠️ Falha temporária da API (${err?.message || err}). Tentando novamente em ${delay}ms... (Retentativas restantes: ${retries})`);
     await sleep(delay);
     return callWithRetry(fn, retries - 1, delay * 2);
   }
@@ -141,6 +146,10 @@ async function embedBatch(texts: string[]): Promise<(number[] | null)[]> {
       }),
     );
     results.push(...batchResults);
+    const done = Math.min(i + EMBEDDING_CONCURRENCY, texts.length);
+    if (done % 10 === 0 || done === texts.length) {
+      console.log(`    📊 Progresso embeddings: ${done}/${texts.length} concluídos...`);
+    }
     if (i + EMBEDDING_CONCURRENCY < texts.length) {
       await sleep(THROTTLE_MS);
     }
@@ -251,12 +260,21 @@ async function downloadBook(book: any): Promise<{ buffer: Buffer; filename: stri
   const filename = `${safeTitle}_gutenberg_${book.id}.${ext}`;
   const filepath = path.join(SAVE_DIR, filename);
 
+  if (fs.existsSync(url)) {
+    const buffer = fs.readFileSync(url);
+    return { buffer, filename: path.basename(url), mime };
+  }
+
   if (fs.existsSync(filepath)) {
     const buffer = fs.readFileSync(filepath);
     return { buffer, filename, mime };
   }
 
-  const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+  const res = await axios.get(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+    responseType: 'arraybuffer',
+    timeout: 30000,
+  });
   const buffer = Buffer.from(res.data);
   fs.writeFileSync(filepath, buffer);
   return { buffer, filename, mime };
@@ -308,7 +326,7 @@ async function processBook(book: any, dryRun = false): Promise<void> {
   } else {
     try {
       const { findExtractor } = await import(
-        '/Users/cristianocolombo/Downloads/TheoSphere/backend/src/rag/text-extractors.js'
+        path.resolve(__dirname, '../src/rag/text-extractors')
       );
       const extractor = findExtractor(mime);
       if (!extractor) { console.log(`  ⚠️  Extrator não encontrado para ${mime}. Pulando.`); return; }
@@ -330,22 +348,57 @@ async function processBook(book: any, dryRun = false): Promise<void> {
   const chunks = chunkText(rawText, CHUNK_SIZE_WORDS);
   console.log(`  🔪 ${chunks.length} chunks de ~${CHUNK_SIZE_WORDS} palavras`);
 
-  console.log(`  🧠 Gerando embeddings com retry (${chunks.length} chunks)...`);
-  const embeddings = await embedBatch(chunks);
-  const validEmbeddings = embeddings.filter(Boolean).length;
-  console.log(`  ✅ ${validEmbeddings}/${chunks.length} embeddings prontos`);
-
-  if (chunks.length > 0 && validEmbeddings === 0) {
-    throw new Error('Falha completa na geração de embeddings (cota esgotada ou erro de API).');
+  // Otimização de Custo & Quota: checar quais chunks já existem no banco
+  const client = await pool.connect();
+  const existingChunks = new Set<string>();
+  try {
+    const res = await client.query(
+      `SELECT metadata->>'chunkId' as cid FROM "UserEmbedding" WHERE metadata->>'gutenbergId' = $1 AND "userId" = $2`,
+      [gutenbergId.toString(), ADMIN_USER_ID],
+    );
+    for (const r of res.rows) {
+      if (r.cid) existingChunks.add(r.cid);
+    }
+  } finally {
+    client.release();
   }
 
-  const { inserted, skipped } = await upsertChunks(chunks, embeddings, {
-    title,
-    author: authorName,
-    source: `Project Gutenberg #${gutenbergId}`,
-    gutenbergId,
-  });
-  console.log(`  💾 Banco: +${inserted} novos | ${skipped} já existentes`);
+  const missingIndices: number[] = [];
+  const missingChunks: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkId = `gutenberg_${gutenbergId}_chunk_${i}`;
+    if (!existingChunks.has(chunkId)) {
+      missingIndices.push(i);
+      missingChunks.push(chunks[i]);
+    }
+  }
+
+  if (missingChunks.length === 0) {
+    console.log(`  ⚡ Todos os ${chunks.length} chunks já constam no banco de dados. Pulando geração de embeddings.`);
+  } else {
+    console.log(`  🧠 Gerando embeddings para ${missingChunks.length}/${chunks.length} chunks pendentes...`);
+    const newEmbeddings = await embedBatch(missingChunks);
+    const validCount = newEmbeddings.filter(Boolean).length;
+    console.log(`  ✅ ${validCount}/${missingChunks.length} embeddings prontos`);
+
+    if (missingChunks.length > 0 && validCount === 0) {
+      throw new Error('Falha completa na geração de embeddings (cota esgotada ou erro de API).');
+    }
+
+    // Mapear os novos embeddings de volta para o array de todos os chunks
+    const fullEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null);
+    for (let k = 0; k < missingIndices.length; k++) {
+      fullEmbeddings[missingIndices[k]] = newEmbeddings[k];
+    }
+
+    const { inserted, skipped } = await upsertChunks(chunks, fullEmbeddings, {
+      title,
+      author: authorName,
+      source: `Project Gutenberg #${gutenbergId}`,
+      gutenbergId,
+    });
+    console.log(`  💾 Banco: +${inserted} novos | ${skipped} já existentes`);
+  }
 
   registerInManifest(filename, {
     source: `Project Gutenberg #${gutenbergId}`,
@@ -384,7 +437,22 @@ async function bootstrap() {
 
     console.log(`\n🔍 Buscando ID #${entry.id}: "${entry.title}"`);
     let book: any;
-    if (entry.id >= 90000) {
+
+    // 1. Verificar se o arquivo já está em SAVE_DIR
+    const existingLocalFiles = fs.readdirSync(SAVE_DIR).filter(f => f.includes(`_gutenberg_${entry.id}.`));
+    if (existingLocalFiles.length > 0) {
+      const localFile = existingLocalFiles[0];
+      const isEpub = localFile.endsWith('.epub');
+      console.log(`  📂 Arquivo encontrado localmente em cache: ${localFile}`);
+      book = {
+        id: entry.id,
+        title: entry.title,
+        authors: [{ name: entry.author }],
+        formats: {
+          [isEpub ? 'application/epub+zip' : 'text/plain']: path.join(SAVE_DIR, localFile),
+        },
+      };
+    } else if (entry.id >= 90000) {
       let url = '';
       if (entry.id >= 90001 && entry.id <= 90006) {
         const vol = entry.id - 90000;
@@ -397,22 +465,20 @@ async function bootstrap() {
         title: entry.title,
         authors: [{ name: entry.author }],
         formats: {
-          'text/plain': url
-        }
+          'text/plain': url,
+        },
       };
     } else {
-      try {
-        const res = await axios.get(`https://gutendex.com/books/${entry.id}`, { timeout: 15000 });
-        book = res.data;
-      } catch {
-        try {
-          const res2 = await axios.get(`https://gutendex.com/books/?ids=${entry.id}`, { timeout: 15000 });
-          book = res2.data.results?.[0];
-        } catch {
-          console.log(`  ❌ Não encontrado no Gutenberg. Pulando.`);
-          continue;
-        }
-      }
+      // 2. Tentar download direto de alta velocidade do Project Gutenberg
+      const directTxtUrl = `https://www.gutenberg.org/cache/epub/${entry.id}/pg${entry.id}.txt`;
+      book = {
+        id: entry.id,
+        title: entry.title,
+        authors: [{ name: entry.author }],
+        formats: {
+          'text/plain': directTxtUrl,
+        },
+      };
     }
 
     if (!book) continue;
