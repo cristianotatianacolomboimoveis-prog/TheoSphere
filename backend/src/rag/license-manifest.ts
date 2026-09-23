@@ -529,4 +529,169 @@ export const OBRAS: Readonly<Record<string, ObraLicenca>> = {
     motivo:
       'João Calvino — Comentário às Epístolas Católicas (Tiago, Pedro, João, Judas) (domínio público)',
   },
+  'Harmony_of_the_Gospels_Vol_1_Matt_Mark_Luke_gutenberg_91031.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91031',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_the_Gospels_Vol_2_gutenberg_91032.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91032',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_the_Gospels_Vol_3_gutenberg_91033.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91033',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Gospel_According_to_John_Vol_1_gutenberg_91034.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91034',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Gospel_According_to_John_Vol_2_gutenberg_91035.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91035',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Acts_of_the_Apostles_Vol_1_gutenberg_91036.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91036',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Acts_of_the_Apostles_Vol_2_gutenberg_91037.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91037',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Genesis_Vol_1_gutenberg_91001.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91001',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Genesis_Vol_2_gutenberg_91002.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91002',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_Exodus_Leviticus_Numbers_Deuteronomy_Vol_1_gutenberg_91003.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91003',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_the_Pentateuch_Vol_2_gutenberg_91004.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91004',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_the_Pentateuch_Vol_3_gutenberg_91005.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91005',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Harmony_of_the_Pentateuch_Vol_4_gutenberg_91006.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91006',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Joshua_gutenberg_91007.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91007',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Psalms_Vol_1_gutenberg_91008.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91008',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Psalms_Vol_2_gutenberg_91009.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91009',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Psalms_Vol_3_gutenberg_91010.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91010',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Psalms_Vol_4_gutenberg_91011.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91011',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Book_of_Psalms_Vol_5_gutenberg_91012.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91012',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Isaiah_Vol_1_gutenberg_91013.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91013',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Isaiah_Vol_2_gutenberg_91014.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91014',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Isaiah_Vol_3_gutenberg_91015.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91015',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Isaiah_Vol_4_gutenberg_91016.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91016',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Jeremiah_and_Lamentations_Vol_1_gutenberg_91017.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91017',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Jeremiah_and_Lamentations_Vol_2_gutenberg_91018.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91018',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Jeremiah_and_Lamentations_Vol_3_gutenberg_91019.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91019',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Jeremiah_and_Lamentations_Vol_4_gutenberg_91020.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91020',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_Jeremiah_and_Lamentations_Vol_5_gutenberg_91021.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91021',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Ezekiel_Vol_1_gutenberg_91022.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91022',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Ezekiel_Vol_2_gutenberg_91023.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91023',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Daniel_Vol_1_gutenberg_91024.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91024',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Prophet_Daniel_Vol_2_gutenberg_91025.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91025',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
+  'Commentary_on_the_Minor_Prophets_Hosea_Vol_1_gutenberg_91026.txt': {
+    status: 'dominio-publico',
+    fonte: 'Project Gutenberg #91026',
+    motivo: 'John Calvin — obra em domínio público (Project Gutenberg)',
+  },
 };

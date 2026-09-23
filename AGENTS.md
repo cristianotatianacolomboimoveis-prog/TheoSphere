@@ -34,18 +34,21 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 11. **Migração cross-tool para Claude Code (2026-09-15):** Removido o TheoSphere do workspace do Antigravity IDE — `storage.json` (2 refs), `state.vscdb` (5 chaves com `TheoSphere` limpas) e `workspaceStorage/d66ebd…c6bb/` deletado. Backups `.bak.<ts>` mantidos ao lado dos originais. `~/.gemini/GEMINI.md` global já é agnóstico (só instrui a ler AGENTS.md). `.agent/workflows/audit-weekly.md` reescrito para ser cross-tool. Repositório agora é operado exclusivamente pelo Claude Code / Cowork.
 12. **Sinalização `meta.vectorArm` verificada, corrigida e coberta por teste (2026-09-15):** o item que estava listado em §6 como "melhoria sugerida, ainda não aplicada" tinha a instrumentação de saída aplicada (`search.controller.ts:38-40` expõe `meta: { vectorArm: (data as any).vectorStatus || 'ok' }` sobre a propriedade não-enumerável anexada em `search.service.ts:135-161`), mas o teste que escrevi para o cenário `gemini 429` — o que motivou a instrumentação — falhou revelando um bug: `vectorSearch` engolia o erro de `createEmbedding` no `try/catch` interno e devolvia `[]`, o que virava `vectorStatus='empty'` em vez de `'failed'`. Ou seja, teto de gastos do Gemini era indistinguível de "biblioteca sem embeddings povoados" — exatamente o tipo de falha silenciosa que a sinalização existe para tornar visível. **Corrigido**: removido o `try/catch` interno de `vectorSearch`, deixando o erro propagar para o outer `.catch` de `hybridSearchVerses` que já marca `'failed'`. **Testes**: adicionados 4 casos em `search.service.spec.ts` (`describe('meta.vectorArm exposure')`) cobrindo os estados `ok`, `empty`, `failed` (via `createEmbedding` rejeitado) e o invariante de não-enumerabilidade (para não vazar `vectorStatus` no `JSON.stringify` do array de hits, evitando duplicação com o `meta.vectorArm` que já vem no envelope). 18/18 do spec, 145/145 do backend, lint e typecheck limpos.
 13. **Ingestão Massiva e Conclusão de Comentários Exegéticos Canônicos (2026-09-23):**
-    Acervo clássico expandido de **18.790 para 31.401 chunks ativos (+12.611 chunks)** em **54 obras completas**.
+    Acervo clássico expandido para **45.114 chunks ativos** em **90 obras teológicas completas** (+13.713 chunks e +36 obras nesta sessão).
 
 - **Matthew Henry:** Todos os 6 volumes 100% completos no banco (Vols 1 a 6 somando 14.591 chunks).
-- **João Calvino:** 8 volumes exegéticos das Epístolas 100% concluídos (Romanos, 1 e 2 Coríntios, Gálatas/Efésios, Filipenses/Colossenses/Tessalonicenses, Timóteo/Tito/Filemom, Hebreus e Epístolas Católicas da Calvin Translation Society / CCEL somando 3.026 chunks).
-- **Martinho Lutero:** Comentário aos Gálatas (Gutenberg #3390, 55 chunks).
+- **João Calvino:** 100% do Novo Testamento concluído (Harmonia dos Evangelhos 3 vols, João 2 vols, Atos 2 vols, 8 volumes de Epístolas) e grande parte do Antigo Testamento concluído (Gênesis 2 vols, Pentateuco 4 vols, Josué, Salmos Vols 1 a 5, Isaías, Jeremias, Ezequiel, Daniel).
+- **Tomás de Aquino:** _Summa Theologica_ completa indexada (Partes I, I-II, II-II e III somando mais de 4.400 chunks).
+- **Martinho Lutero:** Comentário aos Gálatas (Gutenberg #3390, 55 chunks) e Catecismos.
 - **John Bunyan:** Trilogia clássica completa (_O Peregrino_, _Graça Abundante_, _Guerra Santa_).
 - **Flávio Josefo & John Foxe:** _Antiguidades Judaicas_, _Guerras dos Judeus_ e _Livro dos Mártires_.
-- **Motor de Ingestão Resiliente:** Persistência incremental por lotes de 50 chunks, reconexão automática e tolerância a quedas de socket no Supabase PgBouncer, eliminação do teto diário via Pay-As-You-Go e busca semântica validada com similaridades exegéticas de até 0.714.
+- **Agostinho de Hipona:** _A Cidade de Deus_ e _Escritos Anti-Pelagianos_.
+- **Jonathan Edwards & Charles Spurgeon:** Tratados clássicos e sermões de domínio público.
+- **Banco de Dados Supabase:** Banco atingiu 1.194 MB (1,19 GB) com 45.114 chunks no `UserEmbedding`. Busca vetorial, híbrida e textual plenamente ativas. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB (requer ajuste no dashboard do Supabase para novas gravações em lote).
 
 **Próximos passos:**
 
-1. **Expansão Contínua do Acervo:** Adição e ingestão de novos volumes clássicos de domínio público conforme demanda exegética.
+1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

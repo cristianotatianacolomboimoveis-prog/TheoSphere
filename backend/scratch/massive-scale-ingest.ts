@@ -479,7 +479,7 @@ async function embedBatch(texts: string[]): Promise<(number[] | null)[]> {
     const batchResults = await Promise.all(
       batch.map(async (text) => {
         return callWithRetry(async () => {
-          const res = await ai.models.embedContent({
+          const embedPromise = ai.models.embedContent({
             model: 'gemini-embedding-001',
             contents: text,
             config: {
@@ -487,6 +487,16 @@ async function embedBatch(texts: string[]): Promise<(number[] | null)[]> {
               outputDimensionality: 768,
             },
           });
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Timeout de 15s na API Gemini')),
+              15000,
+            ),
+          );
+          const res = (await Promise.race([
+            embedPromise,
+            timeoutPromise,
+          ])) as any;
           return (res.embeddings?.[0]?.values ?? null) as number[] | null;
         }).catch((err) => {
           console.error(`  ❌ Falha definitiva no chunk: ${err.message}`);
