@@ -222,6 +222,201 @@ const CURATED_BOOKS: Array<{ id: number; title: string; author: string }> = [
     title: 'Commentary on the Epistle to the Galatians',
     author: 'Martin Luther',
   },
+
+  // ── Bloco 4: João Calvino — Novo Testamento Restante (Evangelhos e Atos) ──
+  {
+    id: 91031,
+    title: 'Harmony of the Gospels Vol 1 (Matt, Mark, Luke)',
+    author: 'John Calvin',
+  },
+  { id: 91032, title: 'Harmony of the Gospels Vol 2', author: 'John Calvin' },
+  { id: 91033, title: 'Harmony of the Gospels Vol 3', author: 'John Calvin' },
+  { id: 91034, title: 'Gospel According to John Vol 1', author: 'John Calvin' },
+  { id: 91035, title: 'Gospel According to John Vol 2', author: 'John Calvin' },
+  { id: 91036, title: 'Acts of the Apostles Vol 1', author: 'John Calvin' },
+  { id: 91037, title: 'Acts of the Apostles Vol 2', author: 'John Calvin' },
+
+  // ── Bloco 5: João Calvino — Antigo Testamento Monumental ──
+  { id: 91001, title: 'Commentary on Genesis Vol 1', author: 'John Calvin' },
+  { id: 91002, title: 'Commentary on Genesis Vol 2', author: 'John Calvin' },
+  {
+    id: 91003,
+    title: 'Harmony of Exodus, Leviticus, Numbers, Deuteronomy Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91004,
+    title: 'Harmony of the Pentateuch Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91005,
+    title: 'Harmony of the Pentateuch Vol 3',
+    author: 'John Calvin',
+  },
+  {
+    id: 91006,
+    title: 'Harmony of the Pentateuch Vol 4',
+    author: 'John Calvin',
+  },
+  {
+    id: 91007,
+    title: 'Commentary on the Book of Joshua',
+    author: 'John Calvin',
+  },
+  {
+    id: 91008,
+    title: 'Commentary on the Book of Psalms Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91009,
+    title: 'Commentary on the Book of Psalms Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91010,
+    title: 'Commentary on the Book of Psalms Vol 3',
+    author: 'John Calvin',
+  },
+  {
+    id: 91011,
+    title: 'Commentary on the Book of Psalms Vol 4',
+    author: 'John Calvin',
+  },
+  {
+    id: 91012,
+    title: 'Commentary on the Book of Psalms Vol 5',
+    author: 'John Calvin',
+  },
+  {
+    id: 91013,
+    title: 'Commentary on the Prophet Isaiah Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91014,
+    title: 'Commentary on the Prophet Isaiah Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91015,
+    title: 'Commentary on the Prophet Isaiah Vol 3',
+    author: 'John Calvin',
+  },
+  {
+    id: 91016,
+    title: 'Commentary on the Prophet Isaiah Vol 4',
+    author: 'John Calvin',
+  },
+  {
+    id: 91017,
+    title: 'Commentary on Jeremiah and Lamentations Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91018,
+    title: 'Commentary on Jeremiah and Lamentations Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91019,
+    title: 'Commentary on Jeremiah and Lamentations Vol 3',
+    author: 'John Calvin',
+  },
+  {
+    id: 91020,
+    title: 'Commentary on Jeremiah and Lamentations Vol 4',
+    author: 'John Calvin',
+  },
+  {
+    id: 91021,
+    title: 'Commentary on Jeremiah and Lamentations Vol 5',
+    author: 'John Calvin',
+  },
+  {
+    id: 91022,
+    title: 'Commentary on the Prophet Ezekiel Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91023,
+    title: 'Commentary on the Prophet Ezekiel Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91024,
+    title: 'Commentary on the Prophet Daniel Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91025,
+    title: 'Commentary on the Prophet Daniel Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91026,
+    title: 'Commentary on the Minor Prophets (Hosea) Vol 1',
+    author: 'John Calvin',
+  },
+  {
+    id: 91027,
+    title: 'Commentary on the Minor Prophets (Joel, Amos, Obadiah) Vol 2',
+    author: 'John Calvin',
+  },
+  {
+    id: 91028,
+    title: 'Commentary on the Minor Prophets (Jonah, Micah, Nahum) Vol 3',
+    author: 'John Calvin',
+  },
+  {
+    id: 91029,
+    title:
+      'Commentary on the Minor Prophets (Habakkuk, Zephaniah, Haggai) Vol 4',
+    author: 'John Calvin',
+  },
+  {
+    id: 91030,
+    title: 'Commentary on the Minor Prophets (Zechariah, Malachi) Vol 5',
+    author: 'John Calvin',
+  },
+
+  // ── Bloco 6: Jamieson, Fausset & Brown (JFB) ──
+  {
+    id: 92001,
+    title: 'Commentary Critical and Explanatory on the Whole Bible',
+    author: 'Robert Jamieson, A.R. Fausset, David Brown',
+  },
+
+  // ── Bloco 7: Teologia Sistemática de Princeton (Charles Hodge) ──
+  {
+    id: 93001,
+    title: 'Systematic Theology Vol 1 (Theology Proper)',
+    author: 'Charles Hodge',
+  },
+  {
+    id: 93002,
+    title: 'Systematic Theology Vol 2 (Anthropology and Soteriology)',
+    author: 'Charles Hodge',
+  },
+  {
+    id: 93003,
+    title: 'Systematic Theology Vol 3 (Eschatology and Means of Grace)',
+    author: 'Charles Hodge',
+  },
+
+  // ── Bloco 8: Clássicos Puritanos (John Owen & Richard Baxter) ──
+  {
+    id: 94001,
+    title: 'The Death of Death in the Death of Christ',
+    author: 'John Owen',
+  },
+  {
+    id: 94002,
+    title: 'Of the Mortification of Sin in Believers',
+    author: 'John Owen',
+  },
+  { id: 94003, title: 'The Reformed Pastor', author: 'Richard Baxter' },
 ];
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
@@ -582,7 +777,13 @@ async function processBook(book: any, dryRun = false): Promise<void> {
         ? 'Calvin Translation Society / CCEL'
         : gutenbergId >= 90001 && gutenbergId <= 90006
           ? 'Matthew Henry Commentary'
-          : `Project Gutenberg #${gutenbergId}`;
+          : gutenbergId === 92001
+            ? 'Jamieson, Fausset & Brown (JFB)'
+            : gutenbergId >= 93001 && gutenbergId <= 93003
+              ? 'Charles Hodge Systematic Theology'
+              : gutenbergId >= 94001 && gutenbergId <= 94003
+                ? 'Puritan Classics / CCEL'
+                : `Project Gutenberg #${gutenbergId}`;
 
     for (let start = 0; start < missingChunks.length; start += BATCH_SIZE) {
       const sliceChunks = missingChunks.slice(start, start + BATCH_SIZE);
@@ -695,9 +896,21 @@ async function bootstrap() {
       } else if (entry.id === 90007) {
         url =
           'https://archive.org/download/EastonsBibleDictionary/Eastons-Bible-Dictionary_djvu.txt';
-      } else if (entry.id >= 91038 && entry.id <= 91045) {
+      } else if (entry.id >= 91001 && entry.id <= 91045) {
         const calcomNum = (entry.id - 91000).toString().padStart(2, '0');
         url = `https://www.ccel.org/ccel/calvin/calcom${calcomNum}/cache/calcom${calcomNum}.txt`;
+      } else if (entry.id === 92001) {
+        url = 'https://www.ccel.org/ccel/jamieson/jfb/cache/jfb.txt';
+      } else if (entry.id >= 93001 && entry.id <= 93003) {
+        const hodgeVol = entry.id - 93000;
+        url = `https://www.ccel.org/ccel/hodge/theology${hodgeVol}/cache/theology${hodgeVol}.txt`;
+      } else if (entry.id === 94001) {
+        url =
+          'https://www.ccel.org/ccel/owen/deathofdeath/cache/deathofdeath.txt';
+      } else if (entry.id === 94002) {
+        url = 'https://www.ccel.org/ccel/owen/mort/cache/mort.txt';
+      } else if (entry.id === 94003) {
+        url = 'https://www.ccel.org/ccel/baxter/pastor/cache/pastor.txt';
       }
       book = {
         id: entry.id,
