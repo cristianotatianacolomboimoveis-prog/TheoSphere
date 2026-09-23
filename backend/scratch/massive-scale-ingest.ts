@@ -34,55 +34,194 @@ const THROTTLE_MS = 2500;
 const CURATED_BOOKS: Array<{ id: number; title: string; author: string }> = [
   // ── Patrística ──
   { id: 45844, title: 'Anti-Pelagian Writings', author: 'Augustine of Hippo' },
-  { id: 45305, title: 'The City of God, Vol III', author: 'Augustine of Hippo' },
-  { id: 19038, title: 'Homilies on the Gospel of St. John', author: 'John Chrysostom' },
-  { id: 17723, title: 'Homilies on the Epistles of Paul to the Corinthians', author: 'John Chrysostom' },
+  {
+    id: 45305,
+    title: 'The City of God, Vol III',
+    author: 'Augustine of Hippo',
+  },
+  {
+    id: 19038,
+    title: 'Homilies on the Gospel of St. John',
+    author: 'John Chrysostom',
+  },
+  {
+    id: 17723,
+    title: 'Homilies on the Epistles of Paul to the Corinthians',
+    author: 'John Chrysostom',
+  },
   { id: 32055, title: 'On the Priesthood', author: 'John Chrysostom' },
-  { id: 9804,  title: 'Against Heresies', author: 'Irenaeus of Lyons' },
-  { id: 7098,  title: 'Apology', author: 'Tertullian' },
-  { id: 3239,  title: 'The Stromata (Miscellanies)', author: 'Clement of Alexandria' },
-  { id: 32999, title: 'On the Incarnation of the Word', author: 'Athanasius of Alexandria' },
+  { id: 9804, title: 'Against Heresies', author: 'Irenaeus of Lyons' },
+  { id: 7098, title: 'Apology', author: 'Tertullian' },
+  {
+    id: 3239,
+    title: 'The Stromata (Miscellanies)',
+    author: 'Clement of Alexandria',
+  },
+  {
+    id: 32999,
+    title: 'On the Incarnation of the Word',
+    author: 'Athanasius of Alexandria',
+  },
 
   // ── Escolástica e Medieval ──
-  { id: 17611, title: 'Summa Theologica, Part I (Prima Pars)', author: 'Thomas Aquinas' },
-  { id: 17897, title: 'Summa Theologica, Part I-II (Pars Prima Secundae)', author: 'Thomas Aquinas' },
-  { id: 18755, title: 'Summa Theologica, Part II-II (Secunda Secundae)', author: 'Thomas Aquinas' },
-  { id: 19950, title: 'Summa Theologica, Part III (Tertia Pars)', author: 'Thomas Aquinas' },
-  { id: 36907, title: 'Cur Deus Homo (Why God Became Man)', author: 'Anselm of Canterbury' },
-  { id: 26472, title: 'Proslogium; Monologium', author: 'Anselm of Canterbury' },
+  {
+    id: 17611,
+    title: 'Summa Theologica, Part I (Prima Pars)',
+    author: 'Thomas Aquinas',
+  },
+  {
+    id: 17897,
+    title: 'Summa Theologica, Part I-II (Pars Prima Secundae)',
+    author: 'Thomas Aquinas',
+  },
+  {
+    id: 18755,
+    title: 'Summa Theologica, Part II-II (Secunda Secundae)',
+    author: 'Thomas Aquinas',
+  },
+  {
+    id: 19950,
+    title: 'Summa Theologica, Part III (Tertia Pars)',
+    author: 'Thomas Aquinas',
+  },
+  {
+    id: 36907,
+    title: 'Cur Deus Homo (Why God Became Man)',
+    author: 'Anselm of Canterbury',
+  },
+  {
+    id: 26472,
+    title: 'Proslogium; Monologium',
+    author: 'Anselm of Canterbury',
+  },
   { id: 59353, title: 'Of the Imitation of Christ', author: 'Thomas a Kempis' },
 
   // ── Reforma e Puritanismo ──
-  { id: 45001, title: 'Institutes of the Christian Religion Vol I', author: 'John Calvin' },
-  { id: 64392, title: 'Institutes of the Christian Religion Vol II', author: 'John Calvin' },
-  { id: 45463, title: 'Letters of John Calvin, Volume II', author: 'John Calvin' },
-  { id: 1722,  title: 'Martin Luther\'s Large Catechism', author: 'Martin Luther' },
-  { id: 1670,  title: 'Luther\'s Little Instruction Book: The Small Catechism', author: 'Martin Luther' },
-  { id: 39452, title: 'The Pilgrim\'s Progress', author: 'John Bunyan' },
+  {
+    id: 45001,
+    title: 'Institutes of the Christian Religion Vol I',
+    author: 'John Calvin',
+  },
+  {
+    id: 64392,
+    title: 'Institutes of the Christian Religion Vol II',
+    author: 'John Calvin',
+  },
+  {
+    id: 45463,
+    title: 'Letters of John Calvin, Volume II',
+    author: 'John Calvin',
+  },
+  {
+    id: 1722,
+    title: "Martin Luther's Large Catechism",
+    author: 'Martin Luther',
+  },
+  {
+    id: 1670,
+    title: "Luther's Little Instruction Book: The Small Catechism",
+    author: 'Martin Luther',
+  },
+  { id: 39452, title: "The Pilgrim's Progress", author: 'John Bunyan' },
 
   // ── Avivamento e Puritanismo Tardio ──
-  { id: 9519,  title: 'Freedom of the Will', author: 'Jonathan Edwards' },
-  { id: 14867, title: 'A Treatise Concerning Religious Affections', author: 'Jonathan Edwards' },
-  { id: 32011, title: 'Sinners in the Hands of an Angry God', author: 'Jonathan Edwards' },
+  { id: 9519, title: 'Freedom of the Will', author: 'Jonathan Edwards' },
+  {
+    id: 14867,
+    title: 'A Treatise Concerning Religious Affections',
+    author: 'Jonathan Edwards',
+  },
+  {
+    id: 32011,
+    title: 'Sinners in the Hands of an Angry God',
+    author: 'Jonathan Edwards',
+  },
   { id: 19039, title: 'Lectures to My Students', author: 'Charles Spurgeon' },
   { id: 27530, title: 'All of Grace', author: 'Charles Spurgeon' },
-  { id: 1967,  title: 'Morning and Evening', author: 'Charles Spurgeon' },
+  { id: 1967, title: 'Morning and Evening', author: 'Charles Spurgeon' },
   { id: 41785, title: 'Sermons on Several Occasions', author: 'John Wesley' },
-  { id: 59789, title: 'The Works of John Wesley, Vol 1', author: 'John Wesley' },
+  {
+    id: 59789,
+    title: 'The Works of John Wesley, Vol 1',
+    author: 'John Wesley',
+  },
   // ── Bloco 1: Obras Adicionais do Google Drive / Outras Bibliotecas ────────
-  { id: 90001, title: 'Commentary on the Whole Bible Vol 1', author: 'Matthew Henry' },
-  { id: 90002, title: 'Commentary on the Whole Bible Vol 2', author: 'Matthew Henry' },
-  { id: 90003, title: 'Commentary on the Whole Bible Vol 3', author: 'Matthew Henry' },
-  { id: 90004, title: 'Commentary on the Whole Bible Vol 4', author: 'Matthew Henry' },
-  { id: 90005, title: 'Commentary on the Whole Bible Vol 5', author: 'Matthew Henry' },
-  { id: 90006, title: 'Commentary on the Whole Bible Vol 6', author: 'Matthew Henry' },
+  {
+    id: 90001,
+    title: 'Commentary on the Whole Bible Vol 1',
+    author: 'Matthew Henry',
+  },
+  {
+    id: 90002,
+    title: 'Commentary on the Whole Bible Vol 2',
+    author: 'Matthew Henry',
+  },
+  {
+    id: 90003,
+    title: 'Commentary on the Whole Bible Vol 3',
+    author: 'Matthew Henry',
+  },
+  {
+    id: 90004,
+    title: 'Commentary on the Whole Bible Vol 4',
+    author: 'Matthew Henry',
+  },
+  {
+    id: 90005,
+    title: 'Commentary on the Whole Bible Vol 5',
+    author: 'Matthew Henry',
+  },
+  {
+    id: 90006,
+    title: 'Commentary on the Whole Bible Vol 6',
+    author: 'Matthew Henry',
+  },
   { id: 90007, title: "Easton's Bible Dictionary", author: 'M.G. Easton' },
   // ── Bloco 2: Clássicos Puritanos e Históricos em Domínio Público ────────
-  { id: 654,   title: 'Grace Abounding to the Chief of Sinners', author: 'John Bunyan' },
-  { id: 395,   title: 'The Holy War', author: 'John Bunyan' },
+  {
+    id: 654,
+    title: 'Grace Abounding to the Chief of Sinners',
+    author: 'John Bunyan',
+  },
+  { id: 395, title: 'The Holy War', author: 'John Bunyan' },
   { id: 22400, title: "Foxe's Book of Martyrs", author: 'John Foxe' },
-  { id: 2848,  title: 'The Antiquities of the Jews', author: 'Flavius Josephus' },
-  { id: 2850,  title: 'The Wars of the Jews', author: 'Flavius Josephus' },
+  {
+    id: 2848,
+    title: 'The Antiquities of the Jews',
+    author: 'Flavius Josephus',
+  },
+  { id: 2850, title: 'The Wars of the Jews', author: 'Flavius Josephus' },
+
+  // ── Bloco 3: Comentários Exegéticos de João Calvino e Martinho Lutero ────────
+  { id: 91038, title: 'Commentary on Romans', author: 'John Calvin' },
+  { id: 91039, title: 'Commentary on 1 Corinthians', author: 'John Calvin' },
+  { id: 91040, title: 'Commentary on 2 Corinthians', author: 'John Calvin' },
+  {
+    id: 91041,
+    title: 'Commentary on Galatians and Ephesians',
+    author: 'John Calvin',
+  },
+  {
+    id: 91042,
+    title: 'Commentary on Philippians, Colossians, and Thessalonians',
+    author: 'John Calvin',
+  },
+  {
+    id: 91043,
+    title: 'Commentary on Timothy, Titus, and Philemon',
+    author: 'John Calvin',
+  },
+  { id: 91044, title: 'Commentary on Hebrews', author: 'John Calvin' },
+  {
+    id: 91045,
+    title: 'Commentary on Catholic Epistles',
+    author: 'John Calvin',
+  },
+  {
+    id: 3390,
+    title: 'Commentary on the Epistle to the Galatians',
+    author: 'Martin Luther',
+  },
 ];
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
@@ -110,12 +249,18 @@ function chunkText(text: string, wordsPerChunk: number): string[] {
 
 // ── Retry com Backoff Exponencial ──────────────────────────────────────────
 
-async function callWithRetry<T>(fn: () => Promise<T>, retries = 4, delay = 2500): Promise<T> {
+async function callWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 4,
+  delay = 2500,
+): Promise<T> {
   try {
     return await fn();
   } catch (err: any) {
     if (retries <= 0) throw err;
-    console.warn(`  ⚠️ Falha temporária da API (${err?.message || err}). Tentando novamente em ${delay}ms... (Retentativas restantes: ${retries})`);
+    console.warn(
+      `  ⚠️ Falha temporária da API (${err?.message || err}). Tentando novamente em ${delay}ms... (Retentativas restantes: ${retries})`,
+    );
     await sleep(delay);
     return callWithRetry(fn, retries - 1, delay * 2);
   }
@@ -148,7 +293,9 @@ async function embedBatch(texts: string[]): Promise<(number[] | null)[]> {
     results.push(...batchResults);
     const done = Math.min(i + EMBEDDING_CONCURRENCY, texts.length);
     if (done % 10 === 0 || done === texts.length) {
-      console.log(`    📊 Progresso embeddings: ${done}/${texts.length} concluídos...`);
+      console.log(
+        `    📊 Progresso embeddings: ${done}/${texts.length} concluídos...`,
+      );
     }
     if (i + EMBEDDING_CONCURRENCY < texts.length) {
       await sleep(THROTTLE_MS);
@@ -163,6 +310,7 @@ async function upsertChunks(
   chunks: string[],
   embeddings: (number[] | null)[],
   meta: { title: string; author: string; source: string; gutenbergId: number },
+  chunkIndices?: number[],
 ) {
   const client = await pool.connect();
   let inserted = 0;
@@ -171,15 +319,22 @@ async function upsertChunks(
     for (let i = 0; i < chunks.length; i++) {
       const text = chunks[i];
       const embedding = embeddings[i];
-      if (!embedding) { skipped++; continue; }
+      if (!embedding) {
+        skipped++;
+        continue;
+      }
 
-      const chunkId = `gutenberg_${meta.gutenbergId}_chunk_${i}`;
+      const actualIdx = chunkIndices ? chunkIndices[i] : i;
+      const chunkId = `gutenberg_${meta.gutenbergId}_chunk_${actualIdx}`;
 
       const existing = await client.query(
         `SELECT id FROM "UserEmbedding" WHERE metadata->>'chunkId' = $1 AND "userId" = $2 LIMIT 1`,
         [chunkId, ADMIN_USER_ID],
       );
-      if (existing.rowCount! > 0) { skipped++; continue; }
+      if (existing.rowCount! > 0) {
+        skipped++;
+        continue;
+      }
 
       const embeddingStr = `[${embedding.join(',')}]`;
       const metadata = JSON.stringify({
@@ -188,7 +343,7 @@ async function upsertChunks(
         author: meta.author,
         source: meta.source,
         gutenbergId: meta.gutenbergId,
-        chunkIndex: i,
+        chunkIndex: actualIdx,
       });
       await client.query(
         `INSERT INTO "UserEmbedding" ("id","userId","type","content","metadata","embedding","createdAt")
@@ -205,7 +360,10 @@ async function upsertChunks(
 
 // ── Manifesto de Licenças ──────────────────────────────────────────────────
 
-function registerInManifest(filename: string, meta: { source: string; author: string; title: string }) {
+function registerInManifest(
+  filename: string,
+  meta: { source: string; author: string; title: string },
+) {
   if (!fs.existsSync(MANIFEST_PATH)) return;
   const content = fs.readFileSync(MANIFEST_PATH, 'utf-8');
   const key = `'${filename}'`;
@@ -217,10 +375,7 @@ function registerInManifest(filename: string, meta: { source: string; author: st
     motivo: '${meta.author} — obra em domínio público (Project Gutenberg)',
   },\n`;
 
-  const updated = content.replace(
-    /^};\s*$/m,
-    entry + '};',
-  );
+  const updated = content.replace(/^};\s*$/m, entry + '};');
   fs.writeFileSync(MANIFEST_PATH, updated, 'utf-8');
 }
 
@@ -237,12 +392,22 @@ function loadCheckpoint(): number[] {
 }
 
 function saveCheckpoint(processedIds: number[]) {
-  fs.writeFileSync(CHECKPOINT_PATH, JSON.stringify({ processedIds, updatedAt: new Date().toISOString() }, null, 2), 'utf-8');
+  fs.writeFileSync(
+    CHECKPOINT_PATH,
+    JSON.stringify(
+      { processedIds, updatedAt: new Date().toISOString() },
+      null,
+      2,
+    ),
+    'utf-8',
+  );
 }
 
 // ── Download do Gutenberg ────────────────────────────────────────────────────
 
-async function downloadBook(book: any): Promise<{ buffer: Buffer; filename: string; mime: string } | null> {
+async function downloadBook(
+  book: any,
+): Promise<{ buffer: Buffer; filename: string; mime: string } | null> {
   const formats = book.formats as Record<string, string>;
   const epubUrl = formats['application/epub+zip'];
   const txtUrl = formats['text/plain; charset=utf-8'] || formats['text/plain'];
@@ -271,7 +436,9 @@ async function downloadBook(book: any): Promise<{ buffer: Buffer; filename: stri
   }
 
   const res = await axios.get(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    },
     responseType: 'arraybuffer',
     timeout: 30000,
   });
@@ -329,13 +496,23 @@ async function processBook(book: any, dryRun = false): Promise<void> {
         path.resolve(__dirname, '../src/rag/text-extractors')
       );
       const extractor = findExtractor(mime);
-      if (!extractor) { console.log(`  ⚠️  Extrator não encontrado para ${mime}. Pulando.`); return; }
+      if (!extractor) {
+        console.log(`  ⚠️  Extrator não encontrado para ${mime}. Pulando.`);
+        return;
+      }
       const result = await extractor.extract(buffer);
       rawText = result.text;
     } catch {
-      const txtUrl = book.formats['text/plain; charset=utf-8'] || book.formats['text/plain'];
-      if (!txtUrl) { console.log(`  ⚠️  Sem TXT fallback. Pulando.`); return; }
-      const res = await axios.get(txtUrl, { responseType: 'text', timeout: 30000 });
+      const txtUrl =
+        book.formats['text/plain; charset=utf-8'] || book.formats['text/plain'];
+      if (!txtUrl) {
+        console.log(`  ⚠️  Sem TXT fallback. Pulando.`);
+        return;
+      }
+      const res = await axios.get(txtUrl, {
+        responseType: 'text',
+        timeout: 30000,
+      });
       rawText = extractTxtText(Buffer.from(res.data));
     }
   }
@@ -374,30 +551,60 @@ async function processBook(book: any, dryRun = false): Promise<void> {
   }
 
   if (missingChunks.length === 0) {
-    console.log(`  ⚡ Todos os ${chunks.length} chunks já constam no banco de dados. Pulando geração de embeddings.`);
+    console.log(
+      `  ⚡ Todos os ${chunks.length} chunks já constam no banco de dados. Pulando geração de embeddings.`,
+    );
   } else {
-    console.log(`  🧠 Gerando embeddings para ${missingChunks.length}/${chunks.length} chunks pendentes...`);
-    const newEmbeddings = await embedBatch(missingChunks);
-    const validCount = newEmbeddings.filter(Boolean).length;
-    console.log(`  ✅ ${validCount}/${missingChunks.length} embeddings prontos`);
+    console.log(
+      `  🧠 Processando e gravando incrementalmente ${missingChunks.length}/${chunks.length} chunks pendentes...`,
+    );
+    const BATCH_SIZE = 20;
+    let totalInserted = 0;
+    let totalSkipped = 0;
 
-    if (missingChunks.length > 0 && validCount === 0) {
-      throw new Error('Falha completa na geração de embeddings (cota esgotada ou erro de API).');
+    const sourceName =
+      gutenbergId >= 91000 && gutenbergId <= 91099
+        ? 'Calvin Translation Society / CCEL'
+        : gutenbergId >= 90001 && gutenbergId <= 90006
+          ? 'Matthew Henry Commentary'
+          : `Project Gutenberg #${gutenbergId}`;
+
+    for (let start = 0; start < missingChunks.length; start += BATCH_SIZE) {
+      const sliceChunks = missingChunks.slice(start, start + BATCH_SIZE);
+      const sliceIndices = missingIndices.slice(start, start + BATCH_SIZE);
+
+      const sliceEmbeddings = await embedBatch(sliceChunks);
+      const validCount = sliceEmbeddings.filter(Boolean).length;
+
+      if (sliceChunks.length > 0 && validCount === 0) {
+        throw new Error(
+          'Falha completa na geração de embeddings (cota esgotada ou erro de API).',
+        );
+      }
+
+      const { inserted, skipped } = await upsertChunks(
+        sliceChunks,
+        sliceEmbeddings,
+        {
+          title,
+          author: authorName,
+          source: sourceName,
+          gutenbergId,
+        },
+        sliceIndices,
+      );
+
+      totalInserted += inserted;
+      totalSkipped += skipped;
+      const progressDone = Math.min(start + BATCH_SIZE, missingChunks.length);
+      console.log(
+        `  💾 [#${gutenbergId}] Progresso gravado no PostgreSQL: ${progressDone}/${missingChunks.length} (+${inserted} novos | ${skipped} já existentes)`,
+      );
     }
 
-    // Mapear os novos embeddings de volta para o array de todos os chunks
-    const fullEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null);
-    for (let k = 0; k < missingIndices.length; k++) {
-      fullEmbeddings[missingIndices[k]] = newEmbeddings[k];
-    }
-
-    const { inserted, skipped } = await upsertChunks(chunks, fullEmbeddings, {
-      title,
-      author: authorName,
-      source: `Project Gutenberg #${gutenbergId}`,
-      gutenbergId,
-    });
-    console.log(`  💾 Banco: +${inserted} novos | ${skipped} já existentes`);
+    console.log(
+      `  🎉 Concluído livro #${gutenbergId}: +${totalInserted} novos gravados | ${totalSkipped} pulados`,
+    );
   }
 
   registerInManifest(filename, {
@@ -413,20 +620,28 @@ async function bootstrap() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const limitArgIdx = args.indexOf('--limit');
-  const limit = limitArgIdx > -1 ? parseInt(args[limitArgIdx + 1], 10) : CURATED_BOOKS.length;
+  const limit =
+    limitArgIdx > -1
+      ? parseInt(args[limitArgIdx + 1], 10)
+      : CURATED_BOOKS.length;
 
   console.log('🌟 [AGENTE-MASSIVO-SCALE] Iniciando ingestão resiliente...');
-  if (dryRun) console.log('  ⚠️ MODO DRY-RUN ATIVADO (Somente leitura e download).');
-  
+  if (dryRun)
+    console.log('  ⚠️ MODO DRY-RUN ATIVADO (Somente leitura e download).');
+
   if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR, { recursive: true });
 
   const processedIds = loadCheckpoint();
-  console.log(`📋 Checkpoint: ${processedIds.length} livros já processados anteriormente.`);
+  console.log(
+    `📋 Checkpoint: ${processedIds.length} livros já processados anteriormente.`,
+  );
 
   let count = 0;
   for (const entry of CURATED_BOOKS) {
     if (count >= limit) {
-      console.log(`\n🛑 Limite de --limit ${limit} livros atingido nesta sessão.`);
+      console.log(
+        `\n🛑 Limite de --limit ${limit} livros atingido nesta sessão.`,
+      );
       break;
     }
 
@@ -439,7 +654,9 @@ async function bootstrap() {
     let book: any;
 
     // 1. Verificar se o arquivo já está em SAVE_DIR
-    const existingLocalFiles = fs.readdirSync(SAVE_DIR).filter(f => f.includes(`_gutenberg_${entry.id}.`));
+    const existingLocalFiles = fs
+      .readdirSync(SAVE_DIR)
+      .filter((f) => f.includes(`_gutenberg_${entry.id}.`));
     if (existingLocalFiles.length > 0) {
       const localFile = existingLocalFiles[0];
       const isEpub = localFile.endsWith('.epub');
@@ -449,7 +666,10 @@ async function bootstrap() {
         title: entry.title,
         authors: [{ name: entry.author }],
         formats: {
-          [isEpub ? 'application/epub+zip' : 'text/plain']: path.join(SAVE_DIR, localFile),
+          [isEpub ? 'application/epub+zip' : 'text/plain']: path.join(
+            SAVE_DIR,
+            localFile,
+          ),
         },
       };
     } else if (entry.id >= 90000) {
@@ -458,7 +678,11 @@ async function bootstrap() {
         const vol = entry.id - 90000;
         url = `https://www.ccel.org/ccel/h/henry/mhc${vol}/cache/mhc${vol}.txt`;
       } else if (entry.id === 90007) {
-        url = 'https://archive.org/download/EastonsBibleDictionary/Eastons-Bible-Dictionary_djvu.txt';
+        url =
+          'https://archive.org/download/EastonsBibleDictionary/Eastons-Bible-Dictionary_djvu.txt';
+      } else if (entry.id >= 91038 && entry.id <= 91045) {
+        const calcomNum = (entry.id - 91000).toString().padStart(2, '0');
+        url = `https://www.ccel.org/ccel/calvin/calcom${calcomNum}/cache/calcom${calcomNum}.txt`;
       }
       book = {
         id: entry.id,
@@ -493,7 +717,9 @@ async function bootstrap() {
       }
       count++;
     } catch (err: any) {
-      console.error(`  ❌ Erro crítico ao processar "${entry.title}": ${err.message}`);
+      console.error(
+        `  ❌ Erro crítico ao processar "${entry.title}": ${err.message}`,
+      );
     }
 
     await sleep(2000);

@@ -485,4 +485,48 @@ export const OBRAS: Readonly<Record<string, ObraLicenca>> = {
     fonte: 'Project Gutenberg #3390',
     motivo: 'Martinho Lutero (1535) — exegese clássica em domínio público',
   },
+  'Commentary_on_Romans_gutenberg_91038.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1849)',
+    motivo: 'João Calvino — Comentário aos Romanos (domínio público)',
+  },
+  'Commentary_on_1_Corinthians_gutenberg_91039.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1848)',
+    motivo: 'João Calvino — Comentário a 1 Coríntios (domínio público)',
+  },
+  'Commentary_on_2_Corinthians_gutenberg_91040.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1849)',
+    motivo: 'João Calvino — Comentário a 2 Coríntios (domínio público)',
+  },
+  'Commentary_on_Galatians_and_Ephesians_gutenberg_91041.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1854)',
+    motivo: 'João Calvino — Comentário a Gálatas e Efésios (domínio público)',
+  },
+  'Commentary_on_Philippians_Colossians_and_Thessalonians_gutenberg_91042.txt':
+    {
+      status: 'dominio-publico',
+      fonte: 'CCEL / Calvin Translation Society (1851)',
+      motivo:
+        'João Calvino — Comentário a Filipenses, Colossenses e Tessalonicenses (domínio público)',
+    },
+  'Commentary_on_Timothy_Titus_and_Philemon_gutenberg_91043.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1856)',
+    motivo:
+      'João Calvino — Comentário a Timóteo, Tito e Filemom (domínio público)',
+  },
+  'Commentary_on_Hebrews_gutenberg_91044.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1853)',
+    motivo: 'João Calvino — Comentário aos Hebreus (domínio público)',
+  },
+  'Commentary_on_Catholic_Epistles_gutenberg_91045.txt': {
+    status: 'dominio-publico',
+    fonte: 'CCEL / Calvin Translation Society (1855)',
+    motivo:
+      'João Calvino — Comentário às Epístolas Católicas (Tiago, Pedro, João, Judas) (domínio público)',
+  },
 };
