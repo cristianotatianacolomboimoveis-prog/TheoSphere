@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { TEXTUAL_VARIANTS_CATALOG } from "@/data/textualCriticismData";
 
 export type ManuscriptFamily =
   | "Alexandrian"
@@ -97,7 +98,22 @@ export function useTextualCriticism(initialPassage?: {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Carrega lista de variantes catalogadas
+  function toSummary(v: TextualVariantItem): TextualCriticismSummary {
+    return {
+      id: v.id,
+      passageRef: v.passageRef,
+      unitTitlePt: v.unitTitlePt,
+      testament: v.bookId <= 39 ? "OT" : "NT",
+      variantType: v.variantType,
+      criticalRating: v.criticalRating,
+      theologicalImpact: v.theologicalImpact,
+      dssOrEarlyPapyriInvolved: v.readings.some(
+        (r) => r.family === "Qumran_DSS" || r.witnessSiglum.includes("P"),
+      ),
+    };
+  }
+
+  // Carrega lista de variantes catalogadas (com fallback offline para acervo estático)
   const loadVariantsList = useCallback(
     async (testamentFilter?: "OT" | "NT", query?: string) => {
       try {
@@ -108,17 +124,45 @@ export function useTextualCriticism(initialPassage?: {
         const res = await fetch(
           `${API_BASE_URL}/textual-criticism/variants?${params.toString()}`,
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          let list = TEXTUAL_VARIANTS_CATALOG;
+          if (testamentFilter === "OT")
+            list = list.filter((v) => v.bookId <= 39);
+          if (testamentFilter === "NT")
+            list = list.filter((v) => v.bookId >= 40);
+          if (query) {
+            const q = query.toLowerCase();
+            list = list.filter(
+              (v) =>
+                v.passageRef.toLowerCase().includes(q) ||
+                v.unitTitlePt.toLowerCase().includes(q),
+            );
+          }
+          setVariantsList(list.map(toSummary));
+          return;
+        }
         const data: TextualCriticismSummary[] = await res.json();
         setVariantsList(data);
-      } catch (err) {
-        console.warn("Falha ao buscar variantes textuais:", err);
+      } catch {
+        // Fallback local se a API estiver indisponível
+        let list = TEXTUAL_VARIANTS_CATALOG;
+        if (testamentFilter === "OT") list = list.filter((v) => v.bookId <= 39);
+        if (testamentFilter === "NT") list = list.filter((v) => v.bookId >= 40);
+        if (query) {
+          const q = query.toLowerCase();
+          list = list.filter(
+            (v) =>
+              v.passageRef.toLowerCase().includes(q) ||
+              v.unitTitlePt.toLowerCase().includes(q),
+          );
+        }
+        setVariantsList(list.map(toSummary));
       }
     },
     [],
   );
 
-  // Carrega variante específica por ID
+  // Carrega variante específica por ID (com fallback no catálogo)
   const loadVariantById = useCallback(async (id: string) => {
     setIsLoading(true);
     setError(null);
@@ -127,12 +171,23 @@ export function useTextualCriticism(initialPassage?: {
       const res = await fetch(
         `${API_BASE_URL}/textual-criticism/variants/${id}`,
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const found = TEXTUAL_VARIANTS_CATALOG.find((v) => v.id === id);
+        if (found) {
+          setActiveVariant(found);
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data: TextualVariantItem = await res.json();
       setActiveVariant(data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      setError(`Não foi possível carregar a variante: ${msg}`);
+    } catch {
+      const found = TEXTUAL_VARIANTS_CATALOG.find((v) => v.id === id);
+      if (found) {
+        setActiveVariant(found);
+      } else {
+        setError("Não foi possível carregar a variante selecionada.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -147,22 +202,59 @@ export function useTextualCriticism(initialPassage?: {
         const res = await fetch(
           `${API_BASE_URL}/textual-criticism/apparatus/${book}/${chapter}/${verse}`,
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const catalogItem = TEXTUAL_VARIANTS_CATALOG.find(
+            (v) =>
+              v.bookId === Number(book) &&
+              v.chapter === chapter &&
+              v.verse === verse,
+          );
+          if (catalogItem) {
+            setActiveVariant(catalogItem);
+            setSelectedVariantId(catalogItem.id);
+            setApparatusData({
+              passageRef: catalogItem.passageRef,
+              hasNotableCatalogVariant: true,
+              catalogVariant: catalogItem,
+              manuscriptWitnesses: [],
+            });
+            return;
+          }
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data: ManuscriptApparatusResponse = await res.json();
         setApparatusData(data);
         if (data.catalogVariant) {
           setActiveVariant(data.catalogVariant);
           setSelectedVariantId(data.catalogVariant.id);
         }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Erro desconhecido";
-        setError(`Não foi possível carregar o aparato: ${msg}`);
+      } catch {
+        const catalogItem = TEXTUAL_VARIANTS_CATALOG.find(
+          (v) =>
+            v.bookId === Number(book) &&
+            v.chapter === chapter &&
+            v.verse === verse,
+        );
+        if (catalogItem) {
+          setActiveVariant(catalogItem);
+          setSelectedVariantId(catalogItem.id);
+          setApparatusData({
+            passageRef: catalogItem.passageRef,
+            hasNotableCatalogVariant: true,
+            catalogVariant: catalogItem,
+            manuscriptWitnesses: [],
+          });
+        }
       } finally {
         setIsLoading(false);
       }
     },
     [],
   );
+
+  const initialBookId = initialPassage?.bookId;
+  const initialChapter = initialPassage?.chapter;
+  const initialVerse = initialPassage?.verse;
 
   // Inicialização segura com React Compiler
   useEffect(() => {
@@ -174,12 +266,8 @@ export function useTextualCriticism(initialPassage?: {
           searchQuery,
         );
         loadVariantById("ISA.53.11");
-        if (initialPassage) {
-          loadApparatus(
-            initialPassage.bookId,
-            initialPassage.chapter,
-            initialPassage.verse,
-          );
+        if (initialBookId && initialChapter && initialVerse) {
+          loadApparatus(initialBookId, initialChapter, initialVerse);
         }
       }
     }, 0);
@@ -194,7 +282,9 @@ export function useTextualCriticism(initialPassage?: {
     loadApparatus,
     activeTestament,
     searchQuery,
-    initialPassage,
+    initialBookId,
+    initialChapter,
+    initialVerse,
   ]);
 
   // Copia a ficha crítica formatada para a área de transferência
