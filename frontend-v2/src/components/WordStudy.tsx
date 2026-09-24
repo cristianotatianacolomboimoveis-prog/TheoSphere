@@ -16,6 +16,8 @@ import {
   FileText,
   ExternalLink,
   ScrollText,
+  Copy,
+  Check,
 } from "lucide-react";
 import * as Framer from "framer-motion";
 const { motion, AnimatePresence } = Framer;
@@ -27,11 +29,39 @@ import {
 import { STRONGS_HEBREW, searchStrongsHebrew } from "@/data/strongsHebrew";
 import { TranslationRing } from "./word-study/TranslationRing";
 import { ExegeticalConcordance } from "./word-study/ExegeticalConcordance";
+import { CanonicalDistributionChart } from "./word-study/CanonicalDistributionChart";
+import { InflectedFormsTable } from "./word-study/InflectedFormsTable";
 import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { useTheoStore } from "@/store/useTheoStore";
 import { parseBibleRef, verseIdOf } from "@/lib/bibleRef";
+
+interface WordStudyDetails {
+  strongId: string;
+  lemma: string | null;
+  translit: string | null;
+  totalOccurrences: number;
+  canonicalDistribution: Array<{
+    name: string;
+    count: number;
+    percentage: number;
+  }>;
+  bookDistribution: Array<{
+    bookId: number;
+    bookName: string;
+    count: number;
+  }>;
+  inflectedForms: Array<{
+    word: string;
+    translit: string;
+    morph: string | null;
+    gloss: string;
+    count: number;
+    sampleRef: string;
+  }>;
+  lexical: any;
+}
 
 interface LibraryExcerpt {
   content: string;
@@ -52,11 +82,15 @@ export default function WordStudy({
   const [selectedEntry, setSelectedEntry] = useState<StrongsEntry | null>(null);
   const [language, setLanguage] = useState<"greek" | "hebrew">("greek");
   const [lexicalData, setLexicalData] = useState<any>(null);
+  const [studyDetails, setStudyDetails] = useState<WordStudyDetails | null>(
+    null,
+  );
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [loadingLexical, setLoadingLexical] = useState(false);
   const [loadingOccurrences, setLoadingOccurrences] = useState(false);
   const [libraryExcerpts, setLibraryExcerpts] = useState<LibraryExcerpt[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { setBibleReference, setActiveVerse, activeBook, books } =
@@ -76,20 +110,77 @@ export default function WordStudy({
     onClose();
   };
 
+  const handleSelectBook = (bookName: string) => {
+    setBibleReference(bookName, 1);
+    router.push("/study");
+    onClose();
+  };
+
+  const handleCopyStudy = () => {
+    if (!selectedEntry) return;
+    let md = `# Estudo Exegético: ${selectedEntry.lemma} (${selectedEntry.transliteration})\n\n`;
+    md += `**Strong:** ${selectedEntry.number} | **Classe:** ${selectedEntry.partOfSpeech} | **Ocorrências:** ${studyDetails?.totalOccurrences || selectedEntry.occurrences}\n`;
+    md += `**Pronúncia:** /${selectedEntry.pronunciation}/\n\n`;
+    md += `## Definição Acadêmica\n${selectedEntry.definitionPt}\n\n*${selectedEntry.definition}*\n\n`;
+    if (studyDetails?.canonicalDistribution?.length) {
+      md += `## Distribuição Canônica\n`;
+      for (const item of studyDetails.canonicalDistribution) {
+        md += `- **${item.name}:** ${item.count}x (${item.percentage}%)\n`;
+      }
+      md += `\n`;
+    }
+    if (studyDetails?.inflectedForms?.length) {
+      md += `## Formas Flexionadas no Texto\n`;
+      for (const f of studyDetails.inflectedForms.slice(0, 10)) {
+        md += `- **${f.word}** (*${f.translit}*) — [${f.morph || "N/A"}] "${f.gloss}" (${f.count}x)\n`;
+      }
+      md += `\n`;
+    }
+    if (occurrences.length > 0) {
+      md += `## Principais Ocorrências\n`;
+      for (const occ of occurrences.slice(0, 10)) {
+        md += `- **${occ.reference}:** ${occ.text}\n`;
+      }
+      md += `\n`;
+    }
+    md += `*Fonte: TheoSphere Bible Research — Logos-Grade Exegesis*\n`;
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(md).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
   const fetchLexicalAnalysis = async (strongId: string) => {
     setError(null);
     setLoadingLexical(true);
     setLoadingOccurrences(true);
     try {
-      const jsonLex = await api.get<any>(`linguistics/lexical/${strongId}`);
-      if (jsonLex.success) setLexicalData(jsonLex.data);
-      const jsonOcc = await api.get<any>(`linguistics/search-root/${strongId}`);
-      if (jsonOcc.success) setOccurrences(jsonOcc.data);
+      const [jsonStudy, jsonOcc] = await Promise.all([
+        api.get<any>(`linguistics/word-study/${strongId}`, {
+          throwOnError: false,
+        }),
+        api.get<any>(`linguistics/search-root/${strongId}`, {
+          throwOnError: false,
+        }),
+      ]);
+
+      if (jsonStudy?.success && jsonStudy.data) {
+        setStudyDetails(jsonStudy.data);
+        if (jsonStudy.data.lexical) {
+          setLexicalData(jsonStudy.data.lexical);
+        }
+      }
+      if (jsonOcc?.success && Array.isArray(jsonOcc.data)) {
+        setOccurrences(jsonOcc.data);
+      }
     } catch (e) {
       // Antes o painel simplesmente ficava vazio (varredura 2026-07-29).
       logger.error(e);
       setError(
-        "Não foi possível carregar o léxico e as ocorrências deste termo.",
+        "Não foi possível carregar o estudo léxico e as ocorrências deste termo.",
       );
     } finally {
       setLoadingLexical(false);
@@ -115,9 +206,15 @@ export default function WordStudy({
   };
 
   React.useEffect(() => {
-    if (!selectedEntry) return;
     const timer = setTimeout(() => {
-      void fetchLibraryExcerpts(selectedEntry);
+      if (!selectedEntry) {
+        setStudyDetails(null);
+        setLexicalData(null);
+        setOccurrences([]);
+      } else {
+        void fetchLexicalAnalysis(selectedEntry.number);
+        void fetchLibraryExcerpts(selectedEntry);
+      }
     }, 0);
     return () => clearTimeout(timer);
   }, [selectedEntry]);
@@ -260,7 +357,7 @@ export default function WordStudy({
                 <p className="text-xs text-gray-400 mt-2">
                   Prununcia: /{selectedEntry.pronunciation}/
                 </p>
-                <div className="flex items-center justify-center gap-3 mt-6">
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
                   <span className="px-3 py-1 rounded-md bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-black text-gray-500">
                     {selectedEntry.number}
                   </span>
@@ -268,8 +365,27 @@ export default function WordStudy({
                     {selectedEntry.partOfSpeech}
                   </span>
                   <span className="px-3 py-1 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 text-[10px] font-black text-amber-600">
-                    {selectedEntry.occurrences} Ocorrências
+                    {studyDetails?.totalOccurrences ||
+                      selectedEntry.occurrences}{" "}
+                    Ocorrências
                   </span>
+                  <button
+                    onClick={handleCopyStudy}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm transition-all"
+                    title="Copiar Ficha Exegética Completa em Markdown"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-300" />
+                        <span>Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copiar Ficha Exegética</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -304,17 +420,20 @@ export default function WordStudy({
                     <div className="flex items-center gap-3 py-4">
                       <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
                       <span className="text-xs font-bold text-emerald-600 uppercase">
-                        Consultando BDAG/HALOT...
+                        Consultando BDAG/HALOT & Banco Léxico...
                       </span>
                     </div>
                   ) : lexicalData ? (
                     <div className="space-y-4">
                       <p className="text-sm font-serif text-gray-700 dark:text-gray-300 leading-relaxed italic">
-                        "{lexicalData.academic_discussion}"
+                        "
+                        {lexicalData.academic_discussion ||
+                          lexicalData.definition}
+                        "
                       </p>
                       <div className="pt-4 border-t border-emerald-100 dark:border-emerald-900/10 flex gap-4">
                         <span className="text-[9px] font-bold text-emerald-600 uppercase">
-                          Origem: {lexicalData.source}
+                          Origem: {lexicalData.source || "Léxico TAGNT/TAHOT"}
                         </span>
                       </div>
                     </div>
@@ -329,10 +448,29 @@ export default function WordStudy({
                 </div>
               </div>
 
+              {/* ── Distribuição Canônica (Logos-Style Chart) ── */}
+              <CanonicalDistributionChart
+                distribution={studyDetails?.canonicalDistribution || []}
+                bookDistribution={studyDetails?.bookDistribution || []}
+                totalOccurrences={
+                  studyDetails?.totalOccurrences || selectedEntry.occurrences
+                }
+                onSelectBook={handleSelectBook}
+              />
+
+              {/* ── Formas Flexionadas no Texto Original ── */}
+              <InflectedFormsTable
+                forms={studyDetails?.inflectedForms || []}
+                isNT={language === "greek"}
+                onSelectRef={openOccurrence}
+              />
+
               {/* Integration Sections */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <TranslationRing
-                  occurrences={selectedEntry.occurrences}
+                  occurrences={
+                    studyDetails?.totalOccurrences || selectedEntry.occurrences
+                  }
                   data={[]}
                 />
                 <div className="space-y-4">
@@ -353,6 +491,32 @@ export default function WordStudy({
                   </div>
                 </div>
               </div>
+
+              {/* Acervo Clássico Relacionado */}
+              {libraryExcerpts.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-l-2 border-blue-500 pl-4">
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                      Trechos do Acervo Clássico ({libraryExcerpts.length})
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {libraryExcerpts.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-xl bg-white dark:bg-[#0D1117] border border-gray-200 dark:border-white/10 shadow-sm space-y-1"
+                      >
+                        <span className="text-[10px] font-bold text-blue-500 uppercase">
+                          {item.fileName}
+                        </span>
+                        <p className="text-xs font-serif text-gray-700 dark:text-gray-300 leading-relaxed italic">
+                          "{item.content}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div

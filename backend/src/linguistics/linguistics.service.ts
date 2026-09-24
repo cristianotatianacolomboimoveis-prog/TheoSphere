@@ -1,6 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LruCache } from '../common/lru-cache';
+import { BOOK_ID_TO_NAME_PT, getCanonicalDivision } from '../common/book-map';
+
+export interface WordStudyCanonicalGroup {
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface WordStudyBookDistribution {
+  bookId: number;
+  bookName: string;
+  count: number;
+}
+
+export interface WordStudyInflectedForm {
+  word: string;
+  translit: string;
+  morph: string | null;
+  gloss: string;
+  count: number;
+  sampleRef: string;
+}
+
+export interface WordStudyData {
+  strongId: string;
+  lemma: string | null;
+  translit: string | null;
+  totalOccurrences: number;
+  canonicalDistribution: WordStudyCanonicalGroup[];
+  bookDistribution: WordStudyBookDistribution[];
+  inflectedForms: WordStudyInflectedForm[];
+  lexical: Record<string, unknown> | null;
+}
 
 /**
  * Palavra do interlinear (STEP Bible TAGNT/TAHOT, CC BY 4.0).
@@ -110,6 +143,11 @@ export class LinguisticsService {
     ttlMs: 1000 * 60 * 60 * 2, // 2 horas
   });
 
+  private readonly wordStudyCache = new LruCache<string, WordStudyData>({
+    maxSize: 500,
+    ttlMs: 1000 * 60 * 60 * 2, // 2 horas
+  });
+
   constructor(private prisma: PrismaService) {}
 
   getCacheStats() {
@@ -117,6 +155,7 @@ export class LinguisticsService {
       interlinearChapters: this.interlinearChapterCache.stats,
       occurrences: this.occurrencesCache.stats,
       rootAnalysis: this.rootAnalysisCache.stats,
+      wordStudies: this.wordStudyCache.stats,
     };
   }
 
@@ -345,5 +384,132 @@ export class LinguisticsService {
       source:
         candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
     };
+  }
+
+  /**
+   * Estudo aprofundado de palavra original (padrão Logos Bible Software):
+   * - Distribuição canônica por agrupamento bíblico
+   * - Ocorrências detalhadas por livro
+   * - Agrupamento e contagem de formas flexionadas encontradas
+   * - Conexão lexical (Strong / BDAG / HALOT)
+   */
+  async getWordStudyDetails(strongId: string): Promise<WordStudyData> {
+    const normalized = strongId.toUpperCase().trim();
+    const cached = this.wordStudyCache.get(normalized);
+    if (cached) return cached;
+
+    const [rows, lexical] = await Promise.all([
+      this.interlinear.findMany({
+        where: { strongId: normalized },
+        orderBy: [{ bookId: 'asc' }, { chapter: 'asc' }, { verse: 'asc' }],
+      }),
+      this.getRootAnalysis(normalized),
+    ]);
+
+    const totalOccurrences = rows.length;
+    const bookCountMap = new Map<number, number>();
+    const formMap = new Map<
+      string,
+      {
+        translit: string;
+        morph: string | null;
+        gloss: string;
+        count: number;
+        sampleRef: string;
+      }
+    >();
+    const canonicalCountMap = new Map<string, number>();
+
+    let detectedLemma = rows[0]?.lemma ?? null;
+    let detectedTranslit = rows[0]?.translit ?? null;
+
+    for (const r of rows) {
+      if (!detectedLemma && r.lemma) detectedLemma = r.lemma;
+      if (!detectedTranslit && r.translit) detectedTranslit = r.translit;
+
+      // Distribuição por livro
+      bookCountMap.set(r.bookId, (bookCountMap.get(r.bookId) || 0) + 1);
+
+      // Agrupamento canônico
+      const group = getCanonicalDivision(r.bookId);
+      canonicalCountMap.set(group, (canonicalCountMap.get(group) || 0) + 1);
+
+      // Agrupamento por forma flexionada
+      const existing = formMap.get(r.word);
+      if (!existing) {
+        const bookName = BOOK_ID_TO_NAME_PT[r.bookId] || `Livro ${r.bookId}`;
+        formMap.set(r.word, {
+          translit: r.translit,
+          morph: r.morph,
+          gloss: r.gloss,
+          count: 1,
+          sampleRef: `${bookName} ${r.chapter}:${r.verse}`,
+        });
+      } else {
+        existing.count += 1;
+      }
+    }
+
+    const CANONICAL_ORDER = [
+      'Pentateuco',
+      'Históricos (AT)',
+      'Poéticos & Sabedoria',
+      'Profetas Maiores',
+      'Profetas Menores',
+      'Evangelhos',
+      'Atos dos Apóstolos',
+      'Epístolas Paulinas',
+      'Epístolas Gerais',
+      'Apocalipse',
+    ];
+
+    const canonicalDistribution: WordStudyCanonicalGroup[] =
+      CANONICAL_ORDER.filter((name) => canonicalCountMap.has(name)).map(
+        (name) => {
+          const count = canonicalCountMap.get(name) || 0;
+          const percentage =
+            totalOccurrences > 0
+              ? Math.round((count / totalOccurrences) * 1000) / 10
+              : 0;
+          return { name, count, percentage };
+        },
+      );
+
+    const bookDistribution: WordStudyBookDistribution[] = Array.from(
+      bookCountMap.entries(),
+    )
+      .sort(([a], [b]) => a - b)
+      .map(([bookId, count]) => ({
+        bookId,
+        bookName: BOOK_ID_TO_NAME_PT[bookId] || `Livro ${bookId}`,
+        count,
+      }));
+
+    const inflectedForms: WordStudyInflectedForm[] = Array.from(
+      formMap.entries(),
+    )
+      .sort(([, a], [, b]) => b.count - a.count)
+      .map(([word, item]) => ({
+        word,
+        translit: item.translit,
+        morph: item.morph,
+        gloss: item.gloss,
+        count: item.count,
+        sampleRef: item.sampleRef,
+      }));
+
+    const result: WordStudyData = {
+      strongId: normalized,
+      lemma: detectedLemma || ((lexical as any)?.word ?? null),
+      translit: detectedTranslit,
+      totalOccurrences,
+      canonicalDistribution,
+      bookDistribution,
+      inflectedForms,
+      lexical: (lexical as Record<string, unknown> | null) ?? null,
+    };
+
+    this.wordStudyCache.set(normalized, result);
+    return result;
   }
 }

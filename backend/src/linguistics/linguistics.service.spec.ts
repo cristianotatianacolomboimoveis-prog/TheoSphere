@@ -285,5 +285,79 @@ describe('LinguisticsService', () => {
       const stats = service.getCacheStats().rootAnalysis;
       expect(stats.hits).toBe(1);
     });
+
+    it('evita consultas duplicadas no banco para o mesmo Strong em getWordStudyDetails', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([
+        word({ bookId: 43, chapter: 3, verse: 16, word: 'ἠγάπησεν' }),
+      ]);
+      prisma.lexicalEntry.findFirst.mockResolvedValue(null);
+
+      const first = await service.getWordStudyDetails('G25');
+      const second = await service.getWordStudyDetails('G25');
+
+      expect(first).toEqual(second);
+      expect(prisma.interlinearWord.findMany).toHaveBeenCalledTimes(1);
+
+      const stats = service.getCacheStats().wordStudies;
+      expect(stats.hits).toBe(1);
+    });
+  });
+
+  describe('getWordStudyDetails', () => {
+    it('calcula distribuição canônica, distribuição por livro e formas flexionadas', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([
+        word({ id: 'w1', bookId: 43, chapter: 3, verse: 16, word: 'ἠγάπησεν' }),
+        word({ id: 'w2', bookId: 43, chapter: 14, verse: 21, word: 'ἀγαπῶν' }),
+        word({ id: 'w3', bookId: 45, chapter: 8, verse: 37, word: 'ἠγάπησεν' }),
+      ]);
+      prisma.lexicalEntry.findFirst.mockResolvedValue({
+        id: 'lex1',
+        strongId: 'G25',
+        word: 'ἀγαπάω',
+        definition: 'Amar incondicionalmente',
+      });
+
+      const res = await service.getWordStudyDetails('G25');
+
+      expect(res.strongId).toBe('G25');
+      expect(res.totalOccurrences).toBe(3);
+      expect(res.lemma).toBe('ἀγαπάω');
+
+      // Distribuição canônica
+      const evangelhos = res.canonicalDistribution.find(
+        (g) => g.name === 'Evangelhos',
+      );
+      const paulinas = res.canonicalDistribution.find(
+        (g) => g.name === 'Epístolas Paulinas',
+      );
+      expect(evangelhos?.count).toBe(2);
+      expect(paulinas?.count).toBe(1);
+
+      // Distribuição por livro
+      expect(res.bookDistribution).toEqual([
+        { bookId: 43, bookName: 'João', count: 2 },
+        { bookId: 45, bookName: 'Romanos', count: 1 },
+      ]);
+
+      // Formas flexionadas (ordenadas por count desc)
+      expect(res.inflectedForms).toHaveLength(2);
+      expect(res.inflectedForms[0].word).toBe('ἠγάπησεν');
+      expect(res.inflectedForms[0].count).toBe(2);
+      expect(res.inflectedForms[1].word).toBe('ἀγαπῶν');
+      expect(res.inflectedForms[1].count).toBe(1);
+    });
+
+    it('retorna estrutura íntegra quando não há ocorrências cadastradas', async () => {
+      prisma.interlinearWord.findMany.mockResolvedValue([]);
+      prisma.lexicalEntry.findFirst.mockResolvedValue(null);
+
+      const res = await service.getWordStudyDetails('G9999');
+
+      expect(res.strongId).toBe('G9999');
+      expect(res.totalOccurrences).toBe(0);
+      expect(res.canonicalDistribution).toEqual([]);
+      expect(res.bookDistribution).toEqual([]);
+      expect(res.inflectedForms).toEqual([]);
+    });
   });
 });

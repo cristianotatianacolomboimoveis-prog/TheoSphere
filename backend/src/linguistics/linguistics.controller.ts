@@ -25,6 +25,20 @@ export class LinguisticsController {
     return { success: true, data };
   }
 
+  /**
+   * Estudo aprofundado de palavra original (Logos-style Word Study).
+   * GET /api/v1/linguistics/word-study/:strongId
+   */
+  @Get('word-study/:strongId')
+  @UseInterceptors(new CacheControlInterceptor(86400))
+  async getWordStudy(@Param('strongId') strongId: string) {
+    if (!/^[GH]\d{1,5}[A-Z]?$/i.test(strongId)) {
+      throw new BadRequestException('strongId inválido (ex: G976, H430)');
+    }
+    const data = await this.linguistics.getWordStudyDetails(strongId);
+    return { success: true, data };
+  }
+
   @Get('search-root/:strongId')
   async searchByRoot(
     @Param('strongId') strongId: string,

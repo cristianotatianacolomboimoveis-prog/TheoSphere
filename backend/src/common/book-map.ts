@@ -150,3 +150,86 @@ export function resolveBookId(name: string): number | null {
   const key = name.toLowerCase().replace(/\s+/g, ' ').trim();
   return BOOK_NAME_TO_ID[key] ?? null;
 }
+
+export const BOOK_ID_TO_NAME_PT: Record<number, string> = {
+  1: 'Gênesis',
+  2: 'Êxodo',
+  3: 'Levítico',
+  4: 'Números',
+  5: 'Deuteronômio',
+  6: 'Josué',
+  7: 'Juízes',
+  8: 'Rute',
+  9: '1 Samuel',
+  10: '2 Samuel',
+  11: '1 Reis',
+  12: '2 Reis',
+  13: '1 Crônicas',
+  14: '2 Crônicas',
+  15: 'Esdras',
+  16: 'Neemias',
+  17: 'Ester',
+  18: 'Jó',
+  19: 'Salmos',
+  20: 'Provérbios',
+  21: 'Eclesiastes',
+  22: 'Cantares',
+  23: 'Isaías',
+  24: 'Jeremias',
+  25: 'Lamentações',
+  26: 'Ezequiel',
+  27: 'Daniel',
+  28: 'Oseias',
+  29: 'Joel',
+  30: 'Amós',
+  31: 'Obadias',
+  32: 'Jonas',
+  33: 'Miqueias',
+  34: 'Naum',
+  35: 'Habacuque',
+  36: 'Sofonias',
+  37: 'Ageu',
+  38: 'Zacarias',
+  39: 'Malaquias',
+  40: 'Mateus',
+  41: 'Marcos',
+  42: 'Lucas',
+  43: 'João',
+  44: 'Atos',
+  45: 'Romanos',
+  46: '1 Coríntios',
+  47: '2 Coríntios',
+  48: 'Gálatas',
+  49: 'Efésios',
+  50: 'Filipenses',
+  51: 'Colossenses',
+  52: '1 Tessalonicenses',
+  53: '2 Tessalonicenses',
+  54: '1 Timóteo',
+  55: '2 Timóteo',
+  56: 'Tito',
+  57: 'Filemom',
+  58: 'Hebreus',
+  59: 'Tiago',
+  60: '1 Pedro',
+  61: '2 Pedro',
+  62: '1 João',
+  63: '2 João',
+  64: '3 João',
+  65: 'Judas',
+  66: 'Apocalipse',
+};
+
+export function getCanonicalDivision(bookId: number): string {
+  if (bookId >= 1 && bookId <= 5) return 'Pentateuco';
+  if (bookId >= 6 && bookId <= 17) return 'Históricos (AT)';
+  if (bookId >= 18 && bookId <= 22) return 'Poéticos & Sabedoria';
+  if (bookId >= 23 && bookId <= 27) return 'Profetas Maiores';
+  if (bookId >= 28 && bookId <= 39) return 'Profetas Menores';
+  if (bookId >= 40 && bookId <= 43) return 'Evangelhos';
+  if (bookId === 44) return 'Atos dos Apóstolos';
+  if (bookId >= 45 && bookId <= 57) return 'Epístolas Paulinas';
+  if (bookId >= 58 && bookId <= 65) return 'Epístolas Gerais';
+  if (bookId === 66) return 'Apocalipse';
+  return 'Outro';
+}
