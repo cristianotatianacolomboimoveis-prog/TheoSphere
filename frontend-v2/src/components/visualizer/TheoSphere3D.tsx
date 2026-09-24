@@ -146,7 +146,10 @@ class MapErrorBoundary extends React.Component<
 function DeckGLOverlay(props: any) {
   const overlay = useControl(() => {
     try {
-      return new MapboxOverlay(props);
+      return new MapboxOverlay({
+        ...props,
+        interleaved: false,
+      });
     } catch (err) {
       logger.error("[TheoSphere3D] Failed to create MapboxOverlay:", err);
       // Fallback object to prevent crashing standard react-map-gl operations
@@ -161,7 +164,10 @@ function DeckGLOverlay(props: any) {
   useEffect(() => {
     if (overlay && typeof overlay.setProps === "function") {
       try {
-        overlay.setProps(props);
+        overlay.setProps({
+          ...props,
+          interleaved: false,
+        });
       } catch (err) {
         logger.error(
           "[TheoSphere3D] Failed to update MapboxOverlay props:",
@@ -189,6 +195,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [mapMode, setMapMode] = useState<"satellite" | "vector">("satellite");
   const [useCesium, setUseCesium] = useState(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
@@ -786,10 +793,11 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
               }
               {...viewState}
               onMove={(evt) => setViewState(evt.viewState as any)}
+              onLoad={() => setIsMapLoaded(true)}
               style={{ width: "100%", height: "100%" }}
               reuseMaps
             >
-              <DeckGLOverlay layers={layers} />
+              {isMapLoaded && <DeckGLOverlay layers={layers} />}
               <NavigationControl position="bottom-right" />
             </Map>
           )}

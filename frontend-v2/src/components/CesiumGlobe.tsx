@@ -9,6 +9,7 @@ import {
   EntityDescription,
 } from "resium";
 import * as Cesium from "cesium";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
