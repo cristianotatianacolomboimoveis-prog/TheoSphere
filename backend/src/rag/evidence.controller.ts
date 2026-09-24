@@ -25,7 +25,9 @@ export class EvidenceController {
   ) {
     const normalizedQuery = query?.trim() ?? '';
     if (normalizedQuery.length < 2 || normalizedQuery.length > 1000) {
-      throw new BadRequestException('q é obrigatório e deve ter entre 2 e 1000 caracteres');
+      throw new BadRequestException(
+        'q é obrigatório e deve ter entre 2 e 1000 caracteres',
+      );
     }
 
     const parsedLimit = limit ? Number.parseInt(limit, 10) : 12;

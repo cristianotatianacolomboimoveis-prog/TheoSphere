@@ -20,7 +20,13 @@ describe('MCP task persistence', () => {
     const security = new McpSecurityService();
     const audit = new McpAuditService();
     const registry = new McpAgentRegistryService();
-    registry.register({ id: 'agent-1', name: 'Agent 1', provider: 'internal', capabilities: ['coding'], enabled: true });
+    registry.register({
+      id: 'agent-1',
+      name: 'Agent 1',
+      provider: 'internal',
+      capabilities: ['coding'],
+      enabled: true,
+    });
     const tasks = new McpTaskService(security, audit, registry, memory);
 
     const task = tasks.create(taskInput);
@@ -30,18 +36,42 @@ describe('MCP task persistence', () => {
     expect(append).toHaveBeenCalledTimes(2);
     const persistedAssignment = append.mock.calls[1]?.[0];
     expect(persistedAssignment).toBeDefined();
-    expect(JSON.parse(persistedAssignment?.content ?? '')).toMatchObject({ id: task.id, assignedAgent: 'agent-1', version: 2 });
+    expect(JSON.parse(persistedAssignment?.content ?? '')).toMatchObject({
+      id: task.id,
+      assignedAgent: 'agent-1',
+      version: 2,
+    });
   });
 
   it('recovers the newest snapshot per task without a fixed history-row cap', async () => {
-    const task = { ...taskInput, id: 'TSK-1', status: 'IN_PROGRESS' as const, dependencies: [], requiredCapabilities: ['coding'], createdAt: '2026-09-18T00:00:00.000Z', updatedAt: '2026-09-18T00:01:00.000Z', version: 4 };
-    const latestByKeyPrefix = jest.fn(async () => [{ memoryKey: 'mcp:task:TSK-1', content: JSON.stringify(task) }]);
+    const task = {
+      ...taskInput,
+      id: 'TSK-1',
+      status: 'IN_PROGRESS' as const,
+      dependencies: [],
+      requiredCapabilities: ['coding'],
+      createdAt: '2026-09-18T00:00:00.000Z',
+      updatedAt: '2026-09-18T00:01:00.000Z',
+      version: 4,
+    };
+    const latestByKeyPrefix = jest.fn(async () => [
+      { memoryKey: 'mcp:task:TSK-1', content: JSON.stringify(task) },
+    ]);
     const memory = { latestByKeyPrefix } as unknown as McpProjectMemoryService;
-    const tasks = new McpTaskService(new McpSecurityService(), new McpAuditService(), new McpAgentRegistryService(), memory);
+    const tasks = new McpTaskService(
+      new McpSecurityService(),
+      new McpAuditService(),
+      new McpAgentRegistryService(),
+      memory,
+    );
 
     await tasks.onModuleInit();
 
     expect(latestByKeyPrefix).toHaveBeenCalledWith('tasks', 'mcp:task:');
-    expect(tasks.get('TSK-1')).toMatchObject({ id: 'TSK-1', status: 'IN_PROGRESS', version: 4 });
+    expect(tasks.get('TSK-1')).toMatchObject({
+      id: 'TSK-1',
+      status: 'IN_PROGRESS',
+      version: 4,
+    });
   });
 });

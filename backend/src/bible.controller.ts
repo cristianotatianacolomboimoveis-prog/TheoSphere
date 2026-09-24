@@ -14,7 +14,9 @@ import { Roles } from './auth/roles.decorator';
 import { BibleIngestionService } from './bible-ingestion.service';
 import { PassageGuideService } from './bible/passage-guide.service';
 import { BibleComparisonService } from './bible/bible-comparison.service';
+import { CLASSIC_THEOLOGICAL_CATALOG } from './bible/classic-catalog';
 import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
+
 import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
 const ALLOWED_TRANSLATIONS = new Set([
@@ -163,6 +165,27 @@ export class BibleController {
         TR: VERSION_METADATA.TR,
         WLC: VERSION_METADATA.WLC,
         LXX: VERSION_METADATA.LXX,
+      },
+    };
+  }
+
+  /**
+   * Catálogo Teológico Clássico — lista as 89 obras de domínio público indexadas
+   * com metadados de tradição, período histórico, contagem de trechos e fonte.
+   */
+  @Get('catalog')
+  @UseInterceptors(new CacheControlInterceptor(86400))
+  async getTheologicalCatalog() {
+    const totalChunks = CLASSIC_THEOLOGICAL_CATALOG.reduce(
+      (acc, curr) => acc + curr.chunks,
+      0,
+    );
+    return {
+      success: true,
+      data: {
+        totalWorks: CLASSIC_THEOLOGICAL_CATALOG.length,
+        totalChunks,
+        works: CLASSIC_THEOLOGICAL_CATALOG,
       },
     };
   }

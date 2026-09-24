@@ -186,9 +186,7 @@ ${docList}
       return null;
     }
 
-    return parsed.map((value) =>
-      Math.min(10, Math.max(0, value as number)),
-    );
+    return parsed.map((value) => Math.min(10, Math.max(0, value as number)));
   }
 
   /**

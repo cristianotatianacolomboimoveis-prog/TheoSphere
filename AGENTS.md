@@ -60,6 +60,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`TextComparison.tsx` e `useTextComparison.ts`):** Componente modal de alta resolução com switch entre **Grid Sinótico (Colunas)** e **Intercalado (Verso a Verso)**, toggles para destaque visual de adições/omissões, cópia para Markdown e integração direta via botão `[⚖️ Sinopse & Variantes]` na `ReaderToolbar.tsx`.
 - **Validação:** **262 testes backend** (+8 novos testes cobrindo diff e comparação) e **49 testes frontend** passando, 0 erros de lint, 0 erros de typecheck.
 
+16. **Catálogo Teológico Clássico Conectado à Biblioteca (2026-09-24):**
+    O acervo completo das 89 obras canônicas (João Calvino, Matthew Henry, Tomás de Aquino, Martinho Lutero, Santo Agostinho, John Bunyan, Flávio Josefo, John Foxe, etc.) totalizando **45.092 chunks indexados no Supabase** foi conectado diretamente à Biblioteca Teológica (`/library`):
+
+- **Backend (`classic-catalog.ts` e `BibleController`):** Mapeamento canônico tipado das 89 obras com metadados estruturados (autor limpo, categoria exegética/sistemática/patrística/histórica/devocional, tradição reformada/escolástica/patrística/puritana, contagem precisa de chunks e link de domínio público Gutenberg/CCEL). Endpoint `@Get('catalog')` com `Cache-Control: public, max-age=86400`.
+- **Frontend (`TheologicalLibrary.tsx` e `classicCatalog.ts`):** Interface reformulada estilo Logos com catálogo offline instantâneo (0ms) e revalidação assíncrona, banner de métricas (89 obras / 45.092 chunks), busca em tempo real, tabs de categorias, pills de tradição com cores temáticas e modal de consulta rápida para o Copilot IA ancorado na obra.
+- **Validação:** **262 testes backend**, **49 testes frontend**, `static-checks.mjs` limpo (0 achados), build e typecheck 100% aprovados.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.

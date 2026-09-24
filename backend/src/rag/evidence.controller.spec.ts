@@ -53,22 +53,26 @@ describe('EvidenceController', () => {
   });
 
   it('rejects missing, too-short, or oversized queries', async () => {
-    await expect(controller.preview('')).rejects.toBeInstanceOf(BadRequestException);
-    await expect(controller.preview('a')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.preview('')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(controller.preview('a')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(controller.preview('x'.repeat(1001))).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('rejects invalid limits', async () => {
-    await expect(controller.preview('Jesus', undefined, '0')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    await expect(controller.preview('Jesus', undefined, '51')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    await expect(controller.preview('Jesus', undefined, 'abc')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      controller.preview('Jesus', undefined, '0'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.preview('Jesus', undefined, '51'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.preview('Jesus', undefined, 'abc'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

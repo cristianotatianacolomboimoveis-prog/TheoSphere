@@ -68,35 +68,44 @@ export class LinguisticsService {
   private readonly logger = new Logger(LinguisticsService.name);
 
   // ── L1 In-Memory Caches (latência < 2ms para lemas e capítulos frequentes) ──
-  private readonly interlinearChapterCache = new LruCache<string, {
-    bookId: number;
-    chapter: number;
-    available: boolean;
-    source: string | null;
-    verses: Record<number, InterlinearWordRow[]>;
-  }>({
+  private readonly interlinearChapterCache = new LruCache<
+    string,
+    {
+      bookId: number;
+      chapter: number;
+      available: boolean;
+      source: string | null;
+      verses: Record<number, InterlinearWordRow[]>;
+    }
+  >({
     maxSize: 150,
     ttlMs: 1000 * 60 * 60, // 1 hora
   });
 
-  private readonly occurrencesCache = new LruCache<string, {
-    strongId: string;
-    total: number;
-    occurrences: Array<{
-      bookId: number;
-      chapter: number;
-      verse: number;
-      word: string;
-      translit: string;
-      gloss: string;
-      morph: string | null;
-    }>;
-  }>({
+  private readonly occurrencesCache = new LruCache<
+    string,
+    {
+      strongId: string;
+      total: number;
+      occurrences: Array<{
+        bookId: number;
+        chapter: number;
+        verse: number;
+        word: string;
+        translit: string;
+        gloss: string;
+        morph: string | null;
+      }>;
+    }
+  >({
     maxSize: 500,
     ttlMs: 1000 * 60 * 60, // 1 hora
   });
 
-  private readonly rootAnalysisCache = new LruCache<string, Record<string, unknown> | null>({
+  private readonly rootAnalysisCache = new LruCache<
+    string,
+    Record<string, unknown> | null
+  >({
     maxSize: 1000,
     ttlMs: 1000 * 60 * 60 * 2, // 2 horas
   });
@@ -296,7 +305,12 @@ export class LinguisticsService {
 
     const rows = await this.interlinear.findMany({
       where: { word: normalized },
-      orderBy: [{ strongId: 'asc' }, { bookId: 'asc' }, { chapter: 'asc' }, { verse: 'asc' }],
+      orderBy: [
+        { strongId: 'asc' },
+        { bookId: 'asc' },
+        { chapter: 'asc' },
+        { verse: 'asc' },
+      ],
       take: 100,
     });
 
@@ -328,7 +342,8 @@ export class LinguisticsService {
       translit: first?.translit ?? null,
       gloss: first?.gloss ?? null,
       candidates,
-      source: candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
+      source:
+        candidates.length > 0 ? 'STEP Bible TAGNT/TAHOT indexed corpus' : null,
     };
   }
 }

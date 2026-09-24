@@ -24,11 +24,15 @@ describe('EvidencePackService', () => {
   });
 
   it('ordena deterministicamente e limita o volume', () => {
-    const pack = service.build('teste', [
-      { source: source({ title: 'B', reference: '2', score: 0.8 }) },
-      { source: source({ title: 'A', reference: '1', score: 0.8 }) },
-      { source: source({ title: 'C', reference: '3', score: 0.4 }) },
-    ], 2);
+    const pack = service.build(
+      'teste',
+      [
+        { source: source({ title: 'B', reference: '2', score: 0.8 }) },
+        { source: source({ title: 'A', reference: '1', score: 0.8 }) },
+        { source: source({ title: 'C', reference: '3', score: 0.4 }) },
+      ],
+      2,
+    );
 
     expect(pack.items).toHaveLength(2);
     expect(pack.items.map((item) => item.rank)).toEqual([1, 2]);
@@ -63,6 +67,11 @@ describe('EvidencePackService', () => {
 
   it('retorna confiança zero quando não há evidências', () => {
     const pack = service.build('vazio', []);
-    expect(pack).toMatchObject({ sourceCount: 0, primaryCount: 0, hasCounterEvidence: false, confidence: 0 });
+    expect(pack).toMatchObject({
+      sourceCount: 0,
+      primaryCount: 0,
+      hasCounterEvidence: false,
+      confidence: 0,
+    });
   });
 });

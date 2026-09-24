@@ -47,7 +47,9 @@ describe('EvidenceAwareRagService', () => {
 
   it('constrói EvidencePack a partir da busca bíblica e renderiza contexto formal', async () => {
     const hybridSearchVerses = jest.fn().mockResolvedValue([hit()]);
-    const search = { hybridSearchVerses } as unknown as jest.Mocked<SearchService>;
+    const search = {
+      hybridSearchVerses,
+    } as unknown as jest.Mocked<SearchService>;
     const service = makeService(search);
 
     const evidence = await service.buildEvidenceForTest('João 3:16');
@@ -67,7 +69,9 @@ describe('EvidenceAwareRagService', () => {
 
     const builder = (
       service as unknown as {
-        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+        buildGeminiRequest: (
+          params: Record<string, unknown>,
+        ) => Record<string, unknown>;
       }
     ).buildGeminiRequest.bind(service);
 
@@ -101,7 +105,9 @@ describe('EvidenceAwareRagService', () => {
 
     const builder = (
       service as unknown as {
-        buildOpenAiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+        buildOpenAiRequest: (
+          params: Record<string, unknown>,
+        ) => Record<string, unknown>;
       }
     ).buildOpenAiRequest.bind(service);
 
@@ -131,7 +137,9 @@ describe('EvidenceAwareRagService', () => {
     const service = makeService({} as SearchService);
     const builder = (
       service as unknown as {
-        buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+        buildGeminiRequest: (
+          params: Record<string, unknown>,
+        ) => Record<string, unknown>;
       }
     ).buildGeminiRequest.bind(service);
 
@@ -151,7 +159,8 @@ describe('EvidenceAwareRagService', () => {
           validatedQaContext: '',
           tradition: undefined,
         });
-        return (result.config as { systemInstruction: string }).systemInstruction;
+        return (result.config as { systemInstruction: string })
+          .systemInstruction;
       });
 
     const [first, second] = await Promise.all([
@@ -181,7 +190,9 @@ describe('EvidenceAwareRagService', () => {
       .mockImplementation(async function* (this: RagService) {
         const builder = (
           this as unknown as {
-            buildGeminiRequest: (params: Record<string, unknown>) => Record<string, unknown>;
+            buildGeminiRequest: (
+              params: Record<string, unknown>,
+            ) => Record<string, unknown>;
           }
         ).buildGeminiRequest.bind(this);
         const result = builder({
