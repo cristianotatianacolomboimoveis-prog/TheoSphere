@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { MapAdapter } from "@/lib/BibleMapAdapter";
 import { logger } from "@/lib/logger";
+import { useTheoStore } from "@/store/useTheoStore";
 
 interface Note {
   id: string;
@@ -26,6 +27,7 @@ export function TheoSphereDashboard() {
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [focusedEvent, setFocusedEvent] = useState<any>(null);
   const [verseOfDay, setVerseOfDay] = useState({
     text: "Pois eu bem sei os planos que tenho para vós, diz o Senhor...",
     ref: "Jeremias 29:11",
@@ -44,7 +46,7 @@ export function TheoSphereDashboard() {
     if (MapAdapter) {
       unsub = MapAdapter.events.subscribe("onLocationSelected", (loc: any) => {
         logger.debug("[TheoSphereDashboard] Local selecionado no mapa:", loc);
-        // Atualiza UI com base no clique do mapa
+        setFocusedEvent(loc);
         setVerseOfDay((prev) => ({
           ...prev,
           text: `Explorando ${loc.name || "este local"} em profundidade...`,
@@ -105,6 +107,74 @@ export function TheoSphereDashboard() {
       </div>
 
       <div className="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-6">
+        {/* Evento em Foco (Selecionado no Mapa 3D) */}
+        {focusedEvent && (
+          <section className="bg-blue-500/10 dark:bg-blue-500/10 rounded-xl p-4 border border-blue-500/20 shadow-sm animate-in fade-in-0 duration-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                {focusedEvent.step || focusedEvent.category || "Evento em Foco"}
+              </span>
+              <button
+                onClick={() => setFocusedEvent(null)}
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2 leading-snug">
+              {focusedEvent.name}
+            </h4>
+            {focusedEvent.quote && (
+              <p className="text-xs italic text-amber-600 dark:text-amber-200/90 mb-2 leading-relaxed bg-amber-500/10 p-2 rounded border-l-2 border-amber-500">
+                &ldquo;{focusedEvent.quote}&rdquo;
+              </p>
+            )}
+            {focusedEvent.verse && (
+              <span className="inline-block text-[11px] font-bold text-blue-600 dark:text-blue-400 mb-2">
+                📜 {focusedEvent.verse}
+              </span>
+            )}
+            {focusedEvent.description && (
+              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3 line-clamp-4">
+                {focusedEvent.description
+                  .replace(/\*\*/g, "")
+                  .replace(/_/g, "")}
+              </p>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/10">
+              {focusedEvent.verse ? (
+                <button
+                  onClick={() => {
+                    const parts = focusedEvent.verse.split(" ");
+                    const bookName = parts.slice(0, -1).join(" ") || parts[0];
+                    const chV = parts[parts.length - 1]?.split(":") || [];
+                    const chapter = parseInt(chV[0], 10) || 1;
+                    useTheoStore
+                      .getState()
+                      .setBibleReference(bookName, chapter);
+                    useTheoStore.getState().setActiveTool("exegesis");
+                  }}
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  <Book className="w-3.5 h-3.5" /> Abrir na Exegese
+                </button>
+              ) : (
+                <span />
+              )}
+              {focusedEvent.lat && focusedEvent.lng && (
+                <button
+                  onClick={() =>
+                    MapAdapter?.flyTo(focusedEvent.lat, focusedEvent.lng, 12)
+                  }
+                  className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-1"
+                >
+                  <MapPin className="w-3 h-3" /> Foco no Mapa
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Verse of the Day (Contextual) */}
         <section className="bg-white dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10 shadow-sm">
           <div className="flex items-center gap-2 mb-3">

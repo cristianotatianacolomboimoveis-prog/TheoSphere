@@ -7,6 +7,7 @@ import {
   PointGraphics,
   PolylineGraphics,
   EntityDescription,
+  useCesium,
 } from "resium";
 import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
@@ -15,6 +16,7 @@ import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
 import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
 import { logger } from "@/lib/logger";
+import { MapAdapter } from "@/lib/BibleMapAdapter";
 
 // Set the base URL for Cesium assets and configure Ion token if provided
 if (typeof window !== "undefined") {
@@ -79,6 +81,97 @@ const ARCH_COLORS: Record<string, string> = {
   debatida: "#f59e0b", // amber
   disputada: "#94a3b8", // slate
 };
+
+function CesiumEventsBridge() {
+  const { viewer } = useCesium();
+
+  useEffect(() => {
+    if (!viewer) return;
+
+    // Escuta seleção de entidades no Cesium Viewer (cliques no globo 3D)
+    const removeSelectionListener =
+      viewer.selectedEntityChanged.addEventListener(
+        (entity?: Cesium.Entity) => {
+          if (!entity) return;
+
+          const props = entity.properties;
+          const getVal = (propName: string) => {
+            if (!props) return undefined;
+            try {
+              const p = (props as any)[propName];
+              return p && typeof p.getValue === "function"
+                ? p.getValue(Cesium.JulianDate.now())
+                : p;
+            } catch {
+              return undefined;
+            }
+          };
+
+          const name = getVal("name") || entity.name || "Local Bíblico";
+          const step = getVal("step");
+          const quote = getVal("quote");
+          const verse = getVal("verse");
+          const description = getVal("description");
+          const geo = getVal("geo");
+          const arch = getVal("arch");
+          const modelName = getVal("modelName");
+          const category = getVal("category") || "biblical_site";
+          const era = getVal("era");
+          const lat = getVal("lat");
+          const lng = getVal("lng");
+
+          if (MapAdapter) {
+            MapAdapter.events.publish("onLocationSelected", {
+              name,
+              step,
+              quote,
+              verse,
+              description,
+              geo,
+              arch,
+              modelName,
+              category,
+              era,
+              lat,
+              lng,
+            });
+          }
+        },
+      );
+
+    // Escuta comandos de voo do MapAdapter (MCP e UI)
+    const unsubLocation = MapAdapter
+      ? MapAdapter.events.subscribe("onLocationSelected", (evt: any) => {
+          if (evt?.lat != null && evt?.lng != null) {
+            try {
+              viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(
+                  evt.lng,
+                  evt.lat,
+                  45000,
+                ),
+                orientation: {
+                  heading: Cesium.Math.toRadians(0),
+                  pitch: Cesium.Math.toRadians(-45),
+                  roll: 0.0,
+                },
+                duration: 1.8,
+              });
+            } catch (e) {
+              logger.warn("[CesiumGlobe] Erro no flyTo de entidade:", e);
+            }
+          }
+        })
+      : () => {};
+
+    return () => {
+      removeSelectionListener();
+      unsubLocation();
+    };
+  }, [viewer]);
+
+  return null;
+}
 
 export default function CesiumGlobe({
   visibleRouteIds = [],
@@ -257,16 +350,32 @@ export default function CesiumGlobe({
         baseLayer={baseImageryLayer}
         terrainProvider={terrainProvider}
       >
+        <CesiumEventsBridge />
+
         {/* Locais Históricos Dinâmicos */}
         {activeLocations.map((loc) => (
           <Entity
             key={loc.id}
+            id={loc.id}
             position={Cesium.Cartesian3.fromDegrees(
               loc.coordinates[0],
               loc.coordinates[1],
               (loc.coordinates as any)[2] || 0,
             )}
             name={loc.names.pt}
+            properties={
+              new Cesium.PropertyBag({
+                name: loc.names.pt,
+                category: loc.type,
+                description:
+                  (loc as any).description ||
+                  (loc as any).theologicalSignificance,
+                verse: loc.references?.[0] || "",
+                quote: (loc as any).theologicalSignificance || "",
+                lat: loc.coordinates[1],
+                lng: loc.coordinates[0],
+              })
+            }
           >
             <PointGraphics
               pixelSize={8}
@@ -303,12 +412,25 @@ export default function CesiumGlobe({
           archFinds.map((find) => (
             <Entity
               key={`arch-${find.slug}`}
+              id={`arch-${find.slug}`}
               position={Cesium.Cartesian3.fromDegrees(
                 find.longitude as number,
                 find.latitude as number,
                 0,
               )}
               name={`🏺 ${find.namePt}`}
+              properties={
+                new Cesium.PropertyBag({
+                  name: find.namePt,
+                  category: "archaeological_site",
+                  description: find.description,
+                  arch: `${find.discoverySite} (${find.discoveryYear ? find.discoveryYear : "antigo"}) • ${find.authenticity}`,
+                  verse: find.relatedRefs?.[0] || "",
+                  quote: find.significance,
+                  lat: find.latitude,
+                  lng: find.longitude,
+                })
+              }
             >
               <PointGraphics
                 pixelSize={9}
@@ -408,8 +530,23 @@ export default function CesiumGlobe({
                 return (
                   <Entity
                     key={`${routeId}-wp-${idx}`}
+                    id={`${routeId}-wp-${idx}`}
                     position={position}
                     name={`${wp.step}: ${wp.title}`}
+                    properties={
+                      new Cesium.PropertyBag({
+                        name: wp.title,
+                        step: wp.step,
+                        quote: wp.quote,
+                        verse: wp.verse,
+                        geo: wp.geo,
+                        arch: wp.arch,
+                        modelName: wp.modelName,
+                        category: "waypoint",
+                        lat: wp.coords[0],
+                        lng: wp.coords[1],
+                      })
+                    }
                   >
                     <PointGraphics
                       pixelSize={10}

@@ -17,6 +17,9 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  Book,
+  MapPin,
+  Sparkles,
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
@@ -202,6 +205,29 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
   const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<{
+    id?: string;
+    name: string;
+    step?: string;
+    category?: string;
+    verse?: string;
+    quote?: string;
+    description?: string;
+    geo?: string;
+    arch?: string;
+    modelName?: string;
+    lat?: number;
+    lng?: number;
+    era?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (MapAdapter) {
+      return MapAdapter.events.subscribe("onLocationSelected", (evt: any) => {
+        if (evt) setSelectedEvent(evt);
+      });
+    }
+  }, []);
 
   // Acervo arqueológico — pins no motor padrão (Deck.gl/MapLibre).
   // O CesiumGlobe tem camada própria; esta cobre o modo inicial (QA 2026-07-14).
@@ -561,7 +587,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       radiusMaxPixels: 10,
       pickable: true,
       onClick: (info: any) => {
-        if (info.object && MapAdapter) {
+        if (info.object) {
           const { category, routeIndex, routeTitle } = getRouteInfo(
             info.object.routeId,
           );
@@ -574,13 +600,23 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           const mappedLocation = {
             id: info.object.title,
             name: `${info.object.indexInRoute}. ${info.object.title}`,
-            description: `**${catLabel}** • Rota ${routeIndex}: ${routeTitle.split(". ")[1]}\n\n${info.object.description || info.object.quote || info.object.bible}`,
+            step: info.object.step || `Passo ${info.object.indexInRoute}`,
+            category: catLabel,
+            routeTitle: routeTitle,
+            verse: info.object.verse,
+            quote: info.object.quote,
+            description: info.object.bible || info.object.description,
+            geo: info.object.geo,
+            arch: info.object.arch,
+            modelName: info.object.modelName,
             lat: info.object.coords[0],
             lng: info.object.coords[1],
             era: currentTime,
-            category: "route-waypoint",
           };
-          MapAdapter.events.publish("onLocationSelected", mappedLocation);
+          setSelectedEvent(mappedLocation);
+          if (MapAdapter) {
+            MapAdapter.events.publish("onLocationSelected", mappedLocation);
+          }
         }
       },
     }),
@@ -608,8 +644,20 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       radiusMinPixels: 6,
       pickable: true,
       onClick: (info: any) => {
-        if (info.object && MapAdapter) {
-          MapAdapter.events.publish("onLocationSelected", info.object);
+        if (info.object) {
+          const mappedLocation = {
+            id: info.object.id || info.object.name,
+            name: info.object.name,
+            category: getCategoryLabel(info.object.category || "city"),
+            description: info.object.description,
+            lat: info.object.lat,
+            lng: info.object.lng,
+            era: info.object.era ?? currentTime,
+          };
+          setSelectedEvent(mappedLocation);
+          if (MapAdapter) {
+            MapAdapter.events.publish("onLocationSelected", mappedLocation);
+          }
         }
       },
     }),
@@ -634,20 +682,25 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       pickable: true,
       onClick: (info: any) => {
         const f = info.object as ArchaeologicalFind | undefined;
-        if (f && MapAdapter) {
-          MapAdapter.events.publish("onLocationSelected", {
+        if (f) {
+          const mappedLocation = {
             id: `arch-${f.slug}`,
             name: `🏺 ${f.namePt}`,
-            description:
-              `**Arqueologia** • ${f.period || ""} • Autenticidade: ${f.authenticity}\n\n` +
-              `${f.description}\n\n_${f.significance}_\n\n` +
-              `Descoberta: ${f.discoverySite}${f.discoveryYear ? ` (${f.discoveryYear})` : ""}` +
-              (f.currentLocation ? `\nAcervo: ${f.currentLocation}` : ""),
-            lat: f.latitude,
-            lng: f.longitude,
+            category: `Arqueologia (${f.authenticity})`,
+            description: f.description,
+            quote: f.significance,
+            geo: `Descoberta: ${f.discoverySite}${f.discoveryYear ? ` (${f.discoveryYear})` : ""}`,
+            arch: f.currentLocation
+              ? `Acervo: ${f.currentLocation}`
+              : undefined,
+            lat: f.latitude as number,
+            lng: f.longitude as number,
             era: currentTime,
-            category: "archaeology",
-          });
+          };
+          setSelectedEvent(mappedLocation);
+          if (MapAdapter) {
+            MapAdapter.events.publish("onLocationSelected", mappedLocation);
+          }
         }
       },
     }),
@@ -822,6 +875,114 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         onShowAll={showAllRoutes}
         onClearAll={clearAllRoutes}
       />
+
+      {/* Floating Event Detail Card */}
+      {selectedEvent && (
+        <div className="absolute top-24 right-6 z-30 w-96 max-w-[calc(100vw-3rem)] glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-right-4 duration-200">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  {selectedEvent.step ||
+                    selectedEvent.category ||
+                    "Evento Bíblico"}
+                </span>
+                {selectedEvent.era !== undefined && (
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {selectedEvent.era < 0
+                      ? `${Math.abs(selectedEvent.era)} a.C.`
+                      : `${selectedEvent.era} d.C.`}
+                  </span>
+                )}
+              </div>
+              <h3 className="text-base font-black text-white leading-snug">
+                {selectedEvent.name}
+              </h3>
+            </div>
+            <button
+              onClick={() => setSelectedEvent(null)}
+              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {selectedEvent.quote && (
+            <blockquote className="text-xs italic text-amber-200/90 bg-amber-500/10 border-l-2 border-amber-400 p-2.5 rounded-r-lg mb-3 leading-relaxed">
+              &ldquo;{selectedEvent.quote}&rdquo;
+            </blockquote>
+          )}
+
+          {selectedEvent.verse && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
+                📜 {selectedEvent.verse}
+              </span>
+            </div>
+          )}
+
+          {selectedEvent.description && (
+            <p className="text-xs text-slate-300 leading-relaxed mb-3 line-clamp-4">
+              {selectedEvent.description.replace(/\*\*/g, "").replace(/_/g, "")}
+            </p>
+          )}
+
+          {(selectedEvent.geo ||
+            selectedEvent.arch ||
+            selectedEvent.modelName) && (
+            <div className="space-y-1.5 text-[11px] text-slate-400 bg-white/[0.03] p-2.5 rounded-xl border border-white/5 mb-3">
+              {selectedEvent.geo && (
+                <div>
+                  <strong className="text-slate-200">🌍 Geografia:</strong>{" "}
+                  {selectedEvent.geo}
+                </div>
+              )}
+              {selectedEvent.arch && (
+                <div>
+                  <strong className="text-slate-200">🏺 Arqueologia:</strong>{" "}
+                  {selectedEvent.arch}
+                </div>
+              )}
+              {selectedEvent.modelName && (
+                <div>
+                  <strong className="text-slate-200">🗿 Modelo 3D:</strong>{" "}
+                  {selectedEvent.modelName}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+            {selectedEvent.verse && (
+              <button
+                onClick={() => {
+                  const parts = selectedEvent.verse!.split(" ");
+                  const bookName = parts.slice(0, -1).join(" ") || parts[0];
+                  const chV = parts[parts.length - 1]?.split(":") || [];
+                  const chapter = parseInt(chV[0], 10) || 1;
+                  useTheoStore.getState().setBibleReference(bookName, chapter);
+                  useTheoStore.getState().setActiveTool("exegesis");
+                }}
+                className="flex-1 py-1.5 px-3 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/30"
+              >
+                <Book className="w-3.5 h-3.5" />
+                Estudar na Exegese
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (selectedEvent.lat && selectedEvent.lng && MapAdapter) {
+                  MapAdapter.flyTo(selectedEvent.lat, selectedEvent.lng, 12);
+                }
+              }}
+              className="py-1.5 px-3 bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 text-xs font-bold rounded-lg transition-all flex items-center gap-1"
+              title="Focalizar Câmera"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
