@@ -7,7 +7,6 @@ import {
   PointGraphics,
   PolylineGraphics,
   EntityDescription,
-  ImageryLayer,
 } from "resium";
 import * as Cesium from "cesium";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
@@ -94,7 +93,7 @@ export default function CesiumGlobe({
   );
   const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
 
-  // Suprimir erros 401 do Cesium Ion no Next.js DevTools overlay
+  // Suprimir erros e avisos do Cesium Ion no Next.js DevTools overlay
   useEffect(() => {
     const handleRejection = (event: PromiseRejectionEvent) => {
       const reasonStr = String(event.reason?.message || event.reason || "");
@@ -110,9 +109,32 @@ export default function CesiumGlobe({
         );
       }
     };
+
+    const originalConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      const err = args[0];
+      const msg =
+        typeof err === "string" ? err : err?.message || err?.toString?.() || "";
+      if (
+        msg.includes("ImageryLayer") ||
+        msg.includes("Request has failed") ||
+        err?.name === "RequestErrorEvent" ||
+        (typeof err === "object" && err !== null && "statusCode" in err)
+      ) {
+        logger.warn(
+          "[CesiumGlobe] Silenciado erro interno do Cesium:",
+          ...args,
+        );
+        return;
+      }
+      originalConsoleError.apply(console, args);
+    };
+
     window.addEventListener("unhandledrejection", handleRejection);
-    return () =>
+    return () => {
       window.removeEventListener("unhandledrejection", handleRejection);
+      console.error = originalConsoleError;
+    };
   }, []);
 
   // Camada de satélite de alta precisão (sem necessidade de token Cesium Ion)
@@ -122,6 +144,14 @@ export default function CesiumGlobe({
       maximumLevel: 19,
     });
   }, []);
+
+  const baseImageryLayer = useMemo(() => {
+    const layer = new Cesium.ImageryLayer(imageryProvider);
+    layer.errorEvent.addEventListener((err) => {
+      logger.warn("[CesiumGlobe] Falha de tile tratada silenciosamente:", err);
+    });
+    return layer;
+  }, [imageryProvider]);
 
   const terrainProvider = useMemo(() => {
     return new Cesium.EllipsoidTerrainProvider();
@@ -223,11 +253,9 @@ export default function CesiumGlobe({
         sceneModePicker={false}
         navigationHelpButton={false}
         infoBox={true}
+        baseLayer={baseImageryLayer}
         terrainProvider={terrainProvider}
       >
-        {/* Camada base de alta resolução sem necessidade de Ion Token */}
-        <ImageryLayer imageryProvider={imageryProvider} />
-
         {/* Locais Históricos Dinâmicos */}
         {activeLocations.map((loc) => (
           <Entity

@@ -538,7 +538,8 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
       widthMinPixels: 3,
       widthMaxPixels: 8,
       pickable: true,
-      rounded: true,
+      jointRounded: true,
+      capRounded: true,
       shadowEnabled: true,
     }),
 
