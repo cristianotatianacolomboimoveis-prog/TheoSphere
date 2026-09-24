@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**312 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**323 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -124,10 +124,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`SyntaxDiagramModal.tsx` & `useSyntaxDiagram.ts`):** Interface hierárquica em árvore visual com linhas conectoras de subordinação sintática, pílulas temáticas por tipo de oração (Principal, Propósito, Causal, Condicional, Participial, Infinitival), destaque de sujeito nominativo e verbo regente conjugado, texto original grego/hebraico em tipografia serifada de alta nitidez, tradução bíblica em português (BLIVRE), notas teológicas/exegéticas contextuais, seletor de passagens canônicas célebres, formulário de navegação de versículo arbitrário e botão de 1 clique "Copiar Markdown". Integrado na `ReaderToolbar.tsx` via botão `[🌲 Diagrama]`.
 - **Validação:** **312 testes backend** (+8 novos testes unitários em `syntax-diagram.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
-**Próximos passos (Cronograma Accordance & Plataforma):**
+25. **Crítica Textual & Manuscritos do Mar Morto (Qumran DSS) — Accordance-Grade Textual Criticism (2026-09-24):**
+    Implementado o motor acadêmico de crítica textual comparativa abrangendo os Grandes Códices, os Manuscritos do Mar Morto e o Textus Receptus (_Dead Sea Scrolls & Textual Criticism_):
 
-1. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**: Variantes de manuscritos (Aleppo, Leningrado, Qumran, Sinaítico, Vaticano, Textus Receptus) com aparato crítico.
-2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+- **Backend (`textual-criticism.dto.ts`, `textual-criticism-data.ts`, `textual-criticism.service.ts` & `textual-criticism.controller.ts`):** Catálogo analítico das variantes canônicas mais célebres do AT e NT com leituras contrastantes dos Rolos do Mar Morto (1QIsaᵃ, 4QSamᵃ, 4QDeutʲ, Nahal Hever 5/6HevPs), Códice de Leningrado (B19A), Septuaginta (LXX), Códice Sinaítico (א), Códice Vaticano (B), Papiros primitivos (𝔓⁴⁶, 𝔓⁶⁶, 𝔓⁷⁵) e Textus Receptus (1550). Análise morfológica de causas scribais (homoioteleuton, haplografia, atenuação teológica, harmonização deliberada), grau de certeza UBS/NA28 (Ratings A, B, C, D) e impacto teológico. Endpoints `@Get('textual-criticism/variants')`, `@Get('textual-criticism/variants/:id')` e `@Get('textual-criticism/apparatus/:bookId/:chapter/:verse')` com resolução em tempo real de testemunhas canônicas (`WLC`, `LXX`, `TR`, `BLIVRE`, `KJV`).
+- **Frontend (`TextualCriticismModal.tsx` & `useTextualCriticism.ts`):** Interface widescreen com visualizador split em duas colunas (lista de variantes com badges de rating e Qumran DSS; aparato crítico com cards das testemunhas, transcrição original em hebraico/grego serifado, tradução em português, status de adoção pela crítica moderna vs tradição da Reforma, contexto histórico-arqueológico e consenso acadêmico), filtros rápidos por testamento (AT vs NT), busca em tempo real e botão de 1 clique "Copiar Ficha Crítica (Markdown)". Integrado à `ReaderToolbar.tsx` via botão `[📜 Manuscritos]`.
+- **Validação:** **323 testes backend** (+11 novos testes unitários em `textual-criticism.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
+**Próximos passos (Plataforma):**
+
+1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+2. **Deploy de Produção:** Publicação do frontend na Vercel e backend no Render quando autorizado pelo usuário.
 
 ---
 

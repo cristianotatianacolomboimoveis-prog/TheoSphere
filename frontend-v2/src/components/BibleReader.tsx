@@ -71,6 +71,7 @@ import { GospelSynopsisModal } from "./synopsis/GospelSynopsisModal";
 import { BiblicalTimelineModal } from "./timeline/BiblicalTimelineModal";
 import { ConstructSearchModal } from "./construct/ConstructSearchModal";
 import { SyntaxDiagramModal } from "./diagram/SyntaxDiagramModal";
+import { TextualCriticismModal } from "./criticism/TextualCriticismModal";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -240,6 +241,7 @@ export default function BibleReader({
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showConstructSearch, setShowConstructSearch] = useState(false);
   const [showSyntaxDiagram, setShowSyntaxDiagram] = useState(false);
+  const [showTextualCriticism, setShowTextualCriticism] = useState(false);
   const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
   const {
     outline: homileticsOutline,
@@ -435,6 +437,7 @@ export default function BibleReader({
           onOpenTimeline={() => setShowTimelineModal(true)}
           onOpenConstructSearch={() => setShowConstructSearch(true)}
           onOpenSyntaxDiagram={() => setShowSyntaxDiagram(true)}
+          onOpenTextualCriticism={() => setShowTextualCriticism(true)}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -755,6 +758,16 @@ export default function BibleReader({
         onClose={() => setShowSyntaxDiagram(false)}
         currentBookId={selectedBook?.id || 49}
         currentBookName={selectedBook?.namePt || "Efésios"}
+        currentChapter={activeChapter}
+        currentVerse={1}
+      />
+
+      {/* Modal de Crítica Textual & Manuscritos do Mar Morto (Accordance Dead Sea Scrolls) */}
+      <TextualCriticismModal
+        isOpen={showTextualCriticism}
+        onClose={() => setShowTextualCriticism(false)}
+        currentBookId={selectedBook?.id || 23}
+        currentBookName={selectedBook?.namePt || "Isaías"}
         currentChapter={activeChapter}
         currentVerse={1}
       />

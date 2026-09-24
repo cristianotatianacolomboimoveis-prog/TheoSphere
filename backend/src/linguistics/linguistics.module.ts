@@ -6,6 +6,8 @@ import { ConstructSearchService } from './construct-search.service';
 import { ConstructSearchController } from './construct-search.controller';
 import { SyntaxDiagramService } from './syntax-diagram.service';
 import { SyntaxDiagramController } from './syntax-diagram.controller';
+import { TextualCriticismService } from './textual-criticism.service';
+import { TextualCriticismController } from './textual-criticism.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -13,8 +15,19 @@ import { SyntaxDiagramController } from './syntax-diagram.controller';
     LinguisticsController,
     ConstructSearchController,
     SyntaxDiagramController,
+    TextualCriticismController,
   ],
-  providers: [LinguisticsService, ConstructSearchService, SyntaxDiagramService],
-  exports: [LinguisticsService, ConstructSearchService, SyntaxDiagramService],
+  providers: [
+    LinguisticsService,
+    ConstructSearchService,
+    SyntaxDiagramService,
+    TextualCriticismService,
+  ],
+  exports: [
+    LinguisticsService,
+    ConstructSearchService,
+    SyntaxDiagramService,
+    TextualCriticismService,
+  ],
 })
 export class LinguisticsModule {}
