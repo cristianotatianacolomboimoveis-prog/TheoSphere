@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**274 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**286 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -96,10 +96,20 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`SermonOutlineModal.tsx` & `useHomiletics.ts`):** Modal de alta resolução estilo _Canvas / Document_ com abas de navegação rápida (_Esboço Expositivo_, _Vozes Clássicas_, _Exegese dos Originais_, _Documento Markdown_), re-geração temática sob demanda, botão de cópia formatada em 1 clique e botão de impressão/PDF. Integrado diretamente na `ReaderToolbar.tsx` e na barra flutuante de seleção de versículos (`VerseSelectionToolbar.tsx`).
 - **Validação:** **274 testes backend** (+2 novos testes unitários em `homiletics.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
-**Próximos passos:**
+21. **Sinopse dos 4 Evangelhos por Perícopas — Accordance-Grade Gospel Parallels (2026-09-24):**
+    Implementada a ferramenta de sinopse dos quatro evangelistas superior ao Accordance Bible Software:
 
-1. **Passo 5 — Navegação Histórico-Geográfica no Atlas Bíblico 3D:** Plotar e sobrevoar topônimos bíblicos do versículo no globo 3D (Cesium/MapLibre).
-2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+- **Backend (`synopsis-catalog.ts`, `synopsis.service.ts` & `synopsis.controller.ts`):** Catálogo canônico exegético de 36 perícopas estruturadas da vida e ministério de Cristo, abrangendo as Tradições Quádrupla, Tríplice e Dupla (Fonte Q). Algoritmo de diff LCS palavra por palavra integrado com cálculo de matriz de concordância léxica em tempo real (ex: Mt ↔ Mc: 74%) e suporte nativo ao Grego do Novo Testamento (`TR`) e traduções modernas (`BLIVRE`, `NVA`, `KJV`, `WEB`). Endpoints `@Get('api/v1/synopsis/pericopes')`, `@Get('api/v1/synopsis/pericopes/:id')`, `@Get('api/v1/synopsis/sections')` e `@Get('api/v1/synopsis/find')`.
+- **Frontend (`GospelSynopsisModal.tsx` & `useGospelSynopsis.ts`):** Interface sinótica com 4 colunas paralelas (Mateus, Marcos, Lucas, João) com badges de cores canônicas, seletor de perícopa com busca instantânea e filtros por seção cronológica (Infância, Batismo, Galileia, Milagres, Parábolas, Paixão, Morte e Ressurreição), alternador de evangelho base de comparação (ex: Prioridade Marcaniana), pills com a matriz de similaridade léxica, toggle de realce de termos idênticos (Diff LCS) e botão de 1 clique "Copiar Tabela Sinótica (Markdown)". Integrado diretamente na `ReaderToolbar.tsx` via botão `[📜 Evangelhos Sinóticos]`.
+- **Validação:** **286 testes backend** (+12 novos testes unitários cobrindo catálogo, busca de perícopas por versículo, diffs e matriz de concordância em `synopsis.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
+**Próximos passos (Cronograma Accordance & Plataforma):**
+
+1. **Opção 2 — Linha do Tempo Histórica Bíblica Interativa (_Biblical Timeline_):** Visualização cronológica estilo Accordance conectando reis, profetas, impérios contemporâneos e passagens bíblicas.
+2. **Opção 3 — Construtor Visual de Sintaxe (_Construct Search_):** Busca de blocos gramaticais e estruturas sintáticas no Grego e Hebraico.
+3. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas**.
+4. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
+5. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

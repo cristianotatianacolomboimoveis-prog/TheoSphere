@@ -39,6 +39,7 @@ interface ReaderToolbarProps {
   toggleReading: () => void;
   onOpenComparison?: () => void;
   onOpenHomiletics?: () => void;
+  onOpenSynopsis?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -61,6 +62,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   toggleReading,
   onOpenComparison,
   onOpenHomiletics,
+  onOpenSynopsis,
 }) => {
   const {
     activeBook,
@@ -164,6 +166,21 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             <Columns2 className="w-3.5 h-3.5 text-blue-500" />
             <span className="hidden sm:inline">Sinopse & Variantes</span>
           </button>
+
+          {/* Botão de Sinopse dos 4 Evangelhos (Accordance Gospel Parallels) */}
+          {onOpenSynopsis && (
+            <button
+              onClick={() => {
+                closeAllSelectors();
+                onOpenSynopsis();
+              }}
+              className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-emerald-500/40 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-emerald-400"
+              title="Abrir Sinopse dos 4 Evangelhos por Perícopas (Gospel Parallels)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Evangelhos Sinóticos</span>
+            </button>
+          )}
 
           {/* Indicador de Fonte (API vs Cache) */}
           {chaptersData.length > 0 && chaptersData[0].source && (

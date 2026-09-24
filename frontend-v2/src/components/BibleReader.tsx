@@ -67,6 +67,7 @@ import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SermonOutlineModal } from "./homiletics/SermonOutlineModal";
 import { useHomiletics } from "@/hooks/useHomiletics";
+import { GospelSynopsisModal } from "./synopsis/GospelSynopsisModal";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -232,6 +233,7 @@ export default function BibleReader({
   const [hoverData, setHoverData] = useState<any | null>(null);
   const [showResourceGuide, setShowResourceGuide] = useState(false);
   const [showTextComparison, setShowTextComparison] = useState(false);
+  const [showSynopsisModal, setShowSynopsisModal] = useState(false);
   const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
   const {
     outline: homileticsOutline,
@@ -423,6 +425,7 @@ export default function BibleReader({
           toggleReading={toggleReading}
           onOpenComparison={() => setShowTextComparison(true)}
           onOpenHomiletics={() => handleOpenHomiletics()}
+          onOpenSynopsis={() => setShowSynopsisModal(true)}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -696,6 +699,14 @@ export default function BibleReader({
         loading={homileticsLoading}
         onClose={() => setIsHomileticsOpen(false)}
         onRegenerateWithTheme={(theme) => handleOpenHomiletics({ theme })}
+      />
+
+      {/* Modal de Sinopse dos 4 Evangelhos (Accordance Gospel Parallels) */}
+      <GospelSynopsisModal
+        isOpen={showSynopsisModal}
+        onClose={() => setShowSynopsisModal(false)}
+        currentBookId={selectedBook.id}
+        currentChapter={activeChapter}
       />
 
       {/* Modal de Anotação Pessoal */}

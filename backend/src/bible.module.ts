@@ -11,6 +11,8 @@ import { BibleComparisonService } from './bible/bible-comparison.service';
 import { ArchaeologyModule } from './archaeology/archaeology.module';
 import { HomileticsService } from './bible/homiletics.service';
 import { HomileticsController } from './bible/homiletics.controller';
+import { SynopsisService } from './bible/synopsis.service';
+import { SynopsisController } from './bible/synopsis.controller';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { HomileticsController } from './bible/homiletics.controller';
     BibleController,
     CrossReferencesController,
     HomileticsController,
+    SynopsisController,
   ],
   providers: [
     BibleIngestionService,
@@ -30,12 +33,14 @@ import { HomileticsController } from './bible/homiletics.controller';
     PassageGuideService,
     BibleComparisonService,
     HomileticsService,
+    SynopsisService,
   ],
   exports: [
     BibleIngestionService,
     CrossReferencesService,
     BibleComparisonService,
     HomileticsService,
+    SynopsisService,
   ],
 })
 export class BibleModule {}
