@@ -99,6 +99,8 @@ export default function PassageGuide({
 
   const [noteContent, setNoteContent] = useState("");
   const [userNotes, setUserNotes] = useState<UserNote[]>([]);
+  const [backendCommentaries, setBackendCommentaries] = useState<any[]>([]);
+  const [backendCrossRefs, setBackendCrossRefs] = useState<string[]>([]);
   const { show } = useToast();
 
   useEffect(() => {
@@ -184,6 +186,33 @@ export default function PassageGuide({
         if (inRange.length > 0) {
           setVerses(inRange);
           setReference(ref);
+
+          // Puxa o Guia de Passagem com os 45k chunks de comentários do acervo clássico
+          const vParam = seg.verseStart ? `?verse=${seg.verseStart}` : "";
+          api
+            .get<any>(
+              `bible/passage-guide/BLIVRE/${seg.bookId}/${seg.chapterStart}${vParam}`,
+              { throwOnError: false },
+            )
+            .then((guideResult) => {
+              if (guideResult?.success && guideResult.data) {
+                if (
+                  guideResult.data.commentaries &&
+                  guideResult.data.commentaries.length > 0
+                ) {
+                  setBackendCommentaries(guideResult.data.commentaries);
+                }
+                if (guideResult.data.crossReferences?.list) {
+                  setBackendCrossRefs(
+                    guideResult.data.crossReferences.list.map(
+                      (c: any) => c.target,
+                    ),
+                  );
+                }
+              }
+            })
+            .catch(() => {});
+
           return;
         }
         // Capítulo vazio nesta tradução → cai para a busca híbrida abaixo.
@@ -272,6 +301,7 @@ export default function PassageGuide({
   }, [currentSegs]);
 
   const crossRefs = useMemo(() => {
+    if (backendCrossRefs.length > 0) return backendCrossRefs;
     if (currentSegs.length === 0) return [];
     const related: string[] = [];
     for (const cr of CROSS_REFERENCES) {
@@ -284,14 +314,37 @@ export default function PassageGuide({
       }
     }
     return [...new Set(related)];
-  }, [currentSegs]);
+  }, [currentSegs, backendCrossRefs]);
 
   const commentaries = useMemo(() => {
+    if (backendCommentaries.length > 0) {
+      return backendCommentaries.map((c, i) => ({
+        id: `backend-${i}`,
+        author: c.author,
+        title: c.source,
+        year: c.author.includes("Calvin")
+          ? "1509-1564"
+          : c.author.includes("Henry")
+            ? "1662-1714"
+            : c.author.includes("Luther")
+              ? "1483-1546"
+              : "Clássico",
+        tradition: c.author.includes("Calvin")
+          ? "Reformada"
+          : c.author.includes("Henry")
+            ? "Puritana"
+            : c.author.includes("Luther")
+              ? "Luterana"
+              : "Histórica",
+        text: c.content,
+        reference,
+      }));
+    }
     if (currentSegs.length === 0) return [];
     return COMMENTARIES.filter((c) =>
       passagesOverlap(currentSegs, parsePassage(c.reference)),
     );
-  }, [currentSegs]);
+  }, [currentSegs, backendCommentaries, reference]);
 
   // Simulated dictionary extraction (would use NLP in real world)
   const dictionaryMatches = useMemo(() => {

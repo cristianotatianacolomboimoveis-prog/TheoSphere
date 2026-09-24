@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { useCrossRefs, CrossRef } from "@/hooks/useCrossRefs";
+import { usePassageGuide } from "@/hooks/usePassageGuide";
+import { BIBLE_BOOK_TO_ID } from "@/lib/bibleUtils";
 import { api } from "@/lib/api";
+import Link from "next/link";
 
 interface ContextualInsightsPanelProps {
   onClose?: () => void;
@@ -50,6 +53,17 @@ export function ContextualInsightsPanel({
   const currentRef = `${activeBook} ${activeChapter}${
     activeVerseId ? `:${activeVerseId}` : ""
   }`;
+
+  const bookId = BIBLE_BOOK_TO_ID[activeBook] || 1;
+  const verseNum = activeVerseId
+    ? parseInt(String(activeVerseId), 10)
+    : undefined;
+  const { guide, loading: loadingGuide } = usePassageGuide(
+    "BLIVRE",
+    bookId,
+    activeChapter,
+    verseNum,
+  );
 
   // Carregar Cross-References quando mudar a referência
   useEffect(() => {
@@ -109,6 +123,8 @@ export function ContextualInsightsPanel({
     }
   };
 
+  const realCommentaries = guide?.commentaries || [];
+
   return (
     <aside
       aria-label="Ideias e Exegese Contextual"
@@ -123,7 +139,7 @@ export function ContextualInsightsPanel({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                Ideias & Contexto
+                Guia Exegético & Ideias
               </span>
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 Link Set A
@@ -135,28 +151,43 @@ export function ContextualInsightsPanel({
           </div>
         </div>
 
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600"
-            aria-label="Fechar painel de ideias"
+        <div className="flex items-center gap-1">
+          <Link
+            href="/study"
+            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-amber-500 transition-colors"
+            title="Abrir Guia de Passagem em tela cheia"
+            aria-label="Abrir Guia de Passagem"
           >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600"
+              aria-label="Fechar painel de ideias"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-white/10 px-2 pt-1 gap-1 text-[11px] font-semibold">
         <button
           onClick={() => setActiveTab("insights")}
-          className={`px-2.5 py-1.5 border-b-2 transition-colors ${
+          className={`px-2.5 py-1.5 border-b-2 transition-colors flex items-center gap-1.5 ${
             activeTab === "insights"
               ? "border-amber-500 text-amber-600 dark:text-amber-400"
               : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
           }`}
         >
-          Comentários
+          <span>Comentários Clássicos</span>
+          {realCommentaries.length > 0 && (
+            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">
+              {realCommentaries.length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab("crossrefs")}
@@ -190,35 +221,80 @@ export function ContextualInsightsPanel({
       <div className="flex-grow overflow-y-auto p-3 space-y-4 text-xs">
         {activeTab === "insights" && (
           <div className="space-y-3">
-            {/* Card 1: Comentário Histórico */}
-            <div className="p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
-              <div className="flex items-center gap-2 mb-1.5">
-                <BookMarked className="w-3.5 h-3.5 text-blue-500" />
-                <span className="font-bold text-gray-800 dark:text-gray-200">
-                  Comentário Exegético & Crítico (JFB)
+            {loadingGuide ? (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-400 space-y-2">
+                <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+                <span className="text-[11px]">
+                  Consultando Calvino & Matthew Henry...
                 </span>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">
-                {activeBook === "Salmos" && activeChapter === 23
-                  ? "Sob a metáfora pastoral das pastagens verdejantes e águas tranquilas, Davi expressa a segurança inabalável da alma sob a providência da aliança de Yahweh."
-                  : `Em ${currentRef}, a revelação canônica expressa os propósitos redentivos da aliança divina, com paralelismos na tradição bíblica e cumprimento no Novo Testamento.`}
-              </p>
-            </div>
+            ) : realCommentaries.length > 0 ? (
+              realCommentaries.map((c, i) => (
+                <div
+                  key={i}
+                  className="p-3.5 rounded-lg border border-amber-500/20 bg-amber-500/[0.03] dark:bg-white/[0.02] space-y-2"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-200/60 dark:border-white/10 pb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-[10px]">
+                        {c.author.includes("Calvin")
+                          ? "JC"
+                          : c.author.includes("Henry")
+                            ? "MH"
+                            : c.author.includes("Luther")
+                              ? "ML"
+                              : "TC"}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100 text-[12px]">
+                          {c.author}
+                        </h4>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                          {c.source}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Domínio Público
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-[11px] font-serif whitespace-pre-line italic">
+                    "{c.content}"
+                  </p>
+                </div>
+              ))
+            ) : (
+              <>
+                {/* Fallback canônico quando não há trecho específico indexado */}
+                <div className="p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <BookMarked className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="font-bold text-gray-800 dark:text-gray-200">
+                      Comentário Exegético & Crítico (JFB)
+                    </span>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">
+                    {activeBook === "Salmos" && activeChapter === 23
+                      ? "Sob a metáfora pastoral das pastagens verdejantes e águas tranquilas, Davi expressa a segurança inabalável da alma sob a providência da aliança de Yahweh."
+                      : `Em ${currentRef}, a revelação canônica expressa os propósitos redentivos da aliança divina, com paralelismos na tradição bíblica e cumprimento no Novo Testamento.`}
+                  </p>
+                </div>
 
-            {/* Card 2: Notas Exegéticas & Hermenêutica */}
-            <div className="p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
-              <div className="flex items-center gap-2 mb-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="font-bold text-gray-800 dark:text-gray-200">
-                  Matthew Henry (Exegese Prática)
-                </span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">
-                {activeBook === "Salmos" && activeChapter === 23
-                  ? "O Bom Pastor não apenas supre as necessidades presentes, mas restaura a alma com graça vivificante e guia nas veredas da justiça."
-                  : `A fidelidade de Deus em ${currentRef} manifesta a suficiência de Sua soberania para guiar, sustentar e consolar o Seu povo em qualquer provação.`}
-              </p>
-            </div>
+                <div className="p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="font-bold text-gray-800 dark:text-gray-200">
+                      Matthew Henry (Exegese Prática)
+                    </span>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">
+                    {activeBook === "Salmos" && activeChapter === 23
+                      ? "O Bom Pastor não apenas supre as necessidades presentes, mas restaura a alma com graça vivificante e guia nas veredas da justiça."
+                      : `A fidelidade de Deus em ${currentRef} manifesta a suficiência de Sua soberania para guiar, sustentar e consolar o Seu povo em qualquer provação.`}
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Ação rápida para Copilot */}
             <button

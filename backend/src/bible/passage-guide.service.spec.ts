@@ -102,4 +102,22 @@ describe('PassageGuideService', () => {
     expect(g.archaeology).toEqual([]);
     expect(g.crossReferences).toMatchObject({ mode: 'list', list: [] });
   });
+
+  it('agrega comentários clássicos canônicos quando disponíveis no UserEmbedding', async () => {
+    (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
+      {
+        title: 'Commentary on Romans',
+        author: 'John Calvin',
+        content:
+          'There is therefore now no condemnation to them which are in Christ Jesus, because the Spirit of life in Christ Jesus hath made me free from the law of sin and death. This is the great foundation of the believers assurance and perpetual peace with God.',
+      },
+    ]);
+
+    const g = await service.getGuide('BLIVRE', 45, 8, 1);
+
+    expect(g.commentaries).toHaveLength(1);
+    expect(g.commentaries[0].author).toBe('John Calvin');
+    expect(g.commentaries[0].source).toBe('Commentary on Romans');
+    expect(g.commentaries[0].tags).toContain('clássico');
+  });
 });
