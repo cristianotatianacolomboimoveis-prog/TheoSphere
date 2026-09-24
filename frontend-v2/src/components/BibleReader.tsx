@@ -53,6 +53,12 @@ import { VerseRow } from "./reader/VerseRow";
 import { TranslationPicker } from "./reader/TranslationPicker";
 import { GlobalSearchResults } from "./reader/GlobalSearchResults";
 import { TextComparison } from "./reader/TextComparison";
+import { VerseSelectionToolbar } from "./reader/VerseSelectionToolbar";
+import { VerseNoteModal } from "./reader/VerseNoteModal";
+import {
+  useVerseAnnotations,
+  type HighlightColor,
+} from "@/hooks/useVerseAnnotations";
 import { Button, Card, CardHeader } from "./ui";
 
 import { CrossRefsPopover } from "./CrossRefsPopover";
@@ -197,6 +203,15 @@ export default function BibleReader({
     BIBLE_BOOKS.find(
       (b) => b.namePt === activeBook || b.nameEn === activeBook,
     ) || BIBLE_BOOKS[0];
+
+  const { highlights, notes, setVerseHighlight, saveVerseNote } =
+    useVerseAnnotations(selectedBook.id, activeChapter);
+  const [noteModalTarget, setNoteModalTarget] = useState<{
+    reference: string;
+    verseText: string;
+    verseNum: number;
+  } | null>(null);
+
   const [showBookSelector, setShowBookSelector] = useState(false);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showTranslationSelector, setShowTranslationSelector] = useState(false);
@@ -468,7 +483,16 @@ export default function BibleReader({
                         text={vPrimary.text}
                         secondaryText={vSecondary?.text}
                         selected={selectedVerses.has(vPrimary.verse)}
+                        highlightColor={highlights[vPrimary.verse] || null}
+                        hasNote={Boolean(notes[vPrimary.verse])}
                         onClick={() => toggleVerseSelection(vPrimary.verse)}
+                        onNoteClick={() => {
+                          setNoteModalTarget({
+                            reference: `${selectedBook.namePt} ${activeChapter}:${vPrimary.verse}`,
+                            verseText: vPrimary.text,
+                            verseNum: vPrimary.verse,
+                          });
+                        }}
                         highlightQuery={searchMode ? searchQuery : undefined}
                         crossRefCount={
                           crossRefCounts[
@@ -584,6 +608,58 @@ export default function BibleReader({
             }
             setCrossRefAnchor(null);
           }}
+        />
+      )}
+
+      {/* Barra Flutuante de Marca-texto e Ações de Versículo */}
+      <VerseSelectionToolbar
+        selectedCount={selectedVerses.size}
+        onApplyHighlight={(color) => {
+          setVerseHighlight(Array.from(selectedVerses), color);
+          setSelectedVerses(new Set());
+        }}
+        onOpenNote={() => {
+          const firstVerse = Array.from(selectedVerses).sort(
+            (a, b) => a - b,
+          )[0];
+          const found = versesToRender.find((v) => v.verse === firstVerse);
+          if (firstVerse && found) {
+            setNoteModalTarget({
+              reference: `${selectedBook.namePt} ${activeChapter}:${firstVerse}`,
+              verseText: found.text,
+              verseNum: firstVerse,
+            });
+          }
+        }}
+        onCopyVerses={() => {
+          const selectedList = versesToRender
+            .filter((v) => selectedVerses.has(v.verse))
+            .sort((a, b) => a.verse - b.verse);
+          const textToCopy = selectedList
+            .map((v) => `[${v.verse}] ${v.text}`)
+            .join("\n\n");
+          const header = `${selectedBook.namePt} ${activeChapter}:${selectedList
+            .map((v) => v.verse)
+            .join(",")}\n\n`;
+          if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(header + textToCopy);
+          }
+        }}
+        onOpenCompare={() => setShowTextComparison(true)}
+        onClearSelection={() => setSelectedVerses(new Set())}
+      />
+
+      {/* Modal de Anotação Pessoal */}
+      {noteModalTarget && (
+        <VerseNoteModal
+          reference={noteModalTarget.reference}
+          verseText={noteModalTarget.verseText}
+          initialNote={notes[noteModalTarget.verseNum] || ""}
+          onSave={(noteText) =>
+            saveVerseNote(noteModalTarget.verseNum, noteText)
+          }
+          onDelete={() => saveVerseNote(noteModalTarget.verseNum, "")}
+          onClose={() => setNoteModalTarget(null)}
         />
       )}
     </div>
