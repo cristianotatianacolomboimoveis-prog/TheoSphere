@@ -7,6 +7,7 @@ import { LinguisticsModule } from './linguistics/linguistics.module';
 import { CrossReferencesService } from './bible/cross-references.service';
 import { CrossReferencesController } from './bible/cross-references.controller';
 import { PassageGuideService } from './bible/passage-guide.service';
+import { BibleComparisonService } from './bible/bible-comparison.service';
 import { ArchaeologyModule } from './archaeology/archaeology.module';
 
 @Module({
@@ -21,7 +22,12 @@ import { ArchaeologyModule } from './archaeology/archaeology.module';
     BibleIngestionService,
     CrossReferencesService,
     PassageGuideService,
+    BibleComparisonService,
   ],
-  exports: [BibleIngestionService, CrossReferencesService],
+  exports: [
+    BibleIngestionService,
+    CrossReferencesService,
+    BibleComparisonService,
+  ],
 })
 export class BibleModule {}

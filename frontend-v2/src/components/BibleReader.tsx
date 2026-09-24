@@ -52,7 +52,9 @@ import { ArchaeologyPanel } from "./reader/ArchaeologyPanel";
 import { VerseRow } from "./reader/VerseRow";
 import { TranslationPicker } from "./reader/TranslationPicker";
 import { GlobalSearchResults } from "./reader/GlobalSearchResults";
+import { TextComparison } from "./reader/TextComparison";
 import { Button, Card, CardHeader } from "./ui";
+
 import { CrossRefsPopover } from "./CrossRefsPopover";
 import { useChapterCrossRefs } from "@/hooks/useCrossRefs";
 import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
@@ -212,8 +214,10 @@ export default function BibleReader({
   } | null>(null);
   const [hoverData, setHoverData] = useState<any | null>(null);
   const [showResourceGuide, setShowResourceGuide] = useState(false);
+  const [showTextComparison, setShowTextComparison] = useState(false);
 
   const { speak, stopSpeaking } = useVoice();
+
   const [isPlaying, setIsPlaying] = useState(false);
 
   const toggleReading = () => {
@@ -370,7 +374,9 @@ export default function BibleReader({
           chaptersData={chaptersData}
           isPlaying={isPlaying}
           toggleReading={toggleReading}
+          onOpenComparison={() => setShowTextComparison(true)}
         />
+
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
         {searchMode && (
           <ReaderSearch
@@ -532,6 +538,26 @@ export default function BibleReader({
         <AIInsights />
         <ArchaeologyPanel />
       </div>
+
+      {/* Modal de Comparação de Versões e Variantes Textuais (Logos Text Comparison) */}
+      {showTextComparison && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-6xl h-[92vh] shadow-2xl flex flex-col">
+            <TextComparison
+              bookId={selectedBook.id || 1}
+              chapter={activeChapter}
+              initialBase={primaryTranslation}
+              onClose={() => setShowTextComparison(false)}
+              onSelectVerse={(vNum) => {
+                setActiveVerse(
+                  `${selectedBook.nameEn} ${activeChapter}:${vNum}`,
+                );
+                setShowTextComparison(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Floating UI Elements */}
       {hoverData && (

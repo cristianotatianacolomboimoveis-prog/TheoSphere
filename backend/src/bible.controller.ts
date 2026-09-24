@@ -13,6 +13,7 @@ import { RolesGuard } from './auth/roles.guard';
 import { Roles } from './auth/roles.decorator';
 import { BibleIngestionService } from './bible-ingestion.service';
 import { PassageGuideService } from './bible/passage-guide.service';
+import { BibleComparisonService } from './bible/bible-comparison.service';
 import { safeFetch, SafeFetchError } from './common/http/safe-fetch';
 import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
@@ -67,6 +68,7 @@ export class BibleController {
   constructor(
     private ingestionService: BibleIngestionService,
     private passageGuide: PassageGuideService,
+    private comparisonService: BibleComparisonService,
   ) {}
 
   /**
@@ -97,6 +99,51 @@ export class BibleController {
       throw new BadRequestException('Referência inválida.');
     }
     const data = await this.passageGuide.getGuide(translation, b, c, v);
+    return { success: true, data };
+  }
+
+  /**
+   * Text Comparison & Variant Alignment — compara uma passagem entre múltiplas
+   * versões bíblicas com diff palavra por palavra e cálculo de similaridade (estilo Logos).
+   */
+  @Get('compare/:bookId/:chapter')
+  @UseInterceptors(new CacheControlInterceptor(3600))
+  async compareVersions(
+    @Param('bookId') bookId: string,
+    @Param('chapter') chapter: string,
+    @Query('base') base?: string,
+    @Query('translations') translations?: string,
+    @Query('verse') verse?: string,
+  ) {
+    const b = parseInt(bookId, 10);
+    const c = parseInt(chapter, 10);
+    const v = verse ? parseInt(verse, 10) : undefined;
+    if (
+      !Number.isInteger(b) ||
+      b < 1 ||
+      b > 66 ||
+      !Number.isInteger(c) ||
+      c < 1 ||
+      c > 176 ||
+      (verse !== undefined && (!Number.isInteger(v) || v! < 1 || v! > 200))
+    ) {
+      throw new BadRequestException('Referência inválida.');
+    }
+
+    const requested = translations
+      ? translations
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : ['BLIVRE', 'NVA', 'KJV'];
+
+    const data = await this.comparisonService.comparePassage(
+      b,
+      c,
+      base || 'BLIVRE',
+      requested,
+      v,
+    );
     return { success: true, data };
   }
 

@@ -12,7 +12,9 @@ import {
   Square,
   Languages,
   Lightbulb,
+  Columns2,
 } from "lucide-react";
+
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
 import { TRANSLATIONS } from "../BibleReader";
 
@@ -34,6 +36,7 @@ interface ReaderToolbarProps {
   chaptersData: any[];
   isPlaying: boolean;
   toggleReading: () => void;
+  onOpenComparison?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -54,6 +57,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   chaptersData,
   isPlaying,
   toggleReading,
+  onOpenComparison,
 }) => {
   const {
     activeBook,
@@ -143,6 +147,19 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
                 ? `PARALELO: ${secondaryTranslation.toUpperCase()}`
                 : "COMPARAR"}
             </span>
+          </button>
+
+          {/* Botão de Comparação de Versões e Variantes Sinóticas (Logos Text Comparison) */}
+          <button
+            onClick={() => {
+              closeAllSelectors();
+              onOpenComparison?.();
+            }}
+            className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/30 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-accent"
+            title="Abrir Comparação Sinótica de Versões e Variantes (Text Comparison)"
+          >
+            <Columns2 className="w-3.5 h-3.5 text-blue-500" />
+            <span className="hidden sm:inline">Sinopse & Variantes</span>
           </button>
 
           {/* Indicador de Fonte (API vs Cache) */}

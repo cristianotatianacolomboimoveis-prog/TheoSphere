@@ -11,9 +11,10 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-23**. Repositório limpo, suíte inteira passando
-(**254 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
+(**262 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
+
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
 Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
@@ -50,7 +51,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
 - **Backend:** Mapeamento canônico dos 66 livros para os respectivos Gutenberg IDs e volumes do acervo. Filtro inteligente para descarte de índices remissivos numéricos e extração de prosa teológica pura.
 - **Frontend:** Atualizados `ContextualInsightsPanel.tsx`, `PassageGuide.tsx` e `ReaderToolbar.tsx` com novo botão `[📖 Guia Exegético]` de 1 clique, badges de autores (`JC`, `MH`, `ML`) e sincronização fluida de passagens.
-- **Validação:** 254 testes backend e 49 testes frontend passando (0 erros de lint e 0 erros de tipagem). Testado diretamente em Romanos 8:1 e Salmos 23:1 com retorno exato de trechos exegéticos de Calvino em milissegundos.
+- **Validação:** 254 testes backend e 49 testes frontend passando.
+
+15. **Comparação de Versões & Alinhamento Sinótico com Diff Textual (2026-09-24):**
+    Implementada a ferramenta de **Text Comparison** estilo Logos Bible Software para análise exegética e de variantes textuais entre versões bíblicas canônicas:
+
+- **Backend (`text-diff.ts` e `BibleComparisonService`):** Algoritmo LCS (Longest Common Subsequence) para alinhamento palavra por palavra e detecção de acréscimos textuais (`added`), omissões textuais (`removed`) e cálculo de percentual de similaridade léxica. Endpoint orquestrado `@Get('compare/:bookId/:chapter')` com suporte a versões primárias e alvos (`BLIVRE`, `NVA`, `KJV`, `WEB`, `TR`, `WLC`, `LXX`).
+- **Frontend (`TextComparison.tsx` e `useTextComparison.ts`):** Componente modal de alta resolução com switch entre **Grid Sinótico (Colunas)** e **Intercalado (Verso a Verso)**, toggles para destaque visual de adições/omissões, cópia para Markdown e integração direta via botão `[⚖️ Sinopse & Variantes]` na `ReaderToolbar.tsx`.
+- **Validação:** **262 testes backend** (+8 novos testes cobrindo diff e comparação) e **49 testes frontend** passando, 0 erros de lint, 0 erros de typecheck.
 
 **Próximos passos:**
 
