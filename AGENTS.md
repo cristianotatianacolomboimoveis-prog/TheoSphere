@@ -67,6 +67,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`TheologicalLibrary.tsx` e `classicCatalog.ts`):** Interface reformulada estilo Logos com catálogo offline instantâneo (0ms) e revalidação assíncrona, banner de métricas (89 obras / 45.092 chunks), busca em tempo real, tabs de categorias, pills de tradição com cores temáticas e modal de consulta rápida para o Copilot IA ancorado na obra.
 - **Validação:** **262 testes backend**, **49 testes frontend**, `static-checks.mjs` limpo (0 achados), build e typecheck 100% aprovados.
 
+17. **Estudo de Palavra Original de Nível Acadêmico — Logos-Grade Word Study (2026-09-24):**
+    Construído o motor de estudo exegético aprofundado para lemas gregos e hebraicos, superando o modelo fragmentado do Logos:
+
+- **Backend (`LinguisticsService` & `LinguisticsController`):** Adicionado `BOOK_ID_TO_NAME_PT` e `getCanonicalDivision` em `book-map.ts`. Criado método `getWordStudyDetails(strongId)` que calcula em tempo real a distribuição canônica (Pentateuco, Históricos, Poéticos, Profetas, Evangelhos, Atos, Paulinas, Gerais, Apocalipse), a contagem detalhada por livro bíblico e o agrupamento das formas flexionadas no corpus grego/hebraico com morfologia e contagem de ocorrências. Exposto via endpoint `@Get('word-study/:strongId')` com LRU cache em memória e Cache-Control de 24h.
+- **Frontend (`WordStudy.tsx`, `CanonicalDistributionChart.tsx` & `InflectedFormsTable.tsx`):** Gráfico de barras horizontais temáticas da distribuição canônica, listagem de frequências por livro bíblico, tabela interlinear de formas flexionadas com tradução morfológica legível em português, disparo automático ao selecionar termo, integração com citações do Acervo Clássico das 89 obras e botão de 1 clique "Copiar Ficha Exegética em Markdown".
+- **Validação:** **267 testes backend** (+5 novos testes unitários cobrindo divisões canônicas, agregação e cache), **49 testes frontend**, `static-checks.mjs` com 0 achados, ESLint e TypeScript limpos.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
