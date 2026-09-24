@@ -74,6 +74,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`WordStudy.tsx`, `CanonicalDistributionChart.tsx` & `InflectedFormsTable.tsx`):** Gráfico de barras horizontais temáticas da distribuição canônica, listagem de frequências por livro bíblico, tabela interlinear de formas flexionadas com tradução morfológica legível em português, disparo automático ao selecionar termo, integração com citações do Acervo Clássico das 89 obras e botão de 1 clique "Copiar Ficha Exegética em Markdown".
 - **Validação:** **267 testes backend** (+5 novos testes unitários cobrindo divisões canônicas, agregação e cache), **49 testes frontend**, `static-checks.mjs` com 0 achados, ESLint e TypeScript limpos.
 
+18. **Caderno de Anotações Pessoais & Marca-Texto Temático no Leitor (2026-09-24):**
+    Construído o sistema de estudo bíblico pessoal de padrão Logos Bible Software, permitindo anotações homiléticas e marca-texto com semântica teológica diretamente no texto:
+
+- **Hook de Persistência (`useVerseAnnotations.ts`):** Gerencia reativamente destaques e anotações por livro e capítulo, com sincronização em `localStorage`.
+- **Paleta Teológica de 5 Cores:** Amarelo (Doutrina Geral), Esmeralda (Graça & Salvação), Azul (Aliança & Promessas), Roxo (Soberania de Deus) e Vermelho (Mandamentos & Alerta), com estilos ricos de fundo e borda aplicados no `VerseRow.tsx`.
+- **Barra Flutuante (`VerseSelectionToolbar.tsx`) & Modal de Anotações (`VerseNoteModal.tsx`):** Exibição instantânea ao selecionar um ou mais versículos, com paleta de 1 clique, atalho para abrir/editar notas de sermão, cópia formatada com referências e botão para sinopse textual.
+- **Validação:** **267 testes backend**, **49 testes frontend**, `static-checks.mjs` com 0 achados, lint e typecheck 100% aprovados.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
