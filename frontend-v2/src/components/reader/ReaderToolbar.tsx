@@ -13,6 +13,7 @@ import {
   Languages,
   Lightbulb,
   Columns2,
+  Sparkles,
 } from "lucide-react";
 
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
@@ -37,6 +38,7 @@ interface ReaderToolbarProps {
   isPlaying: boolean;
   toggleReading: () => void;
   onOpenComparison?: () => void;
+  onOpenHomiletics?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -58,6 +60,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   isPlaying,
   toggleReading,
   onOpenComparison,
+  onOpenHomiletics,
 }) => {
   const {
     activeBook,
@@ -235,6 +238,20 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
               Guia Exegético
             </span>
           </button>
+
+          {/* Botão do Esboço Homilético Expositivo */}
+          {onOpenHomiletics && (
+            <button
+              onClick={onOpenHomiletics}
+              className="px-3 py-2 rounded-lg border bg-surface-hover/50 border-border-subtle text-foreground/40 hover:text-amber-400 hover:border-amber-500/30 transition-all flex items-center gap-1.5"
+              title="Gerar Esboço Homilético Expositivo (IA + Originais + Acervo Clássico)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-bold hidden sm:inline">
+                Esboço
+              </span>
+            </button>
+          )}
 
           {/* Botão de Leitura Bíblica */}
           <button

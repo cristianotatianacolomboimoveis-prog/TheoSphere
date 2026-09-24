@@ -9,6 +9,7 @@ import {
   Scale,
   X,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import {
   HighlightColor,
@@ -21,6 +22,7 @@ interface VerseSelectionToolbarProps {
   onOpenNote: () => void;
   onCopyVerses: () => void;
   onOpenCompare: () => void;
+  onOpenHomiletics?: () => void;
   onClearSelection: () => void;
 }
 
@@ -30,6 +32,7 @@ export const VerseSelectionToolbar: React.FC<VerseSelectionToolbarProps> = ({
   onOpenNote,
   onCopyVerses,
   onOpenCompare,
+  onOpenHomiletics,
   onClearSelection,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -131,6 +134,17 @@ export const VerseSelectionToolbar: React.FC<VerseSelectionToolbarProps> = ({
             <Scale className="w-3.5 h-3.5 text-indigo-500" />
             <span>Sinopse</span>
           </button>
+
+          {onOpenHomiletics && (
+            <button
+              onClick={onOpenHomiletics}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-500 transition-colors"
+              title="Gerar Esboço Homilético Expositivo"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Esboço</span>
+            </button>
+          )}
         </div>
 
         {/* Fechar/Desmarcar */}

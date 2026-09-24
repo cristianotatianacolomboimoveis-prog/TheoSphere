@@ -65,6 +65,8 @@ import { CrossRefsPopover } from "./CrossRefsPopover";
 import { useChapterCrossRefs } from "@/hooks/useCrossRefs";
 import { useAdvancedSearch, isAdvancedSyntax } from "@/hooks/useAdvancedSearch";
 import { useDebounce } from "@/hooks/useDebounce";
+import { SermonOutlineModal } from "./homiletics/SermonOutlineModal";
+import { useHomiletics } from "@/hooks/useHomiletics";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -230,6 +232,36 @@ export default function BibleReader({
   const [hoverData, setHoverData] = useState<any | null>(null);
   const [showResourceGuide, setShowResourceGuide] = useState(false);
   const [showTextComparison, setShowTextComparison] = useState(false);
+  const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
+  const {
+    outline: homileticsOutline,
+    loading: homileticsLoading,
+    generateOutline: generateHomileticsOutline,
+  } = useHomiletics();
+
+  const handleOpenHomiletics = useCallback(
+    (customVerseRange?: { start?: number; end?: number; theme?: string }) => {
+      setIsHomileticsOpen(true);
+      const selectedArray = Array.from(selectedVerses).sort((a, b) => a - b);
+      const start =
+        customVerseRange?.start ||
+        (selectedArray.length > 0 ? selectedArray[0] : 1);
+      const end =
+        customVerseRange?.end ||
+        (selectedArray.length > 1
+          ? selectedArray[selectedArray.length - 1]
+          : undefined);
+
+      void generateHomileticsOutline({
+        bookId: selectedBook.id,
+        chapter: activeChapter,
+        startVerse: start,
+        endVerse: end,
+        theme: customVerseRange?.theme,
+      });
+    },
+    [selectedBook.id, activeChapter, selectedVerses, generateHomileticsOutline],
+  );
 
   const { speak, stopSpeaking } = useVoice();
 
@@ -390,6 +422,7 @@ export default function BibleReader({
           isPlaying={isPlaying}
           toggleReading={toggleReading}
           onOpenComparison={() => setShowTextComparison(true)}
+          onOpenHomiletics={() => handleOpenHomiletics()}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -652,7 +685,17 @@ export default function BibleReader({
           }
         }}
         onOpenCompare={() => setShowTextComparison(true)}
+        onOpenHomiletics={() => handleOpenHomiletics()}
         onClearSelection={() => setSelectedVerses(new Set())}
+      />
+
+      {/* Modal de Esboço Homilético Expositivo (IA + Originais + Acervo Clássico) */}
+      <SermonOutlineModal
+        isOpen={isHomileticsOpen}
+        outline={homileticsOutline}
+        loading={homileticsLoading}
+        onClose={() => setIsHomileticsOpen(false)}
+        onRegenerateWithTheme={(theme) => handleOpenHomiletics({ theme })}
       />
 
       {/* Modal de Anotação Pessoal */}

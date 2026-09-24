@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**272 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**274 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -89,11 +89,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`CrossRefsPopover.tsx` & `useCrossRefs.ts`):** Popover interativo com pré-visualização instantânea do texto dos versículos cruzados, seletor dinâmico de tradução em 1 clique (sem recarregar a tela), filtro textual em tempo real (por livro ou conteúdo), botão de cópia formatada com citação e navegação com salto exegético (`onJump`).
 - **Validação:** **272 testes backend** (+5 novos testes unitários em `cross-references.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
+20. **Gerador de Esboço Exegético & Homilético com Copilot IA & Acervo Clássico (2026-09-24):**
+    Construído o motor de geração de sermões e esboços expositivos superior ao Logos Preaching Guide:
+
+- **Backend (`HomileticsService` & `HomileticsController`):** Sintetiza a passagem bíblica selecionada, extrai os termos exegéticos originais (grego/hebraico com Strong e lemas via `LinguisticsService`), cruza conexões canônicas (TSK) e incorpora citações reais e precisas das 89 obras clássicas (Calvino, Matthew Henry, Lutero, Spurgeon). Gera automaticamente a tese central (_Big Idea_), contexto histórico-literário, 3 movimentos homiléticos (Exegese, Ilustração e Aplicação prática), apelo pastoral, oração final e documento formatado em Markdown. Endpoints `@Post('api/v1/homiletics/outline')` e `@Get('api/v1/homiletics/outline/:bookId/:chapter')`.
+- **Frontend (`SermonOutlineModal.tsx` & `useHomiletics.ts`):** Modal de alta resolução estilo _Canvas / Document_ com abas de navegação rápida (_Esboço Expositivo_, _Vozes Clássicas_, _Exegese dos Originais_, _Documento Markdown_), re-geração temática sob demanda, botão de cópia formatada em 1 clique e botão de impressão/PDF. Integrado diretamente na `ReaderToolbar.tsx` e na barra flutuante de seleção de versículos (`VerseSelectionToolbar.tsx`).
+- **Validação:** **274 testes backend** (+2 novos testes unitários em `homiletics.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
 **Próximos passos:**
 
-1. **Passo 4 — Gerador de Esboço Expositivo / Homilético:** Integrar Copilot IA ancorado nos originais e acervo clássico das 89 obras para geração de esboços de pregação em 5 partes.
-2. **Passo 5 — Navegação Histórico-Geográfica no Atlas Bíblico 3D:** Plotar e sobrevoar topônimos bíblicos do versículo no globo 3D.
-3. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Passo 5 — Navegação Histórico-Geográfica no Atlas Bíblico 3D:** Plotar e sobrevoar topônimos bíblicos do versículo no globo 3D (Cesium/MapLibre).
+2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 
