@@ -84,7 +84,8 @@ export type McpPermission =
   | 'audit:read'
   | 'memory:write'
   | 'memory:read'
-  | 'research:read';
+  | 'research:read'
+  | 'map:navigate';
 
 export const MCP_STATE_TRANSITIONS: Record<
   McpTaskState,

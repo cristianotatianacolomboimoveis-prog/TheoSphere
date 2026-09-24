@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**323 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**335 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -80,61 +80,39 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Hook de Persistência (`useVerseAnnotations.ts`):** Gerencia reativamente destaques e anotações por livro e capítulo, com sincronização em `localStorage`.
 - **Paleta Teológica de 5 Cores:** Amarelo (Doutrina Geral), Esmeralda (Graça & Salvação), Azul (Aliança & Promessas), Roxo (Soberania de Deus) e Vermelho (Mandamentos & Alerta), com estilos ricos de fundo e borda aplicados no `VerseRow.tsx`.
 - **Barra Flutuante (`VerseSelectionToolbar.tsx`) & Modal de Anotações (`VerseNoteModal.tsx`):** Exibição instantânea ao selecionar um ou mais versículos, com paleta de 1 clique, atalho para abrir/editar notas de sermão, cópia formatada com referências e botão para sinopse textual.
-- **Validação:** **267 testes backend**, **49 testes frontend**, `static-checks.mjs` com 0 achados, lint e typecheck 100% aprovados.
 
-19. **TSK Popover Instantâneo com Texto Bíblico Inline & Seletor de Tradução (2026-09-24):**
-    Construído o sistema de referências cruzadas canônicas do _Treasury of Scripture Knowledge_ (TSK) superior ao modelo do Logos:
+19. **Diretriz de Equilíbrio Teológico (Meio-termo Calvinista / Arminiano) no Copilot IA (2026-09-24):**
+    Configurada uma abordagem acadêmica imparcial e de equilíbrio teológico (meio-termo entre Calvinismo e Arminianismo) como padrão da IA:
 
-- **Backend (`CrossReferencesService` & `CrossReferencesController`):** Enriquecimento automático das referências conectadas com o texto bíblico inline no idioma/versão solicitada (`BLIVRE`, `NVA`, `KJV`, `WEB`). Suporte a normalização bidirecional de nomes de livros (PT-BR e EN) via `normalizeRefToCanonicalEn` e `BOOK_ID_TO_NAME_EN` em `book-map.ts`. Agrupamento de contagens em lote (`countsByRef`) e endpoint `@Get('api/v1/cross-refs')` enriquecido.
-- **Frontend (`CrossRefsPopover.tsx` & `useCrossRefs.ts`):** Popover interativo com pré-visualização instantânea do texto dos versículos cruzados, seletor dinâmico de tradução em 1 clique (sem recarregar a tela), filtro textual em tempo real (por livro ou conteúdo), botão de cópia formatada com citação e navegação com salto exegético (`onJump`).
-- **Validação:** **272 testes backend** (+5 novos testes unitários em `cross-references.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+- **Prompts & System Instructions (`prompts.ts` e `rag.service.ts`):** Quando a biblioteca não retorna trechos específicos ou não há tradição especificada pelo usuário, a IA apresenta com igual rigor acadêmico os argumentos da tradição Calvinista/Reformada (Calvino, Spurgeon, Owen, Dort) e da tradição Arminiana/Wesleyana (Armínio, Wesley, Remonstrantes, Clarke), destacando convergências essenciais (Sola Gratia, Sola Fide, Solus Christus) e distinções hermenêuticas legítimas, sem impor uma linha sobre a outra (respeitando escolhas explícitas quando indicadas).
+- **Fallback Estático (`fallback-responses.ts`):** Respostas de contingência offline estruturadas com análise teológica equilibrada entre as visões Reformada e Arminiana, consenso bíblico e grau de tensão ecumênica.
+- **Segurança e Qualidade:** MapLibre GL atualizado para `6.11.2` (eliminando vulnerabilidade GHSA-jrc7-96c5-q579), cookie de `/refresh` corrigido com flags dinâmicas de segurança, `addUserXP` instrumentado com logging visível.
+- **Validação:** **327 testes backend** (todos os 38 specs aprovados, incluindo 4 testes unitários cobrindo o equilíbrio teológico), **49 testes frontend**, `static-checks.mjs` com 0 achados, `verificar:acervo` coerente, build, typecheck e lint 100% limpos.
 
-20. **Gerador de Esboço Exegético & Homilético com Copilot IA & Acervo Clássico (2026-09-24):**
-    Construído o motor de geração de sermões e esboços expositivos superior ao Logos Preaching Guide:
+20. **Overhaul do Design System Global & Estética Acadêmica de Luxo (2026-09-24):**
+    Reformulação dos tokens e estética de interface para padrão premium de workstation acadêmica (superando Logos 10 e alinhado a interfaces modernas como Linear/Raycast):
 
-- **Backend (`HomileticsService` & `HomileticsController`):** Sintetiza a passagem bíblica selecionada, extrai os termos exegéticos originais (grego/hebraico com Strong e lemas via `LinguisticsService`), cruza conexões canônicas (TSK) e incorpora citações reais e precisas das 89 obras clássicas (Calvino, Matthew Henry, Lutero, Spurgeon). Gera automaticamente a tese central (_Big Idea_), contexto histórico-literário, 3 movimentos homiléticos (Exegese, Ilustração e Aplicação prática), apelo pastoral, oração final e documento formatado em Markdown. Endpoints `@Post('api/v1/homiletics/outline')` e `@Get('api/v1/homiletics/outline/:bookId/:chapter')`.
-- **Frontend (`SermonOutlineModal.tsx` & `useHomiletics.ts`):** Modal de alta resolução estilo _Canvas / Document_ com abas de navegação rápida (_Esboço Expositivo_, _Vozes Clássicas_, _Exegese dos Originais_, _Documento Markdown_), re-geração temática sob demanda, botão de cópia formatada em 1 clique e botão de impressão/PDF. Integrado diretamente na `ReaderToolbar.tsx` e na barra flutuante de seleção de versículos (`VerseSelectionToolbar.tsx`).
-- **Validação:** **274 testes backend** (+2 novos testes unitários em `homiletics.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+- **Tokens de Cor & Tipografia (`globals.css`):** Eliminação de overrides de templates antigos em favor de uma escala de ardósia obsidiana profunda (`#090C12`), azul safira lapis-lazúli (`#3B82F6`), ouro bizantino sacro (`#F59E0B`), esmeralda espiritual (`#10B981`) e tipografia editorial com `Literata`, `Outfit` e `Plus Jakarta Sans`.
+- **Glassmorphism 2.0 & Micro-Interações:** Novas classes de utilidade (`.glass-panel`, `.glass-card`, `.text-gradient-gold`, `.glow-indigo`), scrollbars auto-ocultantes ultra-finas e animações fluidas (`cubic-bezier(0.16, 1, 0.3, 1)`).
+- **TopBar & Command Palette (`TheoSphereTopBar.tsx` e `TheoSphereCommandPalette.tsx`):** Barra superior em vidro translúcido com desfoque de 24px, caixa de comando com realce luminoso no foco, novo atalho `⌘K`, cards de navegação com bordas sutis e status de velocidade.
+- **Bancada de Trabalho (`Workspace.tsx`):** Abas de cabeçalho refinadas com gradiente celeste, insígnia dourada de sincronização (_Link Set A_), indicador pulsante esmeralda e separadores de redimensionamento suaves.
+- **Validação:** 49/49 testes frontend passando (vitest), typecheck limpo com 0 erros (`tsc --noEmit`), `static-checks.mjs` limpo (0 achados).
 
-21. **Sinopse dos 4 Evangelhos por Perícopas — Accordance-Grade Gospel Parallels (2026-09-24):**
-    Implementada a ferramenta de sinopse dos quatro evangelistas superior ao Accordance Bible Software:
+21. **Ferramenta de Navegação 3D via Protocolo MCP (`theosphere_map_navigate`) (2026-09-24):**
+    Implementado o controle de navegação e exploração cartográfica 3D/2.5D do atlas bíblico via protocolo MCP (Model Context Protocol):
 
-- **Backend (`synopsis-catalog.ts`, `synopsis.service.ts` & `synopsis.controller.ts`):** Catálogo canônico exegético de 36 perícopas estruturadas da vida e ministério de Cristo, abrangendo as Tradições Quádrupla, Tríplice e Dupla (Fonte Q). Algoritmo de diff LCS palavra por palavra integrado com cálculo de matriz de concordância léxica em tempo real (ex: Mt ↔ Mc: 74%) e suporte nativo ao Grego do Novo Testamento (`TR`) e traduções modernas (`BLIVRE`, `NVA`, `KJV`, `WEB`). Endpoints `@Get('api/v1/synopsis/pericopes')`, `@Get('api/v1/synopsis/pericopes/:id')`, `@Get('api/v1/synopsis/sections')` e `@Get('api/v1/synopsis/find')`.
-- **Frontend (`GospelSynopsisModal.tsx` & `useGospelSynopsis.ts`):** Interface sinótica com 4 colunas paralelas (Mateus, Marcos, Lucas, João) com badges de cores canônicas, seletor de perícopa com busca instantânea e filtros por seção cronológica (Infância, Batismo, Galileia, Milagres, Parábolas, Paixão, Morte e Ressurreição), alternador de evangelho base de comparação (ex: Prioridade Marcaniana), pills com a matriz de similaridade léxica, toggle de realce de termos idênticos (Diff LCS) e botão de 1 clique "Copiar Tabela Sinótica (Markdown)". Integrado diretamente na `ReaderToolbar.tsx` via botão `[📜 Evangelhos Sinóticos]`.
-- **Validação:** **286 testes backend** (+12 novos testes unitários cobrindo catálogo, busca de perícopas por versículo, diffs e matriz de concordância em `synopsis.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+- **Ferramenta MCP (`theosphere_map_navigate`):** Registrada no catálogo de ferramentas do MCP com permissão governada `'map:navigate'` concedida por padrão aos agentes orquestradores e protocolos.
+- **Ações Disponíveis:**
+  - `listRoutes`: enumera todas as 8 rotas bíblicas/teológicas mapeadas (Abraão, Êxodo, Jesus na Galileia, Viagens de Paulo, Terra Prometida, Exílios Assírio e Babilônico) com contagem de marcos e coordenadas iniciais.
+  - `selectRoute` e `getRoute`: carrega e ativa a rota selecionada, calculando o centro inicial da câmera e retornando waypoints com referências bíblicas, dados arqueológicos e modelos 3D.
+  - `flyTo`: posiciona a câmera 3D de forma fluida a partir de coordenadas geográficas `[lat, lng]` ou por resolução léxica de marcos bíblicos canônicos (Jerusalém, Cafarnaum, Monte Sinai, Nazaré, Belém, Ur, Roma, Éfeso, Babilônia, etc.), com controle de `zoom`, `pitch`, `bearing` e `mode` (`satellite`, `vector`, `cesium3d`).
+  - `setEra`: sintoniza o atlas em períodos históricos (-2000 a +100 d.C.) e filtra as rotas correspondentes à época.
+  - `queryLocation`: consulta metadados geográficos, teológicos e arqueológicos de marcos bíblicos.
+- **Validação:** **335 testes backend** (+8 novos testes cobrindo listagem, navegação, rota e eras), **49 testes frontend**, `static-checks.mjs` com 0 achados, typecheck e build 100% limpos.
 
-22. **Linha do Tempo Histórica Bíblica Interativa — Accordance-Grade Biblical Timeline (2026-09-24):**
-    Implementada a ferramenta de cronologia histórica paralela superior ao Accordance Bible Software:
-
-- **Backend (`timeline-data.ts`, `timeline.service.ts` & `timeline.controller.ts`):** Catálogo canônico de 9 eras cronológicas bíblicas (~2100 a.C. até 100 d.C.) com múltiplos tracks paralelos (Reis de Judá com avaliação espiritual Fiel/Infiel, Reis de Israel, Profetas pré/exílicos/pós-exílicos, Impérios Mundiais [Assíria, Babilônia, Pérsia, Grécia, Roma] e correlações arqueológicas [Prisma de Senaqueribe, Cilindro de Ciro, Estela de Tel Dã, Inscrição de Pilatos, Arco de Tito]). Endpoints `@Get('api/v1/timeline/eras')`, `@Get('api/v1/timeline/events')`, `@Get('api/v1/timeline/for-passage')` e `@Get('api/v1/timeline/events/:id')`.
-- **Frontend (`BiblicalTimelineModal.tsx` & `useBiblicalTimeline.ts`):** Interface widescreen com régua de navegação por eras, filtros temáticos por trilhas (Judá, Israel, Profetas, Impérios), busca em tempo real, painel de contexto histórico-teológico e conexões arqueológicas. Mapeamento bidirecional da passagem ativa (exibe os eventos que ocorrem no capítulo bíblico que o usuário está lendo no momento) e botão para abrir a passagem diretamente no leitor. Integrado à `ReaderToolbar.tsx` via botão `[⏳ Linha do Tempo]`.
-- **Validação:** **297 testes backend** (+11 novos testes unitários em `timeline.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
-
-23. **Construtor Visual de Sintaxe nos Originais — Accordance-Grade Construct Search (2026-09-24):**
-    Implementada a ferramenta de busca morfológica e sintática encadeada por blocos equivalente ao prestigiado _Construct Search_ do Accordance Bible Software:
-
-- **Backend (`construct-search.dto.ts`, `construct-presets.ts`, `construct-search.service.ts` & `construct-search.controller.ts`):** Motor de parsing e cruzamento de sequências morfológicas sobre a tabela `InterlinearWord` (TAGNT/TAHOT STEP Bible / Robinson-Pierpont). Validação de classes gramaticais (Substantivos, Verbos, Artigos, Preposições, Conjunções, Adjetivos, Pronomes), casos gramaticais (Nominativo, Genitivo, Dativo, Acusativo, Vocativo), tempos (Presente, Aoristo, Perfeito, etc.), modos (Indicativo, Subjuntivo, Imperativo, Infinitivo, Particípio), vozes, números e gêneros, com restrição de distância espacial configurável (_Adjacente [p+1]_, _Até 3 palavras_, _Mesmo versículo_). Integração com presets exegéticos clássicos (Regra de Granville Sharp para deidade de Cristo em Tt 2:13 e 2 Pe 1:1, Genitivo Absoluto, Ἵνα + Subjuntivo, Infinitivo Articular, Particípio Aoristo circunstancial). Endpoints `@Get('api/v1/construct-search/presets')` e `@Post('api/v1/construct-search/query')`.
-- **Frontend (`ConstructSearchModal.tsx` & `useConstructSearch.ts`):** Interface Workbench com blocos gramaticais dinâmicos encadeados visualmente por setas de fluxo, seletores reativos para cada dimensão morfológica, biblioteca de presets em 1 clique, alternador de distância sintática, exibição de resultados com texto em português (BLIVRE) e palavras originais destacadas em caixas com transliteração, glosa, código morfológico e Strong ID, além de navegação imediata para o leitor. Integrado à `ReaderToolbar.tsx` via botão `[🧩 Sintaxe]`.
-- **Validação:** **304 testes backend** (+7 novos testes unitários em `construct-search.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
-
-24. **Diagramador Estrutural de Frases & Cláusulas Sintáticas — Accordance-Grade Sentence Diagramming (2026-09-24):**
-    Implementada a ferramenta de diagramação de frases e desconstrução hierárquica de orações bíblicas nos textos originais (_Sentence Diagramming & Clause Breakdown_):
-
-- **Backend (`syntax-diagram.dto.ts`, `syntax-canonical-diagrams.ts`, `syntax-diagram.service.ts` & `syntax-diagram.controller.ts`):** Motor de desconstrução estrutural e parsing morfo-sintático baseado em tags do corpus interlinear (`InterlinearWord`). Identificação de orações principais, subordinadas finais/propósito (ἵνα, ὅπως), causais (ὅτι, διότι, καθώς), condicionais (εἰ, ἐάν), consecutivas/resultado (ὥστε), adjetivas relativas, frases participiais e infinitivais. Acervo exegético canônico com diagramas aprofundados das passagens mais célebres (Efésios 1:3-6 - a doxologia trinitária; Romanos 8:28-30 - a cadeia dourada da redenção; Colossenses 1:15-18 - o hino cristológico cósmico; João 1:1-3 - o prólogo do Logos; Gênesis 1:1-3 - a criação cósmica no Hebraico). Endpoints `@Get('syntax-diagram/predefined')`, `@Get('syntax-diagram/canonical/:id')` e `@Get('syntax-diagram/verse/:bookId/:chapter/:verse')` com cache e resiliência heurística.
-- **Frontend (`SyntaxDiagramModal.tsx` & `useSyntaxDiagram.ts`):** Interface hierárquica em árvore visual com linhas conectoras de subordinação sintática, pílulas temáticas por tipo de oração (Principal, Propósito, Causal, Condicional, Participial, Infinitival), destaque de sujeito nominativo e verbo regente conjugado, texto original grego/hebraico em tipografia serifada de alta nitidez, tradução bíblica em português (BLIVRE), notas teológicas/exegéticas contextuais, seletor de passagens canônicas célebres, formulário de navegação de versículo arbitrário e botão de 1 clique "Copiar Markdown". Integrado na `ReaderToolbar.tsx` via botão `[🌲 Diagrama]`.
-- **Validação:** **312 testes backend** (+8 novos testes unitários em `syntax-diagram.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
-
-25. **Crítica Textual & Manuscritos do Mar Morto (Qumran DSS) — Accordance-Grade Textual Criticism (2026-09-24):**
-    Implementado o motor acadêmico de crítica textual comparativa abrangendo os Grandes Códices, os Manuscritos do Mar Morto e o Textus Receptus (_Dead Sea Scrolls & Textual Criticism_):
-
-- **Backend (`textual-criticism.dto.ts`, `textual-criticism-data.ts`, `textual-criticism.service.ts` & `textual-criticism.controller.ts`):** Catálogo analítico das variantes canônicas mais célebres do AT e NT com leituras contrastantes dos Rolos do Mar Morto (1QIsaᵃ, 4QSamᵃ, 4QDeutʲ, Nahal Hever 5/6HevPs), Códice de Leningrado (B19A), Septuaginta (LXX), Códice Sinaítico (א), Códice Vaticano (B), Papiros primitivos (𝔓⁴⁶, 𝔓⁶⁶, 𝔓⁷⁵) e Textus Receptus (1550). Análise morfológica de causas scribais (homoioteleuton, haplografia, atenuação teológica, harmonização deliberada), grau de certeza UBS/NA28 (Ratings A, B, C, D) e impacto teológico. Endpoints `@Get('textual-criticism/variants')`, `@Get('textual-criticism/variants/:id')` e `@Get('textual-criticism/apparatus/:bookId/:chapter/:verse')` com resolução em tempo real de testemunhas canônicas (`WLC`, `LXX`, `TR`, `BLIVRE`, `KJV`).
-- **Frontend (`TextualCriticismModal.tsx` & `useTextualCriticism.ts`):** Interface widescreen com visualizador split em duas colunas (lista de variantes com badges de rating e Qumran DSS; aparato crítico com cards das testemunhas, transcrição original em hebraico/grego serifado, tradução em português, status de adoção pela crítica moderna vs tradição da Reforma, contexto histórico-arqueológico e consenso acadêmico), filtros rápidos por testamento (AT vs NT), busca em tempo real e botão de 1 clique "Copiar Ficha Crítica (Markdown)". Integrado à `ReaderToolbar.tsx` via botão `[📜 Manuscritos]`.
-- **Validação:** **323 testes backend** (+11 novos testes unitários em `textual-criticism.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
-
-**Próximos passos (Plataforma):**
+**Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
-2. **Deploy de Produção:** Publicação do frontend na Vercel e backend no Render quando autorizado pelo usuário.
 
 ---
 

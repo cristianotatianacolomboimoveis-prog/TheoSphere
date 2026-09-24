@@ -685,4 +685,178 @@ describe('McpProtocolService', () => {
     );
     expect((response?.result as any).structuredContent.status).toBe('VERIFIED');
   });
+
+  describe('theosphere_map_navigate tool', () => {
+    it('advertises theosphere_map_navigate in tools/list', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 100,
+        method: 'tools/list',
+      });
+      const tools = (response?.result as any)?.tools;
+      expect(tools).toBeDefined();
+      const mapTool = tools.find(
+        (t: any) => t.name === 'theosphere_map_navigate',
+      );
+      expect(mapTool).toBeDefined();
+      expect(mapTool.description).toContain('3D/2.5D biblical map navigation');
+      expect(mapTool.inputSchema.properties.action.enum).toContain('flyTo');
+      expect(mapTool.inputSchema.properties.action.enum).toContain(
+        'selectRoute',
+      );
+    });
+
+    it('lists all theological routes with listRoutes action', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 101,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: { action: 'listRoutes' },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('listRoutes');
+      expect(result.count).toBeGreaterThanOrEqual(8);
+      expect(result.routes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'abraao', title: 'Jornada de Abraão' }),
+          expect.objectContaining({ id: 'exodo', title: 'Rota do Êxodo' }),
+          expect.objectContaining({ id: 'jesus_galileia' }),
+          expect.objectContaining({ id: 'paulo' }),
+        ]),
+      );
+    });
+
+    it('selects a theological route and computes camera focus with waypoints', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 102,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'selectRoute',
+            routeId: 'abraao',
+            mode: 'cesium3d',
+            zoom: 8,
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('selectRoute');
+      expect(result.routeId).toBe('abraao');
+      expect(result.camera.mode).toBe('cesium3d');
+      expect(result.camera.zoom).toBe(8);
+      expect(result.camera.center).toEqual([30.962, 46.1031]); // Ur dos Caldeus
+      expect(result.waypoints.length).toBeGreaterThanOrEqual(5);
+      expect(result.focusedWaypoint.title).toBe('Ur dos Caldeus');
+    });
+
+    it('rejects an invalid routeId gracefully', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 103,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: { action: 'selectRoute', routeId: 'rota_inexistente' },
+        },
+      });
+      expect(response?.error).toBeDefined();
+      expect(response?.error?.code).toBe(-32000);
+      expect(response?.error?.message).toContain('Rota teológica');
+    });
+
+    it('navigates camera with flyTo using coordinates', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 104,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'flyTo',
+            coordinates: [31.7767, 35.2345],
+            zoom: 14,
+            pitch: 50,
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('flyTo');
+      expect(result.camera.center).toEqual([31.7767, 35.2345]);
+      expect(result.camera.zoom).toBe(14);
+      expect(result.camera.pitch).toBe(50);
+    });
+
+    it('navigates camera with flyTo by resolving biblical landmark name', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 105,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'flyTo',
+            locationName: 'Jerusalém',
+            mode: 'satellite',
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('flyTo');
+      expect(result.camera.center).toEqual([31.7767, 35.2345]);
+      expect(result.camera.mode).toBe('satellite');
+      expect(result.locationDetails.verse).toBe('Salmos 122:6');
+    });
+
+    it('adjusts historical era and reports related routes with setEra', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 106,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: { action: 'setEra', era: 30 },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('setEra');
+      expect(result.era).toBe(30);
+      expect(result.label).toContain('Ministério Terreno de Jesus Cristo');
+      expect(result.relatedRoutes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'jesus_galileia' }),
+        ]),
+      );
+    });
+
+    it('queries a biblical location with queryLocation', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 107,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'queryLocation',
+            locationName: 'Monte Sinai',
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('queryLocation');
+      expect(result.found).toBe(true);
+      expect(result.location.coords).toEqual([28.539, 33.975]);
+      expect(result.location.verse).toBe('Êxodo 19:20');
+    });
+  });
 });

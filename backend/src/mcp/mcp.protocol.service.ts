@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { McpAuditService } from './mcp.audit.service';
 import { McpOrchestratorService } from './mcp.orchestrator.service';
 import {
@@ -11,6 +11,9 @@ import { TheologyEngineService } from '../engines/theo/theo-engine.service';
 import { McpSecurityService } from './mcp.security.service';
 import { RagService } from '../rag/rag.service';
 import { McpProtocolTaskService } from './mcp.protocol-task.service';
+import { THEOLOGICAL_ROUTES } from '../geospatial/geospatial-routes.registry';
+import { GeospatialService } from '../geospatial/geospatial.service';
+import { CANONICAL_BIBLICAL_LOCATIONS } from './mcp.map.constants';
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -51,6 +54,7 @@ export class McpProtocolService {
     private readonly security: McpSecurityService,
     private readonly rag: RagService,
     private readonly protocolTasks: McpProtocolTaskService,
+    @Optional() private readonly geospatial?: GeospatialService,
   ) {}
 
   tools() {
@@ -309,6 +313,71 @@ export class McpProtocolService {
             supersedesId: { type: 'string' },
           },
           required: ['category', 'memoryKey', 'content', 'tags'],
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'theosphere_map_navigate',
+        description:
+          'Control 3D/2.5D biblical map navigation, routes, camera viewpoints, temporal eras, and coordinates via MCP.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: [
+                'flyTo',
+                'selectRoute',
+                'listRoutes',
+                'getRoute',
+                'setEra',
+                'queryLocation',
+              ],
+              description: 'Navigation action to perform on the 3D map.',
+            },
+            routeId: {
+              type: 'string',
+              description:
+                'Theological route identifier (e.g. abraao, exodo, jesus_galileia, paulo, paulo_roma, terra_prometida, exilio_assirio, exilio_babilonico).',
+            },
+            locationName: {
+              type: 'string',
+              description:
+                'Biblical or geographical place name to fly to or inspect (e.g. Jerusalém, Cafarnaum, Monte Sinai, Ur).',
+            },
+            coordinates: {
+              type: 'array',
+              items: { type: 'number' },
+              minItems: 2,
+              maxItems: 2,
+              description: 'Target coordinates as [latitude, longitude].',
+            },
+            zoom: {
+              type: 'number',
+              description: 'Target camera zoom level (e.g. 1 to 20).',
+            },
+            pitch: {
+              type: 'number',
+              description:
+                'Target camera pitch angle in degrees (0 to 60 for 3D tilt).',
+            },
+            bearing: {
+              type: 'number',
+              description:
+                'Target camera bearing / rotation angle in degrees (0 to 360).',
+            },
+            era: {
+              type: 'number',
+              description:
+                'Biblical historical era year (negative for BC, positive for AD, e.g. -1446, 30).',
+            },
+            mode: {
+              type: 'string',
+              enum: ['satellite', 'vector', 'cesium3d'],
+              description: 'Map visualization style or engine mode.',
+            },
+          },
+          required: ['action'],
           additionalProperties: false,
         },
       },
@@ -603,6 +672,7 @@ export class McpProtocolService {
       theosphere_answer: 'research:read',
       theosphere_memory_search: 'memory:read',
       theosphere_memory_append: 'memory:write',
+      theosphere_map_navigate: 'map:navigate',
     };
     const permission = requiredPermission[name];
     if (!permission) return this.error(id, -32602, `Unknown MCP tool: ${name}`);
@@ -796,6 +866,9 @@ export class McpProtocolService {
               ? args.supersedesId
               : undefined,
         });
+        break;
+      case 'theosphere_map_navigate':
+        result = await this.handleMapNavigate(args);
         break;
       default:
         return this.error(id, -32602, `Unknown MCP tool: ${name}`);
@@ -1025,6 +1098,317 @@ export class McpProtocolService {
             ),
           }),
     };
+  }
+
+  private async handleMapNavigate(
+    args: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const action = this.enumValue(
+      args.action,
+      [
+        'flyTo',
+        'selectRoute',
+        'listRoutes',
+        'getRoute',
+        'setEra',
+        'queryLocation',
+      ],
+      'action',
+    );
+
+    const mode =
+      typeof args.mode === 'string' &&
+      ['satellite', 'vector', 'cesium3d'].includes(args.mode)
+        ? (args.mode as 'satellite' | 'vector' | 'cesium3d')
+        : 'satellite';
+
+    switch (action) {
+      case 'listRoutes': {
+        const routes = Object.values(THEOLOGICAL_ROUTES).map((r) => ({
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          waypointCount: r.waypoints.length,
+          initialCoords: r.waypoints[0]?.coords ?? [31.7767, 35.2345],
+        }));
+        return {
+          action: 'listRoutes',
+          count: routes.length,
+          routes,
+          message: `${routes.length} rotas bíblicas/teológicas disponíveis para navegação 3D.`,
+        };
+      }
+
+      case 'selectRoute':
+      case 'getRoute': {
+        const routeId = this.string(args.routeId, 'routeId');
+        const route = THEOLOGICAL_ROUTES[routeId];
+        if (!route) {
+          throw new BadRequestException(
+            `Rota teológica '${routeId}' não encontrada. Rotas disponíveis: ${Object.keys(THEOLOGICAL_ROUTES).join(', ')}`,
+          );
+        }
+        const firstWaypoint = route.waypoints[0];
+        const center = firstWaypoint
+          ? firstWaypoint.coords
+          : [31.7767, 35.2345];
+        const zoom = typeof args.zoom === 'number' ? args.zoom : 7;
+        const pitch = typeof args.pitch === 'number' ? args.pitch : 40;
+        const bearing = typeof args.bearing === 'number' ? args.bearing : 0;
+
+        return {
+          action,
+          routeId: route.id,
+          title: route.title,
+          description: route.description,
+          waypointCount: route.waypoints.length,
+          camera: {
+            center,
+            zoom,
+            pitch,
+            bearing,
+            mode,
+          },
+          focusedWaypoint: firstWaypoint ?? null,
+          waypoints: route.waypoints.map((w) => ({
+            step: w.step,
+            title: w.title,
+            coords: w.coords,
+            verse: w.verse,
+            quote: w.quote,
+            geo: w.geo,
+            arch: w.arch,
+            modelName: w.modelName,
+          })),
+          message: `Rota '${route.title}' ativada. Câmera focalizada no início em [${center[0]}, ${center[1]}].`,
+        };
+      }
+
+      case 'flyTo': {
+        let targetCoords: [number, number];
+        let matchedLocation: {
+          name: string;
+          desc?: string;
+          verse?: string;
+          geo?: string;
+          arch?: string;
+        };
+
+        if (Array.isArray(args.coordinates) && args.coordinates.length === 2) {
+          const lat = Number(args.coordinates[0]);
+          const lng = Number(args.coordinates[1]);
+          if (
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lng) ||
+            Math.abs(lat) > 90 ||
+            Math.abs(lng) > 180
+          ) {
+            throw new BadRequestException(
+              'Coordenadas inválidas. Use [latitude, longitude] válidas.',
+            );
+          }
+          targetCoords = [lat, lng];
+          matchedLocation = {
+            name:
+              typeof args.locationName === 'string' && args.locationName.trim()
+                ? args.locationName.trim()
+                : 'Coordenadas Personalizadas',
+          };
+        } else if (
+          typeof args.locationName === 'string' &&
+          args.locationName.trim()
+        ) {
+          const loc = this.resolveLocation(args.locationName.trim());
+          if (loc) {
+            targetCoords = loc.coords;
+            matchedLocation = loc;
+          } else {
+            throw new BadRequestException(
+              `Local bíblico '${args.locationName}' não encontrado no atlas. Forneça coordenadas diretas [lat, lng].`,
+            );
+          }
+        } else {
+          throw new BadRequestException(
+            "Ação 'flyTo' requer 'coordinates' [lat, lng] ou 'locationName' válido.",
+          );
+        }
+
+        const zoom = typeof args.zoom === 'number' ? args.zoom : 12;
+        const pitch = typeof args.pitch === 'number' ? args.pitch : 45;
+        const bearing = typeof args.bearing === 'number' ? args.bearing : 0;
+
+        return {
+          action: 'flyTo',
+          targetName: matchedLocation.name,
+          camera: {
+            center: targetCoords,
+            zoom,
+            pitch,
+            bearing,
+            mode,
+          },
+          locationDetails: matchedLocation,
+          message: `Navegação para '${matchedLocation.name}' [${targetCoords[0]}, ${targetCoords[1]}] concluída.`,
+        };
+      }
+
+      case 'setEra': {
+        if (typeof args.era !== 'number' || !Number.isFinite(args.era)) {
+          throw new BadRequestException(
+            "Ação 'setEra' requer o parâmetro numérico 'era' (ex: -1446, 30).",
+          );
+        }
+        const era = args.era;
+        const eraLabel = this.getEraDescription(era);
+        const relatedRoutes = Object.values(THEOLOGICAL_ROUTES)
+          .filter((r) => this.isRouteRelatedToEra(r.id, era))
+          .map((r) => ({ id: r.id, title: r.title }));
+
+        return {
+          action: 'setEra',
+          era,
+          label: eraLabel,
+          relatedRoutes,
+          message: `Linha do tempo ajustada para o ano ${era} (${eraLabel}).`,
+        };
+      }
+
+      case 'queryLocation': {
+        const query =
+          typeof args.locationName === 'string' ? args.locationName.trim() : '';
+        if (!query) {
+          throw new BadRequestException(
+            "Ação 'queryLocation' requer 'locationName'.",
+          );
+        }
+        const loc = this.resolveLocation(query);
+        if (!loc) {
+          return {
+            action: 'queryLocation',
+            found: false,
+            query,
+            message: `Nenhum local bíblico encontrado para '${query}'.`,
+          };
+        }
+        return {
+          action: 'queryLocation',
+          found: true,
+          query,
+          location: loc,
+          message: `Local encontrado: ${loc.name}.`,
+        };
+      }
+
+      default:
+        throw new BadRequestException(
+          `Ação de navegação desconhecida: ${action}`,
+        );
+    }
+  }
+
+  private resolveLocation(name: string): {
+    name: string;
+    coords: [number, number];
+    desc?: string;
+    verse?: string;
+    geo?: string;
+    arch?: string;
+  } | null {
+    const norm = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+    // 1. Check canonical landmarks
+    for (const [key, value] of Object.entries(CANONICAL_BIBLICAL_LOCATIONS)) {
+      const normKey = key
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+      if (
+        normKey === norm ||
+        normKey.includes(norm) ||
+        norm.includes(normKey)
+      ) {
+        return {
+          name: key.charAt(0).toUpperCase() + key.slice(1),
+          coords: value.coords,
+          desc: value.desc,
+          verse: value.verse,
+        };
+      }
+    }
+
+    // 2. Check waypoints in all theological routes
+    for (const route of Object.values(THEOLOGICAL_ROUTES)) {
+      for (const wp of route.waypoints) {
+        const normTitle = wp.title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim();
+        if (
+          normTitle === norm ||
+          normTitle.includes(norm) ||
+          norm.includes(normTitle)
+        ) {
+          return {
+            name: wp.title,
+            coords: wp.coords,
+            desc: wp.bible,
+            verse: wp.verse,
+            geo: wp.geo,
+            arch: wp.arch,
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private getEraDescription(era: number): string {
+    if (era < -2000) return 'Era Patriarcal Primitiva (Origens)';
+    if (era >= -2000 && era < -1400)
+      return 'Era dos Patriarcas (Abraão, Isaque e Jacó)';
+    if (era >= -1400 && era < -1050)
+      return 'Êxodo, Deserto e Conquista de Canaã (Moisés e Josué)';
+    if (era >= -1050 && era < -930)
+      return 'Monarquia Unificada de Israel (Saul, Davi, Salomão)';
+    if (era >= -930 && era < -586)
+      return 'Reino Dividido (Israel e Judá) e Exílio Assírio';
+    if (era >= -586 && era < -400)
+      return 'Exílio Babilônico e Retorno com Esdras/Neemias';
+    if (era >= -400 && era < 0)
+      return 'Período Intertestamentário (Macabeus e Domínio Romano)';
+    if (era >= 0 && era <= 33) return 'Ministério Terreno de Jesus Cristo';
+    if (era > 33 && era <= 100)
+      return 'Era Apostólica e Expansão Missionária da Igreja';
+    return 'Era Pós-Apostólica e História da Igreja';
+  }
+
+  private isRouteRelatedToEra(routeId: string, era: number): boolean {
+    switch (routeId) {
+      case 'abraao':
+        return era < -1500;
+      case 'exodo':
+        return era >= -1500 && era < -1200;
+      case 'terra_prometida':
+        return era >= -1400 && era < -500;
+      case 'exilio_assirio':
+        return era >= -800 && era < -650;
+      case 'exilio_babilonico':
+        return era >= -650 && era < -500;
+      case 'jesus_galileia':
+        return era >= 0 && era <= 35;
+      case 'paulo':
+      case 'paulo_roma':
+        return era >= 30 && era <= 70;
+      default:
+        return false;
+    }
   }
 
   private string(value: unknown, name: string): string {

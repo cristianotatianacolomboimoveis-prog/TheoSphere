@@ -13,6 +13,7 @@ const DEFAULT_PERMISSIONS: Record<string, readonly McpPermission[]> = {
     'memory:write',
     'memory:read',
     'research:read',
+    'map:navigate',
   ],
   'mcp-protocol': [
     'task:create',
@@ -23,6 +24,7 @@ const DEFAULT_PERMISSIONS: Record<string, readonly McpPermission[]> = {
     'memory:write',
     'memory:read',
     'research:read',
+    'map:navigate',
   ],
 };
 

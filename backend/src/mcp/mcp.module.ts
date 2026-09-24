@@ -13,9 +13,10 @@ import { McpController } from './mcp.controller';
 import { McpExecutionController } from './mcp.execution.controller';
 import { McpAnswerController } from './mcp.answer.controller';
 import { RagModule } from '../rag/rag.module';
+import { GeospatialModule } from '../geospatial/geospatial.module';
 
 @Module({
-  imports: [RagModule],
+  imports: [RagModule, GeospatialModule],
   controllers: [McpController, McpExecutionController, McpAnswerController],
   providers: [
     McpAuditService,
