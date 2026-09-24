@@ -33,6 +33,15 @@ class ListQuery {
   @IsString()
   @Matches(/^\d+$/)
   limit?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(16)
+  translation?: string;
+
+  @IsOptional()
+  @IsString()
+  includeText?: string;
 }
 
 class CountsBody {
@@ -54,20 +63,28 @@ export class CrossReferencesController {
   constructor(private readonly service: CrossReferencesService) {}
 
   /**
-   * GET /api/v1/cross-refs?ref=John+3:16&limit=50
-   * → { success, data: { source, count, refs: [{ target, rank, votes }] } }
+   * GET /api/v1/cross-refs?ref=John+3:16&limit=50&translation=BLIVRE
+   * → { success, data: { source, count, translation, refs: [{ target, rank, votes, text, bookNamePt }] } }
    */
   @Get()
   // 120 list-calls/min/IP: more than enough for click-driven UX.
   @Throttle({ default: { ttl: 60_000, limit: 120 } })
   async list(@Query() query: ListQuery) {
     const limit = query.limit ? parseInt(query.limit, 10) : 50;
-    const refs = await this.service.list(query.ref.trim(), limit);
+    const translation = query.translation || 'BLIVRE';
+    const includeText = query.includeText !== 'false';
+    const refs = await this.service.list(
+      query.ref.trim(),
+      limit,
+      translation,
+      includeText,
+    );
     return {
       success: true,
       data: {
         source: query.ref.trim(),
         count: refs.length,
+        translation: translation.toUpperCase().trim(),
         refs,
       },
     };

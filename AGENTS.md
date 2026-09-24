@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**262 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**272 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -82,9 +82,18 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Barra Flutuante (`VerseSelectionToolbar.tsx`) & Modal de Anotações (`VerseNoteModal.tsx`):** Exibição instantânea ao selecionar um ou mais versículos, com paleta de 1 clique, atalho para abrir/editar notas de sermão, cópia formatada com referências e botão para sinopse textual.
 - **Validação:** **267 testes backend**, **49 testes frontend**, `static-checks.mjs` com 0 achados, lint e typecheck 100% aprovados.
 
+19. **TSK Popover Instantâneo com Texto Bíblico Inline & Seletor de Tradução (2026-09-24):**
+    Construído o sistema de referências cruzadas canônicas do _Treasury of Scripture Knowledge_ (TSK) superior ao modelo do Logos:
+
+- **Backend (`CrossReferencesService` & `CrossReferencesController`):** Enriquecimento automático das referências conectadas com o texto bíblico inline no idioma/versão solicitada (`BLIVRE`, `NVA`, `KJV`, `WEB`). Suporte a normalização bidirecional de nomes de livros (PT-BR e EN) via `normalizeRefToCanonicalEn` e `BOOK_ID_TO_NAME_EN` em `book-map.ts`. Agrupamento de contagens em lote (`countsByRef`) e endpoint `@Get('api/v1/cross-refs')` enriquecido.
+- **Frontend (`CrossRefsPopover.tsx` & `useCrossRefs.ts`):** Popover interativo com pré-visualização instantânea do texto dos versículos cruzados, seletor dinâmico de tradução em 1 clique (sem recarregar a tela), filtro textual em tempo real (por livro ou conteúdo), botão de cópia formatada com citação e navegação com salto exegético (`onJump`).
+- **Validação:** **272 testes backend** (+5 novos testes unitários em `cross-references.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
 **Próximos passos:**
 
-1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Passo 4 — Gerador de Esboço Expositivo / Homilético:** Integrar Copilot IA ancorado nos originais e acervo clássico das 89 obras para geração de esboços de pregação em 5 partes.
+2. **Passo 5 — Navegação Histórico-Geográfica no Atlas Bíblico 3D:** Plotar e sobrevoar topônimos bíblicos do versículo no globo 3D.
+3. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

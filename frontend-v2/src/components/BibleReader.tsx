@@ -596,7 +596,13 @@ export default function BibleReader({
         <CrossRefsPopover
           sourceRef={crossRefAnchor.sourceRef}
           position={{ x: crossRefAnchor.x, y: crossRefAnchor.y }}
-          loader={() => listCrossRefs(crossRefAnchor.sourceRef)}
+          loader={(trans) =>
+            listCrossRefs(
+              crossRefAnchor.sourceRef,
+              trans || primaryTranslation || "BLIVRE",
+            )
+          }
+          initialTranslation={primaryTranslation || "BLIVRE"}
           onClose={() => setCrossRefAnchor(null)}
           onJump={({ book, chapter, verse }) => {
             const targetBook = BIBLE_BOOKS.find(

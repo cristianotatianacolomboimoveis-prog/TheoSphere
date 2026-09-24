@@ -23,6 +23,8 @@ export interface CrossRef {
   target: string;
   rank: number | null;
   votes: number | null;
+  text?: string;
+  bookNamePt?: string;
 }
 
 interface CountsResponse {
@@ -32,7 +34,12 @@ interface CountsResponse {
 
 interface ListResponse {
   success: boolean;
-  data: { source: string; count: number; refs: CrossRef[] };
+  data: {
+    source: string;
+    count: number;
+    translation?: string;
+    refs: CrossRef[];
+  };
 }
 
 export function useCrossRefs() {
@@ -67,28 +74,35 @@ export function useCrossRefs() {
   }, []);
 
   /**
-   * Resolve a lista de cross-refs para um ref específico. Retorna o array
-   * vazio em erro (cache miss + falha de rede) — UI mostra estado vazio.
+   * Resolve a lista de cross-refs para um ref específico, com texto inline na tradução solicitada.
+   * Retorna o array vazio em erro (cache miss + falha de rede) — UI mostra estado vazio.
    */
-  const list = useCallback(async (ref: string): Promise<CrossRef[]> => {
-    const cached = listCacheRef.current.get(ref);
-    if (cached) return cached;
-    try {
-      const res = await api.get<ListResponse>(
-        `cross-refs?ref=${encodeURIComponent(ref)}&limit=50`,
-        { timeoutMs: 8_000, withAuth: false },
-      );
-      if (res.success) {
-        listCacheRef.current.set(ref, res.data.refs);
-        return res.data.refs;
+  const list = useCallback(
+    async (ref: string, translation = "BLIVRE"): Promise<CrossRef[]> => {
+      const cacheKey = `${ref}::${translation.toUpperCase().trim()}`;
+      const cached = listCacheRef.current.get(cacheKey);
+      if (cached) return cached;
+      try {
+        const res = await api.get<ListResponse>(
+          `cross-refs?ref=${encodeURIComponent(ref)}&limit=50&translation=${encodeURIComponent(translation)}&includeText=true`,
+          { timeoutMs: 8_000, withAuth: false },
+        );
+        if (res.success) {
+          listCacheRef.current.set(cacheKey, res.data.refs);
+          return res.data.refs;
+        }
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status >= 500) {
+          logger.warn(
+            `[useCrossRefs] list("${ref}", "${translation}") falhou:`,
+            err,
+          );
+        }
       }
-    } catch (err) {
-      if (!(err instanceof ApiError) || err.status >= 500) {
-        logger.warn(`[useCrossRefs] list("${ref}") falhou:`, err);
-      }
-    }
-    return [];
-  }, []);
+      return [];
+    },
+    [],
+  );
 
   return { counts, loadCounts, list };
 }

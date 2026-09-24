@@ -1,10 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import {
+  BOOK_NAME_TO_ID,
+  BOOK_ID_TO_NAME_PT,
+  normalizeRefToCanonicalEn,
+} from '../common/book-map';
 
 export interface CrossRef {
   target: string;
   rank: number | null;
   votes: number | null;
+  text?: string;
+  bookNamePt?: string;
 }
 
 export interface CrossRefBatchResult {
@@ -17,8 +24,8 @@ export interface CrossRefBatchResult {
  *
  * Two hot paths:
  *   • `list(sourceRef)` — when the user clicks the "🔗 N" badge on a verse,
- *     we return the up to N targets sorted by (rank ASC NULLS LAST, votes DESC).
- *     This is the canonical Logos/OliveTree behaviour.
+ *     we return the up to N targets sorted by (rank ASC NULLS LAST, votes DESC),
+ *     enriched with inline verse text in the requested translation.
  *
  *   • `countsByRef(refs)` — when the BibleReader renders a chapter, it asks
  *     in ONE roundtrip how many cross-refs exist for each verse on screen,
@@ -35,25 +42,122 @@ export class CrossReferencesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Lists cross-refs for a single source reference, sorted best-first.
+   * Lists cross-refs for a single source reference, sorted best-first,
+   * enriched with inline scripture text.
    *
-   * @param sourceRef  canonical English short ref (e.g. "John 3:16")
-   * @param limit      max results (default 50, hard cap 200)
+   * @param sourceRef    canonical English or PT ref (e.g. "John 3:16" or "João 3:16")
+   * @param limit        max results (default 50, hard cap 200)
+   * @param translation  Bible translation for inline text (default 'BLIVRE')
+   * @param includeText  whether to batch-fetch verse texts (default true)
    */
-  async list(sourceRef: string, limit = 50): Promise<CrossRef[]> {
+  async list(
+    sourceRef: string,
+    limit = 50,
+    translation = 'BLIVRE',
+    includeText = true,
+  ): Promise<CrossRef[]> {
     const safeLimit = Math.min(Math.max(1, limit), 200);
+    const normalizedSource = normalizeRefToCanonicalEn(sourceRef);
+
     const rows = await this.prisma.crossReference.findMany({
-      where: { sourceRef },
-      // rank ASC, NULLs last (Prisma honours nulls: 'last')
+      where: {
+        OR: [{ sourceRef }, { sourceRef: normalizedSource }],
+      },
       orderBy: [{ rank: { sort: 'asc', nulls: 'last' } }, { votes: 'desc' }],
       take: safeLimit,
       select: { targetRef: true, rank: true, votes: true },
     });
-    return rows.map((r) => ({
-      target: r.targetRef,
-      rank: r.rank,
-      votes: r.votes,
-    }));
+
+    if (rows.length === 0) return [];
+
+    // Deduplica alvos preservando a melhor ordem
+    const seen = new Set<string>();
+    const uniqueRows: typeof rows = [];
+    for (const r of rows) {
+      if (!seen.has(r.targetRef)) {
+        seen.add(r.targetRef);
+        uniqueRows.push(r);
+      }
+    }
+
+    const parsedTargets = uniqueRows.map((r) => {
+      const m = r.targetRef.match(
+        /^(\d?\s*[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]*?)\s+(\d+):(\d+)$/,
+      );
+      if (!m) {
+        return { ...r, parsed: null, bookId: undefined };
+      }
+      const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ').trim();
+      const bookId = BOOK_NAME_TO_ID[bookKey];
+      return {
+        ...r,
+        parsed: {
+          bookName: m[1].trim(),
+          chapter: parseInt(m[2], 10),
+          verse: parseInt(m[3], 10),
+        },
+        bookId,
+      };
+    });
+
+    const textMap = new Map<string, string>();
+    if (includeText) {
+      const activeTranslation = (translation || 'BLIVRE').toUpperCase().trim();
+      const verseConditions = parsedTargets
+        .filter(
+          (
+            t,
+          ): t is typeof t & {
+            bookId: number;
+            parsed: { chapter: number; verse: number };
+          } => typeof t.bookId === 'number' && t.parsed !== null,
+        )
+        .map((t) => ({
+          bookId: t.bookId,
+          chapter: t.parsed.chapter,
+          verse: t.parsed.verse,
+        }));
+
+      if (verseConditions.length > 0) {
+        try {
+          const verses = await this.prisma.bibleVerse.findMany({
+            where: {
+              translation: activeTranslation,
+              OR: verseConditions,
+            },
+            select: {
+              bookId: true,
+              chapter: true,
+              verse: true,
+              text: true,
+            },
+          });
+          for (const v of verses) {
+            textMap.set(`${v.bookId}:${v.chapter}:${v.verse}`, v.text);
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `Falha ao buscar textos de versículos para TSK: ${msg}`,
+          );
+        }
+      }
+    }
+
+    return parsedTargets.map((p) => {
+      const textKey =
+        p.bookId && p.parsed
+          ? `${p.bookId}:${p.parsed.chapter}:${p.parsed.verse}`
+          : null;
+      const bookNamePt = p.bookId ? BOOK_ID_TO_NAME_PT[p.bookId] : undefined;
+      return {
+        target: p.targetRef,
+        rank: p.rank,
+        votes: p.votes,
+        text: textKey ? textMap.get(textKey) : undefined,
+        bookNamePt,
+      };
+    });
   }
 
   /**
@@ -64,16 +168,18 @@ export class CrossReferencesService {
    * Returns a plain map; refs with zero cross-refs are simply absent.
    */
   async countsByRef(sourceRefs: string[]): Promise<CrossRefBatchResult> {
-    const unique = Array.from(
+    const rawUnique = Array.from(
       new Set(sourceRefs.filter((r) => typeof r === 'string' && r.length > 0)),
     );
-    if (unique.length === 0) return { counts: {} };
+    if (rawUnique.length === 0) return { counts: {} };
 
-    // Prisma's groupBy is the cleanest path here — single roundtrip,
-    // typed result, no raw SQL.
+    const queryRefs = Array.from(
+      new Set(rawUnique.flatMap((r) => [r, normalizeRefToCanonicalEn(r)])),
+    );
+
     const grouped = await this.prisma.crossReference.groupBy({
       by: ['sourceRef'],
-      where: { sourceRef: { in: unique } },
+      where: { sourceRef: { in: queryRefs } },
       _count: { _all: true },
     });
 
@@ -81,6 +187,17 @@ export class CrossReferencesService {
     for (const row of grouped) {
       counts[row.sourceRef] = row._count._all;
     }
+
+    // Mapeia de volta para os refs originais informados pelo chamador
+    for (const ref of rawUnique) {
+      if (!counts[ref]) {
+        const canonical = normalizeRefToCanonicalEn(ref);
+        if (counts[canonical]) {
+          counts[ref] = counts[canonical];
+        }
+      }
+    }
+
     return { counts };
   }
 }
