@@ -70,6 +70,7 @@ import { useHomiletics } from "@/hooks/useHomiletics";
 import { GospelSynopsisModal } from "./synopsis/GospelSynopsisModal";
 import { BiblicalTimelineModal } from "./timeline/BiblicalTimelineModal";
 import { ConstructSearchModal } from "./construct/ConstructSearchModal";
+import { SyntaxDiagramModal } from "./diagram/SyntaxDiagramModal";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -238,6 +239,7 @@ export default function BibleReader({
   const [showSynopsisModal, setShowSynopsisModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showConstructSearch, setShowConstructSearch] = useState(false);
+  const [showSyntaxDiagram, setShowSyntaxDiagram] = useState(false);
   const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
   const {
     outline: homileticsOutline,
@@ -432,6 +434,7 @@ export default function BibleReader({
           onOpenSynopsis={() => setShowSynopsisModal(true)}
           onOpenTimeline={() => setShowTimelineModal(true)}
           onOpenConstructSearch={() => setShowConstructSearch(true)}
+          onOpenSyntaxDiagram={() => setShowSyntaxDiagram(true)}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -744,6 +747,16 @@ export default function BibleReader({
             setActiveVerse(`${targetBook.nameEn} ${chapter}:${verse}`);
           }
         }}
+      />
+
+      {/* Modal de Diagramador Estrutural de Frases & Cláusulas (Accordance Sentence Diagramming) */}
+      <SyntaxDiagramModal
+        isOpen={showSyntaxDiagram}
+        onClose={() => setShowSyntaxDiagram(false)}
+        currentBookId={selectedBook?.id || 49}
+        currentBookName={selectedBook?.namePt || "Efésios"}
+        currentChapter={activeChapter}
+        currentVerse={1}
       />
 
       {/* Modal de Anotação Pessoal */}

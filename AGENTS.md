@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**304 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**312 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -117,11 +117,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`ConstructSearchModal.tsx` & `useConstructSearch.ts`):** Interface Workbench com blocos gramaticais dinâmicos encadeados visualmente por setas de fluxo, seletores reativos para cada dimensão morfológica, biblioteca de presets em 1 clique, alternador de distância sintática, exibição de resultados com texto em português (BLIVRE) e palavras originais destacadas em caixas com transliteração, glosa, código morfológico e Strong ID, além de navegação imediata para o leitor. Integrado à `ReaderToolbar.tsx` via botão `[🧩 Sintaxe]`.
 - **Validação:** **304 testes backend** (+7 novos testes unitários em `construct-search.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
+24. **Diagramador Estrutural de Frases & Cláusulas Sintáticas — Accordance-Grade Sentence Diagramming (2026-09-24):**
+    Implementada a ferramenta de diagramação de frases e desconstrução hierárquica de orações bíblicas nos textos originais (_Sentence Diagramming & Clause Breakdown_):
+
+- **Backend (`syntax-diagram.dto.ts`, `syntax-canonical-diagrams.ts`, `syntax-diagram.service.ts` & `syntax-diagram.controller.ts`):** Motor de desconstrução estrutural e parsing morfo-sintático baseado em tags do corpus interlinear (`InterlinearWord`). Identificação de orações principais, subordinadas finais/propósito (ἵνα, ὅπως), causais (ὅτι, διότι, καθώς), condicionais (εἰ, ἐάν), consecutivas/resultado (ὥστε), adjetivas relativas, frases participiais e infinitivais. Acervo exegético canônico com diagramas aprofundados das passagens mais célebres (Efésios 1:3-6 - a doxologia trinitária; Romanos 8:28-30 - a cadeia dourada da redenção; Colossenses 1:15-18 - o hino cristológico cósmico; João 1:1-3 - o prólogo do Logos; Gênesis 1:1-3 - a criação cósmica no Hebraico). Endpoints `@Get('syntax-diagram/predefined')`, `@Get('syntax-diagram/canonical/:id')` e `@Get('syntax-diagram/verse/:bookId/:chapter/:verse')` com cache e resiliência heurística.
+- **Frontend (`SyntaxDiagramModal.tsx` & `useSyntaxDiagram.ts`):** Interface hierárquica em árvore visual com linhas conectoras de subordinação sintática, pílulas temáticas por tipo de oração (Principal, Propósito, Causal, Condicional, Participial, Infinitival), destaque de sujeito nominativo e verbo regente conjugado, texto original grego/hebraico em tipografia serifada de alta nitidez, tradução bíblica em português (BLIVRE), notas teológicas/exegéticas contextuais, seletor de passagens canônicas célebres, formulário de navegação de versículo arbitrário e botão de 1 clique "Copiar Markdown". Integrado na `ReaderToolbar.tsx` via botão `[🌲 Diagrama]`.
+- **Validação:** **312 testes backend** (+8 novos testes unitários em `syntax-diagram.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
 **Próximos passos (Cronograma Accordance & Plataforma):**
 
-1. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas:** Árvore sintática de dependência e diagrama de blocos de orações.
-2. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
-3. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**: Variantes de manuscritos (Aleppo, Leningrado, Qumran, Sinaítico, Vaticano, Textus Receptus) com aparato crítico.
+2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

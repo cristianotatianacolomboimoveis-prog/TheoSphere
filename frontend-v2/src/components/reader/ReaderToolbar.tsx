@@ -16,6 +16,7 @@ import {
   Sparkles,
   Clock,
   Layers,
+  GitFork,
 } from "lucide-react";
 
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
@@ -44,6 +45,7 @@ interface ReaderToolbarProps {
   onOpenSynopsis?: () => void;
   onOpenTimeline?: () => void;
   onOpenConstructSearch?: () => void;
+  onOpenSyntaxDiagram?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -69,6 +71,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   onOpenSynopsis,
   onOpenTimeline,
   onOpenConstructSearch,
+  onOpenSyntaxDiagram,
 }) => {
   const {
     activeBook,
@@ -215,6 +218,21 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             >
               <Layers className="w-3.5 h-3.5 text-purple-400" />
               <span className="hidden sm:inline">Sintaxe</span>
+            </button>
+          )}
+
+          {/* Botão de Diagramador Estrutural de Frases & Cláusulas (Accordance Sentence Diagramming) */}
+          {onOpenSyntaxDiagram && (
+            <button
+              onClick={() => {
+                closeAllSelectors();
+                onOpenSyntaxDiagram();
+              }}
+              className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-emerald-500/40 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-emerald-400"
+              title="Abrir Diagramador Estrutural de Frases e Cláusulas Sintáticas"
+            >
+              <GitFork className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Diagrama</span>
             </button>
           )}
 
