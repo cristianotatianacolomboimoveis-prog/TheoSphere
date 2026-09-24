@@ -7,7 +7,7 @@ import {
   PointGraphics,
   PolylineGraphics,
   EntityDescription,
-  Cesium3DTileset,
+  ImageryLayer,
 } from "resium";
 import * as Cesium from "cesium";
 import { SEED_LOCATIONS } from "@/data/geoSeedData";
@@ -16,9 +16,12 @@ import { api } from "@/lib/api";
 import type { ArchaeologicalFind } from "@/hooks/useArchaeology";
 import { logger } from "@/lib/logger";
 
-// Set the base URL for Cesium assets
+// Set the base URL for Cesium assets and configure Ion token if provided
 if (typeof window !== "undefined") {
   (window as any).CESIUM_BASE_URL = "/cesium";
+  if (process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN) {
+    Cesium.Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+  }
 }
 
 /* ─── Color map for categories ───────────────────────────── */
@@ -90,6 +93,39 @@ export default function CesiumGlobe({
     {},
   );
   const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
+
+  // Suprimir erros 401 do Cesium Ion no Next.js DevTools overlay
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reasonStr = String(event.reason?.message || event.reason || "");
+      if (
+        event.reason?.statusCode === 401 ||
+        reasonStr.includes("401") ||
+        reasonStr.includes("Request has failed")
+      ) {
+        event.preventDefault();
+        logger.warn(
+          "[CesiumGlobe] Suprimida rejeição 401 do Cesium:",
+          event.reason,
+        );
+      }
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () =>
+      window.removeEventListener("unhandledrejection", handleRejection);
+  }, []);
+
+  // Camada de satélite de alta precisão (sem necessidade de token Cesium Ion)
+  const imageryProvider = useMemo(() => {
+    return new Cesium.UrlTemplateImageryProvider({
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      maximumLevel: 19,
+    });
+  }, []);
+
+  const terrainProvider = useMemo(() => {
+    return new Cesium.EllipsoidTerrainProvider();
+  }, []);
 
   // Camada de arqueologia: carrega o acervo (uma vez) para plotar no globo
   useEffect(() => {
@@ -187,10 +223,10 @@ export default function CesiumGlobe({
         sceneModePicker={false}
         navigationHelpButton={false}
         infoBox={true}
-        terrainProvider={Cesium.createWorldTerrainAsync()}
+        terrainProvider={terrainProvider}
       >
-        {/* 3D Tiles: Jerusalem Photorealistic Model (Simulated Asset) */}
-        <Cesium3DTileset url="https://assets.ion.cesium.com/us-east-1/69380/tileset.json" />
+        {/* Camada base de alta resolução sem necessidade de Ion Token */}
+        <ImageryLayer imageryProvider={imageryProvider} />
 
         {/* Locais Históricos Dinâmicos */}
         {activeLocations.map((loc) => (

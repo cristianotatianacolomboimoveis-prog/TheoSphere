@@ -39,13 +39,15 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   }, []);
 
   return (
-    <div className="relative h-10 bg-[#E8EBF0] dark:bg-[#1E252B] border-b border-gray-300 dark:border-black/20 flex items-center px-4 md:px-4 pl-14 gap-2 md:gap-4 z-[60]">
+    <div className="relative h-11 bg-white/80 dark:bg-[#090C12]/85 backdrop-blur-xl border-b border-gray-200 dark:border-white/8 flex items-center px-4 md:px-5 pl-14 gap-2 md:gap-4 z-[60] shadow-sm transition-colors">
       {/* Logos Icon / Menu (hidden on mobile — hamburger is in Sidebar) */}
       <button
         onClick={() => setActiveTool("dashboard")}
-        className="hidden md:block p-1 hover:bg-gray-300 dark:hover:bg-white/5 rounded transition-colors"
+        className="hidden md:flex p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        title="Início"
+        aria-label="Início"
       >
-        <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Menu className="w-4 h-4" />
       </button>
 
       {/* Command Box (Central Focus of Logos — Híbrida & Speed Search) */}
@@ -53,16 +55,16 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         onClick={() => setPaletteOpen(true)}
         className="flex-grow max-w-2xl relative group cursor-pointer"
       >
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-          <Command className="w-3.5 h-3.5 text-gray-400" />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+          <Command className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform" />
         </div>
-        <div className="w-full h-7 pl-9 pr-14 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[12px] flex items-center text-gray-400 select-none group-hover:border-blue-500/50 transition-colors">
+        <div className="w-full h-8 pl-9 pr-14 bg-gray-50/90 dark:bg-[#111622]/90 border border-gray-200 dark:border-white/10 rounded-lg text-[12px] flex items-center text-gray-500 dark:text-gray-400 select-none group-hover:border-blue-500/50 group-hover:shadow-[0_0_20px_-3px_rgba(59,130,246,0.25)] transition-all">
           <span className="truncate">
             Ir para Gn 1:1, Sl 23, ou pesquisar (ex: amor AND paz, book:Rom)...
           </span>
         </div>
-        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold text-gray-500 dark:text-gray-400 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded shadow-xs">
             ⌘K
           </kbd>
         </div>
@@ -147,7 +149,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
                       logout();
                       setDropdownOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-500/10 dark:hover:bg-red-500/20 flex items-center gap-2 transition-colors font-medium"
+                    className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/15 flex items-center gap-2 transition-colors font-medium"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Sair</span>
@@ -159,7 +161,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         ) : (
           <button
             onClick={onOpenAuth}
-            className="h-7 px-3 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-[11px] font-bold rounded-lg transition-all shadow-sm hover:shadow-blue-500/15 flex items-center gap-1.5 cursor-pointer"
+            className="h-7 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white text-[11px] font-bold rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/35 flex items-center gap-1.5 cursor-pointer"
           >
             <User className="w-3.5 h-3.5" />
             <span>Entrar</span>
@@ -182,12 +184,14 @@ function TopBarButton({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-1 hover:bg-gray-300 dark:hover:bg-white/5 rounded transition-colors group"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-all group active:scale-[0.98]"
     >
-      <Icon className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
-      <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">
-        {label}
-      </span>
+      <Icon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
+      {label && (
+        <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+          {label}
+        </span>
+      )}
     </button>
   );
 }

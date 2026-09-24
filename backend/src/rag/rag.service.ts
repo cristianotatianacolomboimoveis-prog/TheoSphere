@@ -212,7 +212,7 @@ export class RagService {
           THEO_AI_SYSTEM_PROMPT,
           p.libraryHasHits
             ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${RagService.trimContext(p.driveLibraryContext)}\n\nINSTRUÇÃO DE PRIORIDADE: Responda PRIMARIAMENTE com base nos trechos da Biblioteca acima, citando as obras pelo nome. Use conhecimento geral apenas para preencher lacunas, sinalizando explicitamente quando o fizer.`
-            : 'NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda com seu conhecimento acadêmico geral e as demais fontes abaixo.',
+            : 'NOTA: A Biblioteca do Drive não retornou trechos relevantes para esta pergunta — responda de forma equilibrada no meio-termo entre as tradições Calvinista/Reformada e Arminiana/Wesleyana, apresentando ambas as perspectivas com rigor acadêmico e usando as demais fontes abaixo como apoio.',
           p.validatedQaContext,
           RagService.composeContext([
             ['CONTEÚDO ACADÊMICO (OPEN SOURCE)', p.openSourceContext],
@@ -220,7 +220,7 @@ export class RagService {
             ['CONTEXTO TEOLÓGICO LOCAL', p.theologicalContext],
             ['CONTEXTO BÍBLICO', p.bibleContext],
           ]),
-          `TRADIÇÃO PREFERIDA: ${p.tradition || 'Geral'}`,
+          `TRADIÇÃO PREFERIDA: ${p.tradition || 'Equilibrada (Calvinista / Arminiana)'}`,
         ]
           .filter(Boolean)
           .join('\n\n');
@@ -272,7 +272,7 @@ export class RagService {
     const fullPrompt = [
       p.libraryHasHits
         ? `FONTE PRIORITÁRIA — BIBLIOTECA RAG (GOOGLE DRIVE):\n${RagService.trimContext(p.driveLibraryContext)}\nResponda PRIMARIAMENTE com base nesses trechos, citando as obras.`
-        : '',
+        : 'NOTA: A Biblioteca do Drive não retornou trechos relevantes — responda de forma equilibrada no meio-termo entre as tradições Calvinista/Reformada e Arminiana/Wesleyana com rigor acadêmico e imparcialidade.',
       p.validatedQaContext,
       RagService.composeContext([
         ['CONTEXTO PESSOAL', p.userContextText],
@@ -1151,8 +1151,10 @@ export class RagService {
         where: { id: userId },
         data: { xp: { increment: xp } },
       });
-    } catch {
-      // Silencioso
+    } catch (err) {
+      this.logger.debug(
+        `[addUserXP] falha ao incrementar XP para ${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

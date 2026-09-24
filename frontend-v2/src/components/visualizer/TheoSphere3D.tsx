@@ -460,7 +460,10 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           setLocations([]);
         }
       } catch (e) {
-        logger.error("Failed to fetch 3D locations:", e);
+        logger.warn(
+          "Failed to fetch 3D locations (operating in offline fallback):",
+          e,
+        );
         setLocations([]);
       }
     };
@@ -481,7 +484,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
                   return detailedRes.data;
                 }
               } catch (err) {
-                logger.error(`Failed to fetch route details for ${r.id}:`, err);
+                logger.warn(`Route details for ${r.id} unavailable:`, err);
               }
               return null;
             }),
@@ -489,7 +492,10 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
           setRoutes(detailedRoutes.filter(Boolean));
         }
       } catch (e) {
-        logger.error("Failed to fetch 3D routes:", e);
+        logger.warn(
+          "Failed to fetch 3D routes (operating in offline fallback):",
+          e,
+        );
       }
     };
     fetchRoutes();

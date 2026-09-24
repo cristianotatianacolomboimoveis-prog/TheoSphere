@@ -345,15 +345,15 @@ export function Workspace({
  */
 function WorkspaceStatusBar() {
   return (
-    <div className="h-7 bg-[#E8EBF0] dark:bg-[#1E252B] border-t border-gray-300 dark:border-white/10 flex items-center px-4 justify-between select-none">
+    <div className="h-7 bg-white/70 dark:bg-[#090C12]/90 backdrop-blur-md border-t border-gray-200 dark:border-white/8 flex items-center px-4 justify-between select-none">
       <div className="flex items-center gap-3 text-[10px] text-gray-500 font-medium">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
           Pronto • Sincronizado
         </span>
-        <div className="w-px h-3 bg-gray-300 dark:bg-white/10" />
-        <span className="font-bold text-gray-600 dark:text-gray-400">
-          Link Set A
+        <div className="w-px h-3 bg-gray-200 dark:bg-white/10" />
+        <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+          Link Set <span className="text-amber-500 font-extrabold">A</span>
         </span>
       </div>
 
@@ -391,29 +391,29 @@ function MobileWorkspace({
   const current = tabs.find((t) => t.key === activeTab) || tabs[0];
 
   return (
-    <div className="w-full h-full bg-[#DDE2E8] dark:bg-[#12161B] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-[#ECEEF2] dark:bg-[#07090E] flex flex-col overflow-hidden">
       {/* Mobile Tab Bar */}
-      <div className="flex bg-[#F3F5F7] dark:bg-[#1E252B] border-b border-gray-300 dark:border-white/10 overflow-x-auto">
+      <div className="flex bg-[#F1F5F9] dark:bg-[#0B0F17] border-b border-gray-200 dark:border-white/8 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 min-w-0 px-3 py-2 text-[11px] font-bold truncate transition-colors relative ${
               activeTab === tab.key
-                ? "text-gray-800 dark:text-white bg-white dark:bg-[#0D1117]"
+                ? "text-gray-900 dark:text-white bg-white dark:bg-[#111622]"
                 : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             {tab.label}
             {activeTab === tab.key && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600" />
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
             )}
           </button>
         ))}
       </div>
 
       {/* Active Pane */}
-      <div className="flex-grow overflow-hidden bg-white dark:bg-[#0D1117]">
+      <div className="flex-grow overflow-hidden bg-white dark:bg-[#111622]">
         {current?.pane}
       </div>
     </div>
@@ -433,23 +433,23 @@ function PaneTabHeader({
   onToggleMaximize?: () => void;
 }) {
   return (
-    <div className="h-8 bg-[#F3F5F7] dark:bg-[#1E252B] border-b border-gray-300 dark:border-white/10 flex items-center justify-between px-1 select-none">
+    <div className="h-8 bg-[#F1F5F9] dark:bg-[#0B0F17] border-b border-gray-200 dark:border-white/8 flex items-center justify-between px-1 select-none">
       <div className="flex h-full items-end">
-        <div className="h-full px-3 flex items-center gap-2 bg-white dark:bg-[#0D1117] border-r border-gray-300 dark:border-white/10 relative">
-          <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">
+        <div className="h-full px-3.5 flex items-center gap-2 bg-white dark:bg-[#111622] border-r border-gray-200 dark:border-white/8 relative">
+          <span className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 tracking-tight">
             {title}
           </span>
-          <span className="text-[8px] font-extrabold px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <span className="text-[8px] font-extrabold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25">
             A
           </span>
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
         </div>
       </div>
 
       {onToggleMaximize && (
         <button
           onClick={onToggleMaximize}
-          className="p-1 mr-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          className="p-1.5 mr-1 rounded-md hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all active:scale-95"
           title={isMaximized ? "Restaurar Painéis" : "Maximizar Painel"}
           aria-label={isMaximized ? "Restaurar Painéis" : "Maximizar Painel"}
         >

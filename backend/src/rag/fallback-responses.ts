@@ -337,25 +337,22 @@ Alguns teólogos reformados aceitam a continuação dos dons, mas com regulaçã
 
   return `## Análise Teológica
 
-Essa é uma questão fundamental na teologia cristã com múltiplas perspectivas históricas.
+Essa é uma questão fundamental na teologia cristã com múltiplas perspectivas históricas e exegéticas complementares.
 
-### 📖 Perspectiva Reformada
-A tradição reformada, seguindo João Calvino e os Cânones de Dort (1619), enfatiza a soberania absoluta de Deus. Os cinco pontos do Calvinismo (TULIP) formam o arcabouço desta visão.
+### 📖 Perspectiva Calvinista (Reformada)
+A tradição Reformada (fundamentada em João Calvino, Charles Spurgeon e nos Cânones de Dort) enfatiza a soberania absoluta de Deus na salvação, a eleição incondicional antes da fundação do mundo e a perseverança indefectível dos santos pela eficácia da graça divina.
 
-### 📖 Perspectiva Arminiana
-Jacobus Armínio e seus seguidores propõem que a graça preveniente capacita todos os seres humanos a responder ao evangelho.
+### 📖 Perspectiva Arminiana (Wesleyana)
+A tradição Arminiana (fundamentada em Jacobus Armínio e João Wesley) enfatiza o amor universal de Deus, a graça preveniente concedida a todos os seres humanos possibilitando a resposta livre da fé, e a responsabilidade humana no discipulado cristão.
 
-### 📖 Perspectiva Batista
-A tradição batista é diversa, contendo tanto calvinistas quanto arminianos.
+### ⚖️ Ponto de Equilíbrio e Consenso Evangélico
+Ambas as tradições históricas convergem nos pilares inegociáveis da fé cristã:
+- A salvação é inteiramente pela graça (Sola Gratia) mediante a fé (Sola Fide) em Cristo (Solus Christus)
+- As Escrituras Sagradas são a autoridade final e suficiente (Sola Scriptura)
+- O chamado inegociável à piedade, à santidade e à proclamação do Evangelho a todas as nações (Soli Deo Gloria)
 
-### ⚖️ Consenso
-Todas as tradições concordam que:
-- A salvação é pela graça
-- A fé é essencial
-- Cristo é o único mediador
-
-**Grau de Tensão Teológica: 78/100**
+**Grau de Tensão Teológica: 75/100**
 
 ---
-*Fontes: Institutas da Religião Cristã (Calvino), Remonstrance (1610), Confissão de Fé de Westminster*`;
+*Fontes: Institutas da Religião Cristã (Calvino), Sermões de John Wesley, Obras de Jacobus Armínio, Confissão de Fé de Westminster / Confissão de 1689*`;
 }

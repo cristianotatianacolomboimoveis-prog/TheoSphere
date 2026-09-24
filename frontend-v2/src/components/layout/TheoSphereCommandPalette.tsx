@@ -95,12 +95,12 @@ export function TheoSphereCommandPalette({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white dark:bg-[#161B22] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh]"
+        className="w-full max-w-2xl bg-white/95 dark:bg-[#111622]/95 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-gray-200 dark:border-white/10 gap-3">
-          <Command className="w-5 h-5 text-gray-400" />
+        <div className="flex items-center px-4.5 py-3.5 border-b border-gray-200 dark:border-white/8 gap-3 bg-gray-50/50 dark:bg-[#141A28]/50">
+          <Command className="w-5 h-5 text-blue-500 dark:text-blue-400" />
           <input
             ref={inputRef}
             type="text"
@@ -294,22 +294,23 @@ export function TheoSphereCommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 bg-gray-50 dark:bg-[#0D1117] border-t border-gray-200 dark:border-white/10 flex items-center justify-between text-[11px] text-gray-400">
+        <div className="px-4 py-2.5 bg-gray-50/80 dark:bg-[#0B0F17]/90 border-t border-gray-200 dark:border-white/8 flex items-center justify-between text-[11px] text-gray-400">
           <div className="flex items-center gap-3">
             <span>
-              <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-[10px] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-[10px] font-mono shadow-xs">
                 ESC
               </kbd>{" "}
               fechar
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-[10px] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-[10px] font-mono shadow-xs">
                 ENTER
               </kbd>{" "}
               selecionar
             </span>
           </div>
-          <span className="font-semibold text-blue-500">
+          <span className="font-semibold text-blue-500 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
             TheoSphere Speed Search
           </span>
         </div>
