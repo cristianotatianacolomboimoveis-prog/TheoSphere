@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**297 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**304 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -110,12 +110,18 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`BiblicalTimelineModal.tsx` & `useBiblicalTimeline.ts`):** Interface widescreen com régua de navegação por eras, filtros temáticos por trilhas (Judá, Israel, Profetas, Impérios), busca em tempo real, painel de contexto histórico-teológico e conexões arqueológicas. Mapeamento bidirecional da passagem ativa (exibe os eventos que ocorrem no capítulo bíblico que o usuário está lendo no momento) e botão para abrir a passagem diretamente no leitor. Integrado à `ReaderToolbar.tsx` via botão `[⏳ Linha do Tempo]`.
 - **Validação:** **297 testes backend** (+11 novos testes unitários em `timeline.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
+23. **Construtor Visual de Sintaxe nos Originais — Accordance-Grade Construct Search (2026-09-24):**
+    Implementada a ferramenta de busca morfológica e sintática encadeada por blocos equivalente ao prestigiado _Construct Search_ do Accordance Bible Software:
+
+- **Backend (`construct-search.dto.ts`, `construct-presets.ts`, `construct-search.service.ts` & `construct-search.controller.ts`):** Motor de parsing e cruzamento de sequências morfológicas sobre a tabela `InterlinearWord` (TAGNT/TAHOT STEP Bible / Robinson-Pierpont). Validação de classes gramaticais (Substantivos, Verbos, Artigos, Preposições, Conjunções, Adjetivos, Pronomes), casos gramaticais (Nominativo, Genitivo, Dativo, Acusativo, Vocativo), tempos (Presente, Aoristo, Perfeito, etc.), modos (Indicativo, Subjuntivo, Imperativo, Infinitivo, Particípio), vozes, números e gêneros, com restrição de distância espacial configurável (_Adjacente [p+1]_, _Até 3 palavras_, _Mesmo versículo_). Integração com presets exegéticos clássicos (Regra de Granville Sharp para deidade de Cristo em Tt 2:13 e 2 Pe 1:1, Genitivo Absoluto, Ἵνα + Subjuntivo, Infinitivo Articular, Particípio Aoristo circunstancial). Endpoints `@Get('api/v1/construct-search/presets')` e `@Post('api/v1/construct-search/query')`.
+- **Frontend (`ConstructSearchModal.tsx` & `useConstructSearch.ts`):** Interface Workbench com blocos gramaticais dinâmicos encadeados visualmente por setas de fluxo, seletores reativos para cada dimensão morfológica, biblioteca de presets em 1 clique, alternador de distância sintática, exibição de resultados com texto em português (BLIVRE) e palavras originais destacadas em caixas com transliteração, glosa, código morfológico e Strong ID, além de navegação imediata para o leitor. Integrado à `ReaderToolbar.tsx` via botão `[🧩 Sintaxe]`.
+- **Validação:** **304 testes backend** (+7 novos testes unitários em `construct-search.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
 **Próximos passos (Cronograma Accordance & Plataforma):**
 
-1. **Opção 3 — Construtor Visual de Sintaxe (_Construct Search_):** Busca de blocos gramaticais e estruturas sintáticas no Grego e Hebraico.
-2. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas**.
-3. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
-4. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas:** Árvore sintática de dependência e diagrama de blocos de orações.
+2. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
+3. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

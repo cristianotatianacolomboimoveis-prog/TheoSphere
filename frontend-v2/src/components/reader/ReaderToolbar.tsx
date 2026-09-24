@@ -15,6 +15,7 @@ import {
   Columns2,
   Sparkles,
   Clock,
+  Layers,
 } from "lucide-react";
 
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
@@ -42,6 +43,7 @@ interface ReaderToolbarProps {
   onOpenHomiletics?: () => void;
   onOpenSynopsis?: () => void;
   onOpenTimeline?: () => void;
+  onOpenConstructSearch?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -66,6 +68,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   onOpenHomiletics,
   onOpenSynopsis,
   onOpenTimeline,
+  onOpenConstructSearch,
 }) => {
   const {
     activeBook,
@@ -197,6 +200,21 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             >
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Linha do Tempo</span>
+            </button>
+          )}
+
+          {/* Botão de Construtor Visual de Sintaxe (Accordance Construct Search) */}
+          {onOpenConstructSearch && (
+            <button
+              onClick={() => {
+                closeAllSelectors();
+                onOpenConstructSearch();
+              }}
+              className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-purple-500/40 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-purple-400"
+              title="Abrir Construtor Visual de Sintaxe (Construct Search nos Originais)"
+            >
+              <Layers className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline">Sintaxe</span>
             </button>
           )}
 

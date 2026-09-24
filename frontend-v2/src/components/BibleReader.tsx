@@ -69,6 +69,7 @@ import { SermonOutlineModal } from "./homiletics/SermonOutlineModal";
 import { useHomiletics } from "@/hooks/useHomiletics";
 import { GospelSynopsisModal } from "./synopsis/GospelSynopsisModal";
 import { BiblicalTimelineModal } from "./timeline/BiblicalTimelineModal";
+import { ConstructSearchModal } from "./construct/ConstructSearchModal";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -236,6 +237,7 @@ export default function BibleReader({
   const [showTextComparison, setShowTextComparison] = useState(false);
   const [showSynopsisModal, setShowSynopsisModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showConstructSearch, setShowConstructSearch] = useState(false);
   const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
   const {
     outline: homileticsOutline,
@@ -429,6 +431,7 @@ export default function BibleReader({
           onOpenHomiletics={() => handleOpenHomiletics()}
           onOpenSynopsis={() => setShowSynopsisModal(true)}
           onOpenTimeline={() => setShowTimelineModal(true)}
+          onOpenConstructSearch={() => setShowConstructSearch(true)}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -724,6 +727,21 @@ export default function BibleReader({
           );
           if (targetBook) {
             setBibleReference(targetBook.namePt, chapter);
+          }
+        }}
+      />
+
+      {/* Modal de Construtor Visual de Sintaxe (Accordance Construct Search) */}
+      <ConstructSearchModal
+        isOpen={showConstructSearch}
+        onClose={() => setShowConstructSearch(false)}
+        onNavigateToVerse={(bookName, chapter, verse) => {
+          const targetBook = BIBLE_BOOKS.find(
+            (b) => b.nameEn === bookName || b.namePt === bookName,
+          );
+          if (targetBook) {
+            setBibleReference(targetBook.namePt, chapter);
+            setActiveVerse(`${targetBook.nameEn} ${chapter}:${verse}`);
           }
         }}
       />
