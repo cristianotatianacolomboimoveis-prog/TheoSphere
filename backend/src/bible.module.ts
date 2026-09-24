@@ -13,6 +13,8 @@ import { HomileticsService } from './bible/homiletics.service';
 import { HomileticsController } from './bible/homiletics.controller';
 import { SynopsisService } from './bible/synopsis.service';
 import { SynopsisController } from './bible/synopsis.controller';
+import { TimelineService } from './bible/timeline.service';
+import { TimelineController } from './bible/timeline.controller';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import { SynopsisController } from './bible/synopsis.controller';
     CrossReferencesController,
     HomileticsController,
     SynopsisController,
+    TimelineController,
   ],
   providers: [
     BibleIngestionService,
@@ -34,6 +37,7 @@ import { SynopsisController } from './bible/synopsis.controller';
     BibleComparisonService,
     HomileticsService,
     SynopsisService,
+    TimelineService,
   ],
   exports: [
     BibleIngestionService,
@@ -41,6 +45,7 @@ import { SynopsisController } from './bible/synopsis.controller';
     BibleComparisonService,
     HomileticsService,
     SynopsisService,
+    TimelineService,
   ],
 })
 export class BibleModule {}

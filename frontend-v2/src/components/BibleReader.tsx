@@ -68,6 +68,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { SermonOutlineModal } from "./homiletics/SermonOutlineModal";
 import { useHomiletics } from "@/hooks/useHomiletics";
 import { GospelSynopsisModal } from "./synopsis/GospelSynopsisModal";
+import { BiblicalTimelineModal } from "./timeline/BiblicalTimelineModal";
 
 export const TRANSLATIONS = [
   // ─── Acervo Completo Local (Domínio Público / Licença Livre) ───
@@ -234,6 +235,7 @@ export default function BibleReader({
   const [showResourceGuide, setShowResourceGuide] = useState(false);
   const [showTextComparison, setShowTextComparison] = useState(false);
   const [showSynopsisModal, setShowSynopsisModal] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [isHomileticsOpen, setIsHomileticsOpen] = useState(false);
   const {
     outline: homileticsOutline,
@@ -426,6 +428,7 @@ export default function BibleReader({
           onOpenComparison={() => setShowTextComparison(true)}
           onOpenHomiletics={() => handleOpenHomiletics()}
           onOpenSynopsis={() => setShowSynopsisModal(true)}
+          onOpenTimeline={() => setShowTimelineModal(true)}
         />
 
         {/* Barra de busca — renderizada quando searchMode esta ativo */}
@@ -707,6 +710,22 @@ export default function BibleReader({
         onClose={() => setShowSynopsisModal(false)}
         currentBookId={selectedBook.id}
         currentChapter={activeChapter}
+      />
+
+      {/* Modal de Linha do Tempo Histórica Bíblica (Accordance Biblical Timeline) */}
+      <BiblicalTimelineModal
+        isOpen={showTimelineModal}
+        onClose={() => setShowTimelineModal(false)}
+        currentBookId={selectedBook.id}
+        currentChapter={activeChapter}
+        onNavigateToPassage={(bookName, chapter) => {
+          const targetBook = BIBLE_BOOKS.find(
+            (b) => b.nameEn === bookName || b.namePt === bookName,
+          );
+          if (targetBook) {
+            setBibleReference(targetBook.namePt, chapter);
+          }
+        }}
       />
 
       {/* Modal de Anotação Pessoal */}

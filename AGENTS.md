@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**286 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**297 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -103,13 +103,19 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend (`GospelSynopsisModal.tsx` & `useGospelSynopsis.ts`):** Interface sinótica com 4 colunas paralelas (Mateus, Marcos, Lucas, João) com badges de cores canônicas, seletor de perícopa com busca instantânea e filtros por seção cronológica (Infância, Batismo, Galileia, Milagres, Parábolas, Paixão, Morte e Ressurreição), alternador de evangelho base de comparação (ex: Prioridade Marcaniana), pills com a matriz de similaridade léxica, toggle de realce de termos idênticos (Diff LCS) e botão de 1 clique "Copiar Tabela Sinótica (Markdown)". Integrado diretamente na `ReaderToolbar.tsx` via botão `[📜 Evangelhos Sinóticos]`.
 - **Validação:** **286 testes backend** (+12 novos testes unitários cobrindo catálogo, busca de perícopas por versículo, diffs e matriz de concordância em `synopsis.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
 
+22. **Linha do Tempo Histórica Bíblica Interativa — Accordance-Grade Biblical Timeline (2026-09-24):**
+    Implementada a ferramenta de cronologia histórica paralela superior ao Accordance Bible Software:
+
+- **Backend (`timeline-data.ts`, `timeline.service.ts` & `timeline.controller.ts`):** Catálogo canônico de 9 eras cronológicas bíblicas (~2100 a.C. até 100 d.C.) com múltiplos tracks paralelos (Reis de Judá com avaliação espiritual Fiel/Infiel, Reis de Israel, Profetas pré/exílicos/pós-exílicos, Impérios Mundiais [Assíria, Babilônia, Pérsia, Grécia, Roma] e correlações arqueológicas [Prisma de Senaqueribe, Cilindro de Ciro, Estela de Tel Dã, Inscrição de Pilatos, Arco de Tito]). Endpoints `@Get('api/v1/timeline/eras')`, `@Get('api/v1/timeline/events')`, `@Get('api/v1/timeline/for-passage')` e `@Get('api/v1/timeline/events/:id')`.
+- **Frontend (`BiblicalTimelineModal.tsx` & `useBiblicalTimeline.ts`):** Interface widescreen com régua de navegação por eras, filtros temáticos por trilhas (Judá, Israel, Profetas, Impérios), busca em tempo real, painel de contexto histórico-teológico e conexões arqueológicas. Mapeamento bidirecional da passagem ativa (exibe os eventos que ocorrem no capítulo bíblico que o usuário está lendo no momento) e botão para abrir a passagem diretamente no leitor. Integrado à `ReaderToolbar.tsx` via botão `[⏳ Linha do Tempo]`.
+- **Validação:** **297 testes backend** (+11 novos testes unitários em `timeline.service.spec.ts`), **49 testes frontend**, `static-checks.mjs` com 0 achados, build, lint e typecheck 100% aprovados.
+
 **Próximos passos (Cronograma Accordance & Plataforma):**
 
-1. **Opção 2 — Linha do Tempo Histórica Bíblica Interativa (_Biblical Timeline_):** Visualização cronológica estilo Accordance conectando reis, profetas, impérios contemporâneos e passagens bíblicas.
-2. **Opção 3 — Construtor Visual de Sintaxe (_Construct Search_):** Busca de blocos gramaticais e estruturas sintáticas no Grego e Hebraico.
-3. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas**.
-4. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
-5. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Opção 3 — Construtor Visual de Sintaxe (_Construct Search_):** Busca de blocos gramaticais e estruturas sintáticas no Grego e Hebraico.
+2. **Opção 4 — Diagramador Estrutural de Frases & Cláusulas Sintáticas**.
+3. **Opção 5 — Módulo de Crítica Textual & Manuscritos do Mar Morto (Qumran DSS)**.
+4. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 

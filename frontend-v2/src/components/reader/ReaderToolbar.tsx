@@ -14,6 +14,7 @@ import {
   Lightbulb,
   Columns2,
   Sparkles,
+  Clock,
 } from "lucide-react";
 
 import { useTheoStore, type BibleBook } from "@/store/useTheoStore";
@@ -40,6 +41,7 @@ interface ReaderToolbarProps {
   onOpenComparison?: () => void;
   onOpenHomiletics?: () => void;
   onOpenSynopsis?: () => void;
+  onOpenTimeline?: () => void;
 }
 
 export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
@@ -63,6 +65,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   onOpenComparison,
   onOpenHomiletics,
   onOpenSynopsis,
+  onOpenTimeline,
 }) => {
   const {
     activeBook,
@@ -179,6 +182,21 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             >
               <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Evangelhos Sinóticos</span>
+            </button>
+          )}
+
+          {/* Botão de Linha do Tempo Histórica Bíblica (Accordance Biblical Timeline) */}
+          {onOpenTimeline && (
+            <button
+              onClick={() => {
+                closeAllSelectors();
+                onOpenTimeline();
+              }}
+              className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-amber-500/40 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-amber-400"
+              title="Abrir Linha do Tempo Histórica Bíblica (Reis, Profetas e Impérios Contemporâneos)"
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Linha do Tempo</span>
             </button>
           )}
 
