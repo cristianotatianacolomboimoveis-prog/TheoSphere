@@ -11,9 +11,8 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-15**. Repositório limpo, suíte inteira passando
-(**145 testes backend** — +4 sobre o baseline de 141, cobrindo `meta.vectorArm`;
-49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+Última sessão: **2026-09-23**. Repositório limpo, suíte inteira passando
+(**254 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
 Backend Render (`https://theosphere.onrender.com`) operante e medido.
@@ -45,6 +44,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Agostinho de Hipona:** _A Cidade de Deus_ e _Escritos Anti-Pelagianos_.
 - **Jonathan Edwards & Charles Spurgeon:** Tratados clássicos e sermões de domínio público.
 - **Banco de Dados Supabase:** Banco atingiu 1.194 MB (1,19 GB) com 45.114 chunks no `UserEmbedding`. Busca vetorial, híbrida e textual plenamente ativas. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB (requer ajuste no dashboard do Supabase para novas gravações em lote).
+
+14. **Guia de Passagem Exegético em 1 Clique (2026-09-23):**
+    Conectados os **45.114 chunks de comentários clássicos** (João Calvino, Matthew Henry, Martinho Lutero) ao leitor e bancada exegética via `PassageGuideService.getClassicCommentaries`.
+
+- **Backend:** Mapeamento canônico dos 66 livros para os respectivos Gutenberg IDs e volumes do acervo. Filtro inteligente para descarte de índices remissivos numéricos e extração de prosa teológica pura.
+- **Frontend:** Atualizados `ContextualInsightsPanel.tsx`, `PassageGuide.tsx` e `ReaderToolbar.tsx` com novo botão `[📖 Guia Exegético]` de 1 clique, badges de autores (`JC`, `MH`, `ML`) e sincronização fluida de passagens.
+- **Validação:** 254 testes backend e 49 testes frontend passando (0 erros de lint e 0 erros de tipagem). Testado diretamente em Romanos 8:1 e Salmos 23:1 com retorno exato de trechos exegéticos de Calvino em milissegundos.
 
 **Próximos passos:**
 
