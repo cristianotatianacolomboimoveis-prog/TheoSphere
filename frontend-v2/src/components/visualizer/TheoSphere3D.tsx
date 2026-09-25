@@ -57,14 +57,6 @@ const SATELLITE_STYLE = {
       attribution:
         "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
     },
-    terrain: {
-      type: "raster-dem",
-      tiles: [
-        "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      encoding: "terrarium",
-    },
     labels: {
       type: "raster",
       tiles: [
@@ -91,10 +83,6 @@ const SATELLITE_STYLE = {
       maxzoom: 20,
     },
   ],
-  terrain: {
-    source: "terrain",
-    exaggeration: 1.5,
-  },
   sky: {
     "sky-color": "#070c14",
     "horizon-color": "#1e293b",
@@ -427,14 +415,6 @@ export default function TheoSphere3D({
             attribution:
               "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
           },
-          terrain: {
-            type: "raster-dem",
-            tiles: [
-              "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-            ],
-            tileSize: 256,
-            encoding: "terrarium",
-          },
         };
 
         // Keep only boundary, place label, and water label layers
@@ -468,12 +448,6 @@ export default function TheoSphere3D({
           minzoom: 0,
           maxzoom: 20,
         });
-
-        // 3D terrain
-        style.terrain = {
-          source: "terrain",
-          exaggeration: 1.5,
-        };
 
         // Dark atmosphere sky
         style.sky = {
@@ -885,7 +859,6 @@ export default function TheoSphere3D({
               onMove={(evt) => setViewState(evt.viewState as any)}
               onLoad={() => setIsMapLoaded(true)}
               style={{ width: "100%", height: "100%" }}
-              reuseMaps
             >
               {isMapLoaded && <DeckGLOverlay layers={layers} />}
               <NavigationControl position="bottom-right" />
