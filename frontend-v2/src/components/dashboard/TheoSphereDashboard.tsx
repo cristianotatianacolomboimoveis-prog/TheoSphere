@@ -60,6 +60,16 @@ export function TheoSphereDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFocusedEvent(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const saveNote = (note: Partial<Note>) => {
     const newNote = {
       id: activeNote?.id || Date.now().toString(),

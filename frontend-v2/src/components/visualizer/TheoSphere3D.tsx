@@ -229,6 +229,16 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedEvent(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Acervo arqueológico — pins no motor padrão (Deck.gl/MapLibre).
   // O CesiumGlobe tem camada própria; esta cobre o modo inicial (QA 2026-07-14).
   useEffect(() => {
@@ -741,6 +751,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         style={{ minHeight: "500px", height: "100%" }}
       >
         <MapErrorBoundary
+          key={useCesium ? "cesium" : "maplibre"}
           fallback={
             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white select-none">
               <div className="relative mb-6">
@@ -876,9 +887,9 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         onClearAll={clearAllRoutes}
       />
 
-      {/* Floating Event Detail Card */}
-      {selectedEvent && (
-        <div className="absolute top-24 right-6 z-30 w-96 max-w-[calc(100vw-3rem)] glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-right-4 duration-200">
+      {/* Floating Event Detail Card (apenas em tela cheia para evitar redundância com a barra lateral) */}
+      {fullscreen && selectedEvent && (
+        <div className="absolute bottom-28 left-6 z-30 w-96 max-w-[calc(100vw-3rem)] glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2 mb-1">

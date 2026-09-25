@@ -23,24 +23,24 @@ export function MapHeader({
   onClose,
 }: MapHeaderProps) {
   return (
-    <div className="absolute top-6 left-6 z-10 flex items-center gap-4">
-      <div className="glass-heavy p-4 rounded-2xl border border-white/10 flex items-center gap-6 shadow-2xl">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-            <Box className="w-5 h-5 text-white" />
+    <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
+      <div className="glass-heavy p-2.5 px-3.5 rounded-2xl border border-white/10 flex items-center gap-3.5 shadow-2xl">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+            <Box className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-black text-white tracking-tight italic uppercase">
-              TheoSphere 3D Visualizer
+            <h2 className="text-xs font-black text-white tracking-tight uppercase">
+              TheoSphere 3D
             </h2>
-            <p className="text-[9px] text-blue-400 font-bold tracking-widest uppercase">
-              Motor Geoespacial Enterprise
+            <p className="text-[8px] text-blue-400 font-bold tracking-widest uppercase hidden sm:block">
+              Geoespacial
             </p>
           </div>
         </div>
 
         {/* Separator */}
-        <div className="w-[1px] h-6 bg-white/20 self-center" />
+        <div className="w-[1px] h-5 bg-white/20 self-center" />
 
         {/* Map Mode Toggle */}
         <button
@@ -66,6 +66,7 @@ export function MapHeader({
 
         {/* Cesium Globe Toggle */}
         <button
+          id="toggle-cesium-btn"
           onClick={onToggleCesium}
           className={`px-4 py-2 hover:bg-slate-900/80 active:scale-95 rounded-full border flex items-center gap-2.5 transition-all shadow-lg select-none ${
             useCesium

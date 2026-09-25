@@ -6,7 +6,6 @@ import {
   Entity,
   PointGraphics,
   PolylineGraphics,
-  EntityDescription,
   useCesium,
 } from "resium";
 import * as Cesium from "cesium";
@@ -346,7 +345,7 @@ export default function CesiumGlobe({
         homeButton={false}
         sceneModePicker={false}
         navigationHelpButton={false}
-        infoBox={true}
+        infoBox={false}
         baseLayer={baseImageryLayer}
         terrainProvider={terrainProvider}
       >
@@ -383,27 +382,6 @@ export default function CesiumGlobe({
               outlineColor={Cesium.Color.WHITE}
               outlineWidth={2}
             />
-            <EntityDescription>
-              <div className="p-2 bg-slate-900 text-white rounded-lg border border-border-strong">
-                <h3 className="text-amber-400 font-bold border-b border-border-strong pb-1 mb-2">
-                  {loc.names.pt}
-                </h3>
-                <p className="text-xs text-white/70 leading-relaxed mb-3">
-                  {(loc as any).description ||
-                    (loc as any).theologicalSignificance}
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {loc.references.map((ref) => (
-                    <span
-                      key={ref}
-                      className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-border-subtle text-amber-500/80"
-                    >
-                      {ref}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </EntityDescription>
           </Entity>
         ))}
 
@@ -440,53 +418,6 @@ export default function CesiumGlobe({
                 outlineColor={Cesium.Color.WHITE}
                 outlineWidth={2}
               />
-              <EntityDescription>
-                <div className="p-3 bg-slate-950/90 text-white rounded-xl border border-white/10 shadow-2xl min-w-[280px] backdrop-blur-xl">
-                  <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-2">
-                    <h4 className="text-sm font-bold text-white leading-none">
-                      {find.namePt}
-                    </h4>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 uppercase tracking-widest text-amber-400">
-                      {find.authenticity}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/70 leading-relaxed mb-2">
-                    {find.description}
-                  </p>
-                  <p className="text-xs text-amber-200/90 italic mb-2">
-                    {find.significance}
-                  </p>
-                  <div className="text-[10px] text-white/50 space-y-1 mb-2">
-                    <div>
-                      <strong className="text-white/70">Descoberta:</strong>{" "}
-                      {find.discoverySite}
-                      {find.discoveryYear ? ` (${find.discoveryYear})` : ""}
-                    </div>
-                    {find.currentLocation && (
-                      <div>
-                        <strong className="text-white/70">Acervo:</strong>{" "}
-                        {find.currentLocation}
-                      </div>
-                    )}
-                    {find.period && (
-                      <div>
-                        <strong className="text-white/70">Período:</strong>{" "}
-                        {find.period}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {find.relatedRefs.map((ref) => (
-                      <span
-                        key={ref}
-                        className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-border-subtle text-amber-500/80"
-                      >
-                        {ref}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </EntityDescription>
             </Entity>
           ))}
 
@@ -554,49 +485,6 @@ export default function CesiumGlobe({
                       outlineColor={Cesium.Color.WHITE}
                       outlineWidth={2}
                     />
-                    <EntityDescription>
-                      <div className="p-3 bg-slate-950/90 text-white rounded-xl border border-white/10 shadow-2xl min-w-[280px] backdrop-blur-xl">
-                        <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-2">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 uppercase tracking-widest text-amber-400">
-                            {wp.step}
-                          </span>
-                          <h4 className="text-sm font-bold text-white leading-none">
-                            {wp.title}
-                          </h4>
-                        </div>
-                        <p className="text-xs text-amber-200/90 italic mb-2 leading-relaxed">
-                          &ldquo;{wp.quote}&rdquo;
-                        </p>
-                        <div className="text-[10px] text-white/50 space-y-1">
-                          <div>
-                            <strong className="text-white/70">
-                              Escritura:
-                            </strong>{" "}
-                            {wp.verse}
-                          </div>
-                          <div>
-                            <strong className="text-white/70">
-                              Geografia:
-                            </strong>{" "}
-                            {wp.geo}
-                          </div>
-                          <div>
-                            <strong className="text-white/70">
-                              Arqueologia:
-                            </strong>{" "}
-                            {wp.arch}
-                          </div>
-                          {wp.modelName && (
-                            <div>
-                              <strong className="text-white/70">
-                                Artefato 3D:
-                              </strong>{" "}
-                              {wp.modelName}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </EntityDescription>
                   </Entity>
                 );
               })}
