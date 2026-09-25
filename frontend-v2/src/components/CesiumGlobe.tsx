@@ -193,6 +193,15 @@ function CesiumEventsBridge() {
     let isOrbiting = false;
     let removeTickListener: (() => void) | undefined;
 
+    const stopOrbit = () => {
+      if (isOrbiting) {
+        isOrbiting = false;
+        removeTickListener?.();
+        removeTickListener = undefined;
+        MapAdapter?.events.publish("cameraCommand", { action: "orbitStopped" });
+      }
+    };
+
     const unsubCamera = MapAdapter
       ? MapAdapter.events.subscribe("cameraCommand", (cmd: any) => {
           if (!cmd) return;
@@ -209,7 +218,10 @@ function CesiumEventsBridge() {
               removeTickListener?.();
               removeTickListener = undefined;
             }
+          } else if (cmd.action === "stopOrbit") {
+            stopOrbit();
           } else if (cmd.action === "ground" && cmd.lat && cmd.lng) {
+            stopOrbit();
             viewer.camera.flyTo({
               destination: Cesium.Cartesian3.fromDegrees(
                 cmd.lng,
@@ -224,6 +236,7 @@ function CesiumEventsBridge() {
               duration: 1.8,
             });
           } else if (cmd.action === "aerial" && cmd.lat && cmd.lng) {
+            stopOrbit();
             viewer.camera.flyTo({
               destination: Cesium.Cartesian3.fromDegrees(
                 cmd.lng,
@@ -240,6 +253,21 @@ function CesiumEventsBridge() {
           }
         })
       : () => {};
+
+    // Se o usuário arrastar ou der zoom no mapa manualmente, interrompe a rotação
+    const dragHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    dragHandler.setInputAction(() => {
+      if (isOrbiting) stopOrbit();
+    }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
+    dragHandler.setInputAction(() => {
+      if (isOrbiting) stopOrbit();
+    }, Cesium.ScreenSpaceEventType.RIGHT_DOWN);
+    dragHandler.setInputAction(() => {
+      if (isOrbiting) stopOrbit();
+    }, Cesium.ScreenSpaceEventType.MIDDLE_DOWN);
+    dragHandler.setInputAction(() => {
+      if (isOrbiting) stopOrbit();
+    }, Cesium.ScreenSpaceEventType.WHEEL);
 
     // Cursor pointer ao passar o mouse por cima de entidades (idêntico ao 2.5D)
     const pointerHandler = new Cesium.ScreenSpaceEventHandler(
@@ -263,6 +291,7 @@ function CesiumEventsBridge() {
 
     return () => {
       removeTickListener?.();
+      dragHandler.destroy();
       pointerHandler.destroy();
       removeSelectionListener();
       unsubLocation();

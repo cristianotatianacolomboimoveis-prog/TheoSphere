@@ -243,10 +243,20 @@ export default function TheoSphere3D({
   }, []);
 
   useEffect(() => {
+    if (!MapAdapter) return;
+    return MapAdapter.events.subscribe("cameraCommand", (cmd: any) => {
+      if (cmd?.action === "orbitStopped") {
+        setIsOrbiting(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setSelectedEvent(null);
         setIsOrbiting(false);
+        MapAdapter?.events.publish("cameraCommand", { action: "stopOrbit" });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -923,6 +933,9 @@ export default function TheoSphere3D({
               onClick={() => {
                 setIsOrbiting(false);
                 setSelectedEvent(null);
+                MapAdapter?.events.publish("cameraCommand", {
+                  action: "stopOrbit",
+                });
               }}
               className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md transition-colors"
               title="Fechar (Esc)"
@@ -974,6 +987,7 @@ export default function TheoSphere3D({
             </button>
             <button
               onClick={() => {
+                setIsOrbiting(false);
                 if (selectedEvent.lat && selectedEvent.lng) {
                   MapAdapter?.events.publish("cameraCommand", {
                     action: "ground",
@@ -989,6 +1003,7 @@ export default function TheoSphere3D({
             </button>
             <button
               onClick={() => {
+                setIsOrbiting(false);
                 if (selectedEvent.lat && selectedEvent.lng) {
                   MapAdapter?.events.publish("cameraCommand", {
                     action: "aerial",
