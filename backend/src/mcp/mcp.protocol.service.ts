@@ -332,8 +332,15 @@ export class McpProtocolService {
                 'getRoute',
                 'setEra',
                 'queryLocation',
+                'orbit360',
               ],
               description: 'Navigation action to perform on the 3D map.',
+            },
+            perspective: {
+              type: 'string',
+              enum: ['orbital', 'ground'],
+              description:
+                'Camera altitude perspective: orbital (~25.000m macro/satellite view) or ground (~1.800m - 2.800m immersive terrain view).',
             },
             routeId: {
               type: 'string',
@@ -1112,6 +1119,7 @@ export class McpProtocolService {
         'getRoute',
         'setEra',
         'queryLocation',
+        'orbit360',
       ],
       'action',
     );
@@ -1233,8 +1241,28 @@ export class McpProtocolService {
           );
         }
 
-        const zoom = typeof args.zoom === 'number' ? args.zoom : 12;
-        const pitch = typeof args.pitch === 'number' ? args.pitch : 45;
+        const perspective =
+          args.perspective === 'orbital' || args.perspective === 'ground'
+            ? args.perspective
+            : undefined;
+
+        const altitude =
+          perspective === 'orbital'
+            ? 25000
+            : perspective === 'ground'
+              ? 2200
+              : undefined;
+
+        const defaultPitch =
+          perspective === 'orbital' ? 45 : perspective === 'ground' ? -22 : 45;
+        const zoom =
+          typeof args.zoom === 'number'
+            ? args.zoom
+            : perspective === 'ground'
+              ? 14
+              : 12;
+        const pitch =
+          typeof args.pitch === 'number' ? args.pitch : defaultPitch;
         const bearing = typeof args.bearing === 'number' ? args.bearing : 0;
 
         return {
@@ -1245,10 +1273,90 @@ export class McpProtocolService {
             zoom,
             pitch,
             bearing,
+            altitude,
+            perspective,
             mode,
           },
           locationDetails: matchedLocation,
-          message: `Navegação para '${matchedLocation.name}' [${targetCoords[0]}, ${targetCoords[1]}] concluída.`,
+          message: `Navegação para '${matchedLocation.name}' [${targetCoords[0]}, ${targetCoords[1]}] concluída (${perspective ? `perspectiva ${perspective}` : `zoom ${zoom}`}).`,
+        };
+      }
+
+      case 'orbit360': {
+        let targetCoords: [number, number];
+        let matchedLocation: {
+          name: string;
+          desc?: string;
+          verse?: string;
+          geo?: string;
+          arch?: string;
+        };
+
+        if (Array.isArray(args.coordinates) && args.coordinates.length === 2) {
+          const lat = Number(args.coordinates[0]);
+          const lng = Number(args.coordinates[1]);
+          if (
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lng) ||
+            Math.abs(lat) > 90 ||
+            Math.abs(lng) > 180
+          ) {
+            throw new BadRequestException(
+              'Coordenadas inválidas. Use [latitude, longitude] válidas.',
+            );
+          }
+          targetCoords = [lat, lng];
+          matchedLocation = {
+            name:
+              typeof args.locationName === 'string' && args.locationName.trim()
+                ? args.locationName.trim()
+                : 'Coordenadas Personalizadas',
+          };
+        } else if (
+          typeof args.locationName === 'string' &&
+          args.locationName.trim()
+        ) {
+          const loc = this.resolveLocation(args.locationName.trim());
+          if (loc) {
+            targetCoords = loc.coords;
+            matchedLocation = loc;
+          } else {
+            throw new BadRequestException(
+              `Local bíblico '${args.locationName}' não encontrado no atlas. Forneça coordenadas diretas [lat, lng].`,
+            );
+          }
+        } else {
+          const loc = this.resolveLocation('Monte Sinai') || {
+            name: 'Monte Sinai',
+            coords: [28.539, 33.975] as [number, number],
+            desc: 'Península do Sinai, Egito. Local da entrega da Lei e da sarça ardente.',
+            verse: 'Êxodo 19:20',
+          };
+          targetCoords = loc.coords;
+          matchedLocation = loc;
+        }
+
+        const altitude =
+          typeof args.zoom === 'number'
+            ? Math.max(1000, args.zoom * 200)
+            : 2400;
+        const pitch = typeof args.pitch === 'number' ? args.pitch : -22;
+        const bearing = typeof args.bearing === 'number' ? args.bearing : 0;
+
+        return {
+          action: 'orbit360',
+          targetName: matchedLocation.name,
+          isOrbiting: true,
+          camera: {
+            center: targetCoords,
+            altitude,
+            pitch,
+            bearing,
+            isOrbiting: true,
+            mode: 'cesium3d',
+          },
+          locationDetails: matchedLocation,
+          message: `Órbita 360° contínua ativada sobre '${matchedLocation.name}' [${targetCoords[0]}, ${targetCoords[1]}] em altitude de relevo (${altitude}m).`,
         };
       }
 
@@ -1332,8 +1440,16 @@ export class McpProtocolService {
         normKey.includes(norm) ||
         norm.includes(normKey)
       ) {
+        const formattedName = key
+          .split(' ')
+          .map((w) =>
+            ['da', 'das', 'do', 'dos', 'de'].includes(w)
+              ? w
+              : w.charAt(0).toUpperCase() + w.slice(1),
+          )
+          .join(' ');
         return {
-          name: key.charAt(0).toUpperCase() + key.slice(1),
+          name: formattedName,
           coords: value.coords,
           desc: value.desc,
           verse: value.verse,

@@ -858,5 +858,79 @@ describe('McpProtocolService', () => {
       expect(result.location.coords).toEqual([28.539, 33.975]);
       expect(result.location.verse).toBe('Êxodo 19:20');
     });
+
+    it('navigates camera with flyTo in orbital perspective (~25,000m)', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 108,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'flyTo',
+            locationName: 'Jerusalém',
+            perspective: 'orbital',
+            mode: 'cesium3d',
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('flyTo');
+      expect(result.camera.center).toEqual([31.7767, 35.2345]);
+      expect(result.camera.perspective).toBe('orbital');
+      expect(result.camera.altitude).toBe(25000);
+      expect(result.camera.pitch).toBe(45);
+      expect(result.camera.mode).toBe('cesium3d');
+    });
+
+    it('navigates camera with flyTo in ground perspective (~2,200m)', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 109,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'flyTo',
+            locationName: 'Monte Sinai',
+            perspective: 'ground',
+            mode: 'cesium3d',
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('flyTo');
+      expect(result.camera.center).toEqual([28.539, 33.975]);
+      expect(result.camera.perspective).toBe('ground');
+      expect(result.camera.altitude).toBe(2200);
+      expect(result.camera.pitch).toBe(-22);
+    });
+
+    it('activates 360-degree continuous orbit with orbit360 action', async () => {
+      const response = await service.handle({
+        jsonrpc: '2.0',
+        id: 110,
+        method: 'tools/call',
+        params: {
+          name: 'theosphere_map_navigate',
+          arguments: {
+            action: 'orbit360',
+            locationName: 'Monte Sinai',
+          },
+        },
+      });
+      expect(response?.error).toBeUndefined();
+      const result = (response?.result as any)?.structuredContent;
+      expect(result.action).toBe('orbit360');
+      expect(result.targetName).toBe('Monte Sinai');
+      expect(result.isOrbiting).toBe(true);
+      expect(result.camera.isOrbiting).toBe(true);
+      expect(result.camera.altitude).toBe(2400);
+      expect(result.camera.pitch).toBe(-22);
+      expect(result.camera.mode).toBe('cesium3d');
+      expect(result.message).toContain('Órbita 360° contínua ativada');
+    });
   });
 });
