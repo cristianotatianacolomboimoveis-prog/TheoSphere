@@ -202,22 +202,56 @@ function CesiumEventsBridge() {
       }
     };
 
+    const startOrbit360Tour = () => {
+      if (isOrbiting) {
+        stopOrbit();
+        return;
+      }
+
+      isOrbiting = true;
+      let accumulatedDegrees = 0;
+      let lastTimestamp = performance.now();
+      const targetDegrees = 360;
+      const baseSpeed = 22; // ~22 graus/segundo (duração total: ~18 segundos)
+
+      removeTickListener = viewer.clock.onTick.addEventListener(() => {
+        const now = performance.now();
+        const deltaSeconds = Math.min((now - lastTimestamp) / 1000, 0.1);
+        lastTimestamp = now;
+
+        // Curva cinematográfica: Aceleração inicial suave (Ease-In) e desaceleração final (Ease-Out)
+        let currentSpeed = baseSpeed;
+        if (accumulatedDegrees < 25) {
+          currentSpeed = Math.max(4, baseSpeed * (accumulatedDegrees / 25));
+        } else if (accumulatedDegrees > 315) {
+          const remaining = targetDegrees - accumulatedDegrees;
+          currentSpeed = Math.max(3, baseSpeed * (remaining / 45));
+        }
+
+        let stepDegrees = currentSpeed * deltaSeconds;
+        if (accumulatedDegrees + stepDegrees >= targetDegrees) {
+          stepDegrees = targetDegrees - accumulatedDegrees;
+          accumulatedDegrees = targetDegrees;
+        } else {
+          accumulatedDegrees += stepDegrees;
+        }
+
+        viewer.camera.rotate(
+          Cesium.Cartesian3.UNIT_Z,
+          Cesium.Math.toRadians(stepDegrees),
+        );
+
+        if (accumulatedDegrees >= targetDegrees) {
+          stopOrbit();
+        }
+      });
+    };
+
     const unsubCamera = MapAdapter
       ? MapAdapter.events.subscribe("cameraCommand", (cmd: any) => {
           if (!cmd) return;
           if (cmd.action === "toggleOrbit") {
-            isOrbiting = !isOrbiting;
-            if (isOrbiting) {
-              removeTickListener = viewer.clock.onTick.addEventListener(() => {
-                viewer.camera.rotate(
-                  Cesium.Cartesian3.UNIT_Z,
-                  Cesium.Math.toRadians(0.04),
-                );
-              });
-            } else {
-              removeTickListener?.();
-              removeTickListener = undefined;
-            }
+            startOrbit360Tour();
           } else if (cmd.action === "stopOrbit") {
             stopOrbit();
           } else if (cmd.action === "ground" && cmd.lat && cmd.lng) {

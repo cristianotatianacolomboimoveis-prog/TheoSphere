@@ -980,10 +980,14 @@ export default function TheoSphere3D({
                   ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse"
                   : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
               }`}
-              title="Ativar rotação 360° ao redor do sítio em tempo real"
+              title={
+                isOrbiting
+                  ? "Clique para pausar o giro 360°"
+                  : "Giro completo de 360° ao redor do sítio com parada suave (~18s)"
+              }
             >
               <span>🔄</span>
-              <span>{isOrbiting ? "Orbitando 360°" : "Órbita 360°"}</span>
+              <span>{isOrbiting ? "Giro 360° Ativo" : "Giro 360°"}</span>
             </button>
             <button
               onClick={() => {
