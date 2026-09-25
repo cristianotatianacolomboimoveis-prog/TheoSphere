@@ -110,6 +110,16 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
   - `queryLocation`: consulta metadados geográficos, teológicos e arqueológicos de marcos bíblicos.
 - **Validação:** **335 testes backend** (+8 novos testes cobrindo listagem, navegação, rota e eras), **49 testes frontend**, `static-checks.mjs` com 0 achados, typecheck e build 100% limpos.
 
+22. **Paridade Funcional e Estética Total entre Mapa 2.5D e Globo 3D (2026-09-24):**
+    Unificada a experiência de exploração bíblica, geográfica e arqueológica entre os motores 2.5D (MapLibre/Deck.gl) e 3D (Cesium):
+
+- **Card Flutuante Interativo:** Removida a limitação de exibição exclusiva em tela cheia (`selectedEvent`). O card flutuante premium glassmorphism agora abre tanto no modo normal quanto em tela cheia, posicionado elegantemente em `top-20 left-5` (abaixo do `MapHeader`), sem sobrepor o painel de rotas ou o controlador temporal.
+- **Rótulos de Texto Dinâmicos (3D Labels):** Adicionados `<LabelGraphics>` aos locais bíblicos, achados arqueológicos e waypoints das rotas no Cesium, com contorno escuro legível, posicionamento otimizado e `distanceDisplayCondition` para nitidez impecável sem poluição visual.
+- **Hover Responsivo (Pointer):** Implementado `ScreenSpaceEventHandler` no Cesium canvas que detecta movimento sobre entidades e atualiza instantaneamente o cursor para `pointer`.
+- **Eliminação Definitiva da Caixa Branca do Cesium:** Substituído o iframe nativo instável do Cesium pelo design system TheoSphere (`glass-heavy`), integrando citação teológica, referência bíblica com atalho para o módulo de exegese (`[📖 Estudar na Exegese]`), artefatos 3D e foco de câmera.
+- **Sincronia Dupla:** A seleção de qualquer entidade no globo ou mapa 2.5D sincroniza reativamente o card flutuante sobre o mapa e a barra lateral (`TheoSphereDashboard`).
+- **Validação:** 335 testes backend, 49 testes frontend passando, `static-checks.mjs` limpo (0 achados), typecheck 100% aprovado e capturas Playwright comprovando paridade pixel a pixel.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.

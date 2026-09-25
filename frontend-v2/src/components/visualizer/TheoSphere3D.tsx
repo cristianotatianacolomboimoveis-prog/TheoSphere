@@ -887,9 +887,9 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         onClearAll={clearAllRoutes}
       />
 
-      {/* Floating Event Detail Card (apenas em tela cheia para evitar redundância com a barra lateral) */}
-      {fullscreen && selectedEvent && (
-        <div className="absolute bottom-28 left-6 z-30 w-96 max-w-[calc(100vw-3rem)] glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200">
+      {/* Floating Event Detail Card (exibido tanto no 2.5D quanto no 3D) */}
+      {selectedEvent && (
+        <div className="absolute top-20 left-5 z-30 w-96 max-w-[calc(100vw-3rem)] max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2 mb-1">

@@ -6,6 +6,7 @@ import {
   Entity,
   PointGraphics,
   PolylineGraphics,
+  LabelGraphics,
   useCesium,
 } from "resium";
 import * as Cesium from "cesium";
@@ -163,7 +164,28 @@ function CesiumEventsBridge() {
         })
       : () => {};
 
+    // Cursor pointer ao passar o mouse por cima de entidades (idêntico ao 2.5D)
+    const pointerHandler = new Cesium.ScreenSpaceEventHandler(
+      viewer.scene.canvas,
+    );
+    pointerHandler.setInputAction(
+      (movement: { endPosition: Cesium.Cartesian2 }) => {
+        try {
+          const picked = viewer.scene.pick(movement.endPosition);
+          if (Cesium.defined(picked) && picked?.id instanceof Cesium.Entity) {
+            viewer.canvas.style.cursor = "pointer";
+          } else {
+            viewer.canvas.style.cursor = "default";
+          }
+        } catch {
+          viewer.canvas.style.cursor = "default";
+        }
+      },
+      Cesium.ScreenSpaceEventType.MOUSE_MOVE,
+    );
+
     return () => {
+      pointerHandler.destroy();
       removeSelectionListener();
       unsubLocation();
     };
@@ -382,6 +404,20 @@ export default function CesiumGlobe({
               outlineColor={Cesium.Color.WHITE}
               outlineWidth={2}
             />
+            <LabelGraphics
+              text={loc.names.pt}
+              font="12px Inter, system-ui, sans-serif"
+              fillColor={Cesium.Color.WHITE}
+              outlineColor={Cesium.Color.BLACK}
+              outlineWidth={2}
+              style={Cesium.LabelStyle.FILL_AND_OUTLINE}
+              pixelOffset={new Cesium.Cartesian2(0, -14)}
+              horizontalOrigin={Cesium.HorizontalOrigin.CENTER}
+              verticalOrigin={Cesium.VerticalOrigin.BOTTOM}
+              distanceDisplayCondition={
+                new Cesium.DistanceDisplayCondition(0, 3500000)
+              }
+            />
           </Entity>
         ))}
 
@@ -417,6 +453,20 @@ export default function CesiumGlobe({
                 )}
                 outlineColor={Cesium.Color.WHITE}
                 outlineWidth={2}
+              />
+              <LabelGraphics
+                text={find.namePt}
+                font="11px Inter, system-ui, sans-serif"
+                fillColor={Cesium.Color.fromCssColorString("#fed7aa")}
+                outlineColor={Cesium.Color.BLACK}
+                outlineWidth={2}
+                style={Cesium.LabelStyle.FILL_AND_OUTLINE}
+                pixelOffset={new Cesium.Cartesian2(0, -14)}
+                horizontalOrigin={Cesium.HorizontalOrigin.CENTER}
+                verticalOrigin={Cesium.VerticalOrigin.BOTTOM}
+                distanceDisplayCondition={
+                  new Cesium.DistanceDisplayCondition(0, 2500000)
+                }
               />
             </Entity>
           ))}
@@ -484,6 +534,20 @@ export default function CesiumGlobe({
                       color={cesiumColor}
                       outlineColor={Cesium.Color.WHITE}
                       outlineWidth={2}
+                    />
+                    <LabelGraphics
+                      text={`${wp.step}: ${wp.title}`}
+                      font="bold 12px Inter, system-ui, sans-serif"
+                      fillColor={Cesium.Color.WHITE}
+                      outlineColor={Cesium.Color.BLACK}
+                      outlineWidth={2}
+                      style={Cesium.LabelStyle.FILL_AND_OUTLINE}
+                      pixelOffset={new Cesium.Cartesian2(0, -16)}
+                      horizontalOrigin={Cesium.HorizontalOrigin.CENTER}
+                      verticalOrigin={Cesium.VerticalOrigin.BOTTOM}
+                      distanceDisplayCondition={
+                        new Cesium.DistanceDisplayCondition(0, 4000000)
+                      }
                     />
                   </Entity>
                 );
