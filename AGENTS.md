@@ -11,8 +11,8 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-24**. Repositório limpo, suíte inteira passando
-(**335 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+Última sessão: **2026-09-25**. Repositório limpo, suíte inteira passando
+(**338 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -127,6 +127,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Modo Foco Total (Zero Poluição):** Adicionado botão de toggle no `MapHeader` (`[ ◨ Foco Total ]` / `[ Modo Imersão Ativo ]`) com recolhimento suave da barra lateral de 350px e minimização automática do painel de rotas para liberar 100% da tela para o relevo bíblico.
 - **Ficha de Campo com Fotografia Real de Alta Resolução:** Banner panorâmico do sítio arqueológico/geográfico (Monte Sinai, Jerusalém, Cafarnaum, Babilônia, Belém, etc.) integrado a dados de terreno, citação bíblica e botão `[📖 Estudar na Exegese]`.
 - **Validação:** 335 testes backend, 49 testes frontend passando, `static-checks.mjs` com 0 achados, typecheck 100% aprovado e capturas Playwright comprovando a imersão.
+
+24. **Navegação Orbital e Órbita 360° via MCP no Atlas 3D (2026-09-25):**
+    Expandida a ferramenta governada `theosphere_map_navigate` com perspectiva macro e rotação angular contínua:
+
+- **Perspectiva Orbital (`perspective: 'orbital'`):** Posiciona a câmera em altitude macro (~25.000m) e pitch de 45° para visualização por satélite em alta escala do relevo geográfico regional.
+- **Órbita 360° Contínua (`action: 'orbit360'`):** Ativa rotação 360° ininterrupta da câmera em tempo real ao redor do marco geográfico (altitude 2.400m e pitch -22°).
+- **Validação:** **338 testes backend** (38 specs aprovados com +3 novos testes cobrindo perspectiva orbital e órbita 360°), **49 testes frontend**, `npm run verificar` 100% verde, `static-checks.mjs` com 0 achados, typecheck com 0 erros.
 
 **Próximos passos:**
 
