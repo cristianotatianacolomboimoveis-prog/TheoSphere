@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { Box, Globe, Minimize2, Maximize2, X } from "lucide-react";
+import {
+  Box,
+  Globe,
+  Minimize2,
+  Maximize2,
+  X,
+  PanelRightClose,
+} from "lucide-react";
 
 interface MapHeaderProps {
   mapMode: "satellite" | "vector";
@@ -10,6 +17,8 @@ interface MapHeaderProps {
   onToggleMapMode: () => void;
   onToggleCesium: () => void;
   onToggleFullscreen: () => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
   onClose?: () => void;
 }
 
@@ -20,6 +29,8 @@ export function MapHeader({
   onToggleMapMode,
   onToggleCesium,
   onToggleFullscreen,
+  isSidebarOpen,
+  onToggleSidebar,
   onClose,
 }: MapHeaderProps) {
   return (
@@ -90,6 +101,31 @@ export function MapHeader({
       </div>
 
       <div className="flex gap-2">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className={`p-2.5 px-3 rounded-xl border backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg select-none ${
+              !isSidebarOpen
+                ? "bg-blue-600/40 text-blue-200 border-blue-400/50 hover:bg-blue-600/60"
+                : "bg-white/5 hover:bg-white/10 text-white/70 border-white/10"
+            }`}
+            title={
+              isSidebarOpen
+                ? "Ocultar Painel Lateral (Modo Imersão / Foco Total na Terra)"
+                : "Mostrar Painel Lateral (Notas e Bíblia)"
+            }
+          >
+            <PanelRightClose
+              className={`w-4 h-4 transition-transform duration-300 ${
+                !isSidebarOpen ? "rotate-180 text-blue-400" : ""
+              }`}
+            />
+            <span className="text-xs font-bold hidden sm:inline">
+              {!isSidebarOpen ? "Modo Imersão Ativo" : "Foco Total"}
+            </span>
+          </button>
+        )}
+
         <button
           onClick={onToggleFullscreen}
           className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/50 border border-white/10 backdrop-blur-md"

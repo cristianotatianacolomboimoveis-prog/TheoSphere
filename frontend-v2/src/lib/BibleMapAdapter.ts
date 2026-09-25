@@ -11,7 +11,8 @@ export type MapEventType =
   | "onLocationSelected"
   | "onRegionChanged"
   | "onMapReady"
-  | "onError";
+  | "onError"
+  | "cameraCommand";
 export type MapCommandType = "flyTo" | "updateTimeline" | "filterLayers";
 
 export interface MapEventData {

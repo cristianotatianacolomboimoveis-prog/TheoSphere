@@ -183,7 +183,15 @@ function DeckGLOverlay(props: any) {
   return null;
 }
 
-export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
+export default function TheoSphere3D({
+  onClose,
+  isSidebarOpen,
+  onToggleSidebar,
+}: {
+  onClose?: () => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+}) {
   const [viewState, setViewState] = useState<ViewState>({
     longitude: 35.2137,
     latitude: 31.7683,
@@ -199,6 +207,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   const [mapMode, setMapMode] = useState<"satellite" | "vector">("satellite");
   const [useCesium, setUseCesium] = useState(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isOrbiting, setIsOrbiting] = useState(false);
 
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
@@ -216,6 +225,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     geo?: string;
     arch?: string;
     modelName?: string;
+    img?: string;
     lat?: number;
     lng?: number;
     era?: number;
@@ -224,7 +234,10 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
   useEffect(() => {
     if (MapAdapter) {
       return MapAdapter.events.subscribe("onLocationSelected", (evt: any) => {
-        if (evt) setSelectedEvent(evt);
+        if (evt) {
+          setSelectedEvent(evt);
+          setIsLegendExpanded(false); // Fecha o painel de rotas para dar visão ampla do relevo
+        }
       });
     }
   }, []);
@@ -233,6 +246,7 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setSelectedEvent(null);
+        setIsOrbiting(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -742,6 +756,8 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         }
         onToggleCesium={() => setUseCesium(!useCesium)}
         onToggleFullscreen={() => setFullscreen(!fullscreen)}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={onToggleSidebar}
         onClose={onClose}
       />
 
@@ -887,43 +903,115 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
         onClearAll={clearAllRoutes}
       />
 
-      {/* Floating Event Detail Card (exibido tanto no 2.5D quanto no 3D) */}
+      {/* Ficha de Campo Imersiva (Estilo National Geographic / Voyager) */}
       {selectedEvent && (
-        <div className="absolute top-20 left-5 z-30 w-96 max-w-[calc(100vw-3rem)] max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar glass-heavy rounded-2xl border border-white/10 shadow-2xl p-5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  {selectedEvent.step ||
-                    selectedEvent.category ||
-                    "Evento Bíblico"}
-                </span>
-                {selectedEvent.era !== undefined && (
-                  <span className="text-[10px] font-bold text-slate-400">
-                    {selectedEvent.era < 0
-                      ? `${Math.abs(selectedEvent.era)} a.C.`
-                      : `${selectedEvent.era} d.C.`}
-                  </span>
-                )}
-              </div>
-              <h3 className="text-base font-black text-white leading-snug">
-                {selectedEvent.name}
-              </h3>
-            </div>
+        <div className="absolute top-20 left-5 z-30 w-96 max-w-[calc(100vw-3rem)] max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar glass-heavy rounded-2xl border border-white/10 shadow-2xl p-4 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200 select-none">
+          {/* Banner Fotográfico Panorâmico do Sítio Histórico */}
+          <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 border border-white/10 shadow-lg group bg-slate-900">
+            <img
+              src={
+                selectedEvent.img ||
+                "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1000&q=80"
+              }
+              alt={selectedEvent.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+
+            {/* Botão Fechar no topo da foto */}
             <button
-              onClick={() => setSelectedEvent(null)}
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              onClick={() => {
+                setIsOrbiting(false);
+                setSelectedEvent(null);
+              }}
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md transition-colors"
+              title="Fechar (Esc)"
             >
               <X className="w-4 h-4" />
             </button>
+
+            {/* Badges e Título sobre a foto */}
+            <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/80 text-white shadow-md">
+                  {selectedEvent.step ||
+                    selectedEvent.category ||
+                    "Sítio Histórico"}
+                </span>
+                <h3 className="text-base font-black text-white mt-1 drop-shadow-md leading-tight">
+                  {selectedEvent.name}
+                </h3>
+              </div>
+              {selectedEvent.era !== undefined && (
+                <span className="text-[10px] font-extrabold text-amber-400 bg-black/70 px-2 py-0.5 rounded-md backdrop-blur-md whitespace-nowrap">
+                  {selectedEvent.era < 0
+                    ? `${Math.abs(selectedEvent.era)} a.C.`
+                    : `${selectedEvent.era} d.C.`}
+                </span>
+              )}
+            </div>
           </div>
 
+          {/* Barra de Controle de Câmera Cinematográfica */}
+          <div className="flex items-center gap-1.5 mb-3 bg-white/[0.04] p-1.5 rounded-xl border border-white/10">
+            <button
+              onClick={() => {
+                const nextState = !isOrbiting;
+                setIsOrbiting(nextState);
+                MapAdapter?.events.publish("cameraCommand", {
+                  action: "toggleOrbit",
+                });
+              }}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                isOrbiting
+                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse"
+                  : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
+              }`}
+              title="Ativar rotação 360° ao redor do sítio em tempo real"
+            >
+              <span>🔄</span>
+              <span>{isOrbiting ? "Orbitando 360°" : "Órbita 360°"}</span>
+            </button>
+            <button
+              onClick={() => {
+                if (selectedEvent.lat && selectedEvent.lng) {
+                  MapAdapter?.events.publish("cameraCommand", {
+                    action: "ground",
+                    lat: selectedEvent.lat,
+                    lng: selectedEvent.lng,
+                  });
+                }
+              }}
+              className="flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all"
+              title="Aproximação rente ao solo para visualizar as montanhas contra o horizonte"
+            >
+              <span>🏔️</span> Vista Solo
+            </button>
+            <button
+              onClick={() => {
+                if (selectedEvent.lat && selectedEvent.lng) {
+                  MapAdapter?.events.publish("cameraCommand", {
+                    action: "aerial",
+                    lat: selectedEvent.lat,
+                    lng: selectedEvent.lng,
+                  });
+                }
+              }}
+              className="flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all"
+              title="Visão aérea orbital macro"
+            >
+              <span>🛰️</span> Orbital
+            </button>
+          </div>
+
+          {/* Citação Bíblica e Teológica */}
           {selectedEvent.quote && (
             <blockquote className="text-xs italic text-amber-200/90 bg-amber-500/10 border-l-2 border-amber-400 p-2.5 rounded-r-lg mb-3 leading-relaxed">
               &ldquo;{selectedEvent.quote}&rdquo;
             </blockquote>
           )}
 
+          {/* Versículo Canônico */}
           {selectedEvent.verse && (
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
@@ -932,12 +1020,14 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
             </div>
           )}
 
+          {/* Descrição Histórico-Exegética */}
           {selectedEvent.description && (
             <p className="text-xs text-slate-300 leading-relaxed mb-3 line-clamp-4">
               {selectedEvent.description.replace(/\*\*/g, "").replace(/_/g, "")}
             </p>
           )}
 
+          {/* Dados de Terreno e Arqueologia */}
           {(selectedEvent.geo ||
             selectedEvent.arch ||
             selectedEvent.modelName) && (
@@ -956,13 +1046,16 @@ export default function TheoSphere3D({ onClose }: { onClose?: () => void }) {
               )}
               {selectedEvent.modelName && (
                 <div>
-                  <strong className="text-slate-200">🗿 Modelo 3D:</strong>{" "}
+                  <strong className="text-slate-200">
+                    🗿 Reconstituição 3D:
+                  </strong>{" "}
                   {selectedEvent.modelName}
                 </div>
               )}
             </div>
           )}
 
+          {/* Rodapé de Ações */}
           <div className="flex items-center gap-2 pt-2 border-t border-white/10">
             {selectedEvent.verse && (
               <button

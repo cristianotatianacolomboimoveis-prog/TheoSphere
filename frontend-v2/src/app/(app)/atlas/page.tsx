@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
@@ -24,12 +25,26 @@ const TheoSphereDashboard = dynamic(
 );
 
 export default function AtlasPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      <div className="flex-grow relative h-full">
-        <TheoSphere3D />
+    <div className="flex h-full w-full overflow-hidden relative">
+      <div className="flex-grow relative h-full transition-all duration-300">
+        <TheoSphere3D
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        />
       </div>
-      <TheoSphereDashboard />
+
+      <div
+        className={`h-full transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 ${
+          isSidebarOpen
+            ? "w-[350px] opacity-100"
+            : "w-0 opacity-0 pointer-events-none"
+        }`}
+      >
+        <TheoSphereDashboard />
+      </div>
     </div>
   );
 }

@@ -118,7 +118,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Hover Responsivo (Pointer):** Implementado `ScreenSpaceEventHandler` no Cesium canvas que detecta movimento sobre entidades e atualiza instantaneamente o cursor para `pointer`.
 - **Eliminação Definitiva da Caixa Branca do Cesium:** Substituído o iframe nativo instável do Cesium pelo design system TheoSphere (`glass-heavy`), integrando citação teológica, referência bíblica com atalho para o módulo de exegese (`[📖 Estudar na Exegese]`), artefatos 3D e foco de câmera.
 - **Sincronia Dupla:** A seleção de qualquer entidade no globo ou mapa 2.5D sincroniza reativamente o card flutuante sobre o mapa e a barra lateral (`TheoSphereDashboard`).
-- **Validação:** 335 testes backend, 49 testes frontend passando, `static-checks.mjs` limpo (0 achados), typecheck 100% aprovado e capturas Playwright comprovando paridade pixel a pixel.
+
+23. **Modo Imersão Real — Padrão National Geographic / Voyager no Atlas 3D (2026-09-24):**
+    Construída a experiência imersiva de campo histórico-geográfico para visualização de sítios bíblicos em primeira pessoa:
+
+- **Voo Cinematográfico Rente ao Relevo:** Substituída a altitude estática de 45.000m por voo dinâmico de solo (1.800m a 2.800m) com inclinação de horizonte (`pitch: -22°`) para visualização tridimensional de montanhas, vales e escarpas contra o céu atmosférico.
+- **Órbita 360° Contínua:** Implementada rotação contínua da câmera ao redor do local histórico (`cameraCommand: toggleOrbit`), com botão interativo pulsante verde esmeralda na Ficha de Campo.
+- **Modo Foco Total (Zero Poluição):** Adicionado botão de toggle no `MapHeader` (`[ ◨ Foco Total ]` / `[ Modo Imersão Ativo ]`) com recolhimento suave da barra lateral de 350px e minimização automática do painel de rotas para liberar 100% da tela para o relevo bíblico.
+- **Ficha de Campo com Fotografia Real de Alta Resolução:** Banner panorâmico do sítio arqueológico/geográfico (Monte Sinai, Jerusalém, Cafarnaum, Babilônia, Belém, etc.) integrado a dados de terreno, citação bíblica e botão `[📖 Estudar na Exegese]`.
+- **Validação:** 335 testes backend, 49 testes frontend passando, `static-checks.mjs` com 0 achados, typecheck 100% aprovado e capturas Playwright comprovando a imersão.
 
 **Próximos passos:**
 

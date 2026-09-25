@@ -82,6 +82,20 @@ const ARCH_COLORS: Record<string, string> = {
   disputada: "#94a3b8", // slate
 };
 
+const HISTORICAL_SITE_IMAGES: Record<string, string> = {
+  "monte-sinai":
+    "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1200&q=80",
+  jerusalem:
+    "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=1200&q=80",
+  babilonia:
+    "https://images.unsplash.com/photo-1608958416629-106ab0e5c9b7?auto=format&fit=crop&w=1200&q=80",
+  belem:
+    "https://images.unsplash.com/photo-1547124220-405bbfd84f5c?auto=format&fit=crop&w=1200&q=80",
+  "rio-jordao":
+    "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80",
+  roma: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80",
+};
+
 function CesiumEventsBridge() {
   const { viewer } = useCesium();
 
@@ -119,9 +133,16 @@ function CesiumEventsBridge() {
           const era = getVal("era");
           const lat = getVal("lat");
           const lng = getVal("lng");
+          const img =
+            getVal("img") ||
+            (entity.id ? HISTORICAL_SITE_IMAGES[entity.id] : undefined) ||
+            (category === "archaeological_site"
+              ? "https://images.unsplash.com/photo-1609198092458-38a293c7ac4b?auto=format&fit=crop&w=1200&q=80"
+              : undefined);
 
           if (MapAdapter) {
             MapAdapter.events.publish("onLocationSelected", {
+              id: entity.id,
               name,
               step,
               quote,
@@ -134,32 +155,88 @@ function CesiumEventsBridge() {
               era,
               lat,
               lng,
+              img,
             });
           }
         },
       );
 
-    // Escuta comandos de voo do MapAdapter (MCP e UI)
+    // Escuta comandos de voo do MapAdapter (MCP e UI) — perspectiva de solo rente ao relevo
     const unsubLocation = MapAdapter
       ? MapAdapter.events.subscribe("onLocationSelected", (evt: any) => {
           if (evt?.lat != null && evt?.lng != null) {
             try {
+              // Altitude cinematográfica rente ao solo para visualizar as montanhas contra o horizonte
+              const altitude =
+                evt.altitude || (evt.category === "mountain" ? 2800 : 2000);
               viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(
                   evt.lng,
                   evt.lat,
-                  45000,
+                  altitude,
                 ),
                 orientation: {
-                  heading: Cesium.Math.toRadians(0),
-                  pitch: Cesium.Math.toRadians(-45),
+                  heading: Cesium.Math.toRadians(20),
+                  pitch: Cesium.Math.toRadians(-22),
                   roll: 0.0,
                 },
-                duration: 1.8,
+                duration: 2.2,
               });
             } catch (e) {
               logger.warn("[CesiumGlobe] Erro no flyTo de entidade:", e);
             }
+          }
+        })
+      : () => {};
+
+    // Comandos avançados de câmera: Órbita 360°, Perspectiva de Solo e Vista Orbital
+    let isOrbiting = false;
+    let removeTickListener: (() => void) | undefined;
+
+    const unsubCamera = MapAdapter
+      ? MapAdapter.events.subscribe("cameraCommand", (cmd: any) => {
+          if (!cmd) return;
+          if (cmd.action === "toggleOrbit") {
+            isOrbiting = !isOrbiting;
+            if (isOrbiting) {
+              removeTickListener = viewer.clock.onTick.addEventListener(() => {
+                viewer.camera.rotate(
+                  Cesium.Cartesian3.UNIT_Z,
+                  Cesium.Math.toRadians(0.04),
+                );
+              });
+            } else {
+              removeTickListener?.();
+              removeTickListener = undefined;
+            }
+          } else if (cmd.action === "ground" && cmd.lat && cmd.lng) {
+            viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(
+                cmd.lng,
+                cmd.lat,
+                1800,
+              ),
+              orientation: {
+                heading: Cesium.Math.toRadians(15),
+                pitch: Cesium.Math.toRadians(-18),
+                roll: 0.0,
+              },
+              duration: 1.8,
+            });
+          } else if (cmd.action === "aerial" && cmd.lat && cmd.lng) {
+            viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(
+                cmd.lng,
+                cmd.lat,
+                25000,
+              ),
+              orientation: {
+                heading: 0,
+                pitch: Cesium.Math.toRadians(-45),
+                roll: 0.0,
+              },
+              duration: 2.0,
+            });
           }
         })
       : () => {};
@@ -185,9 +262,11 @@ function CesiumEventsBridge() {
     );
 
     return () => {
+      removeTickListener?.();
       pointerHandler.destroy();
       removeSelectionListener();
       unsubLocation();
+      unsubCamera();
     };
   }, [viewer]);
 
@@ -526,6 +605,7 @@ export default function CesiumGlobe({
                         category: "waypoint",
                         lat: wp.coords[0],
                         lng: wp.coords[1],
+                        img: wp.img,
                       })
                     }
                   >
