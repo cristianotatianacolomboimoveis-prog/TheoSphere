@@ -74,8 +74,8 @@ export function useTextComparison(
       setError(null);
       try {
         const queryParams = new URLSearchParams({
-          base: baseTranslation,
-          translations: translationsKey,
+          base: (baseTranslation || "BLIVRE").toUpperCase(),
+          translations: translationsKey.toUpperCase(),
         });
 
         if (verse) {
@@ -95,7 +95,10 @@ export function useTextComparison(
         } else {
           setError("Não foi possível carregar a comparação de versões.");
         }
-      } catch {
+      } catch (err: any) {
+        if (controller.signal.aborted || err?.name === "AbortError") {
+          return;
+        }
         setError("Erro de rede ao buscar comparação de versões.");
       } finally {
         setLoading(false);

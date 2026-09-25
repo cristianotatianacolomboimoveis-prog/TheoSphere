@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { api } from "@/lib/api";
 
 export type GospelKey = "matthew" | "mark" | "luke" | "john";
 
@@ -70,9 +71,6 @@ export interface GospelSynopsisDetail {
   agreementMatrix: SynopsisAgreementPair[];
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://theosphere.onrender.com";
-
 export function useGospelSynopsis(
   initialBookId?: number,
   initialChapter?: number,
@@ -96,10 +94,13 @@ export function useGospelSynopsis(
   // 1. Carrega lista de perícopas catalogadas
   const loadPericopes = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/synopsis/pericopes`);
-      if (!res.ok) throw new Error(`Falha HTTP: ${res.status}`);
-      const json = await res.json();
-      setPericopes(json.pericopes || []);
+      const json = await api.get<{ pericopes: PericopeItem[] }>(
+        "/synopsis/pericopes",
+        { throwOnError: false },
+      );
+      if (json?.pericopes) {
+        setPericopes(json.pericopes);
+      }
     } catch (err) {
       console.warn(
         "[useGospelSynopsis] Erro ao buscar lista de perícopas:",
@@ -124,10 +125,11 @@ export function useGospelSynopsis(
       initialChapter
     ) {
       const timer = setTimeout(() => {
-        fetch(
-          `${API_BASE_URL}/api/v1/synopsis/find?bookId=${initialBookId}&chapter=${initialChapter}`,
-        )
-          .then((res) => (res.ok ? res.json() : null))
+        api
+          .get<any>(
+            `/synopsis/find?bookId=${initialBookId}&chapter=${initialChapter}`,
+            { throwOnError: false },
+          )
           .then((data) => {
             if (data?.found && data.pericope?.id) {
               setSelectedPericopeId(data.pericope.id);
@@ -145,15 +147,11 @@ export function useGospelSynopsis(
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/v1/synopsis/pericopes/${selectedPericopeId}?translation=${encodeURIComponent(
+      const json = await api.get<GospelSynopsisDetail>(
+        `/synopsis/pericopes/${selectedPericopeId}?translation=${encodeURIComponent(
           translation,
         )}&base=${baseGospel}`,
       );
-      if (!res.ok) {
-        throw new Error(`Erro ao carregar sinopse: status ${res.status}`);
-      }
-      const json: GospelSynopsisDetail = await res.json();
       setSynopsisData(json);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
 
 export type ConstructLanguage = "greek" | "hebrew";
 export type ConstructDistance = "adjacent" | "within_3" | "same_verse";
@@ -57,9 +58,6 @@ export interface ConstructSearchResult {
   executionTimeMs: number;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://theosphere.onrender.com";
-
 export function useConstructSearch() {
   const [presets, setPresets] = useState<ConstructPreset[]>([]);
   const [language, setLanguage] = useState<ConstructLanguage>("greek");
@@ -86,13 +84,11 @@ export function useConstructSearch() {
   // 1. Carrega presets
   const loadPresets = useCallback(async () => {
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/v1/construct-search/presets`,
+      const json = await api.get<{ presets: ConstructPreset[] }>(
+        "/construct-search/presets",
+        { throwOnError: false },
       );
-      if (!res.ok)
-        throw new Error(`Falha HTTP ao carregar presets: ${res.status}`);
-      const json = await res.json();
-      setPresets(json.presets || []);
+      setPresets(json?.presets || []);
     } catch (err) {
       console.warn("[useConstructSearch] Erro ao carregar presets:", err);
     }
@@ -146,21 +142,14 @@ export function useConstructSearch() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/construct-search/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await api.post<ConstructSearchResult>(
+        "/construct-search/query",
+        {
           language,
           blocks,
           distance,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Erro na busca sintática: status ${res.status}`);
-      }
-
-      const json: ConstructSearchResult = await res.json();
+        },
+      );
       setResults(json);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

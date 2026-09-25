@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { api } from "@/lib/api";
 
 export type TimelineEraKey =
   | "creation_patriarchs"
@@ -54,9 +55,6 @@ export interface TimelineEraDefinition {
   description: string;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://theosphere.onrender.com";
-
 export function useBiblicalTimeline(
   currentBookId?: number,
   currentChapter?: number,
@@ -76,11 +74,11 @@ export function useBiblicalTimeline(
   // 1. Carrega as Eras bíblicas
   const loadEras = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/timeline/eras`);
-      if (!res.ok)
-        throw new Error(`Falha HTTP ao carregar eras: ${res.status}`);
-      const json = await res.json();
-      setEras(json.eras || []);
+      const json = await api.get<{ eras: TimelineEraDefinition[] }>(
+        "/timeline/eras",
+        { throwOnError: false },
+      );
+      setEras(json?.eras || []);
     } catch (err) {
       console.warn("[useBiblicalTimeline] Erro ao carregar eras:", err);
     }
@@ -104,12 +102,10 @@ export function useBiblicalTimeline(
         params.set("category", selectedCategory);
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
 
-      const url = `${API_BASE_URL}/api/v1/timeline/events?${params.toString()}`;
-      const res = await fetch(url);
-      if (!res.ok)
-        throw new Error(`Falha ao buscar eventos: status ${res.status}`);
-      const json = await res.json();
-      const list: TimelineEventItem[] = json.events || [];
+      const json = await api.get<{ events: TimelineEventItem[] }>(
+        `/timeline/events?${params.toString()}`,
+      );
+      const list: TimelineEventItem[] = json?.events || [];
       setEvents(list);
       if (list.length > 0 && !selectedEvent) {
         setSelectedEvent(list[0]);
@@ -136,11 +132,13 @@ export function useBiblicalTimeline(
         setPassageEvents([]);
         return;
       }
-      const url = `${API_BASE_URL}/api/v1/timeline/for-passage?bookId=${currentBookId}${
-        currentChapter ? `&chapter=${currentChapter}` : ""
-      }`;
-      fetch(url)
-        .then((res) => (res.ok ? res.json() : null))
+      api
+        .get<{ events: TimelineEventItem[] }>(
+          `/timeline/for-passage?bookId=${currentBookId}${
+            currentChapter ? `&chapter=${currentChapter}` : ""
+          }`,
+          { throwOnError: false },
+        )
         .then((data) => {
           if (data?.events) {
             setPassageEvents(data.events);
