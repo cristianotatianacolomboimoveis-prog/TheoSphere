@@ -39,7 +39,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   }, []);
 
   return (
-    <div className="relative h-11 bg-white/80 dark:bg-[#090C12]/85 backdrop-blur-xl border-b border-gray-200 dark:border-white/8 flex items-center px-4 md:px-5 pl-14 gap-2 md:gap-4 z-[60] shadow-sm transition-colors">
+    <div className="relative h-11 bg-white/80 dark:bg-[#090C12]/85 backdrop-blur-xl border-b border-gray-200 dark:border-white/8 flex items-center pl-14 md:pl-5 px-4 md:px-5 gap-2 md:gap-4 z-[60] shadow-sm transition-colors">
       {/* Logos Icon / Menu (hidden on mobile — hamburger is in Sidebar) */}
       <button
         onClick={() => setActiveTool("dashboard")}

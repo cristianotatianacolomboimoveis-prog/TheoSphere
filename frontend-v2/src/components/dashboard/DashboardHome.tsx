@@ -41,21 +41,27 @@ function greeting(): string {
 /** Estatísticas reais da plataforma (conteúdo efetivamente no banco). */
 const PLATFORM_STATS = [
   {
-    label: "Traduções",
-    value: "7",
-    color: "bg-amber-500/10 text-amber-600",
+    label: "Obras Teológicas",
+    value: "89",
+    color: "bg-amber-500/10 text-amber-500",
     border: "border-amber-500/20",
   },
   {
-    label: "Palavras interlineares",
-    value: "425 mil",
-    color: "bg-blue-500/10 text-blue-600",
+    label: "Chunks Indexados",
+    value: "45.092",
+    color: "bg-blue-500/10 text-blue-500",
     border: "border-blue-500/20",
   },
   {
-    label: "Descobertas arqueológicas",
+    label: "Traduções Canônicas",
+    value: "7",
+    color: "bg-purple-500/10 text-purple-400",
+    border: "border-purple-500/20",
+  },
+  {
+    label: "Achados Arqueológicos",
     value: "102",
-    color: "bg-emerald-500/10 text-emerald-600",
+    color: "bg-emerald-500/10 text-emerald-500",
     border: "border-emerald-500/20",
   },
 ];
@@ -190,7 +196,7 @@ export default function DashboardHome() {
               subtitle="Conteúdo de licença livre, disponível a todos"
               className="md:col-span-2"
             >
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                 {PLATFORM_STATS.map((stat) => (
                   <div
                     key={stat.label}

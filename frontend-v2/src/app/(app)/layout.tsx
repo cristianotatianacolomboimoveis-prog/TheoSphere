@@ -97,6 +97,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (pathname === "/login") {
+    return (
+      <main className="w-full min-h-screen overflow-auto bg-[#080B11]">
+        {children}
+      </main>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden bg-[#DDE2E8] dark:bg-[#0A0D14] text-foreground font-sans">
       <TheoSphereTopBar onOpenAuth={() => setAuthOpen(true)} />
