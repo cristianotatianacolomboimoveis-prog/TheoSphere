@@ -55,18 +55,19 @@ export default function LoginPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [videoProgress, setVideoProgress] = useState(38);
   const [activeSubtitle, setActiveSubtitle] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Subtitles sequence simulating live AI exegesis presentation
+  // Subtitles sequence simulating live exegesis presentation with Israel footage
   const subtitles = [
-    "fazer, mas olha, essas notas exegéticas são extraordinárias. Impossível pesquisar sem o Theo.",
-    "TheoSphere Copilot: Conectando Códice de Leningrado com 45.114 chunks de comentários clássicos...",
-    "Identificadas 3 variantes léxicas no Textus Receptus. Similaridade de 99.4% estabelecida.",
-    "Plotando coordenadas históricas de Cafarnaum e Nazaré no Relevo 3D de alta precisão...",
-    "Síntese hermenêutica concluída com equilíbrio ecumênico entre Reforma e Patrística.",
+    "Jerusalém: sobrevoo exegético sobre a Cidade Antiga, Muro Ocidental e Monte das Oliveiras...",
+    "TheoSphere Copilot: Conectando sítios bíblicos de Israel com 45.114 chunks de comentários clássicos...",
+    "Mapeando contexto histórico de Cafarnaum e Nazaré com relevo 3D de alta precisão arqueológica...",
+    "Identificadas 3 variantes léxicas no Textus Receptus e Códice de Alepo...",
+    "Síntese hermenêutica concluída com precisão geográfica e teológica em tempo real.",
   ];
 
   // Rotate subtitles
@@ -559,32 +560,75 @@ export default function LoginPage() {
                 <div className="w-6 h-6 rounded-md bg-sky-500/80 backdrop-blur-md flex items-center justify-center font-bold text-xs text-white shadow-xs">
                   T
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-slate-300 backdrop-blur-md">
-                  STUDIO LIVE
+                <span className="px-2 py-0.5 rounded-full bg-black/70 border border-white/10 text-[10px] font-mono text-emerald-400 font-semibold backdrop-blur-md flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ISRAEL • JERUSALÉM // AO VIVO
                 </span>
               </div>
 
               {/* Top Right Live Badge */}
-              <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/80 border border-red-400/30 text-[10px] font-mono text-white backdrop-blur-md">
+              <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/85 border border-red-400/40 text-[10px] font-mono text-white backdrop-blur-md shadow-lg">
                 <Radio className="w-3 h-3 animate-pulse" />
                 <span>AO VIVO</span>
               </div>
 
-              {/* Main Visual: Interactive Canvas Video Simulation */}
-              <div className="relative aspect-[16/9] w-full bg-black flex items-center justify-center">
-                <canvas
-                  ref={canvasRef}
-                  width={640}
-                  height={360}
+              {/* Main Visual: Real High-Definition Video of Israel (Jerusalem) */}
+              <div className="relative aspect-[16/9] w-full bg-black flex items-center justify-center overflow-hidden">
+                <video
+                  ref={videoRef}
+                  src="/assets/videos/israel_jerusalem.webm"
+                  autoPlay
+                  loop
+                  muted={isMuted}
+                  playsInline
                   className="w-full h-full object-cover"
+                  onTimeUpdate={() => {
+                    if (videoRef.current) {
+                      const cur = videoRef.current.currentTime;
+                      const dur = videoRef.current.duration || 1;
+                      setVideoProgress((cur / dur) * 100);
+                    }
+                  }}
                 />
 
+                {/* Subtle Cinematic CRT Scanlines & Video Lens Vignette */}
+                <div className="absolute inset-0 bg-radial from-transparent via-black/10 to-black/50 pointer-events-none" />
+                <div
+                  className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(0deg, #000, #000 1px, transparent 1px, transparent 3px)",
+                  }}
+                />
+
+                {/* Live Camera Location HUD */}
+                <div className="absolute top-11 left-3.5 z-20 flex flex-col gap-0.5 pointer-events-none">
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-400 font-bold bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">
+                    TORRE DE DAVI & CIDADE ANTIGA
+                  </span>
+                  <span className="text-[8px] font-mono text-slate-300 bg-black/50 px-1.5 py-0.5 rounded backdrop-blur-xs w-fit">
+                    COORD: 31.7767° N, 35.2345° E • 785m ALT
+                  </span>
+                </div>
+
                 {/* Video Play/Pause Overlay on Hover */}
-                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 z-20 pointer-events-none">
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 z-20 pointer-events-none">
                   <button
                     type="button"
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="p-3.5 rounded-full bg-black/70 hover:bg-sky-500 text-white backdrop-blur-md transition-all shadow-xl pointer-events-auto cursor-pointer"
+                    onClick={() => {
+                      if (videoRef.current) {
+                        if (isPlaying) {
+                          videoRef.current.pause();
+                          setIsPlaying(false);
+                        } else {
+                          void videoRef.current.play();
+                          setIsPlaying(true);
+                        }
+                      } else {
+                        setIsPlaying(!isPlaying);
+                      }
+                    }}
+                    className="p-3.5 rounded-full bg-black/80 hover:bg-sky-500 text-white backdrop-blur-md transition-all shadow-xl pointer-events-auto cursor-pointer"
                   >
                     {isPlaying ? (
                       <Pause className="w-5 h-5" />
@@ -596,7 +640,7 @@ export default function LoginPage() {
 
                 {/* Subtitles Overlay Bar (Exact Kenlo aesthetic: black pill with live subtitles) */}
                 <div className="absolute bottom-9 left-4 right-4 z-20 flex justify-center pointer-events-none">
-                  <div className="max-w-md px-3.5 py-1.5 rounded-lg bg-black/75 border border-white/10 backdrop-blur-md text-[11px] sm:text-xs text-slate-200 text-center font-sans tracking-wide leading-snug shadow-xl transition-all duration-300 animate-in fade-in">
+                  <div className="max-w-md px-3.5 py-1.5 rounded-lg bg-black/80 border border-white/10 backdrop-blur-md text-[11px] sm:text-xs text-slate-200 text-center font-sans tracking-wide leading-snug shadow-xl transition-all duration-300 animate-in fade-in">
                     {subtitles[activeSubtitle]}
                   </div>
                 </div>
@@ -604,9 +648,24 @@ export default function LoginPage() {
                 {/* Video Scrubber & Controls Bar */}
                 <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-black/90 to-transparent z-20 px-3 flex items-center justify-between gap-3 text-[10px] font-mono text-slate-400">
                   {/* Scrubber Line */}
-                  <div className="relative flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer">
+                  <div
+                    onClick={(e) => {
+                      if (videoRef.current) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const pct = Math.max(
+                          0,
+                          Math.min(1, clickX / rect.width),
+                        );
+                        videoRef.current.currentTime =
+                          pct * (videoRef.current.duration || 1);
+                        setVideoProgress(pct * 100);
+                      }
+                    }}
+                    className="relative flex-1 h-1.5 bg-white/20 hover:h-2 rounded-full overflow-hidden cursor-pointer transition-all"
+                  >
                     <div
-                      className="h-full bg-sky-400 rounded-full transition-all duration-300"
+                      className="h-full bg-sky-400 rounded-full transition-all duration-150"
                       style={{ width: `${videoProgress}%` }}
                     />
                   </div>
@@ -614,7 +673,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={toggleSound}
-                    className="hover:text-white transition-colors"
+                    className="hover:text-white transition-colors cursor-pointer"
                   >
                     {isMuted ? (
                       <VolumeX className="w-3.5 h-3.5" />
@@ -628,7 +687,8 @@ export default function LoginPage() {
 
             {/* Video Subcaption below player */}
             <p className="w-full max-w-lg text-center mt-3 text-xs text-slate-400 font-sans tracking-wide">
-              Live de lançamento do Theo, a IA do TheoSphere.
+              Transmissão ao vivo de Israel: Jerusalém, Terra Santa &
+              Demonstração TheoSphere.
             </p>
           </div>
         </div>
