@@ -106,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col w-full h-screen overflow-hidden bg-[#DDE2E8] dark:bg-[#0A0D14] text-foreground font-sans">
+    <div className="flex flex-col w-full h-screen overflow-hidden bg-[#F8FAFC] dark:bg-[#080B11] text-foreground font-sans">
       <TheoSphereTopBar onOpenAuth={() => setAuthOpen(true)} />
 
       <div className="flex flex-grow w-full overflow-hidden">
@@ -114,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <main
           id="main"
-          className="flex-grow relative overflow-hidden bg-white dark:bg-[#12161B]"
+          className="flex-grow relative overflow-hidden bg-[#F8FAFC] dark:bg-[#0E131F]"
         >
           <AnimatePresence mode="wait">
             <motion.div

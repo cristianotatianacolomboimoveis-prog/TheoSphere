@@ -57,9 +57,9 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         className="flex-grow max-w-2xl relative group cursor-pointer"
       >
         <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-          <Command className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+          <Command className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
         </div>
-        <div className="w-full h-8 pl-9 pr-14 bg-gray-50/90 dark:bg-[#111622]/90 border border-gray-200 dark:border-white/10 rounded-lg text-[12px] flex items-center text-gray-500 dark:text-gray-400 select-none group-hover:border-blue-500/50 group-hover:shadow-[0_0_20px_-3px_rgba(59,130,246,0.25)] transition-all">
+        <div className="w-full h-8 pl-9 pr-14 bg-gray-50/90 dark:bg-[#111622]/90 border border-gray-200 dark:border-white/10 rounded-lg text-[12px] flex items-center text-gray-500 dark:text-gray-400 select-none group-hover:border-indigo-500/50 group-hover:shadow-[0_0_20px_-3px_rgba(99,102,241,0.25)] transition-all">
           <span className="truncate">
             Ir para Gn 1:1, Sl 23, ou pesquisar (ex: amor AND paz, book:Rom)...
           </span>
@@ -125,7 +125,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="p-1 hover:bg-gray-300 dark:hover:bg-white/5 rounded flex items-center gap-1.5 transition-colors"
             >
-              <div className="w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-[11px] text-white font-extrabold shadow-sm border border-blue-400/20">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-[11px] text-white font-extrabold shadow-sm border border-indigo-400/20">
                 U
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
@@ -163,7 +163,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
         ) : (
           <button
             onClick={onOpenAuth}
-            className="h-7 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white text-[11px] font-bold rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/35 flex items-center gap-1.5 cursor-pointer"
+            className="h-7 px-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98] text-white text-[11px] font-bold rounded-lg transition-all shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/35 flex items-center gap-1.5 cursor-pointer"
           >
             <User className="w-3.5 h-3.5" />
             <span>Entrar</span>

@@ -127,14 +127,14 @@ export default function DashboardHome() {
   const { activeBook, activeChapter } = useTheoStore();
 
   return (
-    <div className="flex-grow overflow-y-auto custom-scrollbar bg-[#F3F4F6] dark:bg-[#05080F] p-8">
+    <div className="flex-grow overflow-y-auto custom-scrollbar bg-[#F8FAFC] dark:bg-[#080B11] p-8">
       <div className="max-w-7xl mx-auto">
         {/* Cabeçalho de boas-vindas — dados reais do usuário */}
-        <div className="mb-10 flex items-end justify-between border-b border-gray-300 dark:border-white/10 pb-6">
+        <div className="mb-10 flex items-end justify-between border-b border-gray-200 dark:border-white/10 pb-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <BookMarked className="w-5 h-5 text-blue-600" />
-              <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">
+              <BookMarked className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">
                 Theological Research OS
               </span>
             </div>
@@ -145,7 +145,7 @@ export default function DashboardHome() {
               Sua leitura continua em{" "}
               <Link
                 href="/study"
-                className="text-blue-600 font-bold italic hover:underline"
+                className="text-indigo-600 dark:text-indigo-400 font-bold italic hover:underline"
               >
                 {activeBook} {activeChapter}
               </Link>

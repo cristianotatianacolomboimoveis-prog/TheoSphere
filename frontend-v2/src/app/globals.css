@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
+/* Permite alternância manual de modo claro/escuro via classe .dark ou data-theme="dark" no Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 /* Dark = default. Light = opt-in via data-theme="light" on <html>.         */
 /* All color variables use raw values so Tailwind can apply opacity.        */
@@ -57,56 +60,56 @@
 }
 
 :root {
-  /* Dark = Default (Regal Obsidian & Sacred Gold) */
-  --bg: #090C12;
-  --fg: #F1F5F9;
-  --c-primary: #3B82F6;
+  /* Dark = Default (Kenlo Dark Tech SaaS & Sacred Accent) */
+  --bg: #080B11;
+  --fg: #F8FAFC;
+  --c-primary: #6366F1;
   --c-primary-fg: #FFFFFF;
-  --c-accent: #F59E0B;
-  --c-surface: #111622;
-  --c-surface-hover: #192030;
+  --c-accent: #8B5CF6;
+  --c-surface: #0E131F;
+  --c-surface-hover: #161D2E;
   --c-border-subtle: rgba(255, 255, 255, 0.08);
-  --c-border-strong: rgba(99, 102, 241, 0.35);
+  --c-border-strong: rgba(99, 102, 241, 0.40);
   --c-muted: #94A3B8;
   --c-gold: #F59E0B;
   --c-gold-subtle: rgba(245, 158, 11, 0.15);
   --c-bronze: #D97706;
   
-  /* Logos-grade workspace palette */
-  --c-dashboard-bg: #090C12;
-  --c-card-bg: rgba(17, 22, 34, 0.75);
+  /* Kenlo SaaS workspace palette */
+  --c-dashboard-bg: #080B11;
+  --c-card-bg: rgba(14, 19, 31, 0.85);
   --c-card-border: rgba(255, 255, 255, 0.08);
-  --c-command-bar: rgba(17, 22, 34, 0.90);
+  --c-command-bar: rgba(14, 19, 31, 0.95);
 
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
   --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   --font-hebrew: 'Noto Sans Hebrew', sans-serif;
   --font-greek: 'Noto Serif Greek', serif;
-  --radius: 12px;
+  --radius: 14px;
   --radius-sm: 8px;
-  --radius-lg: 18px;
+  --radius-lg: 20px;
   --radius-xl: 28px;
 }
 
-/* ─── Light Theme ────────────────────────────────────────────────────── */
+/* ─── Light Theme (Kenlo Imob Clean SaaS) ────────────────────────────── */
 :root[data-theme="light"] {
   --bg: #F8FAFC;
   --fg: #0F172A;
-  --c-primary: #2563EB;
+  --c-primary: #4F46E5;
   --c-primary-fg: #FFFFFF;
-  --c-accent: #D97706;
+  --c-accent: #7C3AED;
   --c-surface: #FFFFFF;
   --c-surface-hover: #F1F5F9;
-  --c-border-subtle: rgba(15, 23, 42, 0.08);
-  --c-border-strong: rgba(37, 99, 235, 0.25);
+  --c-border-subtle: rgba(226, 232, 240, 0.9);
+  --c-border-strong: rgba(79, 70, 229, 0.30);
   --c-muted: #64748B;
   --c-gold: #D97706;
   --c-gold-subtle: rgba(217, 119, 6, 0.12);
-  --c-dashboard-bg: #F1F5F9;
-  --c-card-bg: rgba(255, 255, 255, 0.90);
-  --c-card-border: rgba(15, 23, 42, 0.08);
-  --c-command-bar: rgba(255, 255, 255, 0.95);
+  --c-dashboard-bg: #F8FAFC;
+  --c-card-bg: #FFFFFF;
+  --c-card-border: #E2E8F0;
+  --c-command-bar: rgba(255, 255, 255, 0.98);
 }
 
 /* ─── Accessibility ──────────────────────────────────────────────────── */

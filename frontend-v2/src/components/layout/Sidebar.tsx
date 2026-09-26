@@ -122,7 +122,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
         return "bg-purple-500/15 text-purple-400 border border-purple-500/30";
       case "blue":
       default:
-        return "bg-blue-500/15 text-blue-400 border border-blue-500/30";
+        return "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30";
     }
   };
 
@@ -150,7 +150,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
             <div>
               <div className="flex items-center justify-between p-4 border-b border-white/8">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/30">
                     <BookOpen className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -187,7 +187,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
                           onClick={() => handleSelectTool(item.id)}
                           className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left transition-all ${
                             isActive
-                              ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/25"
+                              ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/25"
                               : "text-slate-400 hover:text-slate-200 hover:bg-white/5 font-medium"
                           }`}
                         >
@@ -247,7 +247,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
             }`}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/25 shrink-0 border border-white/10">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center shadow-lg shadow-indigo-600/25 shrink-0 border border-white/10">
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
               {!isCollapsed && (
@@ -256,7 +256,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
                     <span className="text-sm font-black tracking-tight text-white font-display">
                       TheoSphere
                     </span>
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                       SaaS
                     </span>
                   </div>
@@ -290,7 +290,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
                             : "px-3 py-2 justify-between"
                         } ${
                           isActive
-                            ? "bg-blue-600/15 border border-blue-500/30 text-white font-semibold shadow-sm"
+                            ? "bg-indigo-600/15 border border-indigo-500/30 text-white font-semibold shadow-sm"
                             : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] font-medium"
                         }`}
                         title={isCollapsed ? item.label : undefined}
@@ -303,7 +303,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
                           <Icon
                             className={`w-4 h-4 shrink-0 transition-colors ${
                               isActive
-                                ? "text-blue-400"
+                                ? "text-indigo-400"
                                 : "text-slate-400 group-hover:text-slate-200"
                             }`}
                           />
@@ -316,7 +316,7 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
 
                         {/* Indicador de Rota Ativa (borda esquerda iluminada) */}
                         {isActive && isCollapsed && (
-                          <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                          <div className="absolute left-0 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
                         )}
 
                         {!isCollapsed && item.badge && (
