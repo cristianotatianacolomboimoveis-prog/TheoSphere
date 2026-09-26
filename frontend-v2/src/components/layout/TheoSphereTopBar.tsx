@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LogOut } from "lucide-react";
 import { LayoutSwitcher } from "./LayoutSwitcher";
 import { TheoSphereCommandPalette } from "./TheoSphereCommandPalette";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   const { setActiveTool } = useTheoStore();
@@ -117,6 +118,7 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
       {/* O sino de notificações foi removido: não existe sistema de
           notificações e o botão nunca teve handler (varredura 2026-07-29). */}
       <div className="ml-auto flex items-center gap-2 md:gap-3 relative">
+        <ThemeToggle className="hover:bg-gray-200 dark:hover:bg-white/10" />
         {isAuthenticated ? (
           <div className="relative">
             <button

@@ -6,21 +6,50 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
+const THEME_STORAGE_KEY = "theosphere-theme";
+
 /**
- * TheoSphere Theme Provider (React 19 Optimized)
+ * TheoSphere Theme Provider (React 19 & Tailwind v4 Optimized)
  *
- * Bypasses next-themes script injection which crashes React 19/Next 16.
- * Manages 'data-theme' attribute manually on the document element.
+ * Sincroniza tanto o atributo 'data-theme' quanto a classe '.dark' no <html>,
+ * permitindo alternância instantânea entre Modo Escuro (Obsidian) e Modo Claro (Clean SaaS).
+ * Persiste a preferência do usuário em localStorage.
  */
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<"dark" | "light">("dark");
+  const [theme, setThemeState] = React.useState<"dark" | "light">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+        if (saved === "light" || saved === "dark") return saved;
+      } catch {
+        // Ignora erro de acesso a localStorage
+      }
+    }
+    return "dark";
+  });
 
+  // Sincroniza com o DOM e localStorage quando o tema muda
   React.useEffect(() => {
-    // Sincroniza com o DOM
     const root = window.document.documentElement;
     root.setAttribute("data-theme", theme);
     root.style.colorScheme = theme;
+
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignora erro de acesso a localStorage
+    }
   }, [theme]);
+
+  const setTheme = React.useCallback((t: "dark" | "light") => {
+    setThemeState(t);
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -30,13 +59,20 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 }
 
 const ThemeContext = React.createContext<{
-  theme: string;
+  theme: "dark" | "light";
   setTheme: (t: "dark" | "light") => void;
 } | null>(null);
 
 export function useTheme() {
   const ctx = React.useContext(ThemeContext);
-  if (!ctx) return { theme: "dark", setTheme: () => {}, toggle: () => {} };
+  if (!ctx) {
+    return {
+      theme: "dark",
+      resolvedTheme: "dark",
+      setTheme: () => {},
+      toggle: () => {},
+    };
+  }
 
   return {
     theme: ctx.theme,
