@@ -172,7 +172,7 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
       className="fixed z-[100] w-80 glass-heavy p-0 rounded-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
       style={{ left, top }}
     >
-      <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400" />
+      <div className="h-1.5 w-full bg-gradient-to-r from-indigo-600 via-violet-500 to-indigo-400" />
 
       <div className="p-4">
         {/* Header */}
@@ -182,14 +182,14 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
               {word}
             </h4>
             {lemma && lemma !== word && (
-              <div className="flex items-center gap-1.5 text-[10px] text-blue-300 font-medium">
+              <div className="flex items-center gap-1.5 text-[10px] text-indigo-300 font-medium">
                 <Languages className="w-3 h-3" />
                 <span className="uppercase tracking-widest">Lema: {lemma}</span>
               </div>
             )}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[10px] text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded-full border border-border-strong flex items-center gap-1">
-                <Hash className="w-2.5 h-2.5 text-blue-500" /> {strongId}
+                <Hash className="w-2.5 h-2.5 text-indigo-400" /> {strongId}
               </span>
             </div>
             {transliteration && (
@@ -203,7 +203,7 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
               </p>
             )}
           </div>
-          <div className="bg-blue-500/20 text-blue-300 text-[9px] font-black px-2 py-0.5 rounded-md border border-blue-500/30 uppercase tracking-tighter">
+          <div className="bg-indigo-500/20 text-indigo-300 text-[9px] font-black px-2 py-0.5 rounded-md border border-indigo-500/30 uppercase tracking-tighter">
             Análise PhD
           </div>
         </div>
@@ -326,7 +326,7 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
               href={`https://www.blueletterbible.org/lang/lexicon/lexicon.cfm?Strongs=${encodeURIComponent(strongId)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-[9px] font-bold text-blue-400 flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-blue-500/20 shadow-lg shadow-blue-500/5"
+              className="flex-1 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-[9px] font-bold text-indigo-400 flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-indigo-500/20 shadow-lg shadow-indigo-500/5"
               title="Abrir no Blue Letter Bible"
             >
               <ExternalLink className="w-3.5 h-3.5" /> BLB
@@ -335,7 +335,7 @@ export const StrongOverlay: React.FC<StrongOverlayProps> = ({
         </div>
       </div>
 
-      <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
     </motion.div>
   );
 };

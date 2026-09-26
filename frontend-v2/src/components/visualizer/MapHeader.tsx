@@ -37,14 +37,14 @@ export function MapHeader({
     <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
       <div className="glass-heavy p-2.5 px-3.5 rounded-2xl border border-white/10 flex items-center gap-3.5 shadow-2xl">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg">
             <Box className="w-4 h-4 text-white" />
           </div>
           <div>
             <h2 className="text-xs font-black text-white tracking-tight uppercase">
               TheoSphere 3D
             </h2>
-            <p className="text-[8px] text-blue-400 font-bold tracking-widest uppercase hidden sm:block">
+            <p className="text-[8px] text-indigo-400 font-bold tracking-widest uppercase hidden sm:block">
               Geoespacial
             </p>
           </div>
@@ -81,7 +81,7 @@ export function MapHeader({
           onClick={onToggleCesium}
           className={`px-4 py-2 hover:bg-slate-900/80 active:scale-95 rounded-full border flex items-center gap-2.5 transition-all shadow-lg select-none ${
             useCesium
-              ? "bg-blue-600/60 border-blue-500 text-blue-200"
+              ? "bg-indigo-600/60 border-indigo-500 text-indigo-200"
               : "bg-slate-900/60 border-white/10 text-white"
           }`}
           title={
@@ -91,7 +91,7 @@ export function MapHeader({
           }
         >
           <Globe
-            className={`w-5 h-5 text-[#3b82f6] ${useCesium ? "animate-spin" : "animate-pulse"}`}
+            className={`w-5 h-5 text-indigo-400 ${useCesium ? "animate-spin" : "animate-pulse"}`}
             style={{ animationDuration: useCesium ? "8s" : "3s" }}
           />
           <span className="text-sm font-bold tracking-tight">
@@ -106,7 +106,7 @@ export function MapHeader({
             onClick={onToggleSidebar}
             className={`p-2.5 px-3 rounded-xl border backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg select-none ${
               !isSidebarOpen
-                ? "bg-blue-600/40 text-blue-200 border-blue-400/50 hover:bg-blue-600/60"
+                ? "bg-indigo-600/40 text-indigo-200 border-indigo-400/50 hover:bg-indigo-600/60"
                 : "bg-white/5 hover:bg-white/10 text-white/70 border-white/10"
             }`}
             title={
@@ -117,7 +117,7 @@ export function MapHeader({
           >
             <PanelRightClose
               className={`w-4 h-4 transition-transform duration-300 ${
-                !isSidebarOpen ? "rotate-180 text-blue-400" : ""
+                !isSidebarOpen ? "rotate-180 text-indigo-400" : ""
               }`}
             />
             <span className="text-xs font-bold hidden sm:inline">

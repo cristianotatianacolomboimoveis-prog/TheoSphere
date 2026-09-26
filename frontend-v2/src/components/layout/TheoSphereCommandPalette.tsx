@@ -100,7 +100,7 @@ export function TheoSphereCommandPalette({
       >
         {/* Input Bar */}
         <div className="flex items-center px-4.5 py-3.5 border-b border-gray-200 dark:border-white/8 gap-3 bg-gray-50/50 dark:bg-[#141A28]/50">
-          <Command className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+          <Command className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
           <input
             ref={inputRef}
             type="text"
@@ -120,7 +120,7 @@ export function TheoSphereCommandPalette({
             className="flex-grow bg-transparent text-sm md:text-base outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 font-medium"
           />
           {loading && (
-            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
           )}
           {query && (
             <button
@@ -135,15 +135,15 @@ export function TheoSphereCommandPalette({
         {/* Chips de Sintaxe Avançada Interpretada */}
         {parsed && isAdvanced && (
           <div className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/5 text-[11px] overflow-x-auto">
-            <Filter className="w-3 h-3 text-blue-500 flex-shrink-0" />
-            <span className="font-bold text-gray-500">Filtros Logos:</span>
+            <Filter className="w-3 h-3 text-indigo-500 flex-shrink-0" />
+            <span className="font-bold text-gray-500">Filtros Avançados:</span>
             {parsed.bookName && (
-              <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 font-semibold">
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold">
                 Livro: {parsed.bookName}
               </span>
             )}
             {parsed.chapterMin && (
-              <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 font-semibold">
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold">
                 Capítulo: {parsed.chapterMin}
                 {parsed.chapterMax ? `-${parsed.chapterMax}` : ""}
               </span>
@@ -179,19 +179,19 @@ export function TheoSphereCommandPalette({
                   parsedRef.verse,
                 )
               }
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-blue-50/70 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-left hover:bg-blue-100/70 dark:hover:bg-blue-500/20 transition-all"
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-left hover:bg-indigo-100/70 dark:hover:bg-indigo-500/20 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                  <div className="text-xs font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2">
                     <span>
                       {parsedRef.book.namePt} {parsedRef.chapter}
                       {parsedRef.verse ? `:${parsedRef.verse}` : ""}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-300">
+                    <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300">
                       Navegar
                     </span>
                   </div>
@@ -200,7 +200,7 @@ export function TheoSphereCommandPalette({
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             </button>
           )}
 
@@ -209,7 +209,7 @@ export function TheoSphereCommandPalette({
             <div className="space-y-1">
               <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center justify-between">
                 <span>Versículos Encontrados ({hits.length})</span>
-                <span className="text-blue-500">Busca Híbrida RRF</span>
+                <span className="text-indigo-500">Busca Híbrida RRF</span>
               </div>
               {hits.map((hit) => {
                 const book = BIBLE_BOOKS.find((b) => b.id === hit.bookId);
@@ -226,7 +226,7 @@ export function TheoSphereCommandPalette({
                   >
                     <div className="space-y-0.5 min-w-0 pr-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
                           {refLabel}
                         </span>
                         <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-gray-100 dark:bg-white/10 text-gray-500 uppercase">
@@ -309,8 +309,8 @@ export function TheoSphereCommandPalette({
               selecionar
             </span>
           </div>
-          <span className="font-semibold text-blue-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+          <span className="font-semibold text-indigo-500 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
             TheoSphere Speed Search
           </span>
         </div>

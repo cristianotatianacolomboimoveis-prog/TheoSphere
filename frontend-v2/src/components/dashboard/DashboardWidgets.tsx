@@ -111,7 +111,7 @@ export function ReadingPlanWidget() {
             </span>
             <div className="h-1.5 w-24 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-600 transition-all"
+                className="h-full bg-indigo-600 transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -131,18 +131,18 @@ export function ReadingPlanWidget() {
                 <button
                   onClick={() => toggle(task.id)}
                   aria-label={completed ? "Desmarcar" : "Marcar como lido"}
-                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${completed ? "bg-blue-600 border-blue-600" : "border-gray-300 dark:border-white/10"}`}
+                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${completed ? "bg-indigo-600 border-indigo-600" : "border-gray-300 dark:border-white/10"}`}
                 >
                   {completed && <CheckCircle2 className="w-3 h-3 text-white" />}
                 </button>
                 <button
                   onClick={() => openInReader(task.book, task.chapter)}
-                  className={`text-sm font-medium text-left cursor-pointer ${completed ? "text-gray-400 dark:text-white/30 line-through" : "text-gray-700 dark:text-white/80 group-hover:text-blue-600 dark:group-hover:text-blue-400"}`}
+                  className={`text-sm font-medium text-left cursor-pointer ${completed ? "text-gray-400 dark:text-white/30 line-through" : "text-gray-700 dark:text-white/80 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"}`}
                 >
                   {task.book} {task.chapter}
                 </button>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-indigo-600 transition-colors" />
             </div>
           );
         })}
@@ -185,19 +185,19 @@ export function TheologicalInsightsWidget() {
       {insights.map((insight) => (
         <div
           key={insight.title}
-          className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-blue-500/30 transition-all group shadow-sm"
+          className="p-4 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-indigo-500/30 transition-all group shadow-sm"
         >
           <Link
             href={`/encyclopedia?tab=topics&q=${encodeURIComponent(insight.topic)}`}
             className="block cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+              <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                 {insight.category}
               </span>
-              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-blue-600" />
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-indigo-600" />
             </div>
-            <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-2 font-serif group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-2 font-serif group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
               {insight.title}
             </h4>
             <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed line-clamp-2 italic">
@@ -209,7 +209,7 @@ export function TheologicalInsightsWidget() {
               <Link
                 key={tag.label}
                 href={tag.href}
-                className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[8px] font-bold text-gray-400 uppercase hover:text-blue-600 hover:border-blue-500/30 transition-colors"
+                className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[8px] font-bold text-gray-400 uppercase hover:text-indigo-600 hover:border-indigo-500/30 transition-colors"
               >
                 {tag.label}
               </Link>
@@ -225,7 +225,7 @@ export function WordOfTheDayWidget() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="px-2.5 py-1 rounded bg-blue-600/10 border border-blue-600/20 text-[9px] font-black text-blue-600 uppercase tracking-widest">
+        <div className="px-2.5 py-1 rounded bg-indigo-600/10 border border-indigo-600/20 text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
           Lema Acadêmico
         </div>
         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">
@@ -238,7 +238,7 @@ export function WordOfTheDayWidget() {
           Ad Fontes
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-blue-600 italic">
+          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 italic">
             "Às Fontes"
           </span>
           <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
@@ -268,13 +268,13 @@ export function WordOfTheDayWidget() {
           <div className="flex gap-2">
             <Link
               href="/study"
-              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm"
+              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-indigo-600 hover:border-indigo-500/30 transition-all shadow-sm"
             >
               Interlinear Grego & Hebraico
             </Link>
             <Link
               href="/library"
-              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm"
+              className="px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:text-indigo-600 hover:border-indigo-500/30 transition-all shadow-sm"
             >
               Clássicos da Fé
             </Link>

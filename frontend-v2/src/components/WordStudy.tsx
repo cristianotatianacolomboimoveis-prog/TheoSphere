@@ -495,8 +495,8 @@ export default function WordStudy({
               {/* Acervo Clássico Relacionado */}
               {libraryExcerpts.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-l-2 border-blue-500 pl-4">
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 border-l-2 border-indigo-500 pl-4">
+                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                       Trechos do Acervo Clássico ({libraryExcerpts.length})
                     </span>
                   </div>
@@ -506,7 +506,7 @@ export default function WordStudy({
                         key={idx}
                         className="p-4 rounded-xl bg-white dark:bg-[#0D1117] border border-gray-200 dark:border-white/10 shadow-sm space-y-1"
                       >
-                        <span className="text-[10px] font-bold text-blue-500 uppercase">
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase">
                           {item.fileName}
                         </span>
                         <p className="text-xs font-serif text-gray-700 dark:text-gray-300 leading-relaxed italic">

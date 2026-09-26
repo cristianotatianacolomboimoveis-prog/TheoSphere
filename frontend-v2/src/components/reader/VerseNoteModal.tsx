@@ -45,14 +45,14 @@ export const VerseNoteModal: React.FC<VerseNoteModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.05] pb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-gray-900 dark:text-white">
                 Caderno de Notas
               </h3>
-              <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+              <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                 {reference}
               </p>
             </div>
@@ -84,7 +84,7 @@ export const VerseNoteModal: React.FC<VerseNoteModalProps> = ({
             onChange={(e) => setNote(e.target.value)}
             rows={6}
             placeholder="Escreva seus apontamentos de exegese, esboço de sermão ou aplicação prática..."
-            className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm leading-relaxed text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none font-serif"
+            className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm leading-relaxed text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-serif"
           />
         </div>
 
@@ -114,7 +114,7 @@ export const VerseNoteModal: React.FC<VerseNoteModalProps> = ({
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all ${
                 saved
                   ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 hover:bg-blue-700"
+                  : "bg-indigo-600 hover:bg-indigo-700"
               }`}
             >
               {saved ? (

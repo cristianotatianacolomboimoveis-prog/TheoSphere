@@ -138,7 +138,7 @@ export default function Encyclopedia({ onClose }: { onClose: () => void }) {
                 setSelected(null);
                 setAiAnalysis(null);
               }}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-500 transition-colors"
+              className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-bold">Voltar para a Lista</span>
@@ -260,9 +260,9 @@ export default function Encyclopedia({ onClose }: { onClose: () => void }) {
                   Aprofundar via IA
                 </button>
               ) : (
-                <div className="bg-blue-50/50 dark:bg-blue-900/5 p-8 rounded-xl border border-blue-100 dark:border-blue-900/20">
+                <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-8 rounded-xl border border-indigo-100 dark:border-indigo-900/20">
                   {loadingAi ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto" />
                   ) : (
                     <p className="text-sm font-serif text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                       {aiAnalysis}

@@ -23,7 +23,7 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({
   <div className="px-8 pt-8 pb-6 border-b border-border-subtle flex-shrink-0 bg-gradient-to-b from-surface to-transparent relative z-20">
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shadow-xl shadow-blue-500/10 border border-white/10">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/20 border border-white/10">
           <Zap className="w-6 h-6 text-white" />
         </div>
         <div>
@@ -46,10 +46,10 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({
         <div className="w-[1px] h-4 bg-border-subtle mx-1" />
         <button
           onClick={onToggleViewMode}
-          className={`p-2.5 rounded-xl transition-all ${viewMode === "exegesis" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10" : "hover:bg-white/5 text-white/30 hover:text-white"}`}
+          className={`p-2.5 rounded-xl transition-all ${viewMode === "exegesis" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-lg shadow-indigo-500/10" : "hover:bg-white/5 text-white/30 hover:text-white"}`}
         >
           <Star
-            className={`w-4.5 h-4.5 ${viewMode === "exegesis" ? "fill-blue-400" : ""}`}
+            className={`w-4.5 h-4.5 ${viewMode === "exegesis" ? "fill-indigo-400" : ""}`}
           />
         </button>
         <div className="w-[1px] h-4 bg-white/5 mx-1" />

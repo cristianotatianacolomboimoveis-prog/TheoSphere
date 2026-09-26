@@ -31,7 +31,10 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-blue-600/20 text-blue-600 rounded px-0.5">
+          <mark
+            key={i}
+            className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded px-0.5"
+          >
             {part}
           </mark>
         ) : (
@@ -74,7 +77,7 @@ function InteractiveText({
               }
             }}
             title="Duplo-clique para análise morfológica e lema no original"
-            className="hover:bg-blue-500/10 hover:text-blue-600 rounded px-0.5 transition-colors select-text cursor-text"
+            className="hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 rounded px-0.5 transition-colors select-text cursor-text"
           >
             {chunk}
           </span>
@@ -103,7 +106,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
     : null;
 
   const bgClass = selected
-    ? "bg-blue-50/80 dark:bg-blue-900/20 ring-1 ring-blue-500/40"
+    ? "bg-indigo-50/80 dark:bg-indigo-950/30 ring-1 ring-indigo-500/40"
     : highlightStyles
       ? `${highlightStyles.bg} ${highlightStyles.border} border-l-4`
       : "hover:bg-gray-50/50 dark:hover:bg-white/[0.02]";
@@ -122,7 +125,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
         <div className="flex items-start gap-4">
           {/* Verse Marker - Subtle Academic Style */}
           <div className="flex flex-col items-center pt-2 min-w-[24px]">
-            <span className="text-[10px] font-bold text-blue-600/40 dark:text-blue-400/30 tabular-nums select-none">
+            <span className="text-[10px] font-bold text-indigo-600/40 dark:text-indigo-400/30 tabular-nums select-none">
               {verse}
             </span>
 
@@ -148,7 +151,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
                   e.stopPropagation();
                   onCrossRefClick?.(e);
                 }}
-                className="mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 rounded-full bg-blue-600/10 text-blue-600 text-[9px] font-bold border border-blue-600/20"
+                className="mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold border border-indigo-600/20"
               >
                 {crossRefCount}
               </button>

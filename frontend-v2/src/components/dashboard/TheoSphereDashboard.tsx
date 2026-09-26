@@ -110,7 +110,7 @@ export function TheoSphereDashboard() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Pesquisar passagens ou locais..."
-            className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-md py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-md py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
           />
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
         </form>
@@ -119,9 +119,9 @@ export function TheoSphereDashboard() {
       <div className="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-6">
         {/* Evento em Foco (Selecionado no Mapa 3D) */}
         {focusedEvent && (
-          <section className="bg-blue-500/10 dark:bg-blue-500/10 rounded-xl p-4 border border-blue-500/20 shadow-sm animate-in fade-in-0 duration-200">
+          <section className="bg-indigo-500/10 dark:bg-indigo-500/10 rounded-xl p-4 border border-indigo-500/20 shadow-sm animate-in fade-in-0 duration-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 {focusedEvent.step || focusedEvent.category || "Evento em Foco"}
               </span>
               <button
@@ -140,7 +140,7 @@ export function TheoSphereDashboard() {
               </p>
             )}
             {focusedEvent.verse && (
-              <span className="inline-block text-[11px] font-bold text-blue-600 dark:text-blue-400 mb-2">
+              <span className="inline-block text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-2">
                 📜 {focusedEvent.verse}
               </span>
             )}
@@ -164,7 +164,7 @@ export function TheoSphereDashboard() {
                       .setBibleReference(bookName, chapter);
                     useTheoStore.getState().setActiveTool("exegesis");
                   }}
-                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
                 >
                   <Book className="w-3.5 h-3.5" /> Abrir na Exegese
                 </button>
@@ -176,7 +176,7 @@ export function TheoSphereDashboard() {
                   onClick={() =>
                     MapAdapter?.flyTo(focusedEvent.lat, focusedEvent.lng, 12)
                   }
-                  className="text-xs text-gray-400 hover:text-blue-500 flex items-center gap-1"
+                  className="text-xs text-gray-400 hover:text-indigo-500 flex items-center gap-1"
                 >
                   <MapPin className="w-3 h-3" /> Foco no Mapa
                 </button>
@@ -197,7 +197,7 @@ export function TheoSphereDashboard() {
             "{verseOfDay.text}"
           </p>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-600">
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
               {verseOfDay.ref}
             </span>
             <button
@@ -208,7 +208,7 @@ export function TheoSphereDashboard() {
                   10,
                 )
               }
-              className="text-[10px] text-gray-400 hover:text-blue-500 flex items-center gap-1"
+              className="text-[10px] text-gray-400 hover:text-indigo-500 flex items-center gap-1"
             >
               <MapPin className="w-3 h-3" /> Ver no Mapa
             </button>
@@ -234,7 +234,7 @@ export function TheoSphereDashboard() {
               <div
                 key={note.id}
                 onClick={() => setActiveNote(note)}
-                className="p-3 rounded-lg border border-gray-100 dark:border-white/5 bg-white dark:bg-white/5 hover:border-blue-500/30 cursor-pointer transition-all"
+                className="p-3 rounded-lg border border-gray-100 dark:border-white/5 bg-white dark:bg-white/5 hover:border-indigo-500/30 cursor-pointer transition-all"
               >
                 <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-1">
                   {note.title}
@@ -275,7 +275,7 @@ export function TheoSphereDashboard() {
           />
           <button
             onClick={() => saveNote(activeNote)}
-            className="mt-4 bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+            className="mt-4 bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors"
           >
             Salvar Nota
           </button>
@@ -284,9 +284,9 @@ export function TheoSphereDashboard() {
 
       {/* Footer Navigation */}
       <div className="p-3 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 flex justify-around">
-        <Bookmark className="w-5 h-5 text-gray-400 hover:text-blue-500 cursor-pointer" />
-        <Book className="w-5 h-5 text-gray-400 hover:text-blue-500 cursor-pointer" />
-        <History className="w-5 h-5 text-gray-400 hover:text-blue-500 cursor-pointer" />
+        <Bookmark className="w-5 h-5 text-gray-400 hover:text-indigo-500 cursor-pointer" />
+        <Book className="w-5 h-5 text-gray-400 hover:text-indigo-500 cursor-pointer" />
+        <History className="w-5 h-5 text-gray-400 hover:text-indigo-500 cursor-pointer" />
       </div>
     </div>
   );

@@ -311,14 +311,14 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
           </button>
           <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-1 shrink-0" />
           <div className="flex items-center gap-1 overflow-hidden">
-            <Sparkles className="w-3 h-3 text-blue-600 shrink-0" />
+            <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">
               Factbook
             </span>
             {data && (
               <>
                 <ChevronRight className="w-3 h-3 text-gray-400 shrink-0" />
-                <span className="text-[10px] font-bold text-blue-600 truncate">
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 truncate">
                   {data.title}
                 </span>
               </>
@@ -362,7 +362,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
               <input
                 type="text"
                 placeholder="Pesquisar..."
-                className="w-full pl-8 pr-2 py-1 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[11px] focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                className="w-full pl-8 pr-2 py-1 bg-white dark:bg-[#0D1117] border border-gray-300 dark:border-white/10 rounded text-[11px] focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                 onKeyDown={(e) =>
                   e.key === "Enter" &&
                   handleSearch((e.target as HTMLInputElement).value)
@@ -380,14 +380,14 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                   onClick={() => scrollToSection(section.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] font-medium transition-all text-left ${
                     activeSection === section.id
-                      ? "bg-white dark:bg-white/10 text-blue-600 shadow-sm border-l-2 border-blue-600"
+                      ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-sm border-l-2 border-indigo-600"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
                   }`}
                 >
                   <span
                     className={
                       activeSection === section.id
-                        ? "text-blue-600"
+                        ? "text-indigo-600 dark:text-indigo-400"
                         : "text-gray-400"
                     }
                   >
@@ -508,7 +508,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                         {data.title}
                       </h1>
                       <div className="flex items-center gap-3">
-                        <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest">
+                        <span className="px-2 py-0.5 rounded bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest">
                           {data.subtitle}
                         </span>
                         <div className="w-1 h-1 rounded-full bg-gray-300" />
@@ -536,7 +536,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                       </button>
                       <button
                         onClick={handlePrint}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-[11px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all"
+                        className="px-3 py-1.5 bg-indigo-600 text-white rounded text-[11px] font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] transition-all"
                       >
                         <Printer className="w-3.5 h-3.5" /> Imprimir
                       </button>
@@ -566,7 +566,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                           onClick={() => setActiveLens(lens.id as any)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             isActive
-                              ? "bg-blue-600 text-white shadow-sm"
+                              ? "bg-indigo-600 text-white shadow-sm"
                               : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           }`}
                         >
@@ -675,11 +675,11 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                                         ? `Abrir ${verseStr} no leitor`
                                         : "Referência não reconhecida"
                                     }
-                                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-blue-500/30 enabled:hover:bg-blue-50/30 dark:enabled:hover:bg-blue-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
+                                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 enabled:hover:border-indigo-500/30 enabled:hover:bg-indigo-50/30 dark:enabled:hover:bg-indigo-900/10 transition-all text-left group/verse disabled:opacity-50 disabled:cursor-default"
                                   >
                                     <div className="flex items-center gap-3">
-                                      <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-blue-600" />
-                                      <span className="text-sm font-bold text-blue-600">
+                                      <ScrollText className="w-4 h-4 text-gray-400 group-hover/verse:text-indigo-600 dark:group-hover/verse:text-indigo-400" />
+                                      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
                                         {verseStr}
                                       </span>
                                     </div>
@@ -706,7 +706,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                                       void handleSearch(tagStr);
                                     }}
                                     title={`Gerar dossiê sobre ${tagStr}`}
-                                    className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-blue-500/30 hover:text-blue-600 transition-all"
+                                    className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[10px] font-bold text-gray-500 hover:border-indigo-500/30 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
                                   >
                                     {tagStr}
                                   </button>
@@ -743,8 +743,8 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                 className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto space-y-8 p-12"
               >
                 <div className="relative">
-                  <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full" />
-                  <Sparkles className="w-20 h-20 text-blue-600 relative z-10" />
+                  <div className="absolute -inset-4 bg-indigo-500/20 blur-3xl rounded-full" />
+                  <Sparkles className="w-20 h-20 text-indigo-600 dark:text-indigo-400 relative z-10" />
                 </div>
                 <div className="space-y-4">
                   <h2 className="text-4xl font-serif font-bold text-gray-900 dark:text-white leading-tight">
@@ -777,10 +777,10 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
                       <button
                         key={topic.name}
                         onClick={() => handleSearch(topic.name)}
-                        className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/70 dark:bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-50/40 dark:hover:bg-blue-500/10 text-left transition-all group"
+                        className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/70 dark:bg-white/[0.02] hover:border-indigo-500/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 text-left transition-all group"
                       >
                         <div className="text-base mb-1">{topic.icon}</div>
-                        <div className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 transition-colors">
+                        <div className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                           {topic.name}
                         </div>
                         <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -793,7 +793,7 @@ export default function Factbook({ onClose }: { onClose: () => void }) {
 
                 <div className="grid grid-cols-2 gap-4 w-full pt-4">
                   <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-left space-y-2">
-                    <Users className="w-5 h-5 text-blue-600" />
+                    <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     <h4 className="text-xs font-bold uppercase tracking-widest">
                       Pessoas
                     </h4>

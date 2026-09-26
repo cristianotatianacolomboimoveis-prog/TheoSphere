@@ -114,7 +114,7 @@ export function LayoutSwitcher({
             Multi-painéis e sincronização automática
           </p>
         </div>
-        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
           Link Set A
         </span>
       </div>
@@ -130,14 +130,14 @@ export function LayoutSwitcher({
               onClick={() => handleSelect(opt.id)}
               className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
                 isActive
-                  ? "bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-900 dark:text-blue-100"
+                  ? "bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-indigo-900 dark:text-indigo-100"
                   : "hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 border border-transparent"
               }`}
             >
               <div
                 className={`p-2 rounded-lg ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-indigo-600 text-white shadow-sm"
                     : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400"
                 }`}
               >
@@ -148,7 +148,7 @@ export function LayoutSwitcher({
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold">{opt.title}</span>
                   {opt.badge && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
                       {opt.badge}
                     </span>
                   )}
@@ -159,7 +159,7 @@ export function LayoutSwitcher({
               </div>
 
               {isActive && (
-                <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
               )}
             </button>
           );

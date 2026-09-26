@@ -100,12 +100,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080B11] text-slate-100 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080B11] text-slate-100 selection:bg-indigo-600 selection:text-white">
       {/* ─── PAINEL ESQUERDO: Vitrine Teológica & Brand Kenlo-Grade (55%) ─── */}
       <div className="relative hidden lg:flex lg:w-[54%] xl:w-[56%] flex-col justify-between p-12 xl:p-16 overflow-hidden border-r border-white/5 bg-radial from-[#131B2E] via-[#090D17] to-[#06090F]">
         {/* Glows e Efeitos de Fundo Kenlo Dark Tech */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 -right-32 w-96 h-96 bg-violet-500/10 rounded-full blur-[130px] pointer-events-none" />
         <div className="absolute -bottom-32 left-1/3 w-80 h-80 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Linhas de grade sutil em perspectiva estilo SaaS */}
@@ -121,7 +121,7 @@ export default function LoginPage() {
         {/* Topo do Painel: Marca e Badge */}
         <div className="relative z-10">
           <div className="flex items-center gap-3.5 mb-8">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/25 border border-white/10">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-600/25 border border-white/10">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 <span className="text-xl font-bold tracking-tight text-white font-display">
                   TheoSphere
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
                   AI-First v2.0
                 </span>
               </div>
@@ -179,7 +179,7 @@ export default function LoginPage() {
 
           {/* Card 2: Busca Híbrida e IA RAG */}
           <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/8 backdrop-blur-md hover:bg-white/[0.05] transition-all">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400 mt-0.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center shrink-0 text-indigo-400 mt-0.5">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -187,7 +187,7 @@ export default function LoginPage() {
                 <h2 className="text-sm font-bold text-white">
                   Copilot Exegético RAG & Embeddings
                 </h2>
-                <span className="text-[10px] font-bold text-blue-400/90 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                <span className="text-[10px] font-bold text-indigo-400/90 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                   Equilíbrio Ecumênico
                 </span>
               </div>
@@ -239,14 +239,14 @@ export default function LoginPage() {
         {/* Mobile Brand Header */}
         <div className="flex lg:hidden items-center justify-between mb-8 pb-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md">
               <BookOpen className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold text-white font-display">
               TheoSphere
             </span>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
             v2.0
           </span>
         </div>
@@ -263,7 +263,7 @@ export default function LoginPage() {
               }}
               className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
                 isLogin
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -278,7 +278,7 @@ export default function LoginPage() {
               }}
               className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
                 !isLogin
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -332,7 +332,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu.nome@exemplo.com"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/80 transition-all"
+                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
                 />
               </div>
             </div>
@@ -351,7 +351,7 @@ export default function LoginPage() {
                         "Para recuperar sua senha, entre em contato com o administrador.",
                       )
                     }
-                    className="text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
                   >
                     Esqueceu a senha?
                   </button>
@@ -367,7 +367,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-11 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/80 transition-all"
+                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-11 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
                 />
                 <button
                   type="button"
@@ -400,7 +400,7 @@ export default function LoginPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repita sua senha"
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/80 transition-all"
+                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
                   />
                 </div>
               </div>
@@ -413,7 +413,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/10 bg-slate-900 text-blue-600 focus:ring-blue-500/40"
+                  className="w-4 h-4 rounded border-white/10 bg-slate-900 text-indigo-600 focus:ring-indigo-500/40"
                 />
                 <span className="text-xs text-slate-400">
                   Manter sessão conectada por 30 dias
@@ -425,7 +425,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] disabled:opacity-50 transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.99] disabled:opacity-50 transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>

@@ -796,7 +796,7 @@ export default function TheoSphere3D({
               {/* Glassmorphic Fallback Action Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-6 text-left">
                 <div className="glass-heavy p-4 rounded-xl border border-white/5 flex flex-col gap-2 bg-white/5 backdrop-blur-md">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">
                     Locais Disponíveis ({locations.length})
                   </span>
                   <div className="max-h-28 overflow-y-auto pr-1 space-y-1 text-[11px]">
@@ -919,7 +919,7 @@ export default function TheoSphere3D({
             {/* Badges e Título sobre a foto */}
             <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
               <div>
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/80 text-white shadow-md">
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600/90 text-white shadow-md">
                   {selectedEvent.step ||
                     selectedEvent.category ||
                     "Sítio Histórico"}
@@ -1006,7 +1006,7 @@ export default function TheoSphere3D({
           {/* Versículo Canônico */}
           {selectedEvent.verse && (
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
+              <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">
                 📜 {selectedEvent.verse}
               </span>
             </div>
@@ -1059,7 +1059,7 @@ export default function TheoSphere3D({
                   useTheoStore.getState().setBibleReference(bookName, chapter);
                   useTheoStore.getState().setActiveTool("exegesis");
                 }}
-                className="flex-1 py-1.5 px-3 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/30"
+                className="flex-1 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/30"
               >
                 <Book className="w-3.5 h-3.5" />
                 Estudar na Exegese

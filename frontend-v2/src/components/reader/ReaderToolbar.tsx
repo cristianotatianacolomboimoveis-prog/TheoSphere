@@ -175,7 +175,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/30 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-accent"
             title="Abrir Comparação Sinótica de Versões e Variantes (Text Comparison)"
           >
-            <Columns2 className="w-3.5 h-3.5 text-blue-500" />
+            <Columns2 className="w-3.5 h-3.5 text-indigo-500" />
             <span className="hidden sm:inline">Sinopse & Variantes</span>
           </button>
 
@@ -260,7 +260,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border flex-shrink-0 ${
                 chaptersData[0].source === "cache"
                   ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                  : "bg-blue-500/10 border-blue-500/25 text-blue-400"
+                  : "bg-indigo-500/10 border-indigo-500/25 text-indigo-500 dark:text-indigo-400"
               }`}
               title={
                 chaptersData[0].source === "cache"

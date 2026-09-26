@@ -49,8 +49,8 @@ const PLATFORM_STATS = [
   {
     label: "Chunks Indexados",
     value: "45.092",
-    color: "bg-blue-500/10 text-blue-500",
-    border: "border-blue-500/20",
+    color: "bg-indigo-500/10 text-indigo-500",
+    border: "border-indigo-500/20",
   },
   {
     label: "Traduções Canônicas",
@@ -161,7 +161,7 @@ export default function DashboardHome() {
             </div>
             <Link
               href="/sobre"
-              className="px-4 py-2 bg-white dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm hover:border-blue-400 transition-colors"
+              className="px-4 py-2 bg-white dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm hover:border-indigo-400 transition-colors"
             >
               <div className="text-[9px] font-bold text-gray-400 uppercase">
                 Sobre
@@ -222,7 +222,7 @@ export default function DashboardHome() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-md bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-                        <item.icon className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                        <item.icon className="w-4 h-4 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-700 dark:text-white/80">
@@ -254,7 +254,7 @@ export default function DashboardHome() {
                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-all cursor-pointer group"
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-                      <item.icon className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                      <item.icon className="w-4 h-4 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-800 dark:text-white/80">

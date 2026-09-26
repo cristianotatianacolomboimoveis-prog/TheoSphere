@@ -52,7 +52,7 @@ const TRADITIONS = [
 
 const TRADITION_STYLES: Record<string, string> = {
   Reformada:
-    "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
   Puritana:
     "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
   Escolástica:
@@ -171,7 +171,7 @@ export default function TheologicalLibrary({
       <div className="px-8 pt-8 pb-6 bg-white/70 dark:bg-[#0D1117]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10 shadow-sm z-20">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
               <Library className="w-6 h-6" />
             </div>
             <div>
@@ -224,7 +224,7 @@ export default function TheologicalLibrary({
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
               Trechos Vetorizados (768d)
             </span>
-            <span className="text-xl font-black text-blue-600 dark:text-blue-400">
+            <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
               {totalChunks.toLocaleString("pt-BR")} Chunks
             </span>
           </div>
@@ -255,7 +255,7 @@ export default function TheologicalLibrary({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por autor (Calvino, Henry, Aquino), título (Salmos, Summa, Institutas) ou tradição..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
             {searchQuery && (
               <button
@@ -278,7 +278,7 @@ export default function TheologicalLibrary({
                 onClick={() => setActiveTradition(trad)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
                   activeTradition === trad
-                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
                     : "bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -300,7 +300,7 @@ export default function TheologicalLibrary({
                 onClick={() => setActiveCategory(cat.id)}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
                   isActive
-                    ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                    ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
                     : "bg-transparent border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
@@ -309,7 +309,7 @@ export default function TheologicalLibrary({
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     isActive
-                      ? "bg-blue-600 text-white"
+                      ? "bg-indigo-600 text-white"
                       : "bg-gray-200 dark:bg-white/10 text-gray-500"
                   }`}
                 >
@@ -335,7 +335,7 @@ export default function TheologicalLibrary({
                 setActiveCategory("all");
                 setActiveTradition("Todas");
               }}
-              className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
             >
               Redefinir filtros
             </button>
@@ -350,7 +350,7 @@ export default function TheologicalLibrary({
               return (
                 <div
                   key={work.gid + work.title}
-                  className="flex flex-col justify-between p-5 rounded-2xl bg-white dark:bg-[#0D1117]/60 border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all group"
+                  className="flex flex-col justify-between p-5 rounded-2xl bg-white dark:bg-[#0D1117]/60 border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition-all group"
                 >
                   <div className="space-y-3">
                     {/* Header do Card */}
@@ -368,7 +368,7 @@ export default function TheologicalLibrary({
 
                     {/* Título & Autor */}
                     <div>
-                      <h3 className="font-serif font-bold text-base text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <h3 className="font-serif font-bold text-base text-gray-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {work.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
@@ -395,7 +395,7 @@ export default function TheologicalLibrary({
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleAskCopilot(work)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-all shadow-sm"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm"
                         title="Perguntar ao Copilot IA usando esta obra"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
@@ -404,7 +404,7 @@ export default function TheologicalLibrary({
 
                       <button
                         onClick={() => handleOpenStudy(work)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-blue-500/40 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-indigo-500/40 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
                         title="Ver no Estudo Bíblico / Guia Exegético"
                       >
                         <BookOpen className="w-3.5 h-3.5" />
@@ -417,7 +417,7 @@ export default function TheologicalLibrary({
                         href={work.readUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
                         title="Abrir no Project Gutenberg / CCEL (Domínio Público)"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -443,7 +443,7 @@ export default function TheologicalLibrary({
             >
               <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.05] pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-600/10 text-indigo-600 flex items-center justify-center">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
@@ -471,7 +471,7 @@ export default function TheologicalLibrary({
                   value={copilotQuestion}
                   onChange={(e) => setCopilotQuestion(e.target.value)}
                   rows={4}
-                  className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   placeholder="Ex: O que Calvino argumenta sobre a justificação pela fé em Romanos?"
                 />
               </div>
@@ -485,7 +485,7 @@ export default function TheologicalLibrary({
                 </button>
                 <button
                   onClick={handleSubmitCopilot}
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-md transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Enviar para Bancada Copilot</span>

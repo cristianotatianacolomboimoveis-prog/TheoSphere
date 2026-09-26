@@ -108,7 +108,7 @@ export function TextComparison({
       {/* ── Top Bar de Controle Exegético ── */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-white/70 dark:bg-black/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-600/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+          <div className="w-9 h-9 rounded-lg bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
@@ -117,7 +117,7 @@ export function TextComparison({
                 Comparação de Versões & Variantes
               </h2>
               {data?.reference && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                   {data.reference.display}
                 </span>
               )}
@@ -137,7 +137,7 @@ export function TextComparison({
               onClick={() => setViewMode("columns")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === "columns"
-                  ? "bg-white dark:bg-white/15 text-blue-600 dark:text-blue-400 shadow-sm"
+                  ? "bg-white dark:bg-white/15 text-indigo-600 dark:text-indigo-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
               }`}
               title="Visualização em colunas paralelas (Grid Sinótico)"
@@ -149,7 +149,7 @@ export function TextComparison({
               onClick={() => setViewMode("interleaved")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === "interleaved"
-                  ? "bg-white dark:bg-white/15 text-blue-600 dark:text-blue-400 shadow-sm"
+                  ? "bg-white dark:bg-white/15 text-indigo-600 dark:text-indigo-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
               }`}
               title="Visualização verso a verso intercalada"
@@ -162,7 +162,7 @@ export function TextComparison({
           {/* Botão Copiar */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-blue-500/40 bg-white/50 dark:bg-white/5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-indigo-500/40 bg-white/50 dark:bg-white/5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
             title="Copiar estudo comparativo em Markdown"
           >
             {copied ? (
@@ -202,7 +202,7 @@ export function TextComparison({
                 setSelectedTranslations((prev) => [newBase, ...prev]);
               }
             }}
-            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/15 rounded-lg px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/15 rounded-lg px-2.5 py-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {AVAILABLE_VERSIONS.map((v) => (
               <option key={v.code} value={v.code}>
@@ -227,9 +227,9 @@ export function TextComparison({
                 disabled={isBase}
                 className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 border ${
                   isBase
-                    ? "bg-blue-600 text-white border-blue-600 cursor-default shadow-sm"
+                    ? "bg-indigo-600 text-white border-indigo-600 cursor-default shadow-sm"
                     : isSelected
-                      ? "bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400"
+                      ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-600 dark:text-indigo-400"
                       : "bg-transparent border-gray-200 dark:border-white/10 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
               >
@@ -279,7 +279,7 @@ export function TextComparison({
       <div className="flex-grow overflow-y-auto p-6 custom-scrollbar-academic">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-3">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
               Alinhando variantes textuais em alta precisão...
             </p>
@@ -316,14 +316,14 @@ export function TextComparison({
                     key={trans}
                     className={`p-3 rounded-lg border ${
                       isBase
-                        ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                        ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
                         : "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-black text-sm">{trans}</span>
                       {isBase ? (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-600 text-white">
                           BASE
                         </span>
                       ) : metric ? (
@@ -356,7 +356,7 @@ export function TextComparison({
               >
                 <div
                   onClick={() => onSelectVerse?.(row.verse)}
-                  className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400 text-center cursor-pointer hover:underline pt-1"
+                  className="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 text-center cursor-pointer hover:underline pt-1"
                 >
                   {row.verse}
                 </div>
@@ -427,7 +427,7 @@ export function TextComparison({
                 className="p-5 rounded-xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 shadow-sm space-y-3"
               >
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/[0.05] pb-2">
-                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                     Versículo {row.verse}
                   </span>
                   <span className="text-[11px] text-gray-400">
@@ -438,14 +438,14 @@ export function TextComparison({
                 {/* Versão Base */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-600 text-white">
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-600 text-white">
                       {row.base.translation}
                     </span>
                     <span className="text-[11px] text-gray-400 font-medium">
                       Padrão de Referência
                     </span>
                   </div>
-                  <p className="text-sm font-serif leading-relaxed text-gray-800 dark:text-gray-200 pl-2 border-l-2 border-blue-500/40">
+                  <p className="text-sm font-serif leading-relaxed text-gray-800 dark:text-gray-200 pl-2 border-l-2 border-indigo-500/40">
                     {row.base.text}
                   </p>
                 </div>

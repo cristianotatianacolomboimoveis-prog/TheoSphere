@@ -135,7 +135,7 @@ export function Workspace({
             <div className="flex-grow overflow-hidden relative">{leftPane}</div>
           </Panel>
 
-          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+          <Separator className="w-1.5 hover:bg-indigo-500/20 transition-colors cursor-col-resize flex items-center justify-center">
             <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
           </Separator>
 
@@ -172,7 +172,7 @@ export function Workspace({
             <div className="flex-grow overflow-hidden relative">{leftPane}</div>
           </Panel>
 
-          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+          <Separator className="w-1.5 hover:bg-indigo-500/20 transition-colors cursor-col-resize flex items-center justify-center">
             <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
           </Separator>
 
@@ -193,7 +193,7 @@ export function Workspace({
                 </div>
               </Panel>
 
-              <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
+              <Separator className="h-1.5 hover:bg-indigo-500/20 transition-colors cursor-row-resize flex items-center justify-center">
                 <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
               </Separator>
 
@@ -232,7 +232,7 @@ export function Workspace({
             <div className="flex-grow overflow-hidden relative">{leftPane}</div>
           </Panel>
 
-          <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+          <Separator className="w-1.5 hover:bg-indigo-500/20 transition-colors cursor-col-resize flex items-center justify-center">
             <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
           </Separator>
 
@@ -272,7 +272,7 @@ export function Workspace({
                   {leftPane}
                 </div>
               </Panel>
-              <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+              <Separator className="w-1.5 hover:bg-indigo-500/20 transition-colors cursor-col-resize flex items-center justify-center">
                 <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
               </Separator>
               <Panel
@@ -292,7 +292,7 @@ export function Workspace({
             </Group>
           </Panel>
 
-          <Separator className="h-1.5 hover:bg-blue-500/20 transition-colors cursor-row-resize flex items-center justify-center">
+          <Separator className="h-1.5 hover:bg-indigo-500/20 transition-colors cursor-row-resize flex items-center justify-center">
             <div className="h-[1px] w-full bg-gray-300 dark:bg-white/10" />
           </Separator>
 
@@ -312,7 +312,7 @@ export function Workspace({
                   {bottomPane}
                 </div>
               </Panel>
-              <Separator className="w-1.5 hover:bg-blue-500/20 transition-colors cursor-col-resize flex items-center justify-center">
+              <Separator className="w-1.5 hover:bg-indigo-500/20 transition-colors cursor-col-resize flex items-center justify-center">
                 <div className="w-[1px] h-full bg-gray-300 dark:bg-white/10" />
               </Separator>
               <Panel
@@ -406,7 +406,7 @@ function MobileWorkspace({
           >
             {tab.label}
             {activeTab === tab.key && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-violet-500" />
             )}
           </button>
         ))}
@@ -442,7 +442,7 @@ function PaneTabHeader({
           <span className="text-[8px] font-extrabold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25">
             A
           </span>
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-violet-500" />
         </div>
       </div>
 

@@ -102,7 +102,7 @@ export const VerseSelectionToolbar: React.FC<VerseSelectionToolbarProps> = ({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-semibold text-gray-700 dark:text-gray-200 transition-colors"
             title="Adicionar ou editar anotação"
           >
-            <MessageSquarePlus className="w-3.5 h-3.5 text-blue-500" />
+            <MessageSquarePlus className="w-3.5 h-3.5 text-indigo-500" />
             <span>Nota</span>
           </button>
 
