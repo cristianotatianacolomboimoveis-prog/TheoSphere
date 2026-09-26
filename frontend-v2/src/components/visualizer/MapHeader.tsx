@@ -19,6 +19,7 @@ interface MapHeaderProps {
   onToggleFullscreen: () => void;
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
+  onLiveIsrael?: () => void;
   onClose?: () => void;
 }
 
@@ -31,10 +32,11 @@ export function MapHeader({
   onToggleFullscreen,
   isSidebarOpen,
   onToggleSidebar,
+  onLiveIsrael,
   onClose,
 }: MapHeaderProps) {
   return (
-    <div className="absolute top-5 left-5 z-10 flex items-center gap-3">
+    <div className="absolute top-5 left-5 z-20 flex flex-wrap items-center gap-3 max-w-[calc(100vw-360px)]">
       <div className="glass-heavy p-2.5 px-3.5 rounded-2xl border border-white/10 flex items-center gap-3.5 shadow-2xl">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg">
@@ -98,6 +100,24 @@ export function MapHeader({
             {useCesium ? "Globo Cesium 3D" : "Globo 2.5D"}
           </span>
         </button>
+
+        {/* Botão Câmera de Solo / Live de Israel */}
+        {onLiveIsrael && (
+          <>
+            <div className="w-[1px] h-6 bg-white/20 self-center" />
+            <button
+              id="live-israel-cam-btn"
+              onClick={onLiveIsrael}
+              className="px-3.5 py-1.5 rounded-full border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/60 active:scale-95 text-emerald-300 flex items-center gap-2 transition-all shadow-lg select-none cursor-pointer"
+              title="Sobrevoar Jerusalém com Câmera de Solo e Vídeo Real"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold tracking-tight">
+                Câmera de Solo Israel
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
       <div className="flex gap-2">

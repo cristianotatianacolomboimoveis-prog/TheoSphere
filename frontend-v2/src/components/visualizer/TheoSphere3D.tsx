@@ -20,6 +20,8 @@ import {
   Book,
   MapPin,
   Sparkles,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { api } from "@/lib/api";
@@ -44,18 +46,19 @@ const CesiumGlobe = dynamic(() => import("@/components/CesiumGlobe"), {
 const MAP_STYLE =
   "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
-// Esri World Imagery (Satellite) + CartoDB transparent labels overlay + 3D Terrain + Atmospheric Sky
+// Esri World Imagery Clarity (Submétrica HD) + CartoDB transparent labels overlay + 3D Terrain + Atmospheric Sky
 const SATELLITE_STYLE = {
   version: 8,
   sources: {
     satellite: {
       type: "raster",
       tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
       tileSize: 256,
+      maxzoom: 21,
       attribution:
-        "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        "Tiles &copy; Esri Clarity &mdash; Imagens de Satélite de Alta Precisão Submétrica",
     },
     labels: {
       type: "raster",
@@ -214,10 +217,59 @@ export default function TheoSphere3D({
     arch?: string;
     modelName?: string;
     img?: string;
+    video?: string;
     lat?: number;
     lng?: number;
     era?: number;
   } | null>(null);
+
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+
+  // Câmera de Solo / Live de Israel (Sobrevoo exegético sobre Jerusalém)
+  const handleLiveIsrael = useCallback(() => {
+    const jerusalemLocation = {
+      id: "jerusalem",
+      name: "Jerusalém: Cidade Santa & Torre de Davi",
+      step: "Capital de Davi e Centro da História Bíblica",
+      category: "Geografia e Arqueologia Bíblica",
+      verse: "Salmos 122:6 // Lucas 19:41-42",
+      quote: "Orai pela paz de Jerusalém; prosperarão aqueles que te amam.",
+      description:
+        "Transmissão ao vivo de Israel: sobrevoo exegético sobre a Cidade Antiga, o Muro Ocidental, a Torre de Davi e o Monte das Oliveiras. Relevo 3D de alta precisão submétrica conectado a 45.114 chunks de comentários clássicos.",
+      geo: "Jerusalém, Judeia Central, Israel (785m altitude)",
+      arch: "Muralhas Cananeias, Cidadela de Davi, Túnel de Ezequias, Tanque de Siloé",
+      video: "/assets/videos/israel_jerusalem.webm",
+      lat: 31.7767,
+      lng: 35.2345,
+      era: currentTime,
+    };
+    setSelectedEvent(jerusalemLocation);
+    setIsLegendExpanded(false);
+    if (onToggleSidebar && isSidebarOpen) {
+      onToggleSidebar(); // Recolhe a barra lateral para dar foco total
+    }
+
+    if (MapAdapter) {
+      MapAdapter.events.publish("onLocationSelected", jerusalemLocation);
+      MapAdapter.events.publish("flyToLocation", {
+        lat: 31.7767,
+        lng: 35.2345,
+        zoom: 15.8,
+        pitch: 45,
+        bearing: 20,
+        duration: 2500,
+      });
+
+      setTimeout(() => {
+        setIsOrbiting(true);
+        MapAdapter.events.publish("cameraCommand", {
+          action: "startOrbit",
+          center: [31.7767, 35.2345],
+          speed: 0.15,
+        });
+      }, 2800);
+    }
+  }, [currentTime, isSidebarOpen, onToggleSidebar]);
 
   useEffect(() => {
     if (MapAdapter) {
@@ -742,6 +794,7 @@ export default function TheoSphere3D({
         onToggleFullscreen={() => setFullscreen(!fullscreen)}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={onToggleSidebar}
+        onLiveIsrael={handleLiveIsrael}
         onClose={onClose}
       />
 
@@ -889,19 +942,61 @@ export default function TheoSphere3D({
       {/* Ficha de Campo Imersiva (Estilo National Geographic / Voyager) */}
       {selectedEvent && (
         <div className="absolute top-20 left-5 z-30 w-96 max-w-[calc(100vw-3rem)] max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar glass-heavy rounded-2xl border border-white/10 shadow-2xl p-4 backdrop-blur-xl animate-in fade-in-0 slide-in-from-left-4 duration-200 select-none">
-          {/* Banner Fotográfico Panorâmico do Sítio Histórico */}
-          <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 border border-white/10 shadow-lg group bg-slate-900">
-            <img
-              src={
-                selectedEvent.img ||
-                "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1000&q=80"
-              }
-              alt={selectedEvent.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+          {/* Banner Fotográfico Panorâmico ou Vídeo Real de Israel (Jerusalém) */}
+          <div className="relative w-full h-48 rounded-xl overflow-hidden mb-3 border border-white/10 shadow-lg group bg-black">
+            {Boolean(selectedEvent.video) ||
+            selectedEvent.name.toLowerCase().includes("jerusal") ||
+            selectedEvent.id?.toLowerCase().includes("jerusal") ? (
+              <div className="relative w-full h-full">
+                <video
+                  src={
+                    selectedEvent.video ||
+                    "/assets/videos/israel_jerusalem.webm"
+                  }
+                  autoPlay
+                  loop
+                  muted={isVideoMuted}
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
 
-            {/* Botão Fechar no topo da foto */}
+                {/* HUD Live Telemetry */}
+                <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/75 border border-emerald-400/40 text-[9px] font-mono text-emerald-400 font-bold backdrop-blur-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>ISRAEL • CÂMERA DE SOLO AO VIVO</span>
+                </div>
+
+                {/* Botão de Áudio da Live */}
+                <button
+                  type="button"
+                  onClick={() => setIsVideoMuted(!isVideoMuted)}
+                  className="absolute bottom-12 right-2.5 z-20 p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white backdrop-blur-md transition-colors cursor-pointer"
+                  title={isVideoMuted ? "Ativar Áudio da Live" : "Silenciar"}
+                >
+                  {isVideoMuted ? (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                </button>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent pointer-events-none" />
+              </div>
+            ) : (
+              <>
+                <img
+                  src={
+                    selectedEvent.img ||
+                    "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1000&q=80"
+                  }
+                  alt={selectedEvent.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+              </>
+            )}
+
+            {/* Botão Fechar no topo */}
             <button
               onClick={() => {
                 setIsOrbiting(false);
@@ -910,14 +1005,14 @@ export default function TheoSphere3D({
                   action: "stopOrbit",
                 });
               }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md transition-colors"
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white backdrop-blur-md transition-colors z-20 cursor-pointer"
               title="Fechar (Esc)"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Badges e Título sobre a foto */}
-            <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
+            {/* Badges e Título sobre a mídia */}
+            <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2 z-20 pointer-events-none">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600/90 text-white shadow-md">
                   {selectedEvent.step ||

@@ -394,11 +394,11 @@ export default function CesiumGlobe({
     };
   }, []);
 
-  // Camada de satélite de alta precisão (sem necessidade de token Cesium Ion)
+  // Camada de satélite de alta precisão submétrica ESRI Clarity (alta nitidez fotográfica)
   const imageryProvider = useMemo(() => {
     return new Cesium.UrlTemplateImageryProvider({
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      maximumLevel: 19,
+      url: "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      maximumLevel: 21,
     });
   }, []);
 
