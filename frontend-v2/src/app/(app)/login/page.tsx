@@ -1,493 +1,794 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  Mail,
-  Lock,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
   Eye,
   EyeOff,
-  BookOpen,
-  Sparkles,
-  ShieldCheck,
-  ArrowRight,
-  Globe2,
-  Library,
-  Compass,
-  CheckCircle2,
+  Moon,
   Loader2,
-  ChevronRight,
-  UserCheck,
+  Sparkles,
+  CheckCircle2,
+  Radio,
+  ArrowRight,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 
-/**
- * Página de Login no padrão Kenlo Imob adaptada para o TheoSphere Dark Tech SaaS.
- * Layout Split-Screen de alta conversão:
- *  - Painel Esquerdo (55%): Vitrine Institucional Teológica AI-First com cards de métricas
- *  - Painel Direito (45%): Formulário de Autenticação moderno e ergonômico
- */
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading, login, register } = useAuth();
+  const { login, register, isAuthenticated, loading: authLoading } = useAuth();
 
+  // Auth Form States
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
-  // Redireciona se já estiver autenticado
+  // Telemetry & Uptime State
+  const [uptime, setUptime] = useState("18:45:48");
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, "0");
+      const m = String(now.getMinutes()).padStart(2, "0");
+      const s = String(now.getSeconds()).padStart(2, "0");
+      setUptime(`${h}:${m}:${s}`);
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       router.replace("/");
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // Video Stage States
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [videoProgress, setVideoProgress] = useState(38);
+  const [activeSubtitle, setActiveSubtitle] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+
+  // Subtitles sequence simulating live AI exegesis presentation
+  const subtitles = [
+    "fazer, mas olha, essas notas exegéticas são extraordinárias. Impossível pesquisar sem o Theo.",
+    "TheoSphere Copilot: Conectando Códice de Leningrado com 45.114 chunks de comentários clássicos...",
+    "Identificadas 3 variantes léxicas no Textus Receptus. Similaridade de 99.4% estabelecida.",
+    "Plotando coordenadas históricas de Cafarnaum e Nazaré no Relevo 3D de alta precisão...",
+    "Síntese hermenêutica concluída com equilíbrio ecumênico entre Reforma e Patrística.",
+  ];
+
+  // Rotate subtitles
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setActiveSubtitle((prev) => (prev + 1) % subtitles.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isPlaying, subtitles.length]);
+
+  // Advance video progress scrubber
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setVideoProgress((prev) => (prev >= 100 ? 0 : prev + 0.35));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Sound Engine (Web Audio ambient chord when sound is turned on)
+  const toggleSound = () => {
+    if (isMuted) {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+        if (!audioContextRef.current && AudioContextClass) {
+          audioContextRef.current = new AudioContextClass();
+        }
+        if (
+          audioContextRef.current &&
+          audioContextRef.current.state === "suspended"
+        ) {
+          void audioContextRef.current.resume();
+        }
+        if (audioContextRef.current) {
+          const ctx = audioContextRef.current;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(220, ctx.currentTime); // Soft A3 ambient tone
+          osc.frequency.exponentialRampToValueAtTime(
+            329.63,
+            ctx.currentTime + 2,
+          ); // E4 harmonic
+
+          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 0.5);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+
+          oscillatorRef.current = osc;
+          gainNodeRef.current = gain;
+        }
+      } catch (err) {
+        console.warn("AudioContext not permitted yet", err);
+      }
+      setIsMuted(false);
+    } else {
+      if (gainNodeRef.current && audioContextRef.current) {
+        try {
+          gainNodeRef.current.gain.linearRampToValueAtTime(
+            0.0001,
+            audioContextRef.current.currentTime + 0.3,
+          );
+          setTimeout(() => {
+            oscillatorRef.current?.stop();
+            oscillatorRef.current?.disconnect();
+            oscillatorRef.current = null;
+          }, 350);
+        } catch {
+          // ignore
+        }
+      }
+      setIsMuted(true);
+    }
+  };
+
+  // Canvas Video Simulation (Exegesis studio presentation with glowing codex, particles, and waveforms)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let angle = 0;
+
+    // Hebrew and Greek floating glyphs
+    const glyphs = [
+      "בְּרֵאשִׁ֖ית",
+      "אֱלֹהִ֑ים",
+      "Ἐν ἀρχῇ",
+      "λόγος",
+      "חֶסֶד",
+      "πνεῦμα",
+      "אֱמֶת",
+      "φῶς",
+      "קָדוֹשׁ",
+      "χάρις",
+    ];
+
+    const particles = Array.from({ length: 24 }).map((_, i) => ({
+      x: Math.random() * 640,
+      y: Math.random() * 360,
+      speedY: 0.3 + Math.random() * 0.6,
+      text: glyphs[i % glyphs.length],
+      size: 11 + Math.random() * 8,
+      alpha: 0.15 + Math.random() * 0.45,
+    }));
+
+    const render = () => {
+      angle += 0.015;
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Dark futuristic studio background
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, "#080C14");
+      grad.addColorStop(0.5, "#0F172A");
+      grad.addColorStop(1, "#070A10");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Studio spotlight glow
+      const spotGrad = ctx.createRadialGradient(
+        w * 0.5,
+        h * 0.4,
+        20,
+        w * 0.5,
+        h * 0.4,
+        w * 0.6,
+      );
+      spotGrad.addColorStop(0, "rgba(59, 130, 246, 0.18)");
+      spotGrad.addColorStop(0.6, "rgba(99, 102, 241, 0.08)");
+      spotGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = spotGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle video scanlines
+      ctx.fillStyle = "rgba(255, 255, 255, 0.015)";
+      for (let y = 0; y < h; y += 3) {
+        ctx.fillRect(0, y, w, 1);
+      }
+
+      // Animated 3D Exegesis Holographic Ring/Sphere
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.45);
+
+      // Outer glowing orbit ring
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 110, 48, angle * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner violet orbit ring
+      ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 85, 36, -angle * 0.6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Center glowing core / codex cylinder
+      ctx.fillStyle = "rgba(37, 99, 235, 0.25)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 40, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Crosshairs / coordinate reticle
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-18, 0);
+      ctx.lineTo(18, 0);
+      ctx.moveTo(0, -18);
+      ctx.lineTo(0, 18);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Floating Hebrew / Greek Lexical Tokens
+      particles.forEach((p) => {
+        p.y -= p.speedY;
+        if (p.y < 0) {
+          p.y = h;
+          p.x = Math.random() * w;
+        }
+
+        ctx.font = `${p.size}px monospace`;
+        ctx.fillStyle = `rgba(56, 189, 248, ${p.alpha})`;
+        ctx.fillText(p.text, p.x, p.y);
+      });
+
+      // Simulated Audio Frequency Spectrum (bottom waves)
+      const bars = 32;
+      const barWidth = 4;
+      const startX = w * 0.5 - (bars * (barWidth + 3)) / 2;
+      for (let i = 0; i < bars; i++) {
+        const freq = Math.sin(angle * 4 + i * 0.35) * 0.5 + 0.5;
+        const barHeight = 6 + freq * (isMuted ? 14 : 32);
+
+        const barGrad = ctx.createLinearGradient(
+          0,
+          h * 0.76 - barHeight,
+          0,
+          h * 0.76,
+        );
+        barGrad.addColorStop(0, "#38BDF8");
+        barGrad.addColorStop(1, "#6366F1");
+
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(
+          startX + i * (barWidth + 3),
+          h * 0.76 - barHeight,
+          barWidth,
+          barHeight,
+        );
+      }
+
+      // Studio Presenter Silhouette Hologram / Table Line
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.15, h * 0.78);
+      ctx.lineTo(w * 0.85, h * 0.78);
+      ctx.stroke();
+
+      // Watermark Text inside video
+      ctx.font = "9px 'Courier New', monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillText("AI MODEL: THEO-EXEGESIS-v2.6 // 45.114 CHUNKS", 18, h - 34);
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isMuted]);
+
+  // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
+    setErrorMessage(null);
+
+    if (!email || !password) {
+      setErrorMessage("Por favor, preencha todos os campos.");
+      return;
+    }
 
     if (!isLogin && password !== confirmPassword) {
-      setError("As senhas digitadas não coincidem.");
-      setLoading(false);
+      setErrorMessage("As senhas informadas não coincidem.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("A senha deve ter no mínimo 6 caracteres.");
-      setLoading(false);
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
       const result = isLogin
         ? await login(email, password)
         : await register(email, password);
 
-      setLoading(false);
-
       if (result.success) {
-        if (!isLogin) {
-          setSuccessMsg("Conta criada com sucesso! Redirecionando...");
-          setTimeout(() => router.replace("/"), 1200);
-        } else {
-          router.replace("/");
-        }
+        router.push("/");
       } else {
-        setError(
-          result.error ||
-            "Credenciais inválidas. Verifique seu e-mail e senha.",
+        setErrorMessage(
+          result.error || "Falha na autenticação. Verifique os dados.",
         );
       }
-    } catch (err: any) {
-      setLoading(false);
-      setError(
-        err?.message || "Erro ao conectar com o servidor. Tente novamente.",
-      );
+    } catch {
+      setErrorMessage("Erro ao conectar com o servidor. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleGuestAccess = () => {
-    router.push("/");
+  // Demo / Tester Instant Guest Access
+  const handleGuestAccess = async () => {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const result = await login("tester@theosphere.com", "Theosphere2026!");
+      if (result.success) {
+        router.push("/");
+      } else {
+        const reg = await register("tester@theosphere.com", "Theosphere2026!");
+        if (reg.success) {
+          router.push("/");
+        } else {
+          router.push("/");
+        }
+      }
+    } catch {
+      router.push("/");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#080B11] text-slate-100 selection:bg-indigo-600 selection:text-white">
-      {/* ─── PAINEL ESQUERDO: Vitrine Teológica & Brand Kenlo-Grade (55%) ─── */}
-      <div className="relative hidden lg:flex lg:w-[54%] xl:w-[56%] flex-col justify-between p-12 xl:p-16 overflow-hidden border-r border-white/5 bg-radial from-[#131B2E] via-[#090D17] to-[#06090F]">
-        {/* Glows e Efeitos de Fundo Kenlo Dark Tech */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 -right-32 w-96 h-96 bg-violet-500/10 rounded-full blur-[130px] pointer-events-none" />
-        <div className="absolute -bottom-32 left-1/3 w-80 h-80 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
-
-        {/* Linhas de grade sutil em perspectiva estilo SaaS */}
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#0B0F19] text-white overflow-x-hidden font-sans">
+      {/* ========================================================================= */}
+      {/* LEFT SECTION (Dark Showcase with Telemetry, Video Stage & Kenlo Aesthetics) */}
+      {/* ========================================================================= */}
+      <section className="relative w-full lg:w-[65%] xl:w-[67%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-hidden bg-radial from-[#131B2E] via-[#0B0F19] to-[#070A11] border-r border-white/5">
+        {/* Decorative Grid Pattern Overlay */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
+            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+            backgroundSize: "28px 28px",
           }}
         />
 
-        {/* Topo do Painel: Marca e Badge */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3.5 mb-8">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-600/25 border border-white/10">
-              <BookOpen className="w-5 h-5 text-white" />
+        {/* Floating Geometric Elements (from Kenlo Reference) */}
+        {/* 1. Rotated Rounded Teal/Cyan Rectangle */}
+        <div className="absolute top-28 left-[42%] w-24 h-24 rounded-2xl bg-teal-500/15 border border-teal-400/30 rotate-[28deg] backdrop-blur-md shadow-[0_0_40px_rgba(20,184,166,0.18)] pointer-events-none hidden sm:block animate-pulse duration-[4000ms]" />
+
+        {/* 2. Soft Blue Glowing Aura Orb (Top Right) */}
+        <div className="absolute -top-12 right-12 w-64 h-64 rounded-full bg-blue-600/20 blur-[80px] pointer-events-none" />
+
+        {/* 3. Violet Dual Semi-Circles (Bottom Left Corner) */}
+        <div className="absolute -bottom-10 -left-10 w-44 h-44 pointer-events-none opacity-80">
+          <div className="w-full h-full rounded-full border-[18px] border-purple-600/40 border-r-transparent border-b-transparent rotate-45" />
+          <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-purple-700/60 to-indigo-600/40" />
+        </div>
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* TOP BAR: Brand Badge, Status & Telemetry Header */}
+        {/* ----------------------------------------------------------------------- */}
+        <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 pb-6">
+          {/* Left: Brand Icon + AI Badge + Dark Mode Switch */}
+          <div className="flex items-center gap-3">
+            {/* Rounded App Icon */}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-sky-500/20">
+              T
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-white font-display">
-                  TheoSphere
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
-                  AI-First v2.0
-                </span>
+
+            {/* AI First Badge */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono backdrop-blur-md">
+              <span className="text-slate-400 font-semibold">v1.0</span>
+              <span className="text-white font-medium">
+                TheoSphere AI First
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399] animate-pulse" />
+              <span className="text-slate-500 text-[11px]">
+                {"//"} NOVA FASE • 2026
+              </span>
+            </div>
+
+            {/* Dark Mode Switch Mockup */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-350">
+              <div className="w-6 h-3.5 rounded-full bg-slate-700/80 p-0.5 flex items-center justify-end">
+                <div className="w-2.5 h-2.5 rounded-full bg-white shadow-xs" />
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">
-                Bancada de Pesquisa Bíblica, Exegese & IA Contextual
-              </p>
+              <Moon className="w-3 h-3 text-slate-350" />
+              <span className="tracking-wider">DARK</span>
             </div>
           </div>
 
-          {/* Headline Principal */}
-          <div className="max-w-xl mt-6">
-            <h1 className="text-3xl xl:text-4xl font-extrabold text-white tracking-tight leading-[1.18] font-display">
-              A profundidade da exegese clássica com a velocidade da
-              inteligência moderna.
-            </h1>
-            <p className="text-sm xl:text-base text-slate-350 mt-4 leading-relaxed font-normal">
-              Projetado para pastores, teólogos e pesquisadores que exigem
-              precisão aos manuscritos originais em grego e hebraico e resposta
-              em milissegundos.
+          {/* Right: Telemetry Monospace Readout */}
+          <div className="hidden md:flex flex-col text-right font-mono text-[11px] tracking-wider text-slate-350 leading-relaxed">
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-slate-355 uppercase">SESSION</span>
+              <span className="text-sky-400 font-semibold">
+                theosphere-ai-first / live
+              </span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-slate-355 uppercase">UPTIME</span>
+              <span className="text-slate-200">{uptime}</span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-slate-355 uppercase">STATUS</span>
+              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                operacional
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* CENTER BODY: 2 Columns (Headline/Text on Left, Video Stage on Right) */}
+        {/* ----------------------------------------------------------------------- */}
+        <div className="relative z-10 my-auto py-8 grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* LEFT COLUMN: Headline, Description & Manifesto (5 cols on xl) */}
+          <div className="xl:col-span-5 flex flex-col space-y-6">
+            {/* Giant Headline with Cyan Curve Underline */}
+            <div className="relative">
+              <h1 className="text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.08]">
+                A IA <br />
+                <span className="relative inline-block text-white">
+                  que transforma
+                  {/* Cyan swoop line under "que transforma" matching Kenlo */}
+                  <svg
+                    className="absolute -bottom-1.5 left-0 w-full h-3 text-sky-400 overflow-visible"
+                    viewBox="0 0 200 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 9C50 2 150 2 198 9"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>{" "}
+                <br />
+                a pesquisa <br />
+                teológica.
+              </h1>
+            </div>
+
+            {/* Explanatory Body */}
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-md font-light">
+              A IA que transforma a exegese bíblica e teológica foi revelada.
+              Atendimento exegético, hebraico, grego, 89 obras canônicas, 45.000
+              chunks e decisão hermenêutica — tudo com uma lógica nova.
             </p>
-          </div>
-        </div>
-
-        {/* Centro: Cards de Indicadores e Capacidades no padrão Kenlo CRM/SaaS */}
-        <div className="relative z-10 grid grid-cols-1 gap-3.5 max-w-xl my-8">
-          {/* Card 1: Acervo Clássico */}
-          <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/8 backdrop-blur-md hover:bg-white/[0.05] transition-all">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400 mt-0.5">
-              <Library className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-white">
-                  89 Obras Teológicas Canônicas
-                </h2>
-                <span className="text-[10px] font-bold text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                  45.092 Chunks
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 leading-normal">
-                João Calvino, Matthew Henry completo, Tomás de Aquino (Suma),
-                Martinho Lutero, Agostinho e John Bunyan indexados para consulta
-                instantânea.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2: Busca Híbrida e IA RAG */}
-          <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/8 backdrop-blur-md hover:bg-white/[0.05] transition-all">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center shrink-0 text-indigo-400 mt-0.5">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-white">
-                  Copilot Exegético RAG & Embeddings
-                </h2>
-                <span className="text-[10px] font-bold text-indigo-400/90 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                  Equilíbrio Ecumênico
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 leading-normal">
-                Respostas teológicas ancoradas em fontes primárias, com
-                imparcialidade entre tradições Reformada e Wesleyana e citações
-                com número exato de página.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3: Atlas 3D com Órbita */}
-          <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/8 backdrop-blur-md hover:bg-white/[0.05] transition-all">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 text-emerald-400 mt-0.5">
-              <Globe2 className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-white">
-                  Atlas Bíblico 3D com Tour 360°
-                </h2>
-                <span className="text-[10px] font-bold text-emerald-400/90 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  Cesium Engine
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 leading-normal">
-                Relevo topográfico do Monte Sinai, Cafarnaum e Jerusalém em
-                primeira pessoa e mapeamento de rotas históricas dos Patriarcas
-                aos Apóstolos.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Rodapé da Vitrine */}
-        <div className="relative z-10 flex items-center justify-between pt-6 border-t border-white/5 text-xs text-slate-400">
-          <div className="flex items-center gap-2 font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Infraestrutura em Nuvem Operante</span>
-          </div>
-          <span className="italic font-serif text-slate-400">
-            Ad Fontes — O retorno às fontes originais
-          </span>
-        </div>
-      </div>
-
-      {/* ─── PAINEL DIREITO: Formulário de Autenticação Kenlo-Style (45%) ─── */}
-      <div className="w-full lg:w-[46%] xl:w-[44%] flex flex-col justify-between p-6 sm:p-10 xl:p-14 bg-[#0A0E17] relative">
-        {/* Mobile Brand Header */}
-        <div className="flex lg:hidden items-center justify-between mb-8 pb-4 border-b border-white/10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-white font-display">
-              TheoSphere
-            </span>
-          </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
-            v2.0
-          </span>
-        </div>
-
-        <div className="max-w-md w-full mx-auto my-auto py-4">
-          {/* Alternador Segmentado Kenlo (Pill Switcher) */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-white/[0.04] border border-white/10 mb-8">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(true);
-                setError(null);
-                setSuccessMsg(null);
-              }}
-              className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                isLogin
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <span>Entrar na Conta</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(false);
-                setError(null);
-                setSuccessMsg(null);
-              }}
-              className={`py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-                !isLogin
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <span>Criar Nova Conta</span>
-            </button>
-          </div>
-
-          {/* Cabeçalho do Formulário */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-extrabold text-white tracking-tight font-display">
-              {isLogin
-                ? "Bem-vindo à sua bancada"
-                : "Junte-se à pesquisa teológica"}
-            </h2>
-            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-              {isLogin
-                ? "Informe suas credenciais para sincronizar seu histórico, notas e preferências."
-                : "Cadastre-se gratuitamente para acessar o acervo de 89 obras e o assistente de exegese."}
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-light">
+              Quem acompanha essa transformação agora, sai na frente...
             </p>
+
+            {/* Monospace Manifesto */}
+            <div className="pt-2 text-[11px] sm:text-xs font-mono tracking-widest text-slate-400 space-y-1">
+              <p className="text-white font-semibold">THEOSPHERE AI FIRST.</p>
+              <p>PORQUE PRECISÃO EXEGÉTICA</p>
+              <p>NÃO ACEITA ERROS.</p>
+            </div>
+
+            {/* Call to Action Pill */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isMuted) toggleSound();
+                  setIsPlaying(true);
+                }}
+                className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-400 hover:text-emerald-350 transition-colors cursor-pointer group"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981] group-hover:scale-125 transition-transform" />
+                <span className="font-semibold">
+                  THEO REVELADO • ASSISTA AGORA
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
           </div>
 
-          {/* Alertas de Erro ou Sucesso */}
-          {error && (
-            <div className="p-3.5 mb-5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
-              <span className="shrink-0 font-bold">⚠️</span>
-              <span className="leading-snug">{error}</span>
+          {/* RIGHT COLUMN: The Video Stage (7 cols on xl) */}
+          <div className="xl:col-span-7 flex flex-col items-center xl:items-end justify-center w-full">
+            {/* Sound Pill Bar (Above Video, exact placement as Kenlo) */}
+            <div className="w-full max-w-lg flex justify-start mb-3">
+              <button
+                type="button"
+                onClick={toggleSound}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs text-slate-200 transition-all shadow-lg backdrop-blur-md cursor-pointer group active:scale-95"
+              >
+                {isMuted ? (
+                  <>
+                    <VolumeX className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
+                    <span>Ative o som para assistir</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+                    <span className="text-emerald-300 font-medium">
+                      Áudio do TheoSphere Studio ativo
+                    </span>
+                  </>
+                )}
+              </button>
             </div>
-          )}
 
-          {successMsg && (
-            <div className="p-3.5 mb-5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium flex items-center gap-2.5 animate-in fade-in duration-200">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Formulário Principal */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Campo E-mail */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 block">
-                E-mail corporativo ou pessoal
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Mail className="w-4 h-4" />
+            {/* Video Player Frame with Sophisticated Effects */}
+            <div className="relative w-full max-w-lg rounded-2xl sm:rounded-3xl overflow-hidden border border-sky-500/25 bg-slate-950/90 shadow-[0_20px_60px_-15px_rgba(14,165,233,0.25)] group">
+              {/* Top Watermark Badge inside video */}
+              <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-sky-500/80 backdrop-blur-md flex items-center justify-center font-bold text-xs text-white shadow-xs">
+                  T
                 </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu.nome@exemplo.com"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
-                />
+                <span className="px-2 py-0.5 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-slate-300 backdrop-blur-md">
+                  STUDIO LIVE
+                </span>
               </div>
-            </div>
 
-            {/* Campo Senha */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Senha de acesso
-                </label>
-                {isLogin && (
+              {/* Top Right Live Badge */}
+              <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/80 border border-red-400/30 text-[10px] font-mono text-white backdrop-blur-md">
+                <Radio className="w-3 h-3 animate-pulse" />
+                <span>AO VIVO</span>
+              </div>
+
+              {/* Main Visual: Interactive Canvas Video Simulation */}
+              <div className="relative aspect-[16/9] w-full bg-black flex items-center justify-center">
+                <canvas
+                  ref={canvasRef}
+                  width={640}
+                  height={360}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Video Play/Pause Overlay on Hover */}
+                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 z-20 pointer-events-none">
                   <button
                     type="button"
-                    onClick={() =>
-                      alert(
-                        "Para recuperar sua senha, entre em contato com o administrador.",
-                      )
-                    }
-                    className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="p-3.5 rounded-full bg-black/70 hover:bg-sky-500 text-white backdrop-blur-md transition-all shadow-xl pointer-events-auto cursor-pointer"
                   >
-                    Esqueceu a senha?
+                    {isPlaying ? (
+                      <Pause className="w-5 h-5" />
+                    ) : (
+                      <Play className="w-5 h-5 ml-0.5" />
+                    )}
                   </button>
-                )}
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Lock className="w-4 h-4" />
                 </div>
+
+                {/* Subtitles Overlay Bar (Exact Kenlo aesthetic: black pill with live subtitles) */}
+                <div className="absolute bottom-9 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                  <div className="max-w-md px-3.5 py-1.5 rounded-lg bg-black/75 border border-white/10 backdrop-blur-md text-[11px] sm:text-xs text-slate-200 text-center font-sans tracking-wide leading-snug shadow-xl transition-all duration-300 animate-in fade-in">
+                    {subtitles[activeSubtitle]}
+                  </div>
+                </div>
+
+                {/* Video Scrubber & Controls Bar */}
+                <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-black/90 to-transparent z-20 px-3 flex items-center justify-between gap-3 text-[10px] font-mono text-slate-400">
+                  {/* Scrubber Line */}
+                  <div className="relative flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer">
+                    <div
+                      className="h-full bg-sky-400 rounded-full transition-all duration-300"
+                      style={{ width: `${videoProgress}%` }}
+                    />
+                  </div>
+                  <span>03:14 / 08:45</span>
+                  <button
+                    type="button"
+                    onClick={toggleSound}
+                    className="hover:text-white transition-colors"
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-3.5 h-3.5" />
+                    ) : (
+                      <Volume2 className="w-3.5 h-3.5 text-sky-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Subcaption below player */}
+            <p className="w-full max-w-lg text-center mt-3 text-xs text-slate-400 font-sans tracking-wide">
+              Live de lançamento do Theo, a IA do TheoSphere.
+            </p>
+          </div>
+        </div>
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* FOOTER */}
+        {/* ----------------------------------------------------------------------- */}
+        <footer className="relative z-10 pt-4 text-center text-[11px] text-slate-500 font-sans">
+          © 2026 TheoSphere. Todos os direitos reservados.
+        </footer>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* RIGHT SECTION (Crisp White Minimalist Login Card Matching Kenlo IMOB)     */}
+      {/* ========================================================================= */}
+      <section className="w-full lg:w-[35%] xl:w-[33%] min-h-screen bg-white text-slate-900 flex flex-col justify-center px-8 sm:px-14 lg:px-12 xl:px-16 py-12 relative shadow-2xl z-20">
+        <div className="w-full max-w-sm mx-auto flex flex-col justify-center">
+          {/* Greeting Text */}
+          <div className="mb-2">
+            <span className="text-sm font-semibold text-slate-600 tracking-tight">
+              Boas vindas!
+            </span>
+          </div>
+
+          {/* Brand Logo Header: TheoSphere RESEARCH (Styled like Kenlo IMOB) */}
+          <div className="flex items-center gap-1.5 mb-8">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight font-display">
+              TheoSphere
+            </h2>
+            <span className="text-2xl font-black text-sky-600 tracking-tight uppercase">
+              STUDIO
+            </span>
+          </div>
+
+          {/* Form Error Banner */}
+          {errorMessage && (
+            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium leading-relaxed animate-in fade-in">
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Forgot Password Feedback */}
+          {forgotPasswordSent && (
+            <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium leading-relaxed animate-in fade-in flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Instruções enviadas para seu e-mail de recuperação.</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* E-mail Input */}
+            <div className="space-y-1">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="E-mail"
+                className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="space-y-1 relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Senha"
+                className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 pr-11 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label="Alternar visibilidade da senha"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+
+            {/* Confirm Password (only on Cadastro/Register) */}
+            {!isLogin && (
+              <div className="space-y-1 relative animate-in fade-in">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-11 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirmar Senha"
+                  className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Campo Confirmar Senha (Modo Cadastro) */}
-            {!isLogin && (
-              <div className="space-y-1.5 animate-in fade-in duration-200">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Confirmação da Senha
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repita sua senha"
-                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/80 transition-all"
-                  />
-                </div>
               </div>
             )}
 
-            {/* Checkbox Lembrar de Mim */}
-            <div className="flex items-center pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/10 bg-slate-900 text-indigo-600 focus:ring-indigo-500/40"
-                />
-                <span className="text-xs text-slate-400">
-                  Manter sessão conectada por 30 dias
-                </span>
-              </label>
-            </div>
-
-            {/* Botão Principal de Submissão estilo Kenlo */}
+            {/* Submit Button (Solid Electric Blue matching Kenlo IMOB) */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.99] disabled:opacity-50 transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSubmitting}
+              className="w-full mt-2 bg-[#1E88E5] hover:bg-[#1976D2] active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>
-                    {isLogin ? "Autenticando..." : "Criando sua conta..."}
-                  </span>
-                </>
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <>
-                  <span>
-                    {isLogin ? "Acessar Plataforma" : "Concluir Cadastro"}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <span>{isLogin ? "Entrar" : "Criar Conta"}</span>
               )}
             </button>
           </form>
 
-          {/* Divisor "Ou" */}
-          <div className="relative my-6 flex items-center justify-center">
-            <div className="w-full border-t border-white/10" />
-            <span className="absolute px-3 bg-[#0A0E17] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Ou explore agora
-            </span>
+          {/* Links & Switch Mode */}
+          <div className="mt-5 flex flex-col items-center space-y-3">
+            <button
+              type="button"
+              onClick={() => setForgotPasswordSent(true)}
+              className="text-xs font-medium text-slate-600 hover:text-sky-600 transition-colors cursor-pointer"
+            >
+              Esqueci minha senha
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setErrorMessage(null);
+              }}
+              className="text-xs font-semibold text-sky-600 hover:text-sky-700 transition-colors cursor-pointer"
+            >
+              {isLogin
+                ? "Não tem uma conta? Cadastre-se"
+                : "Já possui uma conta? Faça login"}
+            </button>
           </div>
 
-          {/* Botão de Convidado / Modo Visitante (Zero fricção) */}
-          <button
-            type="button"
-            onClick={handleGuestAccess}
-            className="w-full py-3 px-4 rounded-xl font-semibold text-xs text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span>Acessar no Modo Visitante (Sem Cadastro)</span>
-          </button>
-        </div>
-
-        {/* Rodapé Institucional */}
-        <div className="pt-6 border-t border-white/5 text-center text-[11px] text-slate-400 space-y-2">
-          <p>
-            Ao continuar, você concorda com nossos{" "}
-            <Link
-              href="/termos"
-              className="text-slate-350 hover:text-white underline"
+          {/* Quick Demo Access for Testers */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={handleGuestAccess}
+              disabled={isSubmitting}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-sky-400/50 hover:bg-sky-50/50 text-slate-700 hover:text-sky-700 text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              Termos de Uso
-            </Link>{" "}
-            e{" "}
-            <Link
-              href="/privacidade"
-              className="text-slate-350 hover:text-white underline"
-            >
-              Política de Privacidade
-            </Link>
-            .
-          </p>
-          <p className="text-[10px] text-slate-400">
-            TheoSphere 2026 &copy; Todos os direitos reservados.
-          </p>
+              <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+              <span>Acesso Rápido de Teste (Visitante)</span>
+            </button>
+            <span className="text-[10px] text-slate-400 mt-2 text-center">
+              Ambiente de homologação e demonstração pública
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
