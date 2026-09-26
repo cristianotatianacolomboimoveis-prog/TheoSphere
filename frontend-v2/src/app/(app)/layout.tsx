@@ -107,7 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden bg-[#F8FAFC] dark:bg-[#080B11] text-foreground font-sans">
-      <TheoSphereTopBar onOpenAuth={() => setAuthOpen(true)} />
+      <TheoSphereTopBar onOpenAuth={() => router.push("/login")} />
 
       <div className="flex flex-grow w-full overflow-hidden">
         <Sidebar activeTool={activeTool} onSelectTool={handleSelectTool} />

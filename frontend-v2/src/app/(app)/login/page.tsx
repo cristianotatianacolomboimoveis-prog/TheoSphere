@@ -47,12 +47,8 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.replace("/");
-    }
-  }, [authLoading, isAuthenticated, router]);
+  // Permitir visualização mesmo se autenticado (sem kickout automático)
+  const isAlreadyLoggedIn = !authLoading && isAuthenticated;
 
   // Video Stage States
   const [isMuted, setIsMuted] = useState(true);
