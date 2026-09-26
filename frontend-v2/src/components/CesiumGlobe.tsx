@@ -96,11 +96,24 @@ const HISTORICAL_SITE_IMAGES: Record<string, string> = {
   roma: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80",
 };
 
+function configureCesiumScene(v: any) {
+  if (!v || !v.scene) return;
+  const ssc = v.scene.screenSpaceCameraController;
+  if (ssc) {
+    ssc.minimumZoomDistance = 120;
+    ssc.maximumZoomDistance = 35000000;
+    ssc.enableCollisionDetection = true;
+  }
+}
+
 function CesiumEventsBridge() {
   const { viewer } = useCesium();
 
   useEffect(() => {
     if (!viewer) return;
+
+    // Configurações anti-distorção de zoom e perspectiva do Cesium
+    configureCesiumScene(viewer);
 
     // Escuta seleção de entidades no Cesium Viewer (cliques no globo 3D)
     const removeSelectionListener =
@@ -394,11 +407,12 @@ export default function CesiumGlobe({
     };
   }, []);
 
-  // Camada de satélite de alta precisão submétrica ESRI Clarity (alta nitidez fotográfica)
+  // Camada de satélite de alta precisão submétrica ESRI World Imagery (resolução nativa até nível 19 com interpolação linear suave)
   const imageryProvider = useMemo(() => {
     return new Cesium.UrlTemplateImageryProvider({
-      url: "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      maximumLevel: 21,
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      maximumLevel: 19,
+      enablePickFeatures: false,
     });
   }, []);
 

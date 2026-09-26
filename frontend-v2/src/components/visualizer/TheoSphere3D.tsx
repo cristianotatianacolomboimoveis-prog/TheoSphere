@@ -46,19 +46,19 @@ const CesiumGlobe = dynamic(() => import("@/components/CesiumGlobe"), {
 const MAP_STYLE =
   "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
-// Esri World Imagery Clarity (Submétrica HD) + CartoDB transparent labels overlay + 3D Terrain + Atmospheric Sky
+// Esri World Imagery (Satélite Global de Alta Definição) + CartoDB Labels + Reamostragem Linear Anti-Distorção
 const SATELLITE_STYLE = {
   version: 8,
   sources: {
     satellite: {
       type: "raster",
       tiles: [
-        "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
       tileSize: 256,
-      maxzoom: 21,
+      maxzoom: 19,
       attribution:
-        "Tiles &copy; Esri Clarity &mdash; Imagens de Satélite de Alta Precisão Submétrica",
+        "Tiles &copy; Esri &mdash; Imagens de Satélite de Alta Precisão Submétrica",
     },
     labels: {
       type: "raster",
@@ -66,6 +66,7 @@ const SATELLITE_STYLE = {
         "https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png",
       ],
       tileSize: 256,
+      maxzoom: 19,
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     },
@@ -76,14 +77,18 @@ const SATELLITE_STYLE = {
       type: "raster",
       source: "satellite",
       minzoom: 0,
-      maxzoom: 20,
+      maxzoom: 24,
+      paint: {
+        "raster-resampling": "linear",
+        "raster-fade-duration": 150,
+      },
     },
     {
       id: "labels-layer",
       type: "raster",
       source: "labels",
       minzoom: 0,
-      maxzoom: 20,
+      maxzoom: 24,
     },
   ],
   sky: {
@@ -455,7 +460,7 @@ export default function TheoSphere3D({
       });
 
       if (mapMode === "satellite") {
-        // Inject Esri Satellite source
+        // Inject Esri Satellite source com maxzoom 19
         style.sources = {
           ...style.sources,
           satellite: {
@@ -464,6 +469,7 @@ export default function TheoSphere3D({
               "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             ],
             tileSize: 256,
+            maxzoom: 19,
             attribution:
               "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
           },
@@ -492,13 +498,17 @@ export default function TheoSphere3D({
           return layer;
         });
 
-        // Insert satellite layer at bottom (first layer)
+        // Insert satellite layer at bottom (first layer) com reamostragem linear anti-distorção
         style.layers.unshift({
           id: "satellite-layer",
           type: "raster",
           source: "satellite",
           minzoom: 0,
-          maxzoom: 20,
+          maxzoom: 24,
+          paint: {
+            "raster-resampling": "linear",
+            "raster-fade-duration": 150,
+          },
         });
 
         // Dark atmosphere sky
@@ -688,6 +698,8 @@ export default function TheoSphere3D({
       getPosition: (w: any) => [w.coords[1], w.coords[0]],
       getText: (w: any) => `${w.indexInRoute}. ${w.title || ""}`,
       getSize: 12,
+      sizeUnits: "pixels",
+      billboard: true,
       getColor: [255, 255, 255, 255],
       getAlignmentBaseline: "bottom",
       fontFamily: "Inter, sans-serif",
@@ -702,6 +714,7 @@ export default function TheoSphere3D({
       getFillColor: [245, 158, 11, 200], // Amber/Orange (#f59e0b) to match the legend
       getRadius: 100,
       radiusMinPixels: 6,
+      radiusMaxPixels: 10,
       pickable: true,
       onClick: (info: any) => {
         if (info.object) {
@@ -912,6 +925,10 @@ export default function TheoSphere3D({
               onMove={(evt) => setViewState(evt.viewState as any)}
               onLoad={() => setIsMapLoaded(true)}
               style={{ width: "100%", height: "100%" }}
+              minZoom={1.5}
+              maxZoom={20}
+              minPitch={0}
+              maxPitch={65}
             >
               {isMapLoaded && <DeckGLOverlay layers={layers} />}
               <NavigationControl position="bottom-right" />
