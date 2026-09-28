@@ -89,7 +89,9 @@ export class RagService {
 
     if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
       this.genAI = new GoogleGenAI({ apiKey: geminiKey });
-      this.logger.log('Google Gemini AI inicializado para Chat (Flash 1.5).');
+      this.logger.log(
+        `Google Gemini AI inicializado para Chat (${this.geminiModel}).`,
+      );
     } else if (openaiKey && !openaiKey.startsWith('sk-your')) {
       this.openai = new OpenAI({ apiKey: openaiKey });
       this.logger.log('OpenAI inicializado para Chat (GPT-4o-mini).');
@@ -99,6 +101,8 @@ export class RagService {
       );
     }
   }
+
+  private geminiModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
   private lastAiFailure: {
     provider: string;
@@ -604,7 +608,7 @@ export class RagService {
         responseContent = await withLlmTelemetry(
           {
             provider: 'gemini',
-            model: 'gemini-2.5-flash',
+            model: this.geminiModel,
             op: 'chat',
             tradition,
             userId,
@@ -633,7 +637,7 @@ export class RagService {
 
             const result = await Promise.race([
               this.genAI!.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: this.geminiModel,
                 contents,
                 config,
               }),
@@ -1018,7 +1022,7 @@ export class RagService {
         });
 
         const stream = await this.genAI.models.generateContentStream({
-          model: 'gemini-2.5-flash',
+          model: this.geminiModel,
           contents,
           config,
         });

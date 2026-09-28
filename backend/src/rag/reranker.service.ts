@@ -72,7 +72,7 @@ export class RerankerService {
 
       const result = await Promise.race([
         this.genAI.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           config: {
             temperature: 0,
