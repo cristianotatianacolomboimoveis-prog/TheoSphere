@@ -11,6 +11,7 @@ import { CommandBar } from "@/components/layout/CommandBar";
 import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOverlay";
 import { ServerWarmupBanner } from "@/components/layout/ServerWarmupBanner";
 import AuthModal from "@/components/AuthModal";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
 /** pathname → ToolId */
@@ -41,13 +42,25 @@ const TOOL_TO_PATH: Record<string, string> = {
   library: "/library",
 };
 
+const PUBLIC_PATHS = ["/login", "/privacidade", "/termos"];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { activeTool, setActiveTool, _hasHydrated } = useTheoStore();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [authOpen, setAuthOpen] = useState(false);
   const [commandBarOpen, setCommandBarOpen] = useState(false);
+
+  const isPublic = PUBLIC_PATHS.includes(pathname);
+
+  // Redireciona usuários não autenticados para /login para controle estrito dos testes
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated && !isPublic) {
+      router.replace("/login");
+    }
+  }, [authLoading, isAuthenticated, isPublic, router]);
 
   // Sync pathname → store
   useEffect(() => {
@@ -85,25 +98,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setActiveTool(tool as ToolId);
   };
 
-  if (!_hasHydrated) {
+  if (!_hasHydrated || (authLoading && !isPublic)) {
     return (
-      <div className="h-screen w-full bg-[#DDE2E8] dark:bg-[#0A0D14] flex items-center justify-center">
+      <div className="h-screen w-full bg-[#080B11] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
           <span className="text-[10px] tracking-[0.4em] font-black text-gray-400 uppercase">
-            NÚCLEO THEOSPHERE…
+            AUTENTICANDO THEOSPHERE…
           </span>
         </div>
       </div>
     );
   }
 
-  if (pathname === "/login") {
+  if (isPublic) {
     return (
       <main className="w-full min-h-screen overflow-auto bg-[#080B11]">
         {children}
       </main>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

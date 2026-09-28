@@ -29,6 +29,7 @@ import { CONFIG } from "../lib/config";
 
 const TOKEN_KEY = "theosphere-access-token";
 const USER_ID_KEY = "theosphere-user-id";
+const USER_EMAIL_KEY = "theosphere-user-email";
 const API_BASE = CONFIG.BACKEND_URL;
 
 // How early (in ms) to refresh the access token before it actually expires.
@@ -102,6 +103,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,9 +113,11 @@ export function useAuth() {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(TOKEN_KEY);
       window.localStorage.removeItem(USER_ID_KEY);
+      window.localStorage.removeItem(USER_EMAIL_KEY);
     }
     setToken(null);
     setUserId(null);
+    setUserEmail(null);
     setIsAuthenticated(false);
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
@@ -154,14 +158,16 @@ export function useAuth() {
   }, [scheduleRefresh]);
 
   const applyAccessToken = useCallback(
-    (accessToken: string, uid?: string | null) => {
+    (accessToken: string, uid?: string | null, email?: string | null) => {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(TOKEN_KEY, accessToken);
         if (uid) window.localStorage.setItem(USER_ID_KEY, uid);
+        if (email) window.localStorage.setItem(USER_EMAIL_KEY, email);
       }
       const sub = decodeJwtPayload(accessToken)?.sub ?? null;
       setToken(accessToken);
       setUserId(uid ?? sub);
+      if (email) setUserEmail(email);
       setIsAuthenticated(true);
       scheduleRefresh(accessToken);
     },
@@ -178,6 +184,7 @@ export function useAuth() {
 
       const savedToken = window.localStorage.getItem(TOKEN_KEY);
       const savedUserId = window.localStorage.getItem(USER_ID_KEY);
+      const savedUserEmail = window.localStorage.getItem(USER_EMAIL_KEY);
 
       const tryHydrate = async () => {
         if (savedToken) {
@@ -186,6 +193,7 @@ export function useAuth() {
             // Still valid — adopt it and schedule a refresh.
             setToken(savedToken);
             setUserId(savedUserId || payload.sub || null);
+            setUserEmail(savedUserEmail);
             setIsAuthenticated(true);
             scheduleRefresh(savedToken);
             setLoading(false);
@@ -195,7 +203,7 @@ export function useAuth() {
         // Either no token, expired, or malformed — try the refresh cookie.
         const fresh = await refreshAccessToken();
         if (fresh) {
-          applyAccessToken(fresh, savedUserId);
+          applyAccessToken(fresh, savedUserId, savedUserEmail);
         } else {
           clearLocalSession();
         }
@@ -256,7 +264,7 @@ export function useAuth() {
       if (!data.accessToken || !data.user?.id) {
         return { success: false, error: "Resposta inválida do servidor" };
       }
-      applyAccessToken(data.accessToken, data.user.id);
+      applyAccessToken(data.accessToken, data.user.id, data.user.email);
       return { success: true };
     } catch {
       return { success: false, error: "Erro de conexão com o servidor" };
@@ -305,6 +313,7 @@ export function useAuth() {
   return {
     isAuthenticated,
     userId,
+    userEmail,
     token,
     loading,
     login,

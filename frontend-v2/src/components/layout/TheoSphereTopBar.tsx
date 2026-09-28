@@ -22,11 +22,13 @@ import { LayoutSwitcher } from "./LayoutSwitcher";
 import { TheoSphereCommandPalette } from "./TheoSphereCommandPalette";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { WelcomeTourModal } from "./WelcomeTourModal";
+import { useRouter } from "next/navigation";
 import { FeedbackModal } from "./FeedbackModal";
 
 export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
+  const router = useRouter();
   const { setActiveTool } = useTheoStore();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, userEmail } = useAuth();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [layoutsOpen, setLayoutsOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -184,21 +186,25 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
                 <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-[#1E252B] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                   <div className="px-4 py-2 border-b border-gray-100 dark:border-white/5 text-left">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Usuário Ativo
+                      Testador Beta
                     </p>
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate">
-                      Sessão Iniciada
+                    <p
+                      className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate"
+                      title={userEmail || ""}
+                    >
+                      {userEmail || "Sessão Ativa"}
                     </p>
                   </div>
                   <button
                     onClick={() => {
                       logout();
                       setDropdownOpen(false);
+                      router.push("/login");
                     }}
-                    className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/15 flex items-center gap-2 transition-colors font-medium"
+                    className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/15 flex items-center gap-2 transition-colors font-medium cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Sair</span>
+                    <span>Sair da Conta</span>
                   </button>
                 </div>
               </>

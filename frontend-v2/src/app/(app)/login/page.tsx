@@ -47,8 +47,12 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Permitir visualização mesmo se autenticado (sem kickout automático)
-  const isAlreadyLoggedIn = !authLoading && isAuthenticated;
+  // Redireciona automaticamente se já estiver autenticado
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace("/");
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   // Video Stage States
   const [isMuted, setIsMuted] = useState(true);
@@ -348,29 +352,6 @@ export default function LoginPage() {
       }
     } catch {
       setErrorMessage("Erro ao conectar com o servidor. Tente novamente.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Demo / Tester Instant Guest Access
-  const handleGuestAccess = async () => {
-    setIsSubmitting(true);
-    setErrorMessage(null);
-    try {
-      const result = await login("tester@theosphere.com", "Theosphere2026!");
-      if (result.success) {
-        router.push("/");
-      } else {
-        const reg = await register("tester@theosphere.com", "Theosphere2026!");
-        if (reg.success) {
-          router.push("/");
-        } else {
-          router.push("/");
-        }
-      }
-    } catch {
-      router.push("/");
     } finally {
       setIsSubmitting(false);
     }
@@ -828,19 +809,15 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Quick Demo Access for Testers */}
+          {/* Controlled Beta Testing Notice */}
           <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center">
-            <button
-              type="button"
-              onClick={handleGuestAccess}
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-sky-400/50 hover:bg-sky-50/50 text-slate-700 hover:text-sky-700 text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-              <span>Acesso Rápido de Teste (Visitante)</span>
-            </button>
-            <span className="text-[10px] text-slate-400 mt-2 text-center">
-              Ambiente de homologação e demonstração pública
+            <div className="w-full py-2.5 px-4 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+              <span>Beta Fechado — Acesso Controlado</span>
+            </div>
+            <span className="text-[11px] text-slate-400 mt-2 text-center leading-relaxed">
+              Faça login ou crie sua conta para que suas sessões e anotações
+              sejam registradas.
             </span>
           </div>
         </div>
