@@ -449,7 +449,7 @@ export default function LoginPage() {
             {/* Giant Headline with Cyan Curve Underline */}
             <div className="relative">
               <h1 className="text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.08]">
-                A IA <br />
+                A plataforma <br />
                 <span className="relative inline-block text-white">
                   que transforma
                   {/* Cyan swoop line under "que transforma" matching Kenlo */}
@@ -475,9 +475,10 @@ export default function LoginPage() {
 
             {/* Explanatory Body */}
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-md font-light">
-              A IA que transforma a exegese bíblica e teológica foi revelada.
-              Atendimento exegético, hebraico, grego, 89 obras canônicas, 45.000
-              chunks e decisão hermenêutica — tudo com uma lógica nova.
+              A plataforma que transforma a exegese bíblica e teológica foi
+              revelada. Pesquisa exegética, hebraico, grego, 90 obras canônicas,
+              45.000 chunks e rigor hermenêutico — tudo com uma nova geração
+              tecnológica.
             </p>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-light">
               Quem acompanha essa transformação agora, sai na frente...
