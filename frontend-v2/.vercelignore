@@ -12,3 +12,5 @@ test/
 **/*.spec.ts
 **/*.spec.tsx
 postcss.config.js
+.next/
+node_modules/

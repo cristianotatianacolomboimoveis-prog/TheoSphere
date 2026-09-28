@@ -12,6 +12,7 @@ import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOve
 import { ServerWarmupBanner } from "@/components/layout/ServerWarmupBanner";
 import AuthModal from "@/components/AuthModal";
 import { useAuth } from "@/hooks/useAuth";
+import LoginPage from "./login/page";
 import { Loader2 } from "lucide-react";
 
 /** pathname → ToolId */
@@ -98,20 +99,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setActiveTool(tool as ToolId);
   };
 
-  if (!_hasHydrated || (authLoading && !isPublic)) {
-    return (
-      <div className="h-screen w-full bg-[#080B11] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <span className="text-[10px] tracking-[0.4em] font-black text-gray-400 uppercase">
-            AUTENTICANDO THEOSPHERE…
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (isPublic) {
+  if (pathname === "/privacidade" || pathname === "/termos") {
     return (
       <main className="w-full min-h-screen overflow-auto bg-[#080B11]">
         {children}
@@ -119,8 +107,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
+  // Se o visitante não está autenticado ou acessou /login:
+  // Exibe diretamente a tela de login com o vídeo ao vivo de Israel, som ambiente e dicas beta
+  if (!isAuthenticated || pathname === "/login") {
+    return (
+      <main className="w-full min-h-screen overflow-auto bg-[#080B11]">
+        <LoginPage />
+      </main>
+    );
   }
 
   return (
