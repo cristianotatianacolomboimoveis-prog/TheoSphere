@@ -11,6 +11,16 @@ export type ClauseType =
   | 'prepositional_phrase' // Frase Preposicional com Peso Teológico
   | 'vocative_apposition'; // Vocativo ou Aposição Exegética
 
+export interface SyntaxWordItem {
+  word: string;
+  translit?: string;
+  lemma?: string;
+  morph?: string;
+  gloss?: string;
+  strongId?: string;
+  role?: 'S' | 'P' | 'C' | 'A' | 'Conj'; // OpenText Functional Roles
+}
+
 export interface ClauseNode {
   id: string;
   level: number; // 0 = Cláusula raiz / principal, 1..N = níveis de subordinação
@@ -21,7 +31,10 @@ export interface ClauseNode {
   textTranslation: string; // Texto em Português
   grammaticalSubject?: string; // Sujeito gramatical
   mainVerb?: string; // Verbo regente da oração
+  functionalRole?: 'S' | 'P' | 'C' | 'A' | 'Conj' | 'Voc'; // Papel funcional OpenText
+  syntacticDomain?: 'Primary' | 'Secondary' | 'Embedded'; // Domínio sintático
   theologicalNote?: string; // Insight exegético/teológico da conexão
+  words?: SyntaxWordItem[]; // Decomposição palavra a palavra com papéis sintáticos
   children?: ClauseNode[];
 }
 
@@ -33,6 +46,7 @@ export interface SyntaxDiagramResponse {
   maxNestingDepth: number;
   rootClauses: ClauseNode[];
   isCanonicalPreset: boolean;
+  openTextCompliant?: boolean; // Flag de conformidade com a gramática funcional de Stanley Porter
 }
 
 export interface CanonicalDiagramSummary {

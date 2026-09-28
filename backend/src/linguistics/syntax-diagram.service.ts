@@ -316,6 +316,7 @@ export class SyntaxDiagramService {
               },
             ],
       isCanonicalPreset: false,
+      openTextCompliant: true,
     };
   }
 
@@ -329,6 +330,48 @@ export class SyntaxDiagramService {
     const textOriginal = words.map((w) => w.word).join(' ');
     const textTranslation = words.map((w) => w.gloss || '').join(' ');
 
+    // Classifica cada palavra segundo o modelo funcional OpenText (S, P, C, A, Conj)
+    const syntaxWords = words.map((w) => {
+      const morph = (w.morph || '').toUpperCase();
+      let role: 'S' | 'P' | 'C' | 'A' | 'Conj' | undefined;
+
+      if (morph.startsWith('V-')) {
+        role = 'P'; // Predicator / Verbo
+      } else if (
+        morph.includes('-N') ||
+        morph.includes('N-NS') ||
+        morph.includes('T-NS') ||
+        morph.includes('R-NS')
+      ) {
+        role = 'S'; // Subject / Sujeito
+      } else if (
+        morph.includes('-A') ||
+        morph.includes('-D') ||
+        morph.includes('N-AS') ||
+        morph.includes('N-DS')
+      ) {
+        role = 'C'; // Complement / Objeto direto ou indireto
+      } else if (
+        morph.startsWith('PREP') ||
+        morph.startsWith('ADV') ||
+        morph.includes('PREP')
+      ) {
+        role = 'A'; // Adjunct / Modificador circunstancial
+      } else if (morph.startsWith('CONJ') || morph.startsWith('C-')) {
+        role = 'Conj'; // Conjunção conectora
+      }
+
+      return {
+        word: w.word,
+        translit: w.translit || undefined,
+        lemma: w.lemma || undefined,
+        morph: w.morph || undefined,
+        gloss: w.gloss || undefined,
+        strongId: w.strongId || undefined,
+        role,
+      };
+    });
+
     // Procura verbo principal
     const verbWord = words.find((w) => (w.morph || '').startsWith('V-'));
     const mainVerb = verbWord
@@ -338,6 +381,26 @@ export class SyntaxDiagramService {
     // Procura sujeito nominativo
     const subjWord = words.find((w) => (w.morph || '').includes('-N'));
     const grammaticalSubject = subjWord ? subjWord.word : undefined;
+
+    // Determina o papel funcional geral da oração no padrão OpenText
+    let functionalRole: 'S' | 'P' | 'C' | 'A' | 'Conj' = 'P';
+    if (
+      type === 'subordinate_purpose' ||
+      type === 'subordinate_causal' ||
+      type === 'subordinate_conditional' ||
+      type === 'subordinate_temporal' ||
+      type === 'participial' ||
+      type === 'prepositional_phrase'
+    ) {
+      functionalRole = 'A'; // Adjunto adverbial / circunstancial
+    } else if (type === 'subordinate_result') {
+      functionalRole = 'C'; // Complemento consecutivo
+    } else if (type === 'subordinate_relative') {
+      functionalRole = 'A'; // Oração adjetival atributiva
+    }
+
+    const syntacticDomain: 'Primary' | 'Secondary' | 'Embedded' =
+      type === 'main' ? 'Primary' : 'Secondary';
 
     return {
       id: `clause-${idx}`,
@@ -349,6 +412,9 @@ export class SyntaxDiagramService {
       textTranslation,
       mainVerb,
       grammaticalSubject,
+      functionalRole,
+      syntacticDomain,
+      words: syntaxWords,
       theologicalNote: `Segmento sintático com ${words.length} termos morfológicos originais.`,
     };
   }

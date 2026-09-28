@@ -254,6 +254,21 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
             </button>
           )}
 
+          {/* Botão de Árvore Sintática Hierárquica Profunda (OpenText / Cláusulas) */}
+          {onOpenSyntaxDiagram && (
+            <button
+              onClick={() => {
+                closeAllSelectors();
+                onOpenSyntaxDiagram();
+              }}
+              className="px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-emerald-500/40 transition-all text-xs font-bold flex items-center gap-1.5 text-foreground/80 hover:text-emerald-400"
+              title="Abrir Árvore Sintática Hierárquica Profunda (OpenText / Gramática Funcional de Cláusulas)"
+            >
+              <GitFork className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Sintaxe</span>
+            </button>
+          )}
+
           {/* Indicador de Fonte (API vs Cache) */}
           {chaptersData.length > 0 && chaptersData[0].source && (
             <span

@@ -139,6 +139,56 @@ export const BOOK_NAME_TO_ID: Record<string, number> = {
   jude: 65,
   apocalipse: 66,
   revelation: 66,
+  // ── Intertestamentário / Deuterocanônico (Contexto Histórico) ───────
+  tobias: 67,
+  tobit: 67,
+  judite: 68,
+  judith: 68,
+  sabedoria: 69,
+  'sabedoria de salomão': 69,
+  'sabedoria de salomao': 69,
+  wisdom: 69,
+  'wisdom of solomon': 69,
+  eclesiástico: 70,
+  eclesiastico: 70,
+  sirácida: 70,
+  siracida: 70,
+  sirach: 70,
+  ecclesiasticus: 70,
+  baruque: 71,
+  baruch: 71,
+  'carta de jeremias': 72,
+  'letter of jeremiah': 72,
+  '1 macabeus': 73,
+  '1 maccabees': 73,
+  '2 macabeus': 74,
+  '2 maccabees': 74,
+  '3 macabeus': 75,
+  '3 maccabees': 75,
+  '4 macabeus': 76,
+  '4 maccabees': 76,
+  '1 esdras': 77,
+  '3 esdras': 77,
+  '3 ezra': 77,
+  '2 esdras': 78,
+  '4 esdras': 78,
+  '4 ezra': 78,
+  'oração de manassés': 79,
+  'oracao de manasses': 79,
+  'prayer of manasseh': 79,
+  'salmo 151': 80,
+  'psalm 151': 80,
+  'adições a ester': 81,
+  'adicoes a ester': 81,
+  'additions to esther': 81,
+  'adições a daniel': 82,
+  'adicoes a daniel': 82,
+  'additions to daniel': 82,
+  susana: 82,
+  susanna: 82,
+  'bel e o dragão': 82,
+  'bel e o dragao': 82,
+  'bel and the dragon': 82,
 };
 
 /**
@@ -218,6 +268,23 @@ export const BOOK_ID_TO_NAME_PT: Record<number, string> = {
   64: '3 João',
   65: 'Judas',
   66: 'Apocalipse',
+  // ── Intertestamentário / Deuterocanônico ─────────────────────────────
+  67: 'Tobias',
+  68: 'Judite',
+  69: 'Sabedoria de Salomão',
+  70: 'Eclesiástico (Sirácida)',
+  71: 'Baruque',
+  72: 'Carta de Jeremias',
+  73: '1 Macabeus',
+  74: '2 Macabeus',
+  75: '3 Macabeus',
+  76: '4 Macabeus',
+  77: '1 Esdras',
+  78: '2 Esdras',
+  79: 'Oração de Manassés',
+  80: 'Salmo 151',
+  81: 'Adições a Ester',
+  82: 'Adições a Daniel',
 };
 
 export function getCanonicalDivision(bookId: number): string {
@@ -231,6 +298,8 @@ export function getCanonicalDivision(bookId: number): string {
   if (bookId >= 45 && bookId <= 57) return 'Epístolas Paulinas';
   if (bookId >= 58 && bookId <= 65) return 'Epístolas Gerais';
   if (bookId === 66) return 'Apocalipse';
+  if (bookId >= 67 && bookId <= 82)
+    return 'Intertestamentário / Deuterocanônico';
   return 'Outro';
 }
 
@@ -301,6 +370,23 @@ export const BOOK_ID_TO_NAME_EN: Record<number, string> = {
   64: '3 John',
   65: 'Jude',
   66: 'Revelation',
+  // ── Intertestamental / Deuterocanonical ─────────────────────────────
+  67: 'Tobit',
+  68: 'Judith',
+  69: 'Wisdom of Solomon',
+  70: 'Sirach',
+  71: 'Baruch',
+  72: 'Letter of Jeremiah',
+  73: '1 Maccabees',
+  74: '2 Maccabees',
+  75: '3 Maccabees',
+  76: '4 Maccabees',
+  77: '1 Esdras',
+  78: '2 Esdras',
+  79: 'Prayer of Manasseh',
+  80: 'Psalm 151',
+  81: 'Additions to Esther',
+  82: 'Additions to Daniel',
 };
 
 export function normalizeRefToCanonicalEn(ref: string): string {

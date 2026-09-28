@@ -13,6 +13,16 @@ export type ClauseType =
   | "prepositional_phrase"
   | "vocative_apposition";
 
+export interface SyntaxWordItem {
+  word: string;
+  translit?: string;
+  lemma?: string;
+  morph?: string;
+  gloss?: string;
+  strongId?: string;
+  role?: "S" | "P" | "C" | "A" | "Conj";
+}
+
 export interface ClauseNode {
   id: string;
   level: number;
@@ -23,7 +33,10 @@ export interface ClauseNode {
   textTranslation: string;
   grammaticalSubject?: string;
   mainVerb?: string;
+  functionalRole?: "S" | "P" | "C" | "A" | "Conj" | "Voc";
+  syntacticDomain?: "Primary" | "Secondary" | "Embedded";
   theologicalNote?: string;
+  words?: SyntaxWordItem[];
   children?: ClauseNode[];
 }
 
@@ -35,6 +48,7 @@ export interface SyntaxDiagramResponse {
   maxNestingDepth: number;
   rootClauses: ClauseNode[];
   isCanonicalPreset: boolean;
+  openTextCompliant?: boolean;
 }
 
 export interface CanonicalDiagramSummary {

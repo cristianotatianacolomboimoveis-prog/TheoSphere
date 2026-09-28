@@ -43,18 +43,28 @@ describe('resolveBookId', () => {
     expect(resolveBookId('')).toBeNull();
   });
 
-  it('todos os 66 livros têm pelo menos um nome mapeado', () => {
+  it('todos os 66 livros canônicos têm pelo menos um nome mapeado', () => {
     const ids = new Set(Object.values(BOOK_NAME_TO_ID));
     for (let i = 1; i <= 66; i++) {
       expect(ids.has(i)).toBe(true);
     }
   });
 
-  it('nenhum id fora do intervalo 1-66', () => {
+  it('todos os IDs mapeados estão no intervalo canônico e intertestamentário (1-82)', () => {
     for (const id of Object.values(BOOK_NAME_TO_ID)) {
       expect(id).toBeGreaterThanOrEqual(1);
-      expect(id).toBeLessThanOrEqual(66);
+      expect(id).toBeLessThanOrEqual(82);
     }
+  });
+
+  it('resolve nomes de livros intertestamentários e deuterocanônicos', () => {
+    expect(resolveBookId('Tobias')).toBe(67);
+    expect(resolveBookId('Judite')).toBe(68);
+    expect(resolveBookId('1 Macabeus')).toBe(73);
+    expect(resolveBookId('1 Maccabees')).toBe(73);
+    expect(resolveBookId('Sirach')).toBe(70);
+    expect(resolveBookId('Eclesiástico')).toBe(70);
+    expect(resolveBookId('Wisdom')).toBe(69);
   });
 
   describe('BOOK_ID_TO_NAME_PT & getCanonicalDivision', () => {
@@ -81,6 +91,15 @@ describe('resolveBookId', () => {
       expect(getCanonicalDivision(45)).toBe('Epístolas Paulinas');
       expect(getCanonicalDivision(58)).toBe('Epístolas Gerais');
       expect(getCanonicalDivision(66)).toBe('Apocalipse');
+      expect(getCanonicalDivision(67)).toBe(
+        'Intertestamentário / Deuterocanônico',
+      );
+      expect(getCanonicalDivision(73)).toBe(
+        'Intertestamentário / Deuterocanônico',
+      );
+      expect(getCanonicalDivision(82)).toBe(
+        'Intertestamentário / Deuterocanônico',
+      );
       expect(getCanonicalDivision(999)).toBe('Outro');
     });
   });

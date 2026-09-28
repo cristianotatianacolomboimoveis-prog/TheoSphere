@@ -5,9 +5,10 @@ export interface BibleBook {
   abbrevPt: string;
   abbrevEn: string;
   chapters: number;
-  testament: "AT" | "NT";
+  testament: "AT" | "NT" | "AP";
   group: string;
   yearStart?: number; // Ano aproximado (AC é negativo)
+  isDeuterocanonical?: boolean;
 }
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -701,6 +702,183 @@ export const BIBLE_BOOKS: BibleBook[] = [
     testament: "NT",
     group: "Profético",
   },
+  // ── Intertestamentário / Deuterocanônico (Contexto Histórico) ───────
+  {
+    id: 67,
+    namePt: "Tobias",
+    nameEn: "Tobit",
+    abbrevPt: "Tb",
+    abbrevEn: "Tob",
+    chapters: 14,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 68,
+    namePt: "Judite",
+    nameEn: "Judith",
+    abbrevPt: "Jdt",
+    abbrevEn: "Jdt",
+    chapters: 16,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 69,
+    namePt: "Sabedoria de Salomão",
+    nameEn: "Wisdom of Solomon",
+    abbrevPt: "Sb",
+    abbrevEn: "Wis",
+    chapters: 19,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 70,
+    namePt: "Eclesiástico (Sirácida)",
+    nameEn: "Sirach",
+    abbrevPt: "Eclo",
+    abbrevEn: "Sir",
+    chapters: 51,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 71,
+    namePt: "Baruque",
+    nameEn: "Baruch",
+    abbrevPt: "Br",
+    abbrevEn: "Bar",
+    chapters: 5,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 72,
+    namePt: "Carta de Jeremias",
+    nameEn: "Letter of Jeremiah",
+    abbrevPt: "CJe",
+    abbrevEn: "EpJer",
+    chapters: 1,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 73,
+    namePt: "1 Macabeus",
+    nameEn: "1 Maccabees",
+    abbrevPt: "1Mc",
+    abbrevEn: "1Mac",
+    chapters: 16,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 74,
+    namePt: "2 Macabeus",
+    nameEn: "2 Maccabees",
+    abbrevPt: "2Mc",
+    abbrevEn: "2Mac",
+    chapters: 15,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 75,
+    namePt: "3 Macabeus",
+    nameEn: "3 Maccabees",
+    abbrevPt: "3Mc",
+    abbrevEn: "3Mac",
+    chapters: 7,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 76,
+    namePt: "4 Macabeus",
+    nameEn: "4 Maccabees",
+    abbrevPt: "4Mc",
+    abbrevEn: "4Mac",
+    chapters: 18,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 77,
+    namePt: "1 Esdras",
+    nameEn: "1 Esdras",
+    abbrevPt: "1Esd",
+    abbrevEn: "1Esd",
+    chapters: 9,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 78,
+    namePt: "2 Esdras",
+    nameEn: "2 Esdras",
+    abbrevPt: "2Esd",
+    abbrevEn: "2Esd",
+    chapters: 16,
+    testament: "AP",
+    group: "Históricos Intertestamentários",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 79,
+    namePt: "Oração de Manassés",
+    nameEn: "Prayer of Manasseh",
+    abbrevPt: "OrMan",
+    abbrevEn: "PrMan",
+    chapters: 1,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 80,
+    namePt: "Salmo 151",
+    nameEn: "Psalm 151",
+    abbrevPt: "Sl151",
+    abbrevEn: "Ps151",
+    chapters: 1,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 81,
+    namePt: "Adições a Ester",
+    nameEn: "Additions to Esther",
+    abbrevPt: "AdEst",
+    abbrevEn: "AddEst",
+    chapters: 6,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
+  {
+    id: 82,
+    namePt: "Adições a Daniel",
+    nameEn: "Additions to Daniel",
+    abbrevPt: "AdDan",
+    abbrevEn: "AddDan",
+    chapters: 3,
+    testament: "AP",
+    group: "Deuterocanônicos",
+    isDeuterocanonical: true,
+  },
 ];
 
 export const BOOK_GROUPS_AT = [
@@ -719,6 +897,11 @@ export const BOOK_GROUPS_NT = [
   "Profético",
 ];
 
+export const BOOK_GROUPS_AP = [
+  "Deuterocanônicos",
+  "Históricos Intertestamentários",
+];
+
 export function getBookByName(name: string): BibleBook | undefined {
   const lower = name.toLowerCase();
   return BIBLE_BOOKS.find(
@@ -730,7 +913,9 @@ export function getBookByName(name: string): BibleBook | undefined {
   );
 }
 
-export function getBooksByTestament(testament: "AT" | "NT"): BibleBook[] {
+export function getBooksByTestament(
+  testament: "AT" | "NT" | "AP",
+): BibleBook[] {
   return BIBLE_BOOKS.filter((b) => b.testament === testament);
 }
 
