@@ -358,11 +358,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#0B0F19] text-white overflow-x-hidden font-sans">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#0B0F19] text-white font-sans">
       {/* ========================================================================= */}
       {/* LEFT SECTION (Dark Showcase with Telemetry, Video Stage & Kenlo Aesthetics) */}
       {/* ========================================================================= */}
-      <section className="relative w-full lg:w-[65%] xl:w-[67%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-hidden bg-radial from-[#131B2E] via-[#0B0F19] to-[#070A11] border-r border-white/5">
+      <section className="relative w-full lg:flex-1 min-h-screen lg:h-screen flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-12 overflow-y-auto bg-radial from-[#131B2E] via-[#0B0F19] to-[#070A11] border-r border-white/5">
         {/* Decorative Grid Pattern Overlay */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -468,8 +468,7 @@ export default function LoginPage() {
                   </svg>
                 </span>{" "}
                 <br />
-                a pesquisa <br />
-                teológica.
+                a pesquisa bíblica <br />e teológica.
               </h1>
             </div>
 
@@ -686,8 +685,8 @@ export default function LoginPage() {
       {/* ========================================================================= */}
       {/* RIGHT SECTION (Crisp White Minimalist Login Card Matching Kenlo IMOB)     */}
       {/* ========================================================================= */}
-      <section className="w-full lg:w-[40%] xl:w-[38%] min-h-screen bg-white text-slate-900 flex flex-col justify-between px-6 sm:px-10 lg:px-12 py-8 sm:py-10 relative shadow-2xl z-20 overflow-y-auto">
-        <div className="w-full max-w-md mx-auto flex flex-col justify-center my-auto">
+      <section className="w-full lg:w-[460px] xl:w-[500px] shrink-0 min-h-screen lg:h-screen bg-white text-slate-900 flex flex-col justify-start px-6 sm:px-8 lg:px-10 py-8 sm:py-10 relative shadow-2xl z-20 overflow-y-auto">
+        <div className="w-full max-w-md mx-auto flex flex-col">
           {/* Brand Logo Header */}
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
@@ -971,7 +970,7 @@ export default function LoginPage() {
         </div>
 
         {/* Rodapé da Coluna Direita */}
-        <footer className="pt-4 text-center text-[11px] text-slate-400">
+        <footer className="pt-6 pb-2 mt-auto text-center text-[11px] text-slate-400">
           Acesso reservado aos testadores convidados • TheoSphere 2026
         </footer>
       </section>

@@ -111,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Exibe diretamente a tela de login com o vídeo ao vivo de Israel, som ambiente e dicas beta
   if (!isAuthenticated || pathname === "/login") {
     return (
-      <main className="w-full min-h-screen overflow-auto bg-[#080B11]">
+      <main className="w-full min-h-screen bg-[#080B11]">
         <LoginPage />
       </main>
     );
