@@ -229,3 +229,5 @@ export const api = {
   delete: <T = unknown>(path: string, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "DELETE" }),
 };
+
+export const API_URL = CONFIG.API_BASE_URL;

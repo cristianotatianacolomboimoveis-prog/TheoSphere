@@ -267,7 +267,7 @@ export default function TheoSphere3D({
 
       setTimeout(() => {
         setIsOrbiting(true);
-        MapAdapter.events.publish("cameraCommand", {
+        MapAdapter?.events.publish("cameraCommand", {
           action: "startOrbit",
           center: [31.7767, 35.2345],
           speed: 0.15,
