@@ -11,7 +11,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-25**. Repositório limpo, suíte inteira passando
+Última sessão: **2026-09-28**. Repositório limpo, suíte inteira passando
 (**338 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
@@ -134,6 +134,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Perspectiva Orbital (`perspective: 'orbital'`):** Posiciona a câmera em altitude macro (~25.000m) e pitch de 45° para visualização por satélite em alta escala do relevo geográfico regional.
 - **Órbita 360° Contínua (`action: 'orbit360'`):** Ativa rotação 360° ininterrupta da câmera em tempo real ao redor do marco geográfico (altitude 2.400m e pitch -22°).
 - **Validação:** **338 testes backend** (38 specs aprovados com +3 novos testes cobrindo perspectiva orbital e órbita 360°), **49 testes frontend**, `npm run verificar` 100% verde, `static-checks.mjs` com 0 achados, typecheck com 0 erros.
+
+25. **Kit de Lançamento para Testes Externos & Beta Fechado (2026-09-28):**
+    Construído o ecossistema de acolhimento e suporte para abertura do TheoSphere a pastores, teólogos e pesquisadores convidados:
+
+- **Keep-Alive do Backend na Nuvem (`.github/workflows/keep-alive.yml`):** Ping HTTP a cada 10 minutos (24/7) no endpoint `/api/v1/health/live` para neutralizar o auto-sleep do Render Free Tier e garantir resposta instantânea no primeiro clique.
+- **Banner de Aquecimento Elegante (`ServerWarmupBanner.tsx`):** Alerta não intrusivo com pulso e detecção inteligente de cold start (>2.8s) no primeiro carregamento do app com transição suave para conectado.
+- **Mini-Tour de Onboarding (`WelcomeTourModal.tsx`):** Guia de boas-vindas com 4 passos essenciais (morfologia Strong com duplo-clique, Speed Search ⌘K, bancada com 90 obras e Atlas 3D com órbita 360°), persistência no `localStorage` e botão de reabertura permanente na TopBar (`[?] Guia`).
+- **Canal de Feedback & Relato de Bugs Integrado (`FeedbackModal.tsx`):** Modal com seleção de 4 categorias (Sugestão, Bug, Dúvida Teológica, Elogio), avaliação de 1 a 5 estrelas, coleta automática de contexto e confirmação visual calorosa acionável via botão `[💬 Feedback BETA]` na TopBar.
+- **Responsividade Aprimorada para Tablets/iPad (`Sidebar.tsx`):** Auto-recolhimento da barra lateral para modo de ícones finos (`w-18`) em viewports entre 768px e 1024px, liberando 200px extras para leitura bíblica e exegese confortável.
+- **Mensagens Humanas de Cota & Fallback no Copilot IA (`AIAssistant.tsx`):** Respostas empáticas e informativas em casos de rate limit (429) do Gemini com ativação transparente do acervo clássico offline.
+- **Validação:** 338 testes backend passando, 49 testes frontend passando, lint 0 erros, capturas Playwright atestando a renderização impecável.
 
 **Próximos passos:**
 
