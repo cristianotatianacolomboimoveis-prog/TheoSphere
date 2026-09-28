@@ -12,7 +12,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 ## 0. COMECE AQUI — onde o trabalho parou
 
 Última sessão: **2026-09-28**. Repositório limpo, suíte inteira passando
-(**338 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
+(**339 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
 QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -160,6 +160,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Frontend Interativo (`SyntaxDiagramModal.tsx` & `ReaderToolbar.tsx`):** Novo botão `[🌳 Sintaxe]` de 1 clique na barra do leitor bíblico. Switch visual entre **Árvore Gráfica Ramificada OpenText** (com conectores visuais, badges de papéis e chips clicáveis com lema/Strong) e **Ficha Exegética Estruturada**.
 - **Cânon Estendido Intertestamentário (Contexto Histórico):** Mapeados os livros deuterocanônicos e apócrifos (IDs 67 a 82: Tobias, Judite, Sabedoria, Sirácida, Baruque, 1-4 Macabeus, 1-2 Esdras, Oração de Manassés, Salmo 151, Adições a Ester e Daniel) no `book-map.ts` e `bibleBooks.ts` sob a divisão canônica `'Intertestamentário / Deuterocanônico'` (`testament: "AP"`), com distinção clara para preservação da identidade canônica das 66 obras protestantes.
 - **Validação:** **339 testes backend** (+1 novo teste de regressão em `book-map.spec.ts`), **49 testes frontend** vitest, `npx tsc --noEmit` 0 erros e Next.js turbopack build com sucesso.
+
+28. **Landing Direta na Tela de Login com Vídeo e Dicas Beta (2026-09-28):**
+    Garantido que visitantes e pesquisadores convidados caiam diretamente na tela de boas-vindas com o vídeo ao vivo de Israel e as instruções de teste, eliminando flashes do dashboard não autenticado:
+
+- **Guarda de Layout & Rota Raiz (`layout.tsx` e `page.tsx`):** Unificado o portão de autenticação para que qualquer requisição não autenticada a `/` ou rotas protegidas renderize imediatamente o `<LoginPage />` em modo full-screen (sem TopBar ou Sidebar), eliminando o carregamento estático do painel e mantendo apenas `/privacidade` e `/termos` como rotas públicas de texto.
+- **Experiência Multimídia Integrada:** Vídeo aéreo de Jerusalém em HD (`israel_jerusalem.webm`), sintetizador de áudio ambiente Web Audio, telemetria de sessão, manifesto `THEOSPHERE AI FIRST`, alternador `[Entrar]` / `[Cadastre-se]`, instrução clara para primeiro acesso e as 5 dicas rápidas de experimentação da plataforma.
+- **Deploy em Produção:** Publicado e validado na Vercel (`https://frontend-v2-lake.vercel.app`) com HTTP 200 e confirmação de presença do vídeo e mensagem oficial de convite.
 
 **Próximos passos:**
 
