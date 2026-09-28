@@ -153,6 +153,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **OpenAI GPT-4o-mini (`gpt-4o-mini`):** Provedor de fallback de contingência inicializado em paralelo. É acionado de forma transparente e imediata se o Gemini atingir cota (429), indisponibilidade temporária ou timeout, tanto no chat síncrono quanto no streaming SSE.
 - **Validação:** 338 testes backend e 49 frontend passando. Simulação de queda de cota (429) validou a transferência automática de requisição para a OpenAI em 7,1s sem interrupção.
 
+27. **Árvore Sintática Profunda (OpenText/Casimir) & Mapeamento Deuterocanônico (2026-09-28):**
+    Implementada a ferramenta de análise gramatical funcional de cláusulas profunda superando o padrão Logos/Accordance, além do suporte ao corpus intertestamentário:
+
+- **Árvore Sintática OpenText:** `SyntaxDiagramService` e DTOs expandidos para conformidade com a gramática funcional de Stanley Porter / Matthew O'Donnell, incluindo papéis funcionais (`[S]` Sujeito, `[P]` Predicador, `[C]` Complemento, `[A]` Adjunto, `[Conj]` Conector), segmentação de orações primárias/secundárias e tokenização palavra a palavra com lema e Strong.
+- **Frontend Interativo (`SyntaxDiagramModal.tsx` & `ReaderToolbar.tsx`):** Novo botão `[🌳 Sintaxe]` de 1 clique na barra do leitor bíblico. Switch visual entre **Árvore Gráfica Ramificada OpenText** (com conectores visuais, badges de papéis e chips clicáveis com lema/Strong) e **Ficha Exegética Estruturada**.
+- **Cânon Estendido Intertestamentário (Contexto Histórico):** Mapeados os livros deuterocanônicos e apócrifos (IDs 67 a 82: Tobias, Judite, Sabedoria, Sirácida, Baruque, 1-4 Macabeus, 1-2 Esdras, Oração de Manassés, Salmo 151, Adições a Ester e Daniel) no `book-map.ts` e `bibleBooks.ts` sob a divisão canônica `'Intertestamentário / Deuterocanônico'` (`testament: "AP"`), com distinção clara para preservação da identidade canônica das 66 obras protestantes.
+- **Validação:** **339 testes backend** (+1 novo teste de regressão em `book-map.spec.ts`), **49 testes frontend** vitest, `npx tsc --noEmit` 0 erros e Next.js turbopack build com sucesso.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
