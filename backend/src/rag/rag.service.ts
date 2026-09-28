@@ -90,12 +90,18 @@ export class RagService {
     if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
       this.genAI = new GoogleGenAI({ apiKey: geminiKey });
       this.logger.log(
-        `Google Gemini AI inicializado para Chat (${this.geminiModel}).`,
+        `Google Gemini AI inicializado como Provedor Primário (${this.geminiModel}).`,
       );
-    } else if (openaiKey && !openaiKey.startsWith('sk-your')) {
+    }
+
+    if (openaiKey && !openaiKey.startsWith('sk-your')) {
       this.openai = new OpenAI({ apiKey: openaiKey });
-      this.logger.log('OpenAI inicializado para Chat (GPT-4o-mini).');
-    } else {
+      this.logger.log(
+        'OpenAI inicializado como Fallback de contingência (GPT-4o-mini).',
+      );
+    }
+
+    if (!this.genAI && !this.openai) {
       this.logger.warn(
         'Nenhuma API KEY (Gemini/OpenAI) configurada. Operando em modo Fallback Teológico.',
       );
@@ -150,8 +156,10 @@ export class RagService {
 
   getAiHealth() {
     const provider = this.genAI ? 'gemini' : this.openai ? 'openai' : 'none';
+    const fallback = Boolean(this.genAI && this.openai);
     return {
       provider,
+      fallbackProvider: fallback ? 'openai' : null,
       configured: provider !== 'none',
       lastFailure: this.lastAiFailure,
     };
@@ -654,6 +662,9 @@ export class RagService {
     }
 
     if (!responseContent && this.openai) {
+      this.logger.warn(
+        '[RAG Fallback]: Gemini não respondeu. Acionando OpenAI (GPT-4o-mini) como contingência...',
+      );
       try {
         responseContent = await withLlmTelemetry(
           {
@@ -1037,14 +1048,14 @@ export class RagService {
       } catch (error: any) {
         this.logger.error(`[RAG Stream Erro Gemini]: ${error.message}`);
         this.recordAiFailure('gemini', error as Error);
-        if (!fullResponse) {
-          fullResponse = generateFallbackResponse(query, jsonMode);
-          streamDegraded = true;
-          yield { type: 'chunk', data: { text: fullResponse } };
-        }
       }
-    } else if (this.openai) {
+    }
+
+    if (!fullResponse && this.openai) {
       try {
+        this.logger.warn(
+          '[RAG Stream Fallback]: Gemini não respondeu. Acionando OpenAI (GPT-4o-mini) como contingência...',
+        );
         const res = await this.openai.chat.completions.create(
           this.buildOpenAiRequest({
             conversationHistory,
