@@ -112,6 +112,20 @@ export function Sidebar({ activeTool, onSelectTool }: SidebarProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [mobileOpen]);
 
+  // Auto-colapsar para modo ícones em tablets (largura entre 768px e 1024px)
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined") {
+        if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+          setIsCollapsed(true);
+        }
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const getBadgeStyle = (color?: string) => {
     switch (color) {
       case "amber":

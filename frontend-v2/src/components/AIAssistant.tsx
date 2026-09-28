@@ -197,12 +197,21 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
       // ficava sem resposta, como se a IA tivesse ignorado (varredura
       // 2026-07-29). Agora a falha entra na conversa.
       logger.error("Erro no chat:", error);
-      setMessages((prev) => [
-        ...prev,
-        createAssistantMessage(
-          "Não consegui responder agora — falha ao falar com o servidor. Se ele estava dormindo, a primeira chamada pode levar até um minuto. Tente enviar de novo.",
-        ),
-      ]);
+      const errMsg = String((error as any)?.message || error || "");
+      let friendlyError =
+        "Não consegui responder agora — o servidor de exegese pode estar inicializando (leva cerca de 30s no primeiro acesso) ou com alta demanda. Tente enviar de novo em instantes.";
+
+      if (
+        errMsg.includes("429") ||
+        errMsg.includes("quota") ||
+        errMsg.includes("rate") ||
+        errMsg.includes("RESOURCE_EXHAUSTED")
+      ) {
+        friendlyError =
+          "⚡ O Copilot IA está com alta demanda de consultas exegéticas no momento. O TheoSphere ativou o modo de contingência da biblioteca histórica offline. Por favor, aguarde cerca de 30 segundos e tente novamente.";
+      }
+
+      setMessages((prev) => [...prev, createAssistantMessage(friendlyError)]);
     }
 
     setIsTyping(false);

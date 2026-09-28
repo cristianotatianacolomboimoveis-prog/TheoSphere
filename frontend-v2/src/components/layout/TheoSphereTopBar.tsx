@@ -12,6 +12,8 @@ import {
   BookOpen,
   Sparkles,
   Command,
+  HelpCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useTheoStore, ToolId } from "@/store/useTheoStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +21,8 @@ import { LogOut } from "lucide-react";
 import { LayoutSwitcher } from "./LayoutSwitcher";
 import { TheoSphereCommandPalette } from "./TheoSphereCommandPalette";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { WelcomeTourModal } from "./WelcomeTourModal";
+import { FeedbackModal } from "./FeedbackModal";
 
 export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   const { setActiveTool } = useTheoStore();
@@ -26,6 +30,21 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [layoutsOpen, setLayoutsOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const [tourOpen, setTourOpen] = React.useState(false);
+  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
+
+  // Exibir tour de onboarding na primeira visita
+  React.useEffect(() => {
+    try {
+      const seen = localStorage.getItem("theosphere_tour_completed");
+      if (!seen) {
+        const timer = setTimeout(() => setTourOpen(true), 1200);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // localStorage indisponível
+    }
+  }, []);
 
   // Atalho global Cmd+K / Ctrl+K
   React.useEffect(() => {
@@ -117,7 +136,32 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
 
       {/* O sino de notificações foi removido: não existe sistema de
           notificações e o botão nunca teve handler (varredura 2026-07-29). */}
-      <div className="ml-auto flex items-center gap-2 md:gap-3 relative">
+      <div className="ml-auto flex items-center gap-1.5 md:gap-2.5 relative">
+        {/* Guia Rápido / Onboarding */}
+        <button
+          onClick={() => setTourOpen(true)}
+          className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-all text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 flex items-center gap-1.5 cursor-pointer"
+          title="Guia Rápido & Atalhos (Onboarding)"
+          aria-label="Guia Rápido & Atalhos"
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span className="hidden xl:inline text-[11px] font-medium">Guia</span>
+        </button>
+
+        {/* Canal de Feedback Beta */}
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 rounded-lg transition-all flex items-center gap-1.5 active:scale-95 shadow-2xs cursor-pointer"
+          title="Enviar Feedback ou Relatar Bug"
+          aria-label="Enviar Feedback ou Relatar Bug"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-semibold">Feedback</span>
+          <span className="px-1 py-0.2 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[9px] font-extrabold rounded tracking-wider uppercase">
+            Beta
+          </span>
+        </button>
+
         <ThemeToggle className="hover:bg-gray-200 dark:hover:bg-white/10" />
         {isAuthenticated ? (
           <div className="relative">
@@ -170,6 +214,13 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
           </button>
         )}
       </div>
+
+      {/* Modais Globais de Tour e Feedback */}
+      <WelcomeTourModal isOpen={tourOpen} onClose={() => setTourOpen(false)} />
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+      />
     </div>
   );
 }

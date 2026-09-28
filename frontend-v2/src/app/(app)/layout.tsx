@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TheoSphereTopBar } from "@/components/layout/TheoSphereTopBar";
 import { CommandBar } from "@/components/layout/CommandBar";
 import { UnifiedAssistantOverlay } from "@/components/layout/UnifiedAssistantOverlay";
+import { ServerWarmupBanner } from "@/components/layout/ServerWarmupBanner";
 import AuthModal from "@/components/AuthModal";
 import { Loader2 } from "lucide-react";
 
@@ -133,6 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
       <UnifiedAssistantOverlay />
+      <ServerWarmupBanner />
       <CommandBar
         isOpen={commandBarOpen}
         onClose={() => setCommandBarOpen(false)}

@@ -1,0 +1,25 @@
+name: Keep-Alive Backend TheoSphere
+
+on:
+  schedule:
+    # Executa a cada 10 minutos (24/7) para prevenir o auto-sleep do Render Free Tier
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Enviar Ping HTTP para o Backend
+        run: |
+          echo "Enviando ping de aquecimento para https://theosphere.onrender.com/api/v1/health/live..."
+          STATUS=$(curl -sSL -o /dev/null -w "%{http_code}" --max-time 20 "https://theosphere.onrender.com/api/v1/health/live" || echo "FAILED")
+          echo "Status recebido: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Backend acordado e respondendo normalmente!"
+          else
+            echo "⚠️ Backend em aquecimento ou resposta inesperada (Status: $STATUS)"
+          fi
