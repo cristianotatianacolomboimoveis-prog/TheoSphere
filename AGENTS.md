@@ -146,9 +146,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Mensagens Humanas de Cota & Fallback no Copilot IA (`AIAssistant.tsx`):** Respostas empáticas e informativas em casos de rate limit (429) do Gemini com ativação transparente do acervo clássico offline.
 - **Validação:** 338 testes backend passando, 49 testes frontend passando, lint 0 erros, capturas Playwright atestando a renderização impecável.
 
+26. **Duplo Provedor de IA com Failover Automático (Gemini Primário + OpenAI Fallback) (2026-09-28):**
+    Arquitetura de alta disponibilidade para a IA teológica no Copilot RAG:
+
+- **Google Gemini 3.8 Flash (`gemini-3.8-flash`):** Provedor primário ativo padrão (respostas exegéticas BDAG e síntese das 90 obras teológicas com custo zero no Free Tier).
+- **OpenAI GPT-4o-mini (`gpt-4o-mini`):** Provedor de fallback de contingência inicializado em paralelo. É acionado de forma transparente e imediata se o Gemini atingir cota (429), indisponibilidade temporária ou timeout, tanto no chat síncrono quanto no streaming SSE.
+- **Validação:** 338 testes backend e 49 frontend passando. Simulação de queda de cota (429) validou a transferência automática de requisição para a OpenAI em 7,1s sem interrupção.
+
 **Próximos passos:**
 
-1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
+2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
 
 ---
 
