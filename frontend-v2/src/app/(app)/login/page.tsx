@@ -685,142 +685,294 @@ export default function LoginPage() {
       {/* ========================================================================= */}
       {/* RIGHT SECTION (Crisp White Minimalist Login Card Matching Kenlo IMOB)     */}
       {/* ========================================================================= */}
-      <section className="w-full lg:w-[35%] xl:w-[33%] min-h-screen bg-white text-slate-900 flex flex-col justify-center px-8 sm:px-14 lg:px-12 xl:px-16 py-12 relative shadow-2xl z-20">
-        <div className="w-full max-w-sm mx-auto flex flex-col justify-center">
-          {/* Greeting Text */}
-          <div className="mb-2">
-            <span className="text-sm font-semibold text-slate-600 tracking-tight">
-              Boas vindas!
+      <section className="w-full lg:w-[40%] xl:w-[38%] min-h-screen bg-white text-slate-900 flex flex-col justify-between px-6 sm:px-10 lg:px-12 py-8 sm:py-10 relative shadow-2xl z-20 overflow-y-auto">
+        <div className="w-full max-w-md mx-auto flex flex-col justify-center my-auto">
+          {/* Brand Logo Header */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-md shadow-sky-500/20">
+                T
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-display">
+                  TheoSphere
+                </h2>
+                <span className="text-xs font-black text-sky-600 tracking-wider uppercase bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
+                  BETA
+                </span>
+              </div>
+            </div>
+
+            <span className="text-[11px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Sessão Controlada
             </span>
           </div>
 
-          {/* Brand Logo Header: TheoSphere RESEARCH (Styled like Kenlo IMOB) */}
-          <div className="flex items-center gap-1.5 mb-8">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight font-display">
-              TheoSphere
-            </h2>
-            <span className="text-2xl font-black text-sky-600 tracking-tight uppercase">
-              STUDIO
-            </span>
+          {/* Banner Oficial de Boas-Vindas & Convite Beta */}
+          <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-sky-50 via-indigo-50/40 to-slate-50 border border-sky-200/90 shadow-xs">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">🕊️</span>
+              <h3 className="font-bold text-slate-900 text-sm">
+                Paz! Bem-vindo ao Beta Fechado
+              </h3>
+            </div>
+            <p className="text-xs text-slate-700 leading-relaxed font-normal">
+              Gostaria de te convidar para testar em primeira mão a versão Beta
+              Fechada do <strong>TheoSphere</strong> — uma plataforma de
+              pesquisa bíblica e exegese teológica de nova geração.
+            </p>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-white/90 border border-sky-200 text-[11px] text-sky-950 flex items-start gap-2 leading-relaxed shadow-xs">
+              <span className="text-sm shrink-0">💡</span>
+              <span>
+                <strong>No primeiro acesso:</strong> basta clicar na aba{" "}
+                <em>&ldquo;Cadastre-se&rdquo;</em> abaixo e colocar seu e-mail e
+                uma senha para iniciar sua sessão de testes.
+              </span>
+            </div>
+          </div>
+
+          {/* Alternador de Modo (Abas Entrar vs Cadastre-se) */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl mb-4 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLogin(true);
+                setErrorMessage(null);
+              }}
+              className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                isLogin
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <span>Entrar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsLogin(false);
+                setErrorMessage(null);
+              }}
+              className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                !isLogin
+                  ? "bg-white text-sky-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+              <span>Cadastre-se</span>
+            </button>
           </div>
 
           {/* Form Error Banner */}
           {errorMessage && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium leading-relaxed animate-in fade-in">
+            <div className="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium leading-relaxed animate-in fade-in">
               {errorMessage}
             </div>
           )}
 
           {/* Forgot Password Feedback */}
           {forgotPasswordSent && (
-            <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium leading-relaxed animate-in fade-in flex items-center gap-2">
+            <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium leading-relaxed animate-in fade-in flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Instruções enviadas para seu e-mail de recuperação.</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* E-mail Input */}
             <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                E-mail
+              </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="E-mail"
-                className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+                placeholder="seu.email@exemplo.com"
+                className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-sm outline-none border border-transparent focus:border-sky-500/40 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
               />
             </div>
 
             {/* Password Input */}
-            <div className="space-y-1 relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Senha"
-                className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 pr-11 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                aria-label="Alternar visibilidade da senha"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  Senha
+                </label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordSent(true)}
+                    className="text-[11px] font-medium text-sky-600 hover:text-sky-700 transition-colors cursor-pointer"
+                  >
+                    Esqueci a senha
+                  </button>
                 )}
-              </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sua senha secreta"
+                  className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 pr-11 text-sm outline-none border border-transparent focus:border-sky-500/40 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  aria-label="Alternar visibilidade da senha"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Confirm Password (only on Cadastro/Register) */}
             {!isLogin && (
-              <div className="space-y-1 relative animate-in fade-in">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirmar Senha"
-                  className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3.5 text-sm outline-none border border-transparent focus:border-sky-500/30 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
-                />
+              <div className="space-y-1 animate-in fade-in">
+                <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  Confirmar Senha
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita sua senha"
+                    className="w-full bg-[#F3F4F6] text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-sm outline-none border border-transparent focus:border-sky-500/40 focus:bg-white focus:ring-4 focus:ring-sky-500/10 transition-all font-medium"
+                  />
+                </div>
               </div>
             )}
 
-            {/* Submit Button (Solid Electric Blue matching Kenlo IMOB) */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 bg-[#1E88E5] hover:bg-[#1976D2] active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              className="w-full mt-2 bg-[#1E88E5] hover:bg-[#1976D2] active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-sky-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 text-sm"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <span>{isLogin ? "Entrar" : "Criar Conta"}</span>
+                <span>
+                  {isLogin
+                    ? "Entrar na Plataforma"
+                    : "Criar Conta & Iniciar Testes"}
+                </span>
               )}
             </button>
           </form>
 
-          {/* Links & Switch Mode */}
-          <div className="mt-5 flex flex-col items-center space-y-3">
-            <button
-              type="button"
-              onClick={() => setForgotPasswordSent(true)}
-              className="text-xs font-medium text-slate-600 hover:text-sky-600 transition-colors cursor-pointer"
-            >
-              Esqueci minha senha
-            </button>
+          {/* Dicas Rápidas do que Experimentar (Conforme Orientação de Testes) */}
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <span>⚡</span> Dicas rápidas do que experimentar:
+            </h4>
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <div className="flex items-start gap-2">
+                <span className="text-sky-600 font-bold shrink-0 mt-0.5">
+                  🔹
+                </span>
+                <p>
+                  <strong className="text-slate-800">
+                    Morfologia Original:
+                  </strong>{" "}
+                  Dê um duplo clique em qualquer palavra de um versículo para
+                  abrir a morfologia no grego/hebraico com o Léxico de Strong.
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrorMessage(null);
-              }}
-              className="text-xs font-semibold text-sky-600 hover:text-sky-700 transition-colors cursor-pointer"
-            >
-              {isLogin
-                ? "Não tem uma conta? Cadastre-se"
-                : "Já possui uma conta? Faça login"}
-            </button>
-          </div>
+              <div className="flex items-start gap-2">
+                <span className="text-sky-600 font-bold shrink-0 mt-0.5">
+                  🔹
+                </span>
+                <p>
+                  <strong className="text-slate-800">Speed Search:</strong>{" "}
+                  Pressione{" "}
+                  <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px] font-mono text-slate-800">
+                    ⌘K
+                  </kbd>{" "}
+                  (ou{" "}
+                  <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px] font-mono text-slate-800">
+                    Ctrl+K
+                  </kbd>
+                  ) para busca rápida de versículos, temas e referências
+                  cruzadas.
+                </p>
+              </div>
 
-          {/* Controlled Beta Testing Notice */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center">
-            <div className="w-full py-2.5 px-4 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-              <span>Beta Fechado — Acesso Controlado</span>
+              <div className="flex items-start gap-2">
+                <span className="text-sky-600 font-bold shrink-0 mt-0.5">
+                  🔹
+                </span>
+                <p>
+                  <strong className="text-slate-800">
+                    Sinopse e Variantes:
+                  </strong>{" "}
+                  Na leitura, teste o botão{" "}
+                  <span className="font-semibold text-slate-800">
+                    [⚖️ Sinopse]
+                  </span>{" "}
+                  para ver as diferenças textuais entre as versões bíblicas.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-sky-600 font-bold shrink-0 mt-0.5">
+                  🔹
+                </span>
+                <p>
+                  <strong className="text-slate-800">
+                    Comentários Clássicos:
+                  </strong>{" "}
+                  Use o botão{" "}
+                  <span className="font-semibold text-slate-800">
+                    [📖 Guia Exegético]
+                  </span>{" "}
+                  para consultar comentários históricos de Calvino, Matthew
+                  Henry e Lutero integrados à passagem.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-sky-600 font-bold shrink-0 mt-0.5">
+                  🔹
+                </span>
+                <p>
+                  <strong className="text-slate-800">Atlas Bíblico 3D:</strong>{" "}
+                  Explore as rotas bíblicas com visão de solo em relevo real e
+                  órbita 360°.
+                </p>
+              </div>
             </div>
-            <span className="text-[11px] text-slate-400 mt-2 text-center leading-relaxed">
-              Faça login ou crie sua conta para que suas sessões e anotações
-              sejam registradas.
-            </span>
+
+            {/* Canal de Feedback */}
+            <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs leading-relaxed flex items-start gap-2">
+              <span className="text-sm shrink-0">💬</span>
+              <p>
+                Caso encontre algo para melhorar ou tenha sugestões, basta
+                clicar no botão <strong>[💬 Feedback BETA]</strong> no canto
+                superior da tela. Sua opinião será muito valiosa!
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Rodapé da Coluna Direita */}
+        <footer className="pt-4 text-center text-[11px] text-slate-400">
+          Acesso reservado aos testadores convidados • TheoSphere 2026
+        </footer>
       </section>
     </div>
   );
