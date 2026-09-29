@@ -49,3 +49,4 @@ acervo-traduzido/*.pdf
 backend/scratch/*.json
 backend/scratch/ingestion-checkpoint.json
 .env*
+*.env
