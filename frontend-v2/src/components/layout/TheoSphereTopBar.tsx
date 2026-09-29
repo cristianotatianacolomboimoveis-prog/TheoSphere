@@ -38,9 +38,11 @@ export function TheoSphereTopBar({ onOpenAuth }: { onOpenAuth?: () => void }) {
   // Exibir tour de onboarding na primeira visita
   React.useEffect(() => {
     try {
-      const seen = localStorage.getItem("theosphere_tour_completed");
+      const seen =
+        localStorage.getItem("theosphere_tour_completed") === "true" ||
+        sessionStorage.getItem("theosphere_tour_completed") === "true";
       if (!seen) {
-        const timer = setTimeout(() => setTourOpen(true), 1200);
+        const timer = setTimeout(() => setTourOpen(true), 1500);
         return () => clearTimeout(timer);
       }
     } catch {

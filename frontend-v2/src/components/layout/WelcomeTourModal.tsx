@@ -72,11 +72,21 @@ const TOUR_STEPS = [
 export function WelcomeTourModal({ isOpen, onClose }: WelcomeTourModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
+  const handleDismiss = React.useCallback(() => {
+    try {
+      localStorage.setItem("theosphere_tour_completed", "true");
+      sessionStorage.setItem("theosphere_tour_completed", "true");
+    } catch {
+      // localStorage pode falhar em modo restrito
+    }
+    onClose();
+  }, [onClose]);
+
   // Fecha no Esc
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleDismiss();
       if (e.key === "ArrowRight") {
         setCurrentStep((prev) => Math.min(prev + 1, TOUR_STEPS.length - 1));
       }
@@ -86,7 +96,7 @@ export function WelcomeTourModal({ isOpen, onClose }: WelcomeTourModalProps) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleDismiss]);
 
   if (!isOpen) return null;
 
@@ -95,12 +105,7 @@ export function WelcomeTourModal({ isOpen, onClose }: WelcomeTourModalProps) {
   const isLast = currentStep === TOUR_STEPS.length - 1;
 
   const handleFinish = () => {
-    try {
-      localStorage.setItem("theosphere_tour_completed", "true");
-    } catch {
-      // localStorage pode falhar em modo restrito
-    }
-    onClose();
+    handleDismiss();
   };
 
   return (
@@ -110,7 +115,11 @@ export function WelcomeTourModal({ isOpen, onClose }: WelcomeTourModalProps) {
       aria-labelledby="tour-modal-title"
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in-0 duration-200"
     >
-      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div
+        className="fixed inset-0"
+        onClick={handleDismiss}
+        aria-hidden="true"
+      />
 
       <div className="relative w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar my-auto bg-[#0C1019] border border-white/10 rounded-2xl shadow-2xl z-10 flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header com barra de progresso */}
@@ -133,7 +142,7 @@ export function WelcomeTourModal({ isOpen, onClose }: WelcomeTourModalProps) {
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleDismiss}
             className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
             title="Fechar guia"
             aria-label="Fechar guia rápido"

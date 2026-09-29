@@ -1,32 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { X, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function InstallBanner() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
+
+  // Fecha imediatamente o banner ao navegar entre telas conforme padrão oficial do React
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setIsVisible(false);
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Detecta se já está rodando como app instalado nativo
+    // Detecta se já está rodando como app instalado nativo (standalone)
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
 
     if (isStandalone) return;
 
-    // Verifica se já foi instalado ou dispensado pelo usuário
+    // Verifica se já foi instalado ou se o usuário já dispensou o banner
     try {
       const isInstalled =
         localStorage.getItem("theosphere_pwa_installed") === "true";
-      const dismissedUntil = Number(
-        localStorage.getItem("theosphere_pwa_dismissed_until") || 0,
-      );
+      const isDismissed =
+        localStorage.getItem("theosphere_pwa_dismissed") === "true" ||
+        sessionStorage.getItem("theosphere_pwa_dismissed") === "true";
 
-      if (isInstalled || Date.now() < dismissedUntil) {
+      if (isInstalled || isDismissed) {
         return;
       }
     } catch {
@@ -34,22 +43,31 @@ export default function InstallBanner() {
     }
 
     const handleBeforeInstallPrompt = (e: any) => {
-      // Impede o Chrome de mostrar o prompt padrão intrusivo
+      // Impede o Chrome de mostrar o popup padrão intrusivo
       e.preventDefault();
       setDeferredPrompt(e);
+
+      // Não exibe se o usuário estiver na tela de login ou documentos institucionais
+      if (
+        pathname === "/login" ||
+        pathname === "/termos" ||
+        pathname === "/privacidade"
+      ) {
+        return;
+      }
 
       try {
         const isInstalled =
           localStorage.getItem("theosphere_pwa_installed") === "true";
-        const dismissedUntil = Number(
-          localStorage.getItem("theosphere_pwa_dismissed_until") || 0,
-        );
+        const isDismissed =
+          localStorage.getItem("theosphere_pwa_dismissed") === "true" ||
+          sessionStorage.getItem("theosphere_pwa_dismissed") === "true";
 
-        if (!isInstalled && Date.now() >= dismissedUntil) {
+        if (!isInstalled && !isDismissed) {
           setIsVisible(true);
         }
       } catch {
-        setIsVisible(true);
+        // storage indisponível
       }
     };
 
@@ -63,21 +81,46 @@ export default function InstallBanner() {
       setDeferredPrompt(null);
     });
 
+    // Permite que qualquer botão da interface (ex: TopBar / Configurações) dispare a instalação sob demanda
+    const handleManualTrigger = () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+      }
+    };
+    window.addEventListener(
+      "theosphere:open-install-prompt",
+      handleManualTrigger,
+    );
+
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt,
       );
+      window.removeEventListener(
+        "theosphere:open-install-prompt",
+        handleManualTrigger,
+      );
     };
-  }, []);
+  }, [pathname, deferredPrompt]);
+
+  // Se o banner estiver visível, recolhe automaticamente após 7 segundos se o usuário ignorar
+  useEffect(() => {
+    if (!isVisible) return;
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      try {
+        // Não incomoda mais na mesma sessão de navegação
+        sessionStorage.setItem("theosphere_pwa_dismissed", "true");
+      } catch {}
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [isVisible]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
 
-    // Mostra o prompt do navegador
     deferredPrompt.prompt();
-
-    // Espera pela resposta do usuário
     const { outcome } = await deferredPrompt.userChoice;
 
     if (outcome === "accepted") {
@@ -86,23 +129,29 @@ export default function InstallBanner() {
       } catch {}
     }
 
-    // Limpa o prompt
     setDeferredPrompt(null);
     setIsVisible(false);
   };
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsVisible(false);
     try {
-      // Lembra a dispensa por 14 dias para não incomodar o usuário a cada mudança de tela
-      localStorage.setItem(
-        "theosphere_pwa_dismissed_until",
-        String(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      );
+      // Registra a dispensa permanentemente no dispositivo para nunca mais incomodar
+      localStorage.setItem("theosphere_pwa_dismissed", "true");
+      sessionStorage.setItem("theosphere_pwa_dismissed", "true");
     } catch {
       // localStorage indisponível
     }
-  };
+  }, []);
+
+  // Não renderiza nas telas de login/institucionais
+  if (
+    pathname === "/login" ||
+    pathname === "/termos" ||
+    pathname === "/privacidade"
+  ) {
+    return null;
+  }
 
   return (
     <AnimatePresence>

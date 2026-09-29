@@ -8,9 +8,23 @@ export function ServerWarmupBanner() {
   const [status, setStatus] = useState<
     "idle" | "warming" | "connected" | "error"
   >("idle");
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return sessionStorage.getItem("theosphere_warmup_dismissed") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
+    // Se o servidor já respondeu anteriormente nesta sessão, não incomoda
+    try {
+      if (sessionStorage.getItem("theosphere_server_connected") === "true") {
+        return;
+      }
+    } catch {}
+
     let isMounted = true;
     const startTime = Date.now();
 
@@ -39,6 +53,10 @@ export function ServerWarmupBanner() {
         const duration = Date.now() - startTime;
 
         if (res && (res.ok || res.status === 200 || res.status === 404)) {
+          try {
+            sessionStorage.setItem("theosphere_server_connected", "true");
+          } catch {}
+
           // Se estava mostrando a mensagem de aquecimento, exibe "conectado" por 2.5s
           if (status === "warming" || duration > 2800) {
             setStatus("connected");
@@ -106,7 +124,12 @@ export function ServerWarmupBanner() {
                   : "Inicializando Núcleo Teológico"}
             </h4>
             <button
-              onClick={() => setDismissed(true)}
+              onClick={() => {
+                setDismissed(true);
+                try {
+                  sessionStorage.setItem("theosphere_warmup_dismissed", "true");
+                } catch {}
+              }}
               className="p-1 -mr-1 -mt-1 text-gray-400 hover:text-white rounded-md transition-colors"
               title="Fechar"
               aria-label="Fechar aviso"
