@@ -41,6 +41,26 @@
       "file": "frontend-v2/src/components/dashboard/DashboardWidgets.tsx",
       "line": "*",
       "motivo": "Os dois catches leem/escrevem o progresso do plano de leitura no localStorage e já devolvem lista vazia como fallback. Nada de rede, nada que o usuário precise saber."
+    },
+    {
+      "file": "frontend-v2/src/components/InstallBanner.tsx",
+      "line": "*",
+      "motivo": "Degradação graciosa de persistência PWA em localStorage/sessionStorage. Se o navegador estiver em navegação anônima com quota restrita, o banner apenas não persiste o estado sem quebrar a UI."
+    },
+    {
+      "file": "frontend-v2/src/components/layout/TheoSphereTopBar.tsx",
+      "line": "*",
+      "motivo": "Leitura da flag 'theosphere_tour_completed' no localStorage para onboarding. Se o storage falhar, não exibe o modal forçadamente."
+    },
+    {
+      "file": "frontend-v2/src/components/layout/WelcomeTourModal.tsx",
+      "line": "*",
+      "motivo": "Gravação da conclusão do tour em localStorage/sessionStorage. Em modo anônimo, falha silenciosa evita travar o fechamento do modal."
+    },
+    {
+      "file": "frontend-v2/src/components/ui/ThemeProvider.tsx",
+      "line": "*",
+      "motivo": "Leitura e persistência do tema (dark/light) no localStorage. Se inacessível, recorre graciosamente ao tema padrão escuro (Obsidian) sem incomodar o usuário."
     }
   ]
 }

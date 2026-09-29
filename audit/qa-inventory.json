@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-02T18:52:27.205Z",
+  "generatedAt": "2026-09-29T14:24:45.165Z",
   "counts": {
-    "total": 98,
+    "total": 132,
     "pagina": 16,
-    "endpoint": 68,
+    "endpoint": 102,
     "componente": 0,
     "e2e": 6,
     "bug_conhecido": 8
@@ -95,8 +95,14 @@
       "route": "/library",
       "source": "frontend-v2/src/app/(app)/library",
       "criticidade": "🟡 Médio",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 401,
+        "elapsed": 170,
+        "at": "2026-09-29T14:24:45.163Z"
+      }
     },
     {
       "id": "FUNC-009",
@@ -255,8 +261,14 @@
       "route": "/api/v1/archaeology/stats",
       "source": "backend/src/archaeology/archaeology.controller.ts",
       "criticidade": "🔵 Baixo",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 296,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
       "id": "FUNC-023",
@@ -315,7 +327,7 @@
       "route": "/api/v1/auth/register",
       "source": "backend/src/auth/auth.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "passou",
+      "status": "pending",
       "notes": ""
     },
     {
@@ -327,7 +339,7 @@
       "route": "/api/v1/auth/login",
       "source": "backend/src/auth/auth.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "passou",
+      "status": "pending",
       "notes": ""
     },
     {
@@ -364,7 +376,13 @@
       "source": "backend/src/bible/cross-references.controller.ts",
       "criticidade": "🟠 Alto",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 448,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
       "id": "FUNC-032",
@@ -375,8 +393,14 @@
       "route": "/api/v1/cross-refs",
       "source": "backend/src/bible/cross-references.controller.ts",
       "criticidade": "🟠 Alto",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 448,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
       "id": "FUNC-033",
@@ -387,11 +411,137 @@
       "route": "/api/v1/cross-refs/counts",
       "source": "backend/src/bible/cross-references.controller.ts",
       "criticidade": "🟠 Alto",
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 448,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
+    },
+    {
+      "id": "FUNC-034",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/homiletics/outline/:bookId/:chapter",
+      "method": "GET",
+      "route": "/api/v1/homiletics/outline/:bookId/:chapter",
+      "source": "backend/src/bible/homiletics.controller.ts",
+      "criticidade": "🟡 Médio",
       "status": "pending",
       "notes": ""
     },
     {
-      "id": "FUNC-034",
+      "id": "FUNC-035",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /api/v1/homiletics/outline",
+      "method": "POST",
+      "route": "/api/v1/homiletics/outline",
+      "source": "backend/src/bible/homiletics.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-036",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/synopsis/sections",
+      "method": "GET",
+      "route": "/api/v1/synopsis/sections",
+      "source": "backend/src/bible/synopsis.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-037",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/synopsis/pericopes",
+      "method": "GET",
+      "route": "/api/v1/synopsis/pericopes",
+      "source": "backend/src/bible/synopsis.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-038",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/synopsis/find",
+      "method": "GET",
+      "route": "/api/v1/synopsis/find",
+      "source": "backend/src/bible/synopsis.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-039",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/synopsis/pericopes/:id",
+      "method": "GET",
+      "route": "/api/v1/synopsis/pericopes/:id",
+      "source": "backend/src/bible/synopsis.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-040",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/timeline/eras",
+      "method": "GET",
+      "route": "/api/v1/timeline/eras",
+      "source": "backend/src/bible/timeline.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-041",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/timeline/events",
+      "method": "GET",
+      "route": "/api/v1/timeline/events",
+      "source": "backend/src/bible/timeline.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-042",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/timeline/for-passage",
+      "method": "GET",
+      "route": "/api/v1/timeline/for-passage",
+      "source": "backend/src/bible/timeline.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-043",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/timeline/events/:id",
+      "method": "GET",
+      "route": "/api/v1/timeline/events/:id",
+      "source": "backend/src/bible/timeline.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-044",
       "category": "endpoint",
       "module": "ia",
       "label": "Guia de passagem (IA)",
@@ -403,7 +553,19 @@
       "notes": ""
     },
     {
-      "id": "FUNC-035",
+      "id": "FUNC-045",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/bible/compare/:bookId/:chapter",
+      "method": "GET",
+      "route": "/api/v1/bible/compare/:bookId/:chapter",
+      "source": "backend/src/bible.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-046",
       "category": "endpoint",
       "module": "bíblia",
       "label": "Listar traduções bíblicas",
@@ -411,11 +573,23 @@
       "route": "/api/v1/bible/versions",
       "source": "backend/src/bible.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "passou",
+      "status": "pending",
       "notes": ""
     },
     {
-      "id": "FUNC-036",
+      "id": "FUNC-047",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/bible/catalog",
+      "method": "GET",
+      "route": "/api/v1/bible/catalog",
+      "source": "backend/src/bible.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-048",
       "category": "endpoint",
       "module": "bíblia",
       "label": "Listar livros da Bíblia",
@@ -424,10 +598,16 @@
       "source": "backend/src/bible.controller.ts",
       "criticidade": "🔴 Crítico",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 580,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-037",
+      "id": "FUNC-049",
       "category": "endpoint",
       "module": "bíblia",
       "label": "Carregar capítulo bíblico",
@@ -436,10 +616,16 @@
       "source": "backend/src/bible.controller.ts",
       "criticidade": "🔴 Crítico",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 288,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-038",
+      "id": "FUNC-050",
       "category": "endpoint",
       "module": "bíblia",
       "label": "Carregar capítulo bíblico",
@@ -448,10 +634,16 @@
       "source": "backend/src/bible.controller.ts",
       "criticidade": "🔴 Crítico",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 288,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-039",
+      "id": "FUNC-051",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/bible/fallback",
@@ -463,7 +655,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-040",
+      "id": "FUNC-052",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/bible/sefaria/:ref",
@@ -475,7 +667,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-041",
+      "id": "FUNC-053",
       "category": "endpoint",
       "module": "léxico",
       "label": "Léxico Strong's (verbete)",
@@ -487,7 +679,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-042",
+      "id": "FUNC-054",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/bible/ingest-embeddings",
@@ -499,7 +691,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-043",
+      "id": "FUNC-055",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/routes",
@@ -511,7 +703,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-044",
+      "id": "FUNC-056",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/routes/:slug",
@@ -523,7 +715,19 @@
       "notes": ""
     },
     {
-      "id": "FUNC-045",
+      "id": "FUNC-057",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/enterprise/research",
+      "method": "GET",
+      "route": "/api/v1/enterprise/research",
+      "source": "backend/src/engines/enterprise.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-058",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/waypoints/:id",
@@ -535,7 +739,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-046",
+      "id": "FUNC-059",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/models/:id",
@@ -547,7 +751,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-047",
+      "id": "FUNC-060",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/graph",
@@ -559,7 +763,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-048",
+      "id": "FUNC-061",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/enterprise/search",
@@ -571,7 +775,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-049",
+      "id": "FUNC-062",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/enterprise/ai/explain",
@@ -583,7 +787,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-050",
+      "id": "FUNC-063",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/enterprise/ai/exegesis",
@@ -595,7 +799,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-051",
+      "id": "FUNC-064",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/enterprise/ai/tts",
@@ -607,7 +811,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-052",
+      "id": "FUNC-065",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/enterprise/ai/translate",
@@ -619,7 +823,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-053",
+      "id": "FUNC-066",
       "category": "endpoint",
       "module": "geoespacial",
       "label": "Locais bíblicos (Atlas)",
@@ -627,11 +831,17 @@
       "route": "/api/v1/geo/locations",
       "source": "backend/src/geospatial/geospatial.controller.ts",
       "criticidade": "🟡 Médio",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 414,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-054",
+      "id": "FUNC-067",
       "category": "endpoint",
       "module": "geoespacial",
       "label": "Locais próximos (Atlas)",
@@ -639,11 +849,17 @@
       "route": "/api/v1/geo/nearby",
       "source": "backend/src/geospatial/geospatial.controller.ts",
       "criticidade": "🟡 Médio",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 414,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-055",
+      "id": "FUNC-068",
       "category": "endpoint",
       "module": "geoespacial",
       "label": "Rotas históricas (Atlas)",
@@ -655,7 +871,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-056",
+      "id": "FUNC-069",
       "category": "endpoint",
       "module": "geoespacial",
       "label": "Rotas históricas (Atlas)",
@@ -667,7 +883,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-057",
+      "id": "FUNC-070",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/geo/route-path",
@@ -679,7 +895,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-058",
+      "id": "FUNC-071",
       "category": "endpoint",
       "module": "infra",
       "label": "Health check da API",
@@ -687,11 +903,17 @@
       "route": "/api/v1/health/ai",
       "source": "backend/src/health/health.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 358,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-059",
+      "id": "FUNC-072",
       "category": "endpoint",
       "module": "infra",
       "label": "Health check da API",
@@ -699,11 +921,17 @@
       "route": "/api/v1/health/",
       "source": "backend/src/health/health.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 358,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-060",
+      "id": "FUNC-073",
       "category": "endpoint",
       "module": "infra",
       "label": "Health check da API",
@@ -711,11 +939,17 @@
       "route": "/api/v1/health/live",
       "source": "backend/src/health/health.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 358,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-061",
+      "id": "FUNC-074",
       "category": "endpoint",
       "module": "infra",
       "label": "Health check da API",
@@ -723,11 +957,17 @@
       "route": "/api/v1/health/ready",
       "source": "backend/src/health/health.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 358,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-062",
+      "id": "FUNC-075",
       "category": "endpoint",
       "module": "infra",
       "label": "Health check da API",
@@ -735,11 +975,41 @@
       "route": "/api/v1/health",
       "source": "backend/src/health/health.controller.ts",
       "criticidade": "🔴 Crítico",
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 358,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
+    },
+    {
+      "id": "FUNC-076",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/construct-search/presets",
+      "method": "GET",
+      "route": "/api/v1/construct-search/presets",
+      "source": "backend/src/linguistics/construct-search.controller.ts",
+      "criticidade": "🟡 Médio",
       "status": "pending",
       "notes": ""
     },
     {
-      "id": "FUNC-063",
+      "id": "FUNC-077",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /api/v1/construct-search/query",
+      "method": "POST",
+      "route": "/api/v1/construct-search/query",
+      "source": "backend/src/linguistics/construct-search.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-078",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/linguistics/lexical/:strongId",
@@ -751,7 +1021,19 @@
       "notes": ""
     },
     {
-      "id": "FUNC-064",
+      "id": "FUNC-079",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/linguistics/word-study/:strongId",
+      "method": "GET",
+      "route": "/api/v1/linguistics/word-study/:strongId",
+      "source": "backend/src/linguistics/linguistics.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-080",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/linguistics/search-root/:strongId",
@@ -763,7 +1045,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-065",
+      "id": "FUNC-081",
       "category": "endpoint",
       "module": "léxico",
       "label": "Texto interlinear",
@@ -771,11 +1053,17 @@
       "route": "/api/v1/linguistics/interlinear/:bookId/:chapter",
       "source": "backend/src/linguistics/linguistics.controller.ts",
       "criticidade": "🟠 Alto",
-      "status": "pending",
-      "notes": ""
+      "status": "passou",
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 174,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-066",
+      "id": "FUNC-082",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/linguistics/occurrences/:strongId",
@@ -787,7 +1075,211 @@
       "notes": ""
     },
     {
-      "id": "FUNC-067",
+      "id": "FUNC-083",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/linguistics/analyze-word",
+      "method": "GET",
+      "route": "/api/v1/linguistics/analyze-word",
+      "source": "backend/src/linguistics/linguistics.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-084",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /syntax-diagram/predefined",
+      "method": "GET",
+      "route": "/syntax-diagram/predefined",
+      "source": "backend/src/linguistics/syntax-diagram.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-085",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /syntax-diagram/canonical/:id",
+      "method": "GET",
+      "route": "/syntax-diagram/canonical/:id",
+      "source": "backend/src/linguistics/syntax-diagram.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-086",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /syntax-diagram/verse/:bookId/:chapter/:verse",
+      "method": "GET",
+      "route": "/syntax-diagram/verse/:bookId/:chapter/:verse",
+      "source": "backend/src/linguistics/syntax-diagram.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-087",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /textual-criticism/variants",
+      "method": "GET",
+      "route": "/textual-criticism/variants",
+      "source": "backend/src/linguistics/textual-criticism.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-088",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /textual-criticism/variants/:id",
+      "method": "GET",
+      "route": "/textual-criticism/variants/:id",
+      "source": "backend/src/linguistics/textual-criticism.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-089",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /textual-criticism/apparatus/:bookId/:chapter/:verse",
+      "method": "GET",
+      "route": "/textual-criticism/apparatus/:bookId/:chapter/:verse",
+      "source": "backend/src/linguistics/textual-criticism.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-090",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp/answer/stream",
+      "method": "POST",
+      "route": "/mcp/answer/stream",
+      "source": "backend/src/mcp/mcp.answer.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-091",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /mcp/",
+      "method": "GET",
+      "route": "/mcp/",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-092",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /mcp",
+      "method": "GET",
+      "route": "/mcp",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-093",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp/",
+      "method": "POST",
+      "route": "/mcp/",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-094",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp",
+      "method": "POST",
+      "route": "/mcp",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-095",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "DELETE /mcp/",
+      "method": "DELETE",
+      "route": "/mcp/",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-096",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "DELETE /mcp",
+      "method": "DELETE",
+      "route": "/mcp",
+      "source": "backend/src/mcp/mcp.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-097",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp/agents/:agentId/tasks/:taskId/heartbeat",
+      "method": "POST",
+      "route": "/mcp/agents/:agentId/tasks/:taskId/heartbeat",
+      "source": "backend/src/mcp/mcp.execution.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-098",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp/agents/:agentId/tasks/:taskId/result",
+      "method": "POST",
+      "route": "/mcp/agents/:agentId/tasks/:taskId/result",
+      "source": "backend/src/mcp/mcp.execution.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-099",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "POST /mcp/agents/:agentId/tasks/:taskId/verify",
+      "method": "POST",
+      "route": "/mcp/agents/:agentId/tasks/:taskId/verify",
+      "source": "backend/src/mcp/mcp.execution.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-100",
       "category": "endpoint",
       "module": "acervo",
       "label": "Sincronização Google Drive",
@@ -799,7 +1291,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-068",
+      "id": "FUNC-101",
       "category": "endpoint",
       "module": "acervo",
       "label": "Sincronização Google Drive",
@@ -811,7 +1303,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-069",
+      "id": "FUNC-102",
       "category": "endpoint",
       "module": "acervo",
       "label": "Sincronização Google Drive",
@@ -823,7 +1315,19 @@
       "notes": ""
     },
     {
-      "id": "FUNC-070",
+      "id": "FUNC-103",
+      "category": "endpoint",
+      "module": "backend",
+      "label": "GET /api/v1/rag/evidence",
+      "method": "GET",
+      "route": "/api/v1/rag/evidence",
+      "source": "backend/src/rag/evidence.controller.ts",
+      "criticidade": "🟡 Médio",
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FUNC-104",
       "category": "endpoint",
       "module": "acervo",
       "label": "Busca na biblioteca teológica",
@@ -832,10 +1336,16 @@
       "source": "backend/src/rag/library.controller.ts",
       "criticidade": "🟠 Alto",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 401,
+        "elapsed": 170,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-071",
+      "id": "FUNC-105",
       "category": "endpoint",
       "module": "ia",
       "label": "Estatísticas RAG",
@@ -844,10 +1354,16 @@
       "source": "backend/src/rag/rag.controller.ts",
       "criticidade": "🔵 Baixo",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 165,
+        "at": "2026-09-29T14:24:45.164Z"
+      }
     },
     {
-      "id": "FUNC-072",
+      "id": "FUNC-106",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/rag/graph",
@@ -859,7 +1375,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-073",
+      "id": "FUNC-107",
       "category": "endpoint",
       "module": "admin",
       "label": "QA validado (moderação)",
@@ -871,7 +1387,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-074",
+      "id": "FUNC-108",
       "category": "endpoint",
       "module": "ia",
       "label": "Feedback IA (👍👎)",
@@ -883,7 +1399,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-075",
+      "id": "FUNC-109",
       "category": "endpoint",
       "module": "ia",
       "label": "Chat IA (RAG, library-first)",
@@ -891,11 +1407,11 @@
       "route": "/api/v1/rag/chat",
       "source": "backend/src/rag/rag.controller.ts",
       "criticidade": "🔴 Crítico",
-      "status": "passou",
+      "status": "pending",
       "notes": ""
     },
     {
-      "id": "FUNC-076",
+      "id": "FUNC-110",
       "category": "endpoint",
       "module": "ia",
       "label": "Chat IA streaming",
@@ -907,7 +1423,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-077",
+      "id": "FUNC-111",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/rag/dictate",
@@ -919,7 +1435,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-078",
+      "id": "FUNC-112",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/rag/index",
@@ -931,7 +1447,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-079",
+      "id": "FUNC-113",
       "category": "endpoint",
       "module": "backend",
       "label": "POST /api/v1/rag/sync",
@@ -943,7 +1459,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-080",
+      "id": "FUNC-114",
       "category": "endpoint",
       "module": "admin",
       "label": "QA validado (moderação)",
@@ -955,7 +1471,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-081",
+      "id": "FUNC-115",
       "category": "endpoint",
       "module": "backend",
       "label": "DELETE /api/v1/rag/cache",
@@ -967,7 +1483,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-082",
+      "id": "FUNC-116",
       "category": "endpoint",
       "module": "backend",
       "label": "DELETE /api/v1/rag/cache/:userId",
@@ -979,7 +1495,7 @@
       "notes": ""
     },
     {
-      "id": "FUNC-083",
+      "id": "FUNC-117",
       "category": "endpoint",
       "module": "busca",
       "label": "Busca full-text de versículos",
@@ -988,10 +1504,16 @@
       "source": "backend/src/search/search.controller.ts",
       "criticidade": "🔴 Crítico",
       "status": "passou",
-      "notes": ""
+      "notes": "",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 157,
+        "at": "2026-09-29T14:24:45.165Z"
+      }
     },
     {
-      "id": "FUNC-084",
+      "id": "FUNC-118",
       "category": "endpoint",
       "module": "backend",
       "label": "GET /api/v1/search/advanced",
@@ -1003,16 +1525,22 @@
       "notes": ""
     },
     {
-      "id": "FUNC-085",
+      "id": "FUNC-119",
       "category": "e2e",
       "label": "Jornada: Login → Ler capítulo → Buscar palavra → Logout",
       "module": "e2e",
       "criticidade": "🔴 Crítico",
       "status": "fase3",
-      "notes": "Implementar na Fase 3"
+      "notes": "Implementar na Fase 3",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 288,
+        "at": "2026-09-29T14:24:45.165Z"
+      }
     },
     {
-      "id": "FUNC-086",
+      "id": "FUNC-120",
       "category": "e2e",
       "label": "Jornada: Registro → Confirmar → Primeiro login",
       "module": "e2e",
@@ -1021,7 +1549,7 @@
       "notes": "Implementar na Fase 3"
     },
     {
-      "id": "FUNC-087",
+      "id": "FUNC-121",
       "category": "e2e",
       "label": "Jornada: Chat IA → Feedback positivo → Rever QA validado",
       "module": "e2e",
@@ -1030,25 +1558,37 @@
       "notes": "Implementar na Fase 3"
     },
     {
-      "id": "FUNC-088",
+      "id": "FUNC-122",
       "category": "e2e",
       "label": "Jornada: Busca full-text → Abrir cross-refs → Ver léxico Strong's",
       "module": "e2e",
       "criticidade": "🟠 Alto",
       "status": "fase3",
-      "notes": "Implementar na Fase 3"
+      "notes": "Implementar na Fase 3",
+      "lastProbe": {
+        "ok": true,
+        "status": 200,
+        "elapsed": 157,
+        "at": "2026-09-29T14:24:45.165Z"
+      }
     },
     {
-      "id": "FUNC-089",
+      "id": "FUNC-123",
       "category": "e2e",
       "label": "Jornada: Upload Drive → Sync biblioteca → Perguntar IA sobre obra",
       "module": "e2e",
       "criticidade": "🟠 Alto",
       "status": "fase3",
-      "notes": "Implementar na Fase 3"
+      "notes": "Implementar na Fase 3",
+      "lastProbe": {
+        "ok": true,
+        "status": 401,
+        "elapsed": 170,
+        "at": "2026-09-29T14:24:45.165Z"
+      }
     },
     {
-      "id": "FUNC-090",
+      "id": "FUNC-124",
       "category": "e2e",
       "label": "Jornada: Usuário A não acessa dados de Usuário B (isolamento)",
       "module": "e2e",
@@ -1057,83 +1597,83 @@
       "notes": "Implementar na Fase 3"
     },
     {
-      "id": "FUNC-091",
+      "id": "FUNC-125",
       "category": "bug-conhecido",
       "label": "Botões sem onClick: SettingsPage 'Sair da Conta'",
       "module": "auth",
       "criticidade": "🔴 Crítico",
       "notes": "Varredura 29/07 — logout morto",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-092",
+      "id": "FUNC-126",
       "category": "bug-conhecido",
       "label": "Botões sem onClick: Factbook versículos e tags",
       "module": "ia",
       "criticidade": "🟠 Alto",
       "notes": "Varredura 29/07 — 8/11 botões decorativos",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-093",
+      "id": "FUNC-127",
       "category": "bug-conhecido",
       "label": "Botões sem onClick: AIInsights Exegese/Perguntar",
       "module": "ia",
       "criticidade": "🟠 Alto",
       "notes": "Varredura 29/07",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-094",
+      "id": "FUNC-128",
       "category": "bug-conhecido",
       "label": "URL syncDrive sem /api/v1 → 404",
       "module": "acervo",
       "criticidade": "🔴 Crítico",
       "notes": "useRAG.ts:539",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-095",
+      "id": "FUNC-129",
       "category": "bug-conhecido",
       "label": "WebSocket colaboração namespace inexistente",
       "module": "collab",
       "criticidade": "🟠 Alto",
       "notes": "useCollaboration.ts:33",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-096",
+      "id": "FUNC-130",
       "category": "bug-conhecido",
       "label": "16 componentes com catch silencioso (tela vazia)",
       "module": "frontend",
       "criticidade": "🟠 Alto",
       "notes": "Varredura 29/07",
-      "status": "mitigado",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-097",
+      "id": "FUNC-131",
       "category": "bug-conhecido",
       "label": "BibleVerse.embedding NULL em prod — busca híbrida off",
       "module": "busca",
       "criticidade": "🟠 Alto",
       "notes": "Embeddings nulos 2026-08-06",
-      "status": "parcial",
+      "status": "aberto",
       "source": "varredura-historica"
     },
     {
-      "id": "FUNC-098",
+      "id": "FUNC-132",
       "category": "bug-conhecido",
       "label": "Login case-sensitive (401 com senha certa)",
       "module": "auth",
       "criticidade": "🔴 Crítico",
       "notes": "Fix local, não commitado",
-      "status": "corrigido",
+      "status": "aberto",
       "source": "varredura-historica"
     }
   ]

@@ -31,7 +31,7 @@ const asJson   = process.argv.includes("--json");
 const noProbes = process.argv.includes("--no-probes");
 
 const BACKEND_URL  = "https://theosphere.onrender.com";
-const FRONTEND_URL = "https://cristianocolombo.vercel.app";
+const FRONTEND_URL = "https://frontend-v2-lake.vercel.app";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilidades

@@ -88,7 +88,7 @@ export function ServerWarmupBanner() {
 
   return (
     <aside
-      role="status"
+      role="alert"
       aria-live="polite"
       className="fixed bottom-4 right-4 z-[999] max-w-md w-[calc(100vw-2rem)] select-none animate-in fade-in slide-in-from-bottom-3 duration-300"
     >

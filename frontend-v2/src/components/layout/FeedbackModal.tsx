@@ -30,6 +30,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [userEmail, setUserEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   if (!isOpen) return null;
 
@@ -38,6 +39,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     if (!message.trim()) return;
 
     setSending(true);
+    setErrorMessage("");
 
     const feedbackPayload = {
       id: `fb_${Date.now()}`,
@@ -74,14 +76,11 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         setSubmitted(false);
         setMessage("");
         setUserEmail("");
+        setErrorMessage("");
         onClose();
       }, 2200);
     } catch {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        onClose();
-      }, 2000);
+      setErrorMessage("Não foi possível enviar seu relato. Tente novamente.");
     } finally {
       setSending(false);
     }
@@ -262,6 +261,16 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-sans"
               />
             </div>
+
+            {/* Mensagem de Erro */}
+            {errorMessage && (
+              <p
+                role="alert"
+                className="text-[11px] text-rose-400 bg-rose-950/40 border border-rose-500/20 rounded-xl p-2.5 text-center font-medium"
+              >
+                {errorMessage}
+              </p>
+            )}
 
             {/* Botão de Envio */}
             <button
