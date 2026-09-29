@@ -1,6 +1,6 @@
 # TheoSphere QA — Inventário de Funcionalidades
 
-**Gerado em:** 2026-09-29T14:24:45.165Z  
+**Gerado em:** 2026-09-29T21:54:37.845Z  
 **Total de FUNC-IDs:** 132
 
 ## Resumo
@@ -36,7 +36,7 @@
 
 | ID       | Categoria | Label                       | Criticidade | Status | Rota/Fonte                                        |
 | -------- | --------- | --------------------------- | ----------- | ------ | ------------------------------------------------- |
-| FUNC-022 | endpoint  | Estatísticas de arqueologia | 🔵 Baixo    | passou | /api/v1/archaeology/stats → probe: ✅ 200 (296ms) |
+| FUNC-022 | endpoint  | Estatísticas de arqueologia | 🔵 Baixo    | passou | /api/v1/archaeology/stats → probe: ✅ 200 (306ms) |
 
 ## Módulo: AUTH
 
@@ -124,10 +124,10 @@
 
 ## Módulo: BUSCA
 
-| ID       | Categoria     | Label                                                 | Criticidade | Status | Rota/Fonte                                    |
-| -------- | ------------- | ----------------------------------------------------- | ----------- | ------ | --------------------------------------------- |
-| FUNC-117 | endpoint      | Busca full-text de versículos                         | 🔴 Crítico  | passou | /api/v1/search/verses → probe: ✅ 200 (157ms) |
-| FUNC-131 | bug-conhecido | BibleVerse.embedding NULL em prod — busca híbrida off | 🟠 Alto     | aberto | varredura-historica                           |
+| ID       | Categoria     | Label                                                 | Criticidade | Status | Rota/Fonte                                     |
+| -------- | ------------- | ----------------------------------------------------- | ----------- | ------ | ---------------------------------------------- |
+| FUNC-117 | endpoint      | Busca full-text de versículos                         | 🔴 Crítico  | passou | /api/v1/search/verses → probe: ✅ 200 (1058ms) |
+| FUNC-131 | bug-conhecido | BibleVerse.embedding NULL em prod — busca híbrida off | 🟠 Alto     | aberto | varredura-historica                            |
 
 ## Módulo: BÍBLIA
 
@@ -135,13 +135,13 @@
 | -------- | --------- | ------------------------- | ----------- | ------- | --------------------------------------------------------------------------- |
 | FUNC-005 | página    | Exegese                   | 🔴 Crítico  | pending | /exegesis                                                                   |
 | FUNC-014 | página    | Leitor Bíblico (Estudo)   | 🔴 Crítico  | pending | /study                                                                      |
-| FUNC-031 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs/ → probe: ✅ 200 (448ms)                                 |
-| FUNC-032 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs → probe: ✅ 200 (448ms)                                  |
-| FUNC-033 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs/counts → probe: ✅ 200 (448ms)                           |
+| FUNC-031 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs/ → probe: ✅ 200 (438ms)                                 |
+| FUNC-032 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs → probe: ✅ 200 (438ms)                                  |
+| FUNC-033 | endpoint  | Referências cruzadas      | 🟠 Alto     | passou  | /api/v1/cross-refs/counts → probe: ✅ 200 (438ms)                           |
 | FUNC-046 | endpoint  | Listar traduções bíblicas | 🔴 Crítico  | pending | /api/v1/bible/versions                                                      |
-| FUNC-048 | endpoint  | Listar livros da Bíblia   | 🔴 Crítico  | passou  | /api/v1/bible/books → probe: ✅ 200 (580ms)                                 |
-| FUNC-049 | endpoint  | Carregar capítulo bíblico | 🔴 Crítico  | passou  | /api/v1/bible/chapter → probe: ✅ 200 (288ms)                               |
-| FUNC-050 | endpoint  | Carregar capítulo bíblico | 🔴 Crítico  | passou  | /api/v1/bible/chapter/:translation/:bookId/:chapter → probe: ✅ 200 (288ms) |
+| FUNC-048 | endpoint  | Listar livros da Bíblia   | 🔴 Crítico  | passou  | /api/v1/bible/books → probe: ✅ 200 (371ms)                                 |
+| FUNC-049 | endpoint  | Carregar capítulo bíblico | 🔴 Crítico  | passou  | /api/v1/bible/chapter → probe: ✅ 200 (391ms)                               |
+| FUNC-050 | endpoint  | Carregar capítulo bíblico | 🔴 Crítico  | passou  | /api/v1/bible/chapter/:translation/:bookId/:chapter → probe: ✅ 200 (391ms) |
 
 ## Módulo: COLLAB
 
@@ -158,14 +158,14 @@
 
 ## Módulo: E2E
 
-| ID       | Categoria | Label                                                             | Criticidade | Status | Rota/Fonte              |
-| -------- | --------- | ----------------------------------------------------------------- | ----------- | ------ | ----------------------- |
-| FUNC-119 | e2e       | Jornada: Login → Ler capítulo → Buscar palavra → Logout           | 🔴 Crítico  | fase3  | → probe: ✅ 200 (288ms) |
-| FUNC-120 | e2e       | Jornada: Registro → Confirmar → Primeiro login                    | 🔴 Crítico  | fase3  |                         |
-| FUNC-121 | e2e       | Jornada: Chat IA → Feedback positivo → Rever QA validado          | 🟠 Alto     | fase3  |                         |
-| FUNC-122 | e2e       | Jornada: Busca full-text → Abrir cross-refs → Ver léxico Strong's | 🟠 Alto     | fase3  | → probe: ✅ 200 (157ms) |
-| FUNC-123 | e2e       | Jornada: Upload Drive → Sync biblioteca → Perguntar IA sobre obra | 🟠 Alto     | fase3  | → probe: ✅ 401 (170ms) |
-| FUNC-124 | e2e       | Jornada: Usuário A não acessa dados de Usuário B (isolamento)     | 🔴 Crítico  | fase3  |                         |
+| ID       | Categoria | Label                                                             | Criticidade | Status | Rota/Fonte               |
+| -------- | --------- | ----------------------------------------------------------------- | ----------- | ------ | ------------------------ |
+| FUNC-119 | e2e       | Jornada: Login → Ler capítulo → Buscar palavra → Logout           | 🔴 Crítico  | fase3  | → probe: ✅ 200 (391ms)  |
+| FUNC-120 | e2e       | Jornada: Registro → Confirmar → Primeiro login                    | 🔴 Crítico  | fase3  |                          |
+| FUNC-121 | e2e       | Jornada: Chat IA → Feedback positivo → Rever QA validado          | 🟠 Alto     | fase3  |                          |
+| FUNC-122 | e2e       | Jornada: Busca full-text → Abrir cross-refs → Ver léxico Strong's | 🟠 Alto     | fase3  | → probe: ✅ 200 (1058ms) |
+| FUNC-123 | e2e       | Jornada: Upload Drive → Sync biblioteca → Perguntar IA sobre obra | 🟠 Alto     | fase3  | → probe: ✅ 401 (170ms)  |
+| FUNC-124 | e2e       | Jornada: Usuário A não acessa dados de Usuário B (isolamento)     | 🔴 Crítico  | fase3  |                          |
 
 ## Módulo: FRONTEND
 
@@ -178,8 +178,8 @@
 | ID       | Categoria | Label                    | Criticidade | Status  | Rota/Fonte                                    |
 | -------- | --------- | ------------------------ | ----------- | ------- | --------------------------------------------- |
 | FUNC-003 | página    | Atlas 4D (Geo)           | 🟡 Médio    | pending | /atlas                                        |
-| FUNC-066 | endpoint  | Locais bíblicos (Atlas)  | 🟡 Médio    | passou  | /api/v1/geo/locations → probe: ✅ 200 (414ms) |
-| FUNC-067 | endpoint  | Locais próximos (Atlas)  | 🟡 Médio    | passou  | /api/v1/geo/nearby → probe: ✅ 200 (414ms)    |
+| FUNC-066 | endpoint  | Locais bíblicos (Atlas)  | 🟡 Médio    | passou  | /api/v1/geo/locations → probe: ✅ 200 (915ms) |
+| FUNC-067 | endpoint  | Locais próximos (Atlas)  | 🟡 Médio    | passou  | /api/v1/geo/nearby → probe: ✅ 200 (915ms)    |
 | FUNC-068 | endpoint  | Rotas históricas (Atlas) | 🟡 Médio    | pending | /api/v1/geo/routes                            |
 | FUNC-069 | endpoint  | Rotas históricas (Atlas) | 🟡 Médio    | pending | /api/v1/geo/routes/:id                        |
 
@@ -195,7 +195,7 @@
 | -------- | ------------- | ------------------------------------------------ | ----------- | ------- | --------------------------------------------------------- |
 | FUNC-006 | página        | Factbook (IA)                                    | 🔴 Crítico  | pending | /factbook                                                 |
 | FUNC-044 | endpoint      | Guia de passagem (IA)                            | 🟠 Alto     | pending | /api/v1/bible/passage-guide/:translation/:bookId/:chapter |
-| FUNC-105 | endpoint      | Estatísticas RAG                                 | 🔵 Baixo    | passou  | /api/v1/rag/stats → probe: ✅ 200 (165ms)                 |
+| FUNC-105 | endpoint      | Estatísticas RAG                                 | 🔵 Baixo    | passou  | /api/v1/rag/stats → probe: ✅ 200 (192ms)                 |
 | FUNC-108 | endpoint      | Feedback IA (👍👎)                               | 🟡 Médio    | pending | /api/v1/rag/feedback                                      |
 | FUNC-109 | endpoint      | Chat IA (RAG, library-first)                     | 🔴 Crítico  | pending | /api/v1/rag/chat                                          |
 | FUNC-110 | endpoint      | Chat IA streaming                                | 🟠 Alto     | pending | /api/v1/rag/chat/stream                                   |
@@ -204,13 +204,13 @@
 
 ## Módulo: INFRA
 
-| ID       | Categoria | Label               | Criticidade | Status | Rota/Fonte                                   |
-| -------- | --------- | ------------------- | ----------- | ------ | -------------------------------------------- |
-| FUNC-071 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ai → probe: ✅ 200 (358ms)    |
-| FUNC-072 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ → probe: ✅ 200 (358ms)      |
-| FUNC-073 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/live → probe: ✅ 200 (358ms)  |
-| FUNC-074 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ready → probe: ✅ 200 (358ms) |
-| FUNC-075 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health → probe: ✅ 200 (358ms)       |
+| ID       | Categoria | Label               | Criticidade | Status | Rota/Fonte                                    |
+| -------- | --------- | ------------------- | ----------- | ------ | --------------------------------------------- |
+| FUNC-071 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ai → probe: ✅ 200 (1066ms)    |
+| FUNC-072 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ → probe: ✅ 200 (1066ms)      |
+| FUNC-073 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/live → probe: ✅ 200 (1066ms)  |
+| FUNC-074 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health/ready → probe: ✅ 200 (1066ms) |
+| FUNC-075 | endpoint  | Health check da API | 🔴 Crítico  | passou | /api/v1/health → probe: ✅ 200 (1066ms)       |
 
 ## Módulo: INSTITUCIONAL
 
@@ -225,7 +225,7 @@
 | ID       | Categoria | Label                     | Criticidade | Status  | Rota/Fonte                                                               |
 | -------- | --------- | ------------------------- | ----------- | ------- | ------------------------------------------------------------------------ |
 | FUNC-053 | endpoint  | Léxico Strong's (verbete) | 🟠 Alto     | pending | /api/v1/bible/lexicon/:strongId                                          |
-| FUNC-081 | endpoint  | Texto interlinear         | 🟠 Alto     | passou  | /api/v1/linguistics/interlinear/:bookId/:chapter → probe: ✅ 200 (174ms) |
+| FUNC-081 | endpoint  | Texto interlinear         | 🟠 Alto     | passou  | /api/v1/linguistics/interlinear/:bookId/:chapter → probe: ✅ 200 (195ms) |
 
 ## Módulo: NAVEGAÇÃO
 
