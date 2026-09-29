@@ -9,18 +9,56 @@ export default function InstallBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Detecta se já está rodando como app instalado nativo
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+
+    if (isStandalone) return;
+
+    // Verifica se já foi instalado ou dispensado pelo usuário
+    try {
+      const isInstalled =
+        localStorage.getItem("theosphere_pwa_installed") === "true";
+      const dismissedUntil = Number(
+        localStorage.getItem("theosphere_pwa_dismissed_until") || 0,
+      );
+
+      if (isInstalled || Date.now() < dismissedUntil) {
+        return;
+      }
+    } catch {
+      // Ignora erro de acesso a storage
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
-      // Impede o Chrome de mostrar o prompt automático
+      // Impede o Chrome de mostrar o prompt padrão intrusivo
       e.preventDefault();
-      // Salva o evento para ser disparado depois
       setDeferredPrompt(e);
-      // Mostra o nosso banner customizado
-      setIsVisible(true);
+
+      try {
+        const isInstalled =
+          localStorage.getItem("theosphere_pwa_installed") === "true";
+        const dismissedUntil = Number(
+          localStorage.getItem("theosphere_pwa_dismissed_until") || 0,
+        );
+
+        if (!isInstalled && Date.now() >= dismissedUntil) {
+          setIsVisible(true);
+        }
+      } catch {
+        setIsVisible(true);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     window.addEventListener("appinstalled", () => {
+      try {
+        localStorage.setItem("theosphere_pwa_installed", "true");
+      } catch {}
       setIsVisible(false);
       setDeferredPrompt(null);
     });
@@ -42,6 +80,12 @@ export default function InstallBanner() {
     // Espera pela resposta do usuário
     const { outcome } = await deferredPrompt.userChoice;
 
+    if (outcome === "accepted") {
+      try {
+        localStorage.setItem("theosphere_pwa_installed", "true");
+      } catch {}
+    }
+
     // Limpa o prompt
     setDeferredPrompt(null);
     setIsVisible(false);
@@ -49,6 +93,15 @@ export default function InstallBanner() {
 
   const handleDismiss = () => {
     setIsVisible(false);
+    try {
+      // Lembra a dispensa por 14 dias para não incomodar o usuário a cada mudança de tela
+      localStorage.setItem(
+        "theosphere_pwa_dismissed_until",
+        String(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      );
+    } catch {
+      // localStorage indisponível
+    }
   };
 
   return (
