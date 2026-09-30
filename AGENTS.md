@@ -11,9 +11,9 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-28**. Repositório limpo, suíte inteira passando
+Última sessão: **2026-09-30**. Repositório limpo, suíte inteira passando
 (**339 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
-QA Fase 2: 100%, QA Fase 3: 100%).
+QA Fase 1: 100%, QA Fase 2: 100%, QA Fase 3: 100%).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
 Backend Render (`https://theosphere.onrender.com`) operante e medido.
@@ -167,6 +167,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Guarda de Layout & Rota Raiz (`layout.tsx` e `page.tsx`):** Unificado o portão de autenticação para que qualquer requisição não autenticada a `/` ou rotas protegidas renderize imediatamente o `<LoginPage />` em modo full-screen (sem TopBar ou Sidebar), eliminando o carregamento estático do painel e mantendo apenas `/privacidade` e `/termos` como rotas públicas de texto.
 - **Experiência Multimídia Integrada:** Vídeo aéreo de Jerusalém em HD (`israel_jerusalem.webm`), sintetizador de áudio ambiente Web Audio, telemetria de sessão, manifesto `THEOSPHERE AI FIRST`, alternador `[Entrar]` / `[Cadastre-se]`, instrução clara para primeiro acesso e as 5 dicas rápidas de experimentação da plataforma.
 - **Deploy em Produção:** Publicado e validado na Vercel (`https://frontend-v2-lake.vercel.app`) com HTTP 200 e confirmação de presença do vídeo e mensagem oficial de convite.
+
+29. **Unificação e Reorganização Definitiva da Estrutura de Pastas (2026-09-30):**
+    Eliminada a duplicidade estrutural que existia entre a pasta mãe do Desktop e a subpasta aninhada `TheoSphere/`:
+
+- **Segurança Fail-Safe:** Criado backup integral dos arquivos legados soltos em `Theosphere_2026_backup_legado_2026-09-29.tar.gz` (229 MB no Desktop) antes de qualquer exclusão.
+- **Promoção da Raiz Única:** O repositório Git oficial com todo o histórico, código ativo (`backend/`, `frontend-v2/`), as 90 obras teológicas completas (`acervo-traduzido/`) e as suítes de QA foram promovidos diretamente para a raiz do workspace `/Users/cristianocolombo/Desktop/Theosphere 2026`. A subpasta aninhada vazia `TheoSphere/` foi excluída.
+- **Correção nos Scripts de QA:** Corrigida a URL de produção no `qa-phase1.mjs` de `cristianocolombo.vercel.app` para a oficial `https://frontend-v2-lake.vercel.app`. Resolvidos os 6 achados do `static-checks.mjs` (alerta visível no `FeedbackModal`, `role="alert"` no `ServerWarmupBanner` e documentação de degradação graciosa na `static-checks.allowlist.json`).
+- **Validação:** `npm run verify` na nova raiz executou com sucesso total (339 testes backend, 49 testes frontend vitest, typecheck 0 erros, lint 0 erros, build Next.js 20 rotas geradas). `static-checks.mjs` retornou 0 achados e `qa-phase1.mjs` concluiu com 100% de probes HTTP 200 contra a produção.
 
 **Próximos passos:**
 
