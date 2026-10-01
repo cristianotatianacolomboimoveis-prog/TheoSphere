@@ -732,20 +732,24 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 mb-2">
               <span className="text-base">🕊️</span>
               <h3 className="font-bold text-slate-900 text-sm">
-                Paz! Bem-vindo ao Beta Fechado
+                A Paz do Senhor! Seja bem-vindo ao TheoSphere
               </h3>
             </div>
             <p className="text-xs text-slate-700 leading-relaxed font-normal">
-              Gostaria de te convidar para testar em primeira mão a versão Beta
-              Fechada do <strong>TheoSphere</strong> — uma plataforma de
-              pesquisa bíblica e exegese teológica de nova geração.
+              Você foi convidado para experimentar em primeira mão o{" "}
+              <strong>TheoSphere</strong> — o sistema operacional teológico que
+              integra o leitor bíblico em línguas originais, 90 obras canônicas
+              clássicas, Atlas Bíblico 3D e IA exegética com rigor acadêmico.
             </p>
-            <div className="mt-2.5 p-2.5 rounded-xl bg-white/90 border border-sky-200 text-[11px] text-sky-950 flex items-start gap-2 leading-relaxed shadow-xs">
-              <span className="text-sm shrink-0">💡</span>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-white/95 border border-sky-200 text-[11px] text-sky-950 flex items-start gap-2 leading-relaxed shadow-xs">
+              <span className="text-sm shrink-0">✨</span>
               <span>
-                <strong>No primeiro acesso:</strong> basta clicar na aba{" "}
-                <em>&ldquo;Cadastre-se&rdquo;</em> abaixo e colocar seu e-mail e
-                uma senha para iniciar sua sessão de testes.
+                <strong>Acesso imediato para convidados:</strong> clique
+                diretamente no botão{" "}
+                <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                  Entrar Direto (Acesso de Demonstração)
+                </span>{" "}
+                abaixo para iniciar sua experiência sem burocracia.
               </span>
             </div>
           </div>
