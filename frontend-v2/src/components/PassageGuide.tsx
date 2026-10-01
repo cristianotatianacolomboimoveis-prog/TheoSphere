@@ -39,6 +39,7 @@ import { THEOLOGICAL_TOPICS } from "@/data/theologicalTopics";
 import { COMMENTARIES } from "@/data/commentaries";
 import { DICTIONARIES } from "@/data/dictionaries";
 import { parsePassage, passagesOverlap } from "@/lib/passageRef";
+import { translateText, isEnglishText } from "@/lib/translate";
 import { logger } from "@/lib/logger";
 
 /* ─── Types ──────────────────────────────────────────────── */
@@ -403,6 +404,47 @@ export default function PassageGuide({
 
   const visibleCommentaries = commentaries.slice(0, visibleCommentCount);
 
+  // Estados de tradução dinâmica de comentários para Português (PT-BR)
+  const [translatedComments, setTranslatedComments] = useState<
+    Record<string, string>
+  >({});
+  const [translatingComments, setTranslatingComments] = useState<
+    Record<string, boolean>
+  >({});
+  const [showOriginalComment, setShowOriginalComment] = useState<
+    Record<string, boolean>
+  >({});
+
+  // Auto-tradução de comentários em inglês para português
+  useEffect(() => {
+    if (!visibleCommentaries || visibleCommentaries.length === 0) return;
+    let isCancelled = false;
+
+    visibleCommentaries.forEach(async (comm) => {
+      if (
+        comm.text &&
+        isEnglishText(comm.text) &&
+        !translatedComments[comm.id]
+      ) {
+        setTranslatingComments((prev) => ({ ...prev, [comm.id]: true }));
+        try {
+          const pt = await translateText(comm.text, "pt");
+          if (!isCancelled) {
+            setTranslatedComments((prev) => ({ ...prev, [comm.id]: pt }));
+          }
+        } finally {
+          if (!isCancelled) {
+            setTranslatingComments((prev) => ({ ...prev, [comm.id]: false }));
+          }
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [visibleCommentaries, translatedComments]);
+
   /* ── Render ───────────────────────────────────────────── */
   return (
     <div className="flex flex-col h-full bg-background/95 backdrop-blur-3xl text-foreground overflow-hidden shadow-2xl border-l border-border-subtle relative animate-fade-in">
@@ -544,32 +586,84 @@ export default function PassageGuide({
                           {section.id === "commentaries" && (
                             <div className="space-y-3">
                               {visibleCommentaries.length > 0 ? (
-                                visibleCommentaries.map((comm) => (
-                                  <div
-                                    key={comm.id}
-                                    className="p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.05] relative overflow-hidden group"
-                                  >
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div>
-                                        <h4 className="text-sm font-bold text-white/90">
-                                          {comm.author}
-                                        </h4>
-                                        <p className="text-[10px] text-amber-400/60 font-medium">
-                                          {comm.title} ({comm.year})
-                                        </p>
-                                      </div>
-                                      <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-border-strong text-white/40 uppercase tracking-wider">
-                                        {comm.tradition}
-                                      </span>
-                                    </div>
-                                    <div className="relative">
-                                      <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-border-strong pl-3 py-1">
-                                        "{comm.text}"
-                                      </p>
-                                    </div>
+                                <>
+                                  <div className="flex items-center justify-between px-1 text-[11px] text-white/50">
+                                    <span>
+                                      Acervo de teologia histórica e exegese
+                                    </span>
+                                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1.5 font-medium">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                      Tradução Ativa (PT-BR)
+                                    </span>
                                   </div>
-                                ))
+
+                                  {visibleCommentaries.map((comm) => (
+                                    <div
+                                      key={comm.id}
+                                      className="p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.05] relative overflow-hidden group"
+                                    >
+                                      <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                          <h4 className="text-sm font-bold text-white/90">
+                                            {comm.author}
+                                          </h4>
+                                          <p className="text-[10px] text-amber-400/60 font-medium">
+                                            {comm.title} ({comm.year})
+                                          </p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          {isEnglishText(comm.text) && (
+                                            <button
+                                              onClick={() =>
+                                                setShowOriginalComment(
+                                                  (prev) => ({
+                                                    ...prev,
+                                                    [comm.id]: !prev[comm.id],
+                                                  }),
+                                                )
+                                              }
+                                              className="text-[9px] px-2 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 font-medium transition-colors flex items-center gap-1"
+                                              title={
+                                                showOriginalComment[comm.id]
+                                                  ? "Ver em Português"
+                                                  : "Ver texto original em Inglês"
+                                              }
+                                            >
+                                              <Languages className="w-2.5 h-2.5" />
+                                              {showOriginalComment[comm.id]
+                                                ? "Traduzido (PT)"
+                                                : "Original (EN)"}
+                                            </button>
+                                          )}
+                                          <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 border border-border-strong text-white/40 uppercase tracking-wider">
+                                            {comm.tradition}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="relative">
+                                        {translatingComments[comm.id] &&
+                                        !translatedComments[comm.id] ? (
+                                          <div className="flex items-center gap-2 py-2 text-amber-400/80 text-xs italic pl-3 border-l-2 border-border-strong">
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <span>
+                                              Traduzindo comentário para
+                                              português...
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <p className="text-xs text-white/70 leading-relaxed italic border-l-2 border-border-strong pl-3 py-1 font-serif whitespace-pre-line">
+                                            "
+                                            {(!showOriginalComment[comm.id] &&
+                                              translatedComments[comm.id]) ||
+                                              comm.text}
+                                            "
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </>
                               ) : (
                                 <p className="text-xs text-white/20 italic p-3 text-center border border-dashed border-border-strong rounded-lg">
                                   Nenhum comentário clássico indexado para esta

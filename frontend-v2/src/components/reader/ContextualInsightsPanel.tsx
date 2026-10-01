@@ -12,11 +12,13 @@ import {
   X,
   ExternalLink,
   BookMarked,
+  Languages,
 } from "lucide-react";
 import { useTheoStore } from "@/store/useTheoStore";
 import { useCrossRefs, CrossRef } from "@/hooks/useCrossRefs";
 import { usePassageGuide } from "@/hooks/usePassageGuide";
 import { BIBLE_BOOK_TO_ID } from "@/lib/bibleUtils";
+import { translateText, isEnglishText } from "@/lib/translate";
 import { api } from "@/lib/api";
 import Link from "next/link";
 
@@ -124,6 +126,39 @@ export function ContextualInsightsPanel({
   };
 
   const realCommentaries = guide?.commentaries || [];
+
+  // Estados de tradução dinâmica para português (PT-BR)
+  const [translatedTexts, setTranslatedTexts] = useState<
+    Record<number, string>
+  >({});
+  const [translating, setTranslating] = useState<Record<number, boolean>>({});
+  const [showOriginal, setShowOriginal] = useState<Record<number, boolean>>({});
+
+  // Auto-traduz comentários em inglês automaticamente
+  useEffect(() => {
+    if (!realCommentaries || realCommentaries.length === 0) return;
+    let isCancelled = false;
+
+    realCommentaries.forEach(async (c, idx) => {
+      if (isEnglishText(c.content) && !translatedTexts[idx]) {
+        setTranslating((prev) => ({ ...prev, [idx]: true }));
+        try {
+          const pt = await translateText(c.content, "pt");
+          if (!isCancelled) {
+            setTranslatedTexts((prev) => ({ ...prev, [idx]: pt }));
+          }
+        } finally {
+          if (!isCancelled) {
+            setTranslating((prev) => ({ ...prev, [idx]: false }));
+          }
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [realCommentaries, translatedTexts]);
 
   return (
     <aside
@@ -254,13 +289,41 @@ export function ContextualInsightsPanel({
                         </p>
                       </div>
                     </div>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Domínio Público
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isEnglishText(c.content) && (
+                        <button
+                          onClick={() =>
+                            setShowOriginal((prev) => ({
+                              ...prev,
+                              [i]: !prev[i],
+                            }))
+                          }
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium transition-colors flex items-center gap-1"
+                          title={
+                            showOriginal[i]
+                              ? "Ver em Português"
+                              : "Ver texto original em Inglês"
+                          }
+                        >
+                          <Languages className="w-2.5 h-2.5" />
+                          {showOriginal[i] ? "Traduzido (PT)" : "Original (EN)"}
+                        </button>
+                      )}
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Domínio Público
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-[11px] font-serif whitespace-pre-line italic">
-                    "{c.content}"
-                  </p>
+                  {translating[i] && !translatedTexts[i] ? (
+                    <div className="flex items-center gap-2 py-2 text-amber-600/80 dark:text-amber-400/80 text-[11px]">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Traduzindo comentário para português...</span>
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-[11px] font-serif whitespace-pre-line italic">
+                      "{(!showOriginal[i] && translatedTexts[i]) || c.content}"
+                    </p>
+                  )}
                 </div>
               ))
             ) : (

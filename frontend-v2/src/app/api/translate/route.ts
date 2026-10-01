@@ -125,13 +125,13 @@ async function translateChunk(
 }
 
 export async function POST(req: Request) {
-  // ─── Auth ─────────────────────────────────────────────────────────────────
-  const subject = tokenSubject(req.headers.get("authorization"));
+  // ─── Auth / Rate Subject ──────────────────────────────────────────────────
+  let subject = tokenSubject(req.headers.get("authorization"));
   if (!subject) {
-    return NextResponse.json(
-      { error: "Autenticação obrigatória" },
-      { status: 401 },
-    );
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "guest-reader";
+    subject = `guest-${ip}`;
   }
 
   // ─── Rate limit ───────────────────────────────────────────────────────────
