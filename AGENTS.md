@@ -176,6 +176,17 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Correção nos Scripts de QA:** Corrigida a URL de produção no `qa-phase1.mjs` de `cristianocolombo.vercel.app` para a oficial `https://frontend-v2-lake.vercel.app`. Resolvidos os 6 achados do `static-checks.mjs` (alerta visível no `FeedbackModal`, `role="alert"` no `ServerWarmupBanner` e documentação de degradação graciosa na `static-checks.allowlist.json`).
 - **Validação:** `npm run verify` na nova raiz executou com sucesso total (339 testes backend, 49 testes frontend vitest, typecheck 0 erros, lint 0 erros, build Next.js 20 rotas geradas). `static-checks.mjs` retornou 0 achados e `qa-phase1.mjs` concluiu com 100% de probes HTTP 200 contra a produção.
 
+30. **Tradução Automática Dinâmica para Português (PT-BR) nos Comentários Clássicos (2026-10-01):**
+    Implementada a localização e tradução fluida para português nos comentários históricos e exegéticos (João Calvino, Matthew Henry, Martinho Lutero, etc.):
+
+- **Módulo de Tradução (`translate.ts`):** Heurística de detecção de textos em inglês com cache em memória (LRU instantâneo 0ms para passagens já consultadas) e fallback de contingência.
+- **Proxy `/api/translate`:** Flexibilizado para permitir sessões de convidados/visitantes com rate limit por IP, sem rejeição 401 por ausência de JWT de login.
+- **Painéis Atualizados (`ContextualInsightsPanel.tsx` e `PassageGuide.tsx`):**
+  - Textos em inglês são automaticamente traduzidos para Português (PT-BR) ao abrir o Guia de Passagem ou a gaveta de Ideias.
+  - Indicador visual e sutil com spinner (`Loader2`) durante a tradução assíncrona.
+  - Botão interativo `[Original (EN)]` / `[Traduzido (PT)]` para que pastores e acadêmicos possam alternar e auditar o original a qualquer momento.
+- **Validação:** 339 testes backend passando, 49 testes frontend vitest passando, typecheck (tsc) 0 erros, build Next.js com 20 rotas pré-renderizadas aprovado e commit `82cc66a` sincronizado no repositório remoto.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
