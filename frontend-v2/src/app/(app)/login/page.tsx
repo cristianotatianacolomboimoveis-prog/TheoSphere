@@ -360,7 +360,7 @@ export default function LoginPage() {
           result.error?.includes("Erro interno")
         ) {
           loginAsGuest(email);
-          router.push("/");
+          window.location.href = "/";
           return;
         }
         setErrorMessage(
@@ -905,7 +905,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 loginAsGuest(email || "cristianoocolombos@gmail.com");
-                router.push("/");
+                window.location.href = "/";
               }}
               className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-slate-900/10 flex items-center justify-center gap-2 cursor-pointer text-sm"
             >
