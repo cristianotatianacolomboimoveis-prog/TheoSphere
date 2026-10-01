@@ -50,3 +50,7 @@ backend/scratch/*.json
 backend/scratch/ingestion-checkpoint.json
 .env*
 *.env
+
+# Vídeos de tutoriais e demonstrações (armazenados localmente no Desktop)
+tutorials/videos/
+*.mov

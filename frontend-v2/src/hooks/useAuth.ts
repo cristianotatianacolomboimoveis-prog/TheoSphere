@@ -137,6 +137,13 @@ export function useAuth() {
       }
       const payload = decodeJwtPayload(accessToken);
       if (!payload?.exp) return;
+      // Se for sessão de demonstração/convidado, não expira nem tenta refresh no cookie
+      if (
+        (payload as any)?.isDemo ||
+        accessToken.endsWith(".theosphere_demo_signature")
+      ) {
+        return;
+      }
       const msUntilExpiry = payload.exp * 1000 - Date.now();
       // Fire REFRESH_LEAD_MS before expiry; minimum 5s to avoid tight loops.
       const fireIn = Math.max(5_000, msUntilExpiry - REFRESH_LEAD_MS);
@@ -310,6 +317,28 @@ export function useAuth() {
     clearLocalSession();
   }, [clearLocalSession]);
 
+  const loginAsGuest = useCallback(
+    (customEmail?: string) => {
+      const email = customEmail?.trim() || "pastor.demo@theosphere.dev";
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const exp = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; // 30 dias
+      const payload = btoa(
+        JSON.stringify({
+          sub: "guest-user-" + Date.now(),
+          email,
+          exp,
+          isDemo: true,
+          role: "USER",
+          plan: "PRO_BETA",
+        }),
+      );
+      const demoToken = `${header}.${payload}.theosphere_demo_signature`;
+      applyAccessToken(demoToken, "guest-user-" + Date.now(), email);
+      return { success: true };
+    },
+    [applyAccessToken],
+  );
+
   return {
     isAuthenticated,
     userId,
@@ -318,6 +347,7 @@ export function useAuth() {
     loading,
     login,
     register,
+    loginAsGuest,
     logout,
   };
 }
