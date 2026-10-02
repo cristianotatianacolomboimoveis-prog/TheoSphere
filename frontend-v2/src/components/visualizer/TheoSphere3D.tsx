@@ -458,11 +458,10 @@ export default function TheoSphere3D({
           },
         };
 
-        // Keep only boundary, place label, and water label layers
+        // Keep only boundary and water label layers in satellite mode (avoid modern city name collisions like Nablus, Ramla, etc.)
         style.layers = style.layers.filter((layer: any) => {
           const id = layer.id || "";
           return (
-            id.startsWith("label_") ||
             id.startsWith("boundary_") ||
             id.startsWith("water_name_")
           );
@@ -686,6 +685,7 @@ export default function TheoSphere3D({
       billboard: true,
       getColor: [255, 255, 255, 240],
       getPixelOffset: [0, -12],
+      characterSet: "auto",
       background: true,
       getBackgroundColor: [15, 23, 42, 210],
       backgroundPadding: [4, 2],
@@ -786,6 +786,7 @@ export default function TheoSphere3D({
       sizeUnits: "pixels",
       getColor: [255, 255, 255, 255],
       getPixelOffset: [0, -14],
+      characterSet: "auto",
       background: true,
       getBackgroundColor: [10, 14, 23, 215],
       backgroundPadding: [5, 2],
