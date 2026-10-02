@@ -800,13 +800,15 @@ export const TimeController: React.FC<TimeControllerProps> = ({
               return (
                 <button
                   key={`${ev.year}-${i}`}
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onTimeChange(ev.year, ev.location);
                     setSelectedDetailEvent(ev);
                   }}
                   onMouseEnter={() => setHoveredEvent(ev)}
                   onMouseLeave={() => setHoveredEvent(null)}
-                  className="absolute -translate-x-1/2 transition-all duration-300"
+                  className="absolute -translate-x-1/2 transition-all duration-300 cursor-pointer"
                   style={{ left: `${left}%`, top: 0 }}
                   title={`${ev.label} (${ev.year < 0 ? Math.abs(ev.year) + " a.C." : ev.year + " d.C."}) — Clique para Exegese Profunda`}
                 >
@@ -935,12 +937,14 @@ export const TimeController: React.FC<TimeControllerProps> = ({
                 return (
                   <button
                     key={`card-${ev.year}-${i}`}
+                    type="button"
                     data-year={ev.year}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onTimeChange(ev.year, ev.location);
                       setSelectedDetailEvent(ev);
                     }}
-                    className={`flex-shrink-0 relative overflow-hidden rounded-2xl border transition-all duration-500 text-left group ${
+                    className={`flex-shrink-0 relative overflow-hidden rounded-2xl border transition-all duration-500 text-left group cursor-pointer ${
                       isNearest
                         ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.2)] scale-105"
                         : isActive

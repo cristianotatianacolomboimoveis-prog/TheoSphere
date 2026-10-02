@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   BookOpen,
@@ -34,6 +35,7 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
   onFlyToLocation,
   onAskCopilot,
 }) => {
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "theology" | "archaeology" | "christ" | "scripture" | "copilot"
   >("theology");
@@ -41,6 +43,10 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
   const [copilotQuestion, setCopilotQuestion] = useState("");
   const [copilotAnswer, setCopilotAnswer] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fechar com tecla ESC
   useEffect(() => {
@@ -51,7 +57,7 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  if (!event) return null;
+  if (!mounted || !event) return null;
 
   const deepDive: EventDeepDive = getEventDeepDive(event.label, event);
 
@@ -116,10 +122,16 @@ ${deepDive.christocentricSignificance}
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in-0 duration-200">
+  return createPortal(
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in-0 duration-200"
+    >
       {/* Container Principal do Modal */}
-      <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-[#090D16] border border-amber-500/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden text-slate-100">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-[#090D16] border border-amber-500/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden text-slate-100"
+      >
         {/* Banner Superior com Imagem ou Gradiente Temático */}
         <div className="relative px-6 pt-6 pb-5 border-b border-white/10 bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-indigo-950/40">
           <div className="flex items-start justify-between gap-4">
@@ -556,6 +568,7 @@ ${deepDive.christocentricSignificance}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
