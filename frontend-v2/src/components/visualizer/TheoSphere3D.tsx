@@ -943,7 +943,12 @@ export default function TheoSphere3D({
       {/* Unified Time Controller */}
       <TimeController
         currentTime={currentTime}
-        onTimeChange={(year) => setCurrentTime(year)}
+        onTimeChange={(year, location) => {
+          setCurrentTime(year);
+          if (location && MapAdapter && typeof MapAdapter.flyTo === "function") {
+            MapAdapter.flyTo(location[1], location[0], 7);
+          }
+        }}
       />
 
       <RouteControlPanel

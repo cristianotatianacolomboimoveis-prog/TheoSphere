@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { EventDeepDiveModal } from "./EventDeepDiveModal";
 
 // ─── Eventos Históricos e Bíblicos (Timeline Completa) ─────────────────────
 export interface TimelineEvent {
@@ -665,6 +666,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   const [hoveredEvent, setHoveredEvent] = useState<TimelineEvent | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [selectedDetailEvent, setSelectedDetailEvent] = useState<TimelineEvent | null>(null);
 
   const MIN_YEAR = -4000;
   const MAX_YEAR = 2026;
@@ -798,12 +800,15 @@ export const TimeController: React.FC<TimeControllerProps> = ({
               return (
                 <button
                   key={`${ev.year}-${i}`}
-                  onClick={() => onTimeChange(ev.year, ev.location)}
+                  onClick={() => {
+                    onTimeChange(ev.year, ev.location);
+                    setSelectedDetailEvent(ev);
+                  }}
                   onMouseEnter={() => setHoveredEvent(ev)}
                   onMouseLeave={() => setHoveredEvent(null)}
                   className="absolute -translate-x-1/2 transition-all duration-300"
                   style={{ left: `${left}%`, top: 0 }}
-                  title={`${ev.label} (${ev.year < 0 ? Math.abs(ev.year) + " a.C." : ev.year + " d.C."})`}
+                  title={`${ev.label} (${ev.year < 0 ? Math.abs(ev.year) + " a.C." : ev.year + " d.C."}) — Clique para Exegese Profunda`}
                 >
                   <div
                     className={`rounded-full transition-all duration-300 ${
@@ -835,76 +840,80 @@ export const TimeController: React.FC<TimeControllerProps> = ({
               hover:[&::-webkit-slider-thumb]:scale-115 transition-all"
           />
 
-          {/* Era Labels - Posicionamento Dinâmico baseado nos Anos Reais */}
-          <div className="relative h-8 mt-2">
+          {/* Era Labels - Posicionamento Dinâmico Escalonado (Sem Sobreposições) */}
+          <div className="relative h-9 mt-2">
             {[
               {
                 year: -4000,
                 name: "Primordial",
                 dates: "4000-2000 a.C.",
-                color: "text-white/30",
+                color: "text-white/40",
               },
               {
                 year: -2000,
                 name: "Patriarcas",
                 dates: "2000-1250 a.C.",
-                color: "text-emerald-400/60",
+                color: "text-emerald-400/80",
               },
               {
                 year: -1250,
                 name: "Êxodo",
                 dates: "1250-1010 a.C.",
-                color: "text-red-400/60",
+                color: "text-red-400/80",
               },
               {
                 year: -1010,
                 name: "Monarquia",
                 dates: "1010-586 a.C.",
-                color: "text-violet-400/60",
+                color: "text-violet-400/80",
               },
               {
                 year: -586,
                 name: "Exílio",
                 dates: "586-516 a.C.",
-                color: "text-slate-400/60",
+                color: "text-slate-400/80",
               },
               {
                 year: -332,
                 name: "Silêncio",
                 dates: "332-4 a.C.",
-                color: "text-indigo-400/60",
+                color: "text-indigo-400/80",
               },
               {
                 year: -4,
                 name: "Jesus",
                 dates: "4 a.C. - 30 d.C.",
-                color: "text-amber-400/80",
+                color: "text-amber-400",
               },
               {
                 year: 70,
                 name: "Igreja",
                 dates: "30 - 313 d.C.",
-                color: "text-orange-400/60",
+                color: "text-orange-400/80",
               },
               {
                 year: 2026,
                 name: "Hoje",
                 dates: "2026",
-                color: "text-cyan-400/60",
+                color: "text-cyan-400/80",
               },
-            ].map((era) => {
+            ].map((era, idx) => {
               const percent =
                 ((era.year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
+              const isLowerRow = idx % 2 === 1;
               return (
                 <div
                   key={era.name}
                   className={`absolute -translate-x-1/2 flex flex-col items-center text-center transition-all ${era.color}`}
-                  style={{ left: `${percent}%` }}
+                  style={{
+                    left: `${percent}%`,
+                    top: isLowerRow ? "13px" : "0px",
+                  }}
                 >
-                  <span className="text-[7px] font-black tracking-tighter uppercase whitespace-nowrap drop-shadow-md">
+                  <span className="text-[7.5px] font-black tracking-tight uppercase whitespace-nowrap drop-shadow-md">
                     {era.name}
                   </span>
-                  <span className="text-[5.5px] font-bold tracking-widest opacity-80 whitespace-nowrap mt-0.5">
+                  <span className="hidden sm:inline-block text-[5.5px] font-bold tracking-widest opacity-75 whitespace-nowrap mt-0.2">
                     {era.dates}
                   </span>
                 </div>
@@ -927,15 +936,19 @@ export const TimeController: React.FC<TimeControllerProps> = ({
                   <button
                     key={`card-${ev.year}-${i}`}
                     data-year={ev.year}
-                    onClick={() => onTimeChange(ev.year, ev.location)}
+                    onClick={() => {
+                      onTimeChange(ev.year, ev.location);
+                      setSelectedDetailEvent(ev);
+                    }}
                     className={`flex-shrink-0 relative overflow-hidden rounded-2xl border transition-all duration-500 text-left group ${
                       isNearest
                         ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.2)] scale-105"
                         : isActive
                           ? "bg-white/10 border-white/20"
-                          : "bg-white/[0.03] border-border-subtle opacity-60 hover:opacity-100"
+                          : "bg-white/[0.03] border-border-subtle opacity-75 hover:opacity-100"
                     }`}
-                    style={{ minWidth: 180, height: 100 }}
+                    style={{ minWidth: 200, height: 110 }}
+                    title="Clique para abrir Explicação Teológica, Histórica e Arqueológica"
                   >
                     {/* Background Image with Blur */}
                     {ev.imageUrl && (
@@ -950,7 +963,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
                     )}
 
                     {/* Gradient Overlay for Readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#05080f] via-[#05080f]/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#05080f] via-[#05080f]/50 to-transparent" />
 
                     <div className="relative z-10 p-3 flex flex-col justify-between h-full">
                       <div className="flex items-center justify-between">
@@ -967,14 +980,17 @@ export const TimeController: React.FC<TimeControllerProps> = ({
                               : `${ev.year} d.C.`}
                           </span>
                         </div>
+                        <span className="text-[7.5px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-md shadow-sm group-hover:bg-amber-500/35 transition-all">
+                          📖 Exegese
+                        </span>
                       </div>
                       <div>
                         <p
-                          className={`text-[11px] font-black leading-tight drop-shadow-lg ${isNearest ? "text-white" : "text-white/90"}`}
+                          className={`text-[11px] font-black leading-tight drop-shadow-lg ${isNearest ? "text-white" : "text-white/95"}`}
                         >
                           {ev.label}
                         </p>
-                        <p className="text-[8px] text-white/50 mt-1 font-bold truncate flex items-center gap-1">
+                        <p className="text-[8.5px] text-white/60 mt-1 font-bold truncate flex items-center gap-1">
                           <span className="text-amber-500/70">📍</span>{" "}
                           {ev.locationName}
                         </p>
@@ -986,6 +1002,15 @@ export const TimeController: React.FC<TimeControllerProps> = ({
             </div>
           </div>
         )}
+
+        {/* Modal de Exegese Histórica, Teológica e Arqueológica Profunda */}
+        <EventDeepDiveModal
+          event={selectedDetailEvent}
+          onClose={() => setSelectedDetailEvent(null)}
+          onFlyToLocation={(location) => {
+            onTimeChange(selectedDetailEvent?.year ?? currentTime, location);
+          }}
+        />
       </div>
     </div>
   );

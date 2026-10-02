@@ -212,6 +212,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Filtro de Cidades Modernas no `customStyle`:** Removida a permissão de `id.startsWith("label_")` no `style.layers` do processamento dinâmico do OpenFreeMap/Liberty, eliminando de vez rótulos contemporâneos como "Nablus", "Har Bracha" e "Askar RC" no modo satélite.
 - **Validação:** `tsc --noEmit` aprovado com 0 erros, commit `b4670b6` enviado e publicado na Vercel.
 
+34. **Exegese Histórica, Teológica e Arqueológica Profunda nos Eventos da Linha do Tempo & Desambiguação de Eras (2026-10-02):**
+    Atendida a solicitação do usuário para que o clique em qualquer evento da timeline (Criação, Dilúvio, Queda, Babel, Abraão, Êxodo, Davi, Calvário, etc.) abra uma investigação profunda fundamentada nos maiores teólogos, historiadores e arqueólogos do mundo:
+
+- **Acervo Estruturado (`timelineEventDetails.ts`):** Mapeamento exegético e enciclopédico contendo síntese teológica, perspectiva patrística/reformada/escolástica (Agostinho, Calvino, Lutero, Tomás de Aquino, Edwards, Spurgeon, Bavinck, Barth), consenso historiográfico e arqueológico (Flávio Josefo, Albright, Kitchen, Hoffmeier, Woolley, Biran, George Smith), artefatos físicos reais (Tabletes de Enuma Elish e Gilgamesh, Estela de Tel Dã, Inscrição de Pilatos, Estela de Merneptah, Ossuário de Caifás, Crucificado de Givat HaMivtar) e significado cristocêntrico na História da Redenção.
+- **Modal de Alta Resolução (`EventDeepDiveModal.tsx`):** Interface com 5 abas ricas (*Teologia & Grandes Teólogos*, *Arqueologia & História*, *Cristocentrismo & Redenção*, *Passagens Bíblicas* e *Copilot Teológico com RAG*), atalho para cópia em Markdown e botão de voo de câmera 3D.
+- **Voo Automático e Sincronia no Mapa (`TheoSphere3D.tsx`):** `onTimeChange(year, location)` sincronizado com `MapAdapter.flyTo(lat, lng, 7)`, guiando o usuário visualmente para a coordenada geográfica do evento ao selecioná-lo.
+- **Eliminação de Sobreposição das Eras (`TimeController.tsx`):** Escalonamento vertical alternado (staggered em duas linhas) dos marcadores de era na timeline, impedindo o embolamento de texto visível na régua cronológica.
+- **Validação:** `tsc --noEmit` com 0 erros.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
