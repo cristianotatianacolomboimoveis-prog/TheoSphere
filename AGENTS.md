@@ -205,6 +205,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **LOD Dinâmico (Level of Detail):** Em zoom distante (< 6), renderiza apenas metrópoles e capitais para não aglomerar; em zoom próximo (>= 6), revela todas as cidades bíblicas com legibilidade perfeita.
 - **Validação:** `tsc --noEmit` com 0 erros, commit `f179e88` enviado e publicado na Vercel.
 
+33. **Correção de Caracteres Acentuados no TextLayer do Deck.gl & Desativação do Liberty Vector Labels (2026-10-02):**
+    Resolvida a ausência da letra "é" em "Siquém" (que aparecia como "Siqu m") e desativação das cidades modernas remanescentes:
+
+- **Causa da Letra Faltante ("Siqu m"):** O `TextLayer` do Deck.gl usa por padrão uma textura de atlas de fontes restrita ao ASCII básico (0–127). Qualquer caractere latino com acento ("é", "ê", "ã", "ó") era omitido. Corrigido adicionando `characterSet: "auto"` tanto no layer de locais bíblicos quanto nos waypoints.
+- **Filtro de Cidades Modernas no `customStyle`:** Removida a permissão de `id.startsWith("label_")` no `style.layers` do processamento dinâmico do OpenFreeMap/Liberty, eliminando de vez rótulos contemporâneos como "Nablus", "Har Bracha" e "Askar RC" no modo satélite.
+- **Validação:** `tsc --noEmit` aprovado com 0 erros, commit `b4670b6` enviado e publicado na Vercel.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
