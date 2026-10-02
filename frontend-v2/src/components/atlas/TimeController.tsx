@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── Eventos Históricos e Bíblicos (Timeline Completa) ─────────────────────
 export interface TimelineEvent {
@@ -664,6 +664,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hoveredEvent, setHoveredEvent] = useState<TimelineEvent | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const MIN_YEAR = -4000;
   const MAX_YEAR = 2026;
@@ -700,12 +701,33 @@ export const TimeController: React.FC<TimeControllerProps> = ({
     }
   }, [nearestEvent, expanded]);
 
+  // Modo Minimizado: Uma pílula flutuante limpa que não obstrui o mapa
+  if (isMinimized) {
+    return (
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 select-none animate-fadeIn">
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="glass-heavy px-4 py-2 rounded-full border border-white/15 shadow-2xl flex items-center gap-2.5 text-xs text-white/90 hover:text-white hover:bg-white/10 transition-all cursor-pointer group"
+          title="Expandir Linha do Tempo Bíblica"
+        >
+          <Clock className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+          <span className="font-bold text-amber-400 font-serif">{yearLabel}</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span className="text-[11px] text-white/70 truncate max-w-[200px]">
+            {nearestEvent.label}
+          </span>
+          <ChevronUp className="w-3.5 h-3.5 text-white/50 ml-0.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-4xl">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[94%] max-w-3xl select-none animate-fadeIn">
       {/* Tooltip do evento em hover */}
       {hoveredEvent && (
-        <div className="absolute -top-20 left-1/2 -translate-x-1/2 glass-heavy px-5 py-3 rounded-2xl border border-border-strong shadow-2xl z-20 max-w-sm text-center animate-fade-in pointer-events-none">
-          <span className="text-lg mr-2">{hoveredEvent.icon}</span>
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 glass-heavy px-4 py-2 rounded-xl border border-white/20 shadow-2xl z-20 max-w-sm text-center animate-fade-in pointer-events-none">
+          <span className="text-base mr-1.5">{hoveredEvent.icon}</span>
           <span className="text-xs font-bold text-white">
             {hoveredEvent.label}
           </span>
@@ -715,47 +737,53 @@ export const TimeController: React.FC<TimeControllerProps> = ({
               : `${hoveredEvent.year} d.C.`}
           </span>
           {hoveredEvent.description && (
-            <p className="text-[10px] text-white/50 mt-1 leading-tight">
+            <p className="text-[9px] text-white/50 mt-0.5 leading-tight">
               {hoveredEvent.description}
             </p>
           )}
         </div>
       )}
 
-      <div className="glass-heavy p-5 rounded-[28px] border border-border-strong shadow-[0_30px_80px_rgba(0,0,0,0.7)]">
+      <div className="glass-heavy p-3 px-4.5 rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-amber-500" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
             </div>
             <div>
-              <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
-                {CATEGORY_INFO[nearestEvent.category]?.name ||
-                  "Controle Temporal"}
-                <span className="text-amber-500/50">|</span>
+              <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.15em] flex items-center gap-1.5">
+                {CATEGORY_INFO[nearestEvent.category]?.name || "Controle Temporal"}
+                <span className="text-amber-500/50">•</span>
                 <span className="text-emerald-400/80">
                   {CATEGORY_INFO[nearestEvent.category]?.duration}
                 </span>
               </span>
-              <span className="text-xs font-bold text-white/70">
+              <span className="text-[11px] font-bold text-white/80">
                 {nearestEvent.icon} {nearestEvent.label}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border border-border-strong text-white/40 hover:text-white/80 hover:border-white/20 transition-all"
+              className="px-2.5 py-1 text-[8.5px] font-black uppercase tracking-wider rounded-lg border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
             >
-              {expanded ? "Compacto" : "Expandir"}
+              {expanded ? "Compacto" : "Eventos"}
             </button>
-            <div className="px-4 py-1.5 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner">
-              <span className="text-xl font-black text-amber-400 font-serif tracking-tight glow-text">
+            <div className="px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
+              <span className="text-base font-black text-amber-400 font-serif tracking-tight glow-text">
                 {yearLabel}
               </span>
             </div>
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="p-1 hover:bg-white/10 rounded-md text-white/50 hover:text-white transition-colors"
+              title="Minimizar timeline para visão total do mapa"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
           </div>
         </div>
 

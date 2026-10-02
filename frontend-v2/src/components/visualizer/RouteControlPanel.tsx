@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, ChevronUp, X, Compass } from "lucide-react";
 import { getRouteColor, getRouteInfo, ROUTE_CATEGORIES } from "./routeConfig";
 
 interface RouteControlPanelProps {
@@ -122,66 +122,74 @@ export function RouteControlPanel({
 }: RouteControlPanelProps) {
   return (
     <div
-      className={`absolute top-6 right-6 z-10 bg-[#0d0e12]/95 backdrop-blur-md border border-white/10 shadow-2xl flex flex-col transition-all duration-300 select-none ${
+      className={`absolute top-5 right-5 z-20 bg-[#0d0e12]/95 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col transition-all duration-300 select-none ${
         isLegendExpanded
-          ? "w-[320px] rounded-[2rem] p-6 gap-5"
-          : "w-[220px] rounded-full px-5 py-3 gap-0"
+          ? "w-[290px] max-h-[calc(100vh-210px)] rounded-2xl p-4 gap-3 border-white/20"
+          : "w-auto rounded-full px-4 py-2 hover:bg-[#151822] cursor-pointer"
       }`}
     >
       {/* Panel Header */}
       <div
-        className="flex items-center justify-between cursor-pointer"
+        className="flex items-center justify-between gap-3 cursor-pointer"
         onClick={onToggleLegend}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <div className="relative">
             <span className="flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
-          <span className="text-[11px] font-black text-white tracking-[0.12em] uppercase">
-            {isLegendExpanded ? "Painel de Rotas" : "Rotas & Locais"}
+          <span className="text-[11px] font-black text-white tracking-[0.1em] uppercase">
+            {isLegendExpanded ? "Rotas Bíblicas" : "Rotas & Locais"}
+          </span>
+          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-white/10 text-emerald-400 font-mono">
+            {routes.length}
           </span>
         </div>
-        <button className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleLegend();
+          }}
+          className="p-1 hover:bg-white/15 rounded-md transition-colors text-slate-400 hover:text-white"
+          title={isLegendExpanded ? "Recolher painel" : "Expandir rotas"}
+        >
           {isLegendExpanded ? (
-            <ChevronUp className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3.5 h-3.5" />
           )}
         </button>
       </div>
 
-      {/* Collapsible Content */}
+      {/* Collapsible Content com scroll restrito para nunca sobrepor timeline */}
       {isLegendExpanded && (
-        <div className="flex flex-col gap-5 animate-fadeIn">
+        <div className="flex flex-col gap-3.5 overflow-y-auto custom-scrollbar pr-1 animate-fadeIn">
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-2 text-[10px] font-extrabold tracking-wider uppercase">
+          <div className="grid grid-cols-2 gap-1.5 text-[9px] font-extrabold tracking-wider uppercase">
             <button
               onClick={onShowAll}
-              className="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-xl text-white transition-all text-center flex items-center justify-center gap-1.5"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-lg text-white transition-all text-center flex items-center justify-center gap-1"
             >
-              <Eye className="w-3.5 h-3.5 text-emerald-400" />
+              <Eye className="w-3 h-3 text-emerald-400" />
               Mostrar Todas
             </button>
             <button
               onClick={onClearAll}
-              className="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-xl text-white transition-all text-center flex items-center justify-center gap-1.5"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95 rounded-lg text-white transition-all text-center flex items-center justify-center gap-1"
             >
-              <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+              <EyeOff className="w-3 h-3 text-rose-400" />
               Ocultar Todas
             </button>
           </div>
 
           {/* Static Legend */}
-          <div className="flex flex-col gap-2.5 border-t border-b border-white/5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-              <span className="text-[10px] font-bold text-slate-400 tracking-[0.05em] uppercase">
-                Locais Históricos (Sempre Ativos)
-              </span>
-            </div>
+          <div className="flex items-center gap-2 px-1 py-1.5 border-t border-b border-white/5">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.5)] flex-shrink-0" />
+            <span className="text-[9px] font-bold text-slate-400 tracking-[0.05em] uppercase truncate">
+              Locais Históricos (Ativos)
+            </span>
           </div>
 
           {/* Category Sections */}

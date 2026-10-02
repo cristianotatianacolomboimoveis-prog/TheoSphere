@@ -25,7 +25,7 @@ const TheoSphereDashboard = dynamic(
 );
 
 export default function AtlasPage() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-full w-full overflow-hidden relative">

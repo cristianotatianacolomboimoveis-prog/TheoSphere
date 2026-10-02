@@ -208,7 +208,7 @@ export default function TheoSphere3D({
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
-  const [isLegendExpanded, setIsLegendExpanded] = useState(true);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
   const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<{
     id?: string;
@@ -938,12 +938,10 @@ export default function TheoSphere3D({
       </div>
 
       {/* Unified Time Controller */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-10">
-        <TimeController
-          currentTime={currentTime}
-          onTimeChange={(year) => setCurrentTime(year)}
-        />
-      </div>
+      <TimeController
+        currentTime={currentTime}
+        onTimeChange={(year) => setCurrentTime(year)}
+      />
 
       <RouteControlPanel
         routes={routes}
