@@ -60,16 +60,6 @@ const SATELLITE_STYLE = {
       attribution:
         "Tiles &copy; Esri &mdash; Imagens de Satélite de Alta Precisão Submétrica",
     },
-    labels: {
-      type: "raster",
-      tiles: [
-        "https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png",
-      ],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    },
   },
   layers: [
     {
@@ -82,13 +72,6 @@ const SATELLITE_STYLE = {
         "raster-resampling": "linear",
         "raster-fade-duration": 150,
       },
-    },
-    {
-      id: "labels-layer",
-      type: "raster",
-      source: "labels",
-      minzoom: 0,
-      maxzoom: 24,
     },
   ],
   sky: {
@@ -692,16 +675,20 @@ export default function TheoSphere3D({
     }),
 
     // Rótulos dos Pontos das Rotas de Viagem (TextLayer)
+    // Rótulos dos Pontos das Rotas de Viagem (TextLayer com offset e fundo para legibilidade)
     new TextLayer({
       id: "route-waypoint-labels",
       data: allWaypoints,
       getPosition: (w: any) => [w.coords[1], w.coords[0]],
       getText: (w: any) => `${w.indexInRoute}. ${w.title || ""}`,
-      getSize: 12,
+      getSize: 11,
       sizeUnits: "pixels",
       billboard: true,
-      getColor: [255, 255, 255, 255],
-      getAlignmentBaseline: "bottom",
+      getColor: [255, 255, 255, 240],
+      getPixelOffset: [0, -12],
+      background: true,
+      getBackgroundColor: [15, 23, 42, 210],
+      backgroundPadding: [4, 2],
       fontFamily: "Inter, sans-serif",
       fontWeight: "bold",
     }),
@@ -778,16 +765,31 @@ export default function TheoSphere3D({
       },
     }),
 
-    // Rótulos dos Locais Bíblicos (TextLayer)
+    // Rótulos dos Locais Bíblicos (TextLayer com background nítido e LOD sem colisão)
     new TextLayer({
       id: "labels",
-      data: locations || [],
+      data:
+        viewState.zoom < 6
+          ? (locations || []).filter(
+              (loc: any) =>
+                loc.name === "Jerusalém" ||
+                loc.name === "Samaria" ||
+                loc.name === "Damasco" ||
+                loc.name === "Hebrom" ||
+                loc.name === "Alexandria" ||
+                loc.name === "Babilônia",
+            )
+          : locations || [],
       getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
       getText: (d: any) => d?.name || "",
-      getSize: 14,
+      getSize: viewState.zoom > 7 ? 13 : 11,
+      sizeUnits: "pixels",
       getColor: [255, 255, 255, 255],
-      getAlignmentBaseline: "bottom",
-      fontFamily: "Inter, sans-serif",
+      getPixelOffset: [0, -14],
+      background: true,
+      getBackgroundColor: [10, 14, 23, 215],
+      backgroundPadding: [5, 2],
+      fontFamily: "'Literata', Georgia, serif",
       fontWeight: "bold",
     }),
   ];
