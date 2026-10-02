@@ -196,6 +196,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Timeline Bíblica Otimizada & Minimizável (`TimeController.tsx`):** Removidos wrappers absolutos duplicados; dimensões contidas no rodapé (`max-w-3xl`) com suporte a modo minimizado de 1 clique (`[🕰️ 2000 a.C. • Era dos Patriarcas ⌃]`).
 - **Validação:** Typecheck limpo com 0 erros (`tsc --noEmit`), commit `d04d52b` sincronizado com deploy automático na Vercel.
 
+32. **Resolução de Colisão de Toponímia (Rótulos de Cidades) no Atlas (2026-10-02):**
+    Eliminada a sobreposição caótica de nomes modernos e bíblicos identificada pelo usuário (ex: "Betel" sobre "Ramla", "Siquém" sobre "Nablus", "Hebrom" sobre "Territórios Palestinianos"):
+
+- **Causa Raiz Identificada:** A camada raster `labels-layer` do CartoDB injetava no satélite da Esri cidades e divisões políticas contemporâneas da ONU, competindo nas mesmas coordenadas com o `TextLayer` dos sítios bíblicos antigos.
+- **Satélite Bíblico Puro:** Removida a camada de cidades modernas de `SATELLITE_STYLE`. O satélite agora renderiza a fotografia espacial de alta resolução da Terra Santa sem ruído contemporâneo.
+- **Tipografia Bíblica com Fundo & Offset:** `TextLayer` atualizado com `getPixelOffset: [0, -14]` (flutua acima do ponto sem cobrir o marcador), fundo escuro translúcido com contraste (`getBackgroundColor: [10, 14, 23, 215]`), padding e tipografia editorial (`Literata`).
+- **LOD Dinâmico (Level of Detail):** Em zoom distante (< 6), renderiza apenas metrópoles e capitais para não aglomerar; em zoom próximo (>= 6), revela todas as cidades bíblicas com legibilidade perfeita.
+- **Validação:** `tsc --noEmit` com 0 erros, commit `f179e88` enviado e publicado na Vercel.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
