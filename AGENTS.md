@@ -187,6 +187,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
   - Botão interativo `[Original (EN)]` / `[Traduzido (PT)]` para que pastores e acadêmicos possam alternar e auditar o original a qualquer momento.
 - **Validação:** 339 testes backend passando, 49 testes frontend vitest passando, typecheck (tsc) 0 erros, build Next.js com 20 rotas pré-renderizadas aprovado e commit `82cc66a` sincronizado no repositório remoto.
 
+31. **Eliminação de Sobreposições & Interface Ultra-Clean no Atlas 3D (2026-10-02):**
+    Solucionado o conflito de layout e amontoamento de painéis sobre o mapa histórico (`/atlas`):
+
+- **Sidebar Lateral Direita em Segundo Plano:** `isSidebarOpen` alterado para `false` por padrão. O mapa agora abre com 100% de largura útil desimpedida, eliminando a compressão da viewport.
+- **Painel de Rotas Recolhido por Padrão (`RouteControlPanel.tsx`):** Inicia como pílula compacta e elegante (`Rotas & Locais` + badge `8`). Quando expandido pelo usuário, possui largura contida (`290px`), botão de fechar (`✕`) e rolagem vertical com limite estrito (`max-h-[calc(100vh-210px)]`), impedindo qualquer choque com a timeline inferior.
+- **MapHeader em Cápsula Única e Não-Quebrável (`MapHeader.tsx`):** Unificados os seletores de satélite, Globo 3D, Câmera Solo de Israel e botões de tela cheia/imersão em uma cápsula de vidro compacta de altura única (~42px), sem empilhamento caótico em duas linhas.
+- **Timeline Bíblica Otimizada & Minimizável (`TimeController.tsx`):** Removidos wrappers absolutos duplicados; dimensões contidas no rodapé (`max-w-3xl`) com suporte a modo minimizado de 1 clique (`[🕰️ 2000 a.C. • Era dos Patriarcas ⌃]`).
+- **Validação:** Typecheck limpo com 0 erros (`tsc --noEmit`), commit `d04d52b` sincronizado com deploy automático na Vercel.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
