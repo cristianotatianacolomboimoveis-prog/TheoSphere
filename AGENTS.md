@@ -216,19 +216,21 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     Atendida a solicitação do usuário para que o clique em qualquer evento da timeline (Criação, Dilúvio, Queda, Babel, Abraão, Êxodo, Davi, Calvário, etc.) abra uma investigação profunda fundamentada nos maiores teólogos, historiadores e arqueólogos do mundo:
 
 - **Acervo Estruturado (`timelineEventDetails.ts`):** Mapeamento exegético e enciclopédico contendo síntese teológica, perspectiva patrística/reformada/escolástica (Agostinho, Calvino, Lutero, Tomás de Aquino, Edwards, Spurgeon, Bavinck, Barth), consenso historiográfico e arqueológico (Flávio Josefo, Albright, Kitchen, Hoffmeier, Woolley, Biran, George Smith), artefatos físicos reais (Tabletes de Enuma Elish e Gilgamesh, Estela de Tel Dã, Inscrição de Pilatos, Estela de Merneptah, Ossuário de Caifás, Crucificado de Givat HaMivtar) e significado cristocêntrico na História da Redenção.
-- **Modal de Alta Resolução (`EventDeepDiveModal.tsx`):** Interface com 5 abas ricas (*Teologia & Grandes Teólogos*, *Arqueologia & História*, *Cristocentrismo & Redenção*, *Passagens Bíblicas* e *Copilot Teológico com RAG*), atalho para cópia em Markdown e botão de voo de câmera 3D.
+- **Modal de Alta Resolução (`EventDeepDiveModal.tsx`):** Interface com 5 abas ricas (_Teologia & Grandes Teólogos_, _Arqueologia & História_, _Cristocentrismo & Redenção_, _Passagens Bíblicas_ e _Copilot Teológico com RAG_), atalho para cópia em Markdown e botão de voo de câmera 3D.
 - **Voo Automático e Sincronia no Mapa (`TheoSphere3D.tsx`):** `onTimeChange(year, location)` sincronizado com `MapAdapter.flyTo(lat, lng, 7)`, guiando o usuário visualmente para a coordenada geográfica do evento ao selecioná-lo.
 - **Eliminação de Sobreposição das Eras (`TimeController.tsx`):** Escalonamento vertical alternado (staggered em duas linhas) dos marcadores de era na timeline, impedindo o embolamento de texto visível na régua cronológica.
 - **Validação:** `tsc --noEmit` com 0 erros.
 
 35. **Esquadrão Diário de Usabilidade (UX Squad) & Testes com Usuários Reais (2026-10-09):**
     Construído o sistema de testes de usabilidade com personas reais (Pastor Marcos, Ana seminarista, Joana mobile, Dona Cida, Rafael usuário Logos e Caos destrutivo) em `audit/scripts/ux-squad/`:
+
 - **Nuvem & Automação Diária:** Configurado em `.github/workflows/daily-ux-squad.yml` para rodar todos os dias às 09:00 BRT (12:00 UTC) com rodízio semanal, Playwright headless Chromium e avaliação visual com IA (Gemini Vision `gemini-flash-latest`).
 - **Execução e Relatórios:** Salva o relatório consolidado em `audit/reports/ux-squad-AAAA-MM-DD.md` com evidências (53 screenshots capturados na primeira rodada) e resumo automático no `$GITHUB_STEP_SUMMARY`.
 - **Validação:** Rodada local `--personas=all` executada com sucesso, suíte typecheck 0 erros e relatório `audit/reports/ux-squad-2026-10-09.md` gerado.
 
 36. **Navegação Completa do Atlas Bíblico 3D & HUD de Exploração (2026-10-09):**
     Construída a suíte definitiva de navegação espacial, geográfica e de rotas bíblicas no Atlas 3D (`/atlas`):
+
 - **Catálogo Canônico em 0ms (`canonicalRoutes.ts`):** 25 marcos bíblicos canônicos consolidados (Jerusalém, Monte Sinai, Cafarnaum, Mar da Galileia, Belém, Nazaré, Babilônia, Roma, Éfeso, Ur, Jericó, Hebrom, etc.) e as 8 rotas bíblicas canônicas pré-carregadas offline no frontend, neutralizando cold starts do Render.
 - **Navegador Rápido de Marcos Bíblicos (`LandmarkNavigator.tsx`):** Popover retrátil acionável via botão `[📍 Marcos]` no cabeçalho ou atalho global `⌘+M` / `Ctrl+M`, com busca instantânea, filtros temáticos (Cidades, Montes Sagrados, Mares e Rios), sincronização automática da era histórica na timeline e voo de câmera suave.
 - **Controlador de Jornadas Bíblicas Passo a Passo (`RouteStepperHUD.tsx`):** HUD flutuante para navegar waypoint por waypoint em rotas selecionadas (ex: passos do Êxodo ou viagens de Paulo) com botões `[◀ Anterior]`, `[Próximo ▶]`, atalhos de seta do teclado (`←` e `→`) e modo de apresentação automática (`Tour Auto`).
@@ -238,6 +240,7 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
 37. **Correção Definitiva do Carregamento do Globo 3D Cesium no Atlas (2026-10-13):**
     Identificado e solucionado o erro crítico que impedia o carregamento do mapa 3D no `/atlas`:
+
 - **Diagnóstico da Causa Raiz:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
 - **Nova Arquitetura Estática & Zero Bundler Bloat (`CesiumGlobe.tsx`):** Eliminado o empacotamento do Cesium (5.6MB) pelo bundler do React/Next.js. O Cesium agora é carregado de forma limpa, assíncrona e desacoplada diretamente de `public/cesium/Cesium.js` e `Widgets/widgets.css` via injeção dinâmica de scripts, instanciando o `new window.Cesium.Viewer` com controle nativo completo de ciclo de vida.
 - **Recursos Preservados e Otimizados:** Pins temáticos 4D, achados arqueológicos com badges de autenticidade, rotas neon do Valhalla com waypoints bíblicos, órbita suave 360° (Ease-In/Ease-Out), voo rente ao relevo bíblico (2.000m de altitude contra o horizonte) e câmera inicial precisamente calibrada na Terra Santa (Jerusalém: 35.2137° E, 31.7683° N).

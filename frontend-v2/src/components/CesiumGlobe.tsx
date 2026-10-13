@@ -79,7 +79,7 @@ function configureCesiumScene(v: any) {
   if (!v || !v.scene) return;
   const ssc = v.scene.screenSpaceCameraController;
   if (ssc) {
-    ssc.minimumZoomDistance = 120;
+    ssc.minimumZoomDistance = 350;
     ssc.maximumZoomDistance = 35000000;
     ssc.enableCollisionDetection = true;
   }
@@ -202,10 +202,13 @@ export default function CesiumGlobe({
     if (!Cesium) return;
 
     // Provedor de satélite de alta definição ESRI World Imagery
+    // maximumLevel: 16 garante que o Cesium faça upsampling contínuo em montanhas/desertos
+    // em vez de requisitar tiles inexistentes da ESRI que devolvem "Map data not yet available".
     const imageryProvider = new Cesium.UrlTemplateImageryProvider({
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      maximumLevel: 19,
+      maximumLevel: 16,
       enablePickFeatures: false,
+      hasAlphaChannel: false,
     });
 
     const baseImageryLayer = new Cesium.ImageryLayer(imageryProvider);
@@ -229,9 +232,13 @@ export default function CesiumGlobe({
       sceneModePicker: false,
       navigationHelpButton: false,
       infoBox: false,
-      baseLayer: baseImageryLayer,
+      baseLayer: false, // Evita camada default do Bing/Ion com marcas d'água
       terrainProvider,
     });
+
+    // Adiciona explicitamente a camada de satélite real de alta definição
+    viewer.imageryLayers.removeAll();
+    viewer.imageryLayers.add(baseImageryLayer);
 
     configureCesiumScene(viewer);
     viewerRef.current = viewer;
