@@ -122,6 +122,7 @@ export function RouteControlPanel({
 }: RouteControlPanelProps) {
   return (
     <div
+      onClick={!isLegendExpanded ? onToggleLegend : undefined}
       className={`absolute top-5 right-5 z-20 bg-[#0d0e12]/95 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col transition-all duration-300 select-none ${
         isLegendExpanded
           ? "w-[290px] max-h-[calc(100vh-210px)] rounded-2xl p-4 gap-3 border-white/20"

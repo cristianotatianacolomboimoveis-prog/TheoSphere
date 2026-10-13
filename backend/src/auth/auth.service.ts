@@ -3,6 +3,7 @@ import {
   Logger,
   UnauthorizedException,
   ConflictException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -34,18 +35,35 @@ export class AuthService {
     // truncation surface (DT-6). See password.util.ts.
     const passwordHash = await hashPassword(password);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        plan: 'FREE',
-      },
-    });
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          plan: 'FREE',
+        },
+      });
 
-    return {
-      message: 'Usuário registrado com sucesso.',
-      userId: user.id,
-    };
+      return {
+        message: 'Usuário registrado com sucesso.',
+        userId: user.id,
+      };
+    } catch (err: any) {
+      if (
+        err?.code === '25006' ||
+        err?.message?.includes('read-only transaction') ||
+        err?.cause?.code === '25006' ||
+        err?.cause?.originalCode === '25006'
+      ) {
+        this.logger.warn(
+          `Falha ao registrar ${email}: banco de dados em modo read-only`,
+        );
+        throw new ServiceUnavailableException(
+          "O cadastro de novos usuários está temporariamente indisponível para manutenção no banco de dados. Utilize o botão 'Entrar Direto (Acesso de Demonstração)' para acessar imediatamente.",
+        );
+      }
+      throw err;
+    }
   }
 
   async login(email: string, pass: string) {

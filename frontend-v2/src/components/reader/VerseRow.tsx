@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Link2, MessageSquare } from "lucide-react";
+import { useTheoStore } from "@/store/useTheoStore";
 import {
   HighlightColor,
   THEOLOGICAL_COLORS,
@@ -101,6 +102,7 @@ export const VerseRow: React.FC<VerseRowProps> = ({
   onCrossRefClick,
   onWordClick,
 }) => {
+  const { readerFontSize } = useTheoStore();
   const highlightStyles = highlightColor
     ? THEOLOGICAL_COLORS[highlightColor]
     : null;
@@ -110,6 +112,8 @@ export const VerseRow: React.FC<VerseRowProps> = ({
     : highlightStyles
       ? `${highlightStyles.bg} ${highlightStyles.border} border-l-4`
       : "hover:bg-gray-50/50 dark:hover:bg-white/[0.02]";
+
+  const currentFontSize = `${readerFontSize || 20}px`;
 
   return (
     <div
@@ -159,7 +163,10 @@ export const VerseRow: React.FC<VerseRowProps> = ({
           </div>
 
           {/* Biblical Text - Serif Focus with Interactive Lexical Words */}
-          <span className="text-[20px] leading-[1.8] font-serif text-gray-800 dark:text-gray-200 tracking-normal text-justify hyphens-auto">
+          <span
+            style={{ fontSize: currentFontSize }}
+            className="leading-[1.8] font-serif text-gray-800 dark:text-gray-200 tracking-normal text-justify hyphens-auto transition-all"
+          >
             <InteractiveText
               text={text}
               query={highlightQuery}
@@ -176,7 +183,10 @@ export const VerseRow: React.FC<VerseRowProps> = ({
             <span className="text-[10px] font-bold text-gray-300 dark:text-white/10 pt-2 min-w-[24px]">
               {verse}
             </span>
-            <span className="text-[20px] leading-[1.8] font-serif text-gray-400 dark:text-white/20 font-light tracking-normal text-justify">
+            <span
+              style={{ fontSize: currentFontSize }}
+              className="leading-[1.8] font-serif text-gray-400 dark:text-white/20 font-light tracking-normal text-justify transition-all"
+            >
               <InteractiveText
                 text={secondaryText}
                 query={highlightQuery}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Save, Trash2, MessageSquare, Clock } from "lucide-react";
+import { Save, Trash2, MessageSquare, Clock, Check } from "lucide-react";
 
 export default function NoteEditor({ reference }: { reference: string }) {
   const [note, setNote] = useState("");
@@ -9,10 +9,13 @@ export default function NoteEditor({ reference }: { reference: string }) {
     { ref: string; text: string; date: string }[]
   >([]);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const savedNote = localStorage.getItem(`note_${reference}`);
+      const savedNote =
+        localStorage.getItem(`note_${reference}`) ||
+        localStorage.getItem("last_note_draft");
       setNote(savedNote || "");
 
       const savedHistory = JSON.parse(
@@ -23,8 +26,24 @@ export default function NoteEditor({ reference }: { reference: string }) {
     return () => clearTimeout(timer);
   }, [reference]);
 
+  // Auto-save debounced em 500ms para evitar perda de dados ao navegar
+  useEffect(() => {
+    if (!note) return;
+    setSaveStatus("saving");
+    const timer = setTimeout(() => {
+      localStorage.setItem(`note_${reference}`, note);
+      localStorage.setItem("last_note_draft", note);
+      setSaveStatus("saved");
+      const hideTimer = setTimeout(() => setSaveStatus("idle"), 2000);
+      return () => clearTimeout(hideTimer);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [note, reference]);
+
   const saveNote = () => {
     localStorage.setItem(`note_${reference}`, note);
+    localStorage.setItem("last_note_draft", note);
+    setSaveStatus("saved");
     const newEntry = {
       ref: reference,
       text: note,
@@ -36,12 +55,14 @@ export default function NoteEditor({ reference }: { reference: string }) {
     ].slice(0, 10);
     setHistory(newHistory);
     localStorage.setItem("note_history", JSON.stringify(newHistory));
+    setTimeout(() => setSaveStatus("idle"), 2000);
   };
 
   const clearNote = () => {
     if (confirm("Deseja apagar esta nota?")) {
       setNote("");
       localStorage.removeItem(`note_${reference}`);
+      localStorage.removeItem("last_note_draft");
     }
   };
 
@@ -56,16 +77,28 @@ export default function NoteEditor({ reference }: { reference: string }) {
             {reference}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {saveStatus === "saving" && (
+            <span className="text-[10px] text-amber-400 font-medium animate-pulse">
+              Salvando...
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+              <Check className="w-3 h-3" /> Salvo
+            </span>
+          )}
           <button
             onClick={clearNote}
             className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+            title="Limpar nota"
           >
             <Trash2 className="w-4 h-4" />
           </button>
           <button
             onClick={saveNote}
             className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+            title="Salvar nota agora"
           >
             <Save className="w-4 h-4" />
           </button>

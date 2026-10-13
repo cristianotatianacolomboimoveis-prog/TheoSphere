@@ -30,6 +30,10 @@ import { TimeController } from "../atlas/TimeController";
 import { getRouteColor, getRouteInfo, getCategoryLabel } from "./routeConfig";
 import { RouteControlPanel } from "./RouteControlPanel";
 import { MapHeader } from "./MapHeader";
+import { LandmarkNavigator } from "./LandmarkNavigator";
+import { RouteStepperHUD } from "./RouteStepperHUD";
+import { CameraControlsHUD } from "./CameraControlsHUD";
+import { CANONICAL_ROUTES } from "@/data/canonicalRoutes";
 
 const CesiumGlobe = dynamic(() => import("@/components/CesiumGlobe"), {
   ssr: false,
@@ -181,12 +185,14 @@ export default function TheoSphere3D({
 
   const { currentTime, setCurrentTime } = useTheoStore();
   const [locations, setLocations] = useState<any[]>([]);
-  const [routes, setRoutes] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>(CANONICAL_ROUTES);
   const [fullscreen, setFullscreen] = useState(false);
   const [mapMode, setMapMode] = useState<"satellite" | "vector">("satellite");
   const [useCesium, setUseCesium] = useState(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isOrbiting, setIsOrbiting] = useState(false);
+  const [isLandmarksOpen, setIsLandmarksOpen] = useState(false);
+  const [activeStepperRoute, setActiveStepperRoute] = useState<any | null>(null);
 
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
@@ -279,17 +285,77 @@ export default function TheoSphere3D({
     });
   }, []);
 
+  const handleToggleOrbit = useCallback(() => {
+    const nextState = !isOrbiting;
+    setIsOrbiting(nextState);
+    MapAdapter?.events.publish("cameraCommand", {
+      action: "toggleOrbit",
+    });
+  }, [isOrbiting]);
+
+  const handleResetNorth = useCallback(() => {
+    setViewState((prev) => ({
+      ...prev,
+      bearing: 0,
+      pitch: 45,
+      transitionDuration: 1000,
+      transitionInterpolator: new FlyToInterpolator(),
+    }));
+    MapAdapter?.events.publish("cameraCommand", {
+      action: "ground",
+      lat: viewState.latitude,
+      lng: viewState.longitude,
+    });
+  }, [viewState.latitude, viewState.longitude]);
+
+  const handleZoomIn = useCallback(() => {
+    setViewState((prev) => ({
+      ...prev,
+      zoom: Math.min(prev.zoom + 1, 20),
+      transitionDuration: 300,
+    }));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setViewState((prev) => ({
+      ...prev,
+      zoom: Math.max(prev.zoom - 1, 2),
+      transitionDuration: 300,
+    }));
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const inInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+
       if (e.key === "Escape") {
         setSelectedEvent(null);
         setIsOrbiting(false);
+        setIsLandmarksOpen(false);
         MapAdapter?.events.publish("cameraCommand", { action: "stopOrbit" });
+      } else if (!inInput) {
+        if (e.key === " " && !e.repeat) {
+          e.preventDefault();
+          handleToggleOrbit();
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
+          e.preventDefault();
+          setIsLandmarksOpen((prev) => !prev);
+        } else if (e.key === "1") {
+          setMapMode("satellite");
+          setUseCesium(false);
+        } else if (e.key === "2") {
+          setMapMode("vector");
+          setUseCesium(false);
+        } else if (e.key === "3") {
+          setUseCesium(true);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleToggleOrbit]);
 
   // Acervo arqueológico — pins no motor padrão (Deck.gl/MapLibre).
   // O CesiumGlobe tem camada própria; esta cobre o modo inicial (QA 2026-07-14).
@@ -332,14 +398,17 @@ export default function TheoSphere3D({
       else if (routeId === "paulo_roma") targetYear = 59;
       setCurrentTime(targetYear);
 
-      // Encontra o primeiro waypoint para mover a câmera do mapa
+      // Encontra a rota para ativar o stepper e mover a câmera
       const route = routes.find((r) => r.id === routeId);
-      if (route && route.waypoints && route.waypoints.length > 0) {
-        const firstWaypoint = route.waypoints[0];
-        if (firstWaypoint && firstWaypoint.coords) {
-          const [lat, lng] = firstWaypoint.coords;
-          if (MapAdapter && typeof MapAdapter.flyTo === "function") {
-            MapAdapter.flyTo(lat, lng, 7);
+      if (route) {
+        setActiveStepperRoute(route);
+        if (route.waypoints && route.waypoints.length > 0) {
+          const firstWaypoint = route.waypoints[0];
+          if (firstWaypoint && firstWaypoint.coords) {
+            const [lat, lng] = firstWaypoint.coords;
+            if (MapAdapter && typeof MapAdapter.flyTo === "function") {
+              MapAdapter.flyTo(lat, lng, 7);
+            }
           }
         }
       }
@@ -354,8 +423,13 @@ export default function TheoSphere3D({
         let nextVisible: string[];
         if (isVisible) {
           nextVisible = prev.filter((id) => id !== routeId);
+          setActiveStepperRoute((cur: any) => (cur?.id === routeId ? null : cur));
         } else {
           nextVisible = [...prev, routeId];
+          const found = routes.find((r) => r.id === routeId);
+          if (found) {
+            setActiveStepperRoute(found);
+          }
 
           // Sempre sincroniza a era e voa até o início ao ativar
           setTimeout(() => {
@@ -365,7 +439,7 @@ export default function TheoSphere3D({
         return nextVisible;
       });
     },
-    [flyToRouteStart],
+    [flyToRouteStart, routes],
   );
 
   const showAllRoutes = useCallback(() => {
@@ -375,6 +449,7 @@ export default function TheoSphere3D({
 
   const clearAllRoutes = useCallback(() => {
     setVisibleRouteIds([]);
+    setActiveStepperRoute(null);
   }, []);
 
   // Load OpenFreeMap style on mount for crisp localized vector labels & boundaries
@@ -811,6 +886,7 @@ export default function TheoSphere3D({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={onToggleSidebar}
         onLiveIsrael={handleLiveIsrael}
+        onOpenLandmarks={() => setIsLandmarksOpen(true)}
         onClose={onClose}
       />
 
@@ -1197,6 +1273,27 @@ export default function TheoSphere3D({
           </div>
         </div>
       )}
+
+      {/* Controles Flutuantes de Câmera 3D (HUD) */}
+      <CameraControlsHUD
+        isOrbiting={isOrbiting}
+        onToggleOrbit={handleToggleOrbit}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onResetNorth={handleResetNorth}
+      />
+
+      {/* Navegador de Waypoints de Rota Passo a Passo */}
+      <RouteStepperHUD
+        route={activeStepperRoute}
+        onClose={() => setActiveStepperRoute(null)}
+      />
+
+      {/* Seletor Rápido de Marcos Bíblicos (Quick Jump) */}
+      <LandmarkNavigator
+        isOpen={isLandmarksOpen}
+        onClose={() => setIsLandmarksOpen(false)}
+      />
     </div>
   );
 }

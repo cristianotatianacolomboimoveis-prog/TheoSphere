@@ -221,6 +221,28 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Eliminação de Sobreposição das Eras (`TimeController.tsx`):** Escalonamento vertical alternado (staggered em duas linhas) dos marcadores de era na timeline, impedindo o embolamento de texto visível na régua cronológica.
 - **Validação:** `tsc --noEmit` com 0 erros.
 
+35. **Esquadrão Diário de Usabilidade (UX Squad) & Testes com Usuários Reais (2026-10-09):**
+    Construído o sistema de testes de usabilidade com personas reais (Pastor Marcos, Ana seminarista, Joana mobile, Dona Cida, Rafael usuário Logos e Caos destrutivo) em `audit/scripts/ux-squad/`:
+- **Nuvem & Automação Diária:** Configurado em `.github/workflows/daily-ux-squad.yml` para rodar todos os dias às 09:00 BRT (12:00 UTC) com rodízio semanal, Playwright headless Chromium e avaliação visual com IA (Gemini Vision `gemini-flash-latest`).
+- **Execução e Relatórios:** Salva o relatório consolidado em `audit/reports/ux-squad-AAAA-MM-DD.md` com evidências (53 screenshots capturados na primeira rodada) e resumo automático no `$GITHUB_STEP_SUMMARY`.
+- **Validação:** Rodada local `--personas=all` executada com sucesso, suíte typecheck 0 erros e relatório `audit/reports/ux-squad-2026-10-09.md` gerado.
+
+36. **Navegação Completa do Atlas Bíblico 3D & HUD de Exploração (2026-10-09):**
+    Construída a suíte definitiva de navegação espacial, geográfica e de rotas bíblicas no Atlas 3D (`/atlas`):
+- **Catálogo Canônico em 0ms (`canonicalRoutes.ts`):** 25 marcos bíblicos canônicos consolidados (Jerusalém, Monte Sinai, Cafarnaum, Mar da Galileia, Belém, Nazaré, Babilônia, Roma, Éfeso, Ur, Jericó, Hebrom, etc.) e as 8 rotas bíblicas canônicas pré-carregadas offline no frontend, neutralizando cold starts do Render.
+- **Navegador Rápido de Marcos Bíblicos (`LandmarkNavigator.tsx`):** Popover retrátil acionável via botão `[📍 Marcos]` no cabeçalho ou atalho global `⌘+M` / `Ctrl+M`, com busca instantânea, filtros temáticos (Cidades, Montes Sagrados, Mares e Rios), sincronização automática da era histórica na timeline e voo de câmera suave.
+- **Controlador de Jornadas Bíblicas Passo a Passo (`RouteStepperHUD.tsx`):** HUD flutuante para navegar waypoint por waypoint em rotas selecionadas (ex: passos do Êxodo ou viagens de Paulo) com botões `[◀ Anterior]`, `[Próximo ▶]`, atalhos de seta do teclado (`←` e `→`) e modo de apresentação automática (`Tour Auto`).
+- **HUD Flutuante de Orientação & Câmera (`CameraControlsHUD.tsx`):** Mini-painel no canto inferior direito com bússola de reset do Norte (`🧭`), alternador rápido de perspectiva (Solo 2.400m de relevo vs Orbital 25.000m), botão de giro contínuo 360° e controles de zoom.
+- **Atalhos Rápidos de Teclado no Globo:** `Espaço` para iniciar/pausar o giro 360°, `1` para satélite real, `2` para vetor esquemático, `3` para globo 3D Cesium, e `Esc` para fechar fichas e parar giros.
+- **Validação:** 344 testes backend passando (39 test suites), `npx tsc --noEmit` no frontend 100% limpo (0 erros), e `static-checks.mjs` com 0 achados novos.
+
+37. **Correção Definitiva do Carregamento do Globo 3D Cesium no Atlas (2026-10-13):**
+    Identificado e solucionado o erro crítico que impedia o carregamento do mapa 3D no `/atlas`:
+- **Diagnóstico da Causa Raiz:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
+- **Nova Arquitetura Estática & Zero Bundler Bloat (`CesiumGlobe.tsx`):** Eliminado o empacotamento do Cesium (5.6MB) pelo bundler do React/Next.js. O Cesium agora é carregado de forma limpa, assíncrona e desacoplada diretamente de `public/cesium/Cesium.js` e `Widgets/widgets.css` via injeção dinâmica de scripts, instanciando o `new window.Cesium.Viewer` com controle nativo completo de ciclo de vida.
+- **Recursos Preservados e Otimizados:** Pins temáticos 4D, achados arqueológicos com badges de autenticidade, rotas neon do Valhalla com waypoints bíblicos, órbita suave 360° (Ease-In/Ease-Out), voo rente ao relevo bíblico (2.000m de altitude contra o horizonte) e câmera inicial precisamente calibrada na Terra Santa (Jerusalém: 35.2137° E, 31.7683° N).
+- **Performance e Validação:** Build de produção (`npm run build`) concluído com sucesso em recorde de **1.19s** (redução de minutos para segundos). **344 testes backend passando**, `static-checks.mjs` com 0 achados e typecheck do TypeScript 100% limpo (0 erros).
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.

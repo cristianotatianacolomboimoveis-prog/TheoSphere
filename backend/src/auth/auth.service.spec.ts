@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
@@ -114,6 +118,19 @@ describe('AuthService', () => {
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ email: 'novo@b.com' }),
       });
+    });
+
+    it('lança ServiceUnavailableException amigável se o banco estiver em modo read-only (25006)', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      mockedPw.hashPassword.mockResolvedValue('hashed');
+      prisma.user.create.mockRejectedValue({
+        code: '25006',
+        message: 'cannot execute INSERT in a read-only transaction',
+      });
+
+      await expect(service.register('novo@b.com', 'senha123')).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 

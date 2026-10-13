@@ -21,7 +21,7 @@ import { logger } from "@/lib/logger";
 const CHUNK_SIZE = 4000;
 const MAX_TEXT_LENGTH = 50_000;
 const UPSTREAM_TIMEOUT_MS = 8_000;
-const RATE_LIMIT = { windowMs: 60_000, max: 30 };
+const RATE_LIMIT = { windowMs: 60_000, max: 120 };
 
 const ALLOWED_LANGS = new Set([
   "pt",

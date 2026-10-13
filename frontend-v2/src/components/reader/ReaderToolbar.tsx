@@ -85,6 +85,9 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
     setViewMode,
     workspaceLayout,
     setWorkspaceLayout,
+    readerFontSize,
+    increaseFontSize,
+    decreaseFontSize,
   } = useTheoStore();
 
   const selectedBook =
@@ -100,7 +103,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
   };
 
   return (
-    <div className="flex gap-2 relative mt-4">
+    <div className="flex gap-2 relative mt-4 flex-wrap items-center">
       {!searchMode && (
         <>
           {/* Seletor de Livro */}
@@ -109,7 +112,7 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
               closeAllSelectors();
               setShowBookSelector(!showBookSelector);
             }}
-            className="flex-grow flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm"
+            className="flex-grow flex items-center justify-between px-3 py-2 rounded-lg bg-surface-hover/50 border border-border-subtle hover:border-accent/20 transition-all text-sm min-w-[120px]"
           >
             <span className="font-semibold text-foreground/90">
               {selectedBook.namePt}
@@ -146,6 +149,29 @@ export const ReaderToolbar: React.FC<ReaderToolbarProps> = ({
               className={`w-3 h-3 transition-transform ${showTranslationSelector ? "rotate-180" : ""}`}
             />
           </button>
+
+          {/* Controle de Tamanho de Fonte (Acessibilidade & Idosos) */}
+          <div className="flex items-center rounded-lg bg-surface-hover/50 border border-border-subtle overflow-hidden">
+            <button
+              type="button"
+              onClick={decreaseFontSize}
+              title="Diminuir tamanho da letra (A-)"
+              className="px-2.5 py-1.5 text-xs font-bold text-foreground/70 hover:text-accent hover:bg-white/[0.05] transition-colors"
+            >
+              A-
+            </button>
+            <span className="text-[10px] font-mono text-foreground/40 px-1 border-x border-border-subtle/50 select-none">
+              {readerFontSize || 20}
+            </span>
+            <button
+              type="button"
+              onClick={increaseFontSize}
+              title="Aumentar tamanho da letra (A+)"
+              className="px-2.5 py-1.5 text-xs font-bold text-foreground/70 hover:text-accent hover:bg-white/[0.05] transition-colors"
+            >
+              A+
+            </button>
+          </div>
 
           {/* Botão de Modo Comparativo (Lado a Lado) */}
           <button

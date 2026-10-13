@@ -8,6 +8,7 @@ import {
   Maximize2,
   X,
   PanelRightClose,
+  MapPin,
 } from "lucide-react";
 
 interface MapHeaderProps {
@@ -20,6 +21,7 @@ interface MapHeaderProps {
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
   onLiveIsrael?: () => void;
+  onOpenLandmarks?: () => void;
   onClose?: () => void;
 }
 
@@ -33,6 +35,7 @@ export function MapHeader({
   isSidebarOpen,
   onToggleSidebar,
   onLiveIsrael,
+  onOpenLandmarks,
   onClose,
 }: MapHeaderProps) {
   return (
@@ -94,6 +97,19 @@ export function MapHeader({
           </span>
         </button>
 
+        {/* Botão Seletor de Marcos Bíblicos (Quick Jump) */}
+        {onOpenLandmarks && (
+          <button
+            id="open-landmarks-btn"
+            onClick={onOpenLandmarks}
+            className="px-2.5 py-1 rounded-full border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 active:scale-95 text-amber-300 flex items-center gap-1.5 transition-all text-xs font-semibold cursor-pointer"
+            title="Buscar e Voar para Marcos Bíblicos (Sinai, Jerusalém, Cafarnaum, etc.)"
+          >
+            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px]">Marcos</span>
+          </button>
+        )}
+
         {/* Botão Câmera de Solo / Live de Israel */}
         {onLiveIsrael && (
           <button
@@ -103,7 +119,7 @@ export function MapHeader({
             title="Sobrevoar Jerusalém com Câmera de Solo e Vídeo Real"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px]">Câmera Solo</span>
+            <span className="text-[11px] hidden sm:inline">Câmera Solo</span>
           </button>
         )}
 

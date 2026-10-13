@@ -42,6 +42,7 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [copilotQuestion, setCopilotQuestion] = useState("");
   const [copilotAnswer, setCopilotAnswer] = useState<string | null>(null);
+  const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
 
   useEffect(() => {
@@ -93,6 +94,7 @@ ${deepDive.christocentricSignificance}
 
     setCopilotLoading(true);
     setCopilotAnswer(null);
+    setCopilotError(null);
 
     try {
       // Chamada à API RAG do TheoSphere
@@ -114,6 +116,7 @@ ${deepDive.christocentricSignificance}
         );
       }
     } catch {
+      setCopilotError("Não foi possível conectar ao servidor. Exibindo síntese teológica offline.");
       setCopilotAnswer(
         `Para ${deepDive.label}: A tradição teológica clássica compreende este evento sob a ótica da Aliança da Graça e da redenção cósmica, enquanto a arqueologia confirma o contexto histórico documentado no texto bíblico.`
       );
@@ -537,6 +540,13 @@ ${deepDive.christocentricSignificance}
                   ))}
                 </div>
               </form>
+
+              {/* Erro ou Alerta do Copilot */}
+              {copilotError && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
+                  {copilotError}
+                </div>
+              )}
 
               {/* Resposta do Copilot */}
               {copilotAnswer && (

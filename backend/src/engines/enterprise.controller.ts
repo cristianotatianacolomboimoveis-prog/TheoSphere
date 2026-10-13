@@ -5,9 +5,11 @@ import {
   Body,
   Param,
   Query,
+  Req,
   NotFoundException,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GeoEngineService } from './geo/geo-engine.service';
 import { TheologyEngineService } from './theo/theo-engine.service';
@@ -62,20 +64,24 @@ export class EnterpriseController {
     return { success: true, data };
   }
 
+  // `userId` vem sempre do JWT (req.user), nunca do body — ver AGENTS.md §3.
+  // Aceitá-lo do body permitia ler o contexto privado (UserEmbedding) de
+  // outro usuário e pular a cota diária de IA omitindo o campo.
   @Post('ai/explain')
-  async explain(@Body('query') query: string, @Body('userId') userId?: string) {
-    const data = await this.ai.explainContext(query, userId);
+  async explain(@Body('query') query: string, @Req() req: Request) {
+    const data = await this.ai.explainContext(query, req.user?.userId);
     return { success: true, data };
   }
 
   @Post('ai/exegesis')
   async performExegesis(
-    @Body() body: { book: string; chapter: number; userId?: string },
+    @Body() body: { book: string; chapter: number },
+    @Req() req: Request,
   ) {
     const data = await this.ai.performExegesis(
       body.book,
       body.chapter,
-      body.userId,
+      req.user?.userId,
     );
     return { success: true, data };
   }
@@ -102,9 +108,9 @@ export class EnterpriseController {
   }
 
   @Get('search')
-  async search(@Query() dto: SearchQueryDto) {
+  async search(@Query() dto: SearchQueryDto, @Req() req: Request) {
     // Busca semântica usando o RagService existente
-    const data = await this.ai.explainContext(dto.q, dto.userId);
+    const data = await this.ai.explainContext(dto.q, req.user?.userId);
     return { success: true, data };
   }
 }

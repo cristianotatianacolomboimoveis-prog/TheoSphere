@@ -80,6 +80,12 @@ interface TheoState {
     layout: "single" | "split" | "triple" | "copilot" | "grid",
   ) => void;
 
+  // Reader Font Size & Accessibility
+  readerFontSize: number;
+  setReaderFontSize: (size: number) => void;
+  increaseFontSize: () => void;
+  decreaseFontSize: () => void;
+
   // Actions
   setActiveTool: (tool: ToolId) => void;
   setCurrentContext: (context: PageContext | null) => void;
@@ -110,6 +116,13 @@ export const useTheoStore = create<TheoState>()(
       books: [],
       _hasHydrated: false,
       workspaceLayout: "triple",
+      readerFontSize: 20,
+
+      setReaderFontSize: (size) => set({ readerFontSize: Math.max(14, Math.min(36, size)) }),
+      increaseFontSize: () =>
+        set((state) => ({ readerFontSize: Math.min(36, (state.readerFontSize || 20) + 2) })),
+      decreaseFontSize: () =>
+        set((state) => ({ readerFontSize: Math.max(14, (state.readerFontSize || 20) - 2) })),
 
       setWorkspaceLayout: (layout) => set({ workspaceLayout: layout }),
       setActiveTool: (tool) => set({ activeTool: tool }),
