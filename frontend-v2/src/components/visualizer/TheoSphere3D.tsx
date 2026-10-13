@@ -60,7 +60,7 @@ const SATELLITE_STYLE = {
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
       tileSize: 256,
-      maxzoom: 19,
+      maxzoom: 16,
       attribution:
         "Tiles &copy; Esri &mdash; Imagens de Satélite de Alta Precisão Submétrica",
     },
@@ -527,7 +527,7 @@ export default function TheoSphere3D({
               "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             ],
             tileSize: 256,
-            maxzoom: 19,
+            maxzoom: 16,
             attribution:
               "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
           },
