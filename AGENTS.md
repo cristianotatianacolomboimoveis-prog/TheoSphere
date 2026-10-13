@@ -238,13 +238,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Atalhos Rápidos de Teclado no Globo:** `Espaço` para iniciar/pausar o giro 360°, `1` para satélite real, `2` para vetor esquemático, `3` para globo 3D Cesium, e `Esc` para fechar fichas e parar giros.
 - **Validação:** 344 testes backend passando (39 test suites), `npx tsc --noEmit` no frontend 100% limpo (0 erros), e `static-checks.mjs` com 0 achados novos.
 
-37. **Correção Definitiva do Carregamento do Globo 3D Cesium no Atlas (2026-10-13):**
-    Identificado e solucionado o erro crítico que impedia o carregamento do mapa 3D no `/atlas`:
-
-- **Diagnóstico da Causa Raiz:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
+37. **Correção Definitiva do Carregamento do Globo 3D Cesium e Zoom Real 2.5D (2026-10-13):**
+    Identificado e solucionado o erro que impedia o carregamento do mapa 3D e os blocos de erro no zoom 2.5D no `/atlas`:
+- **Diagnóstico da Causa Raiz do Cesium 3D:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
 - **Nova Arquitetura Estática & Zero Bundler Bloat (`CesiumGlobe.tsx`):** Eliminado o empacotamento do Cesium (5.6MB) pelo bundler do React/Next.js. O Cesium agora é carregado de forma limpa, assíncrona e desacoplada diretamente de `public/cesium/Cesium.js` e `Widgets/widgets.css` via injeção dinâmica de scripts, instanciando o `new window.Cesium.Viewer` com controle nativo completo de ciclo de vida.
+- **Eliminação Definitiva dos Tiles "Map data not yet available" (2.5D e 3D):** Em regiões montanhosas/desérticas (Monte Nebo, Monte Sinai, Deserto de Judá), o ArcGIS não possui tiles nos níveis 17+. Quando o MapLibre e Cesium estavam com `maxzoom: 19`, o servidor retornava a imagem PNG de erro do Apache. Corrigido com `maxzoom: 16` e `maximumLevel: 16`, ativando o **overscaling/upsampling linear nativo da GPU (WebGL)** para que a fotografia real de satélite permaneça sempre nítida e contínua sem nenhum bloco em branco.
 - **Recursos Preservados e Otimizados:** Pins temáticos 4D, achados arqueológicos com badges de autenticidade, rotas neon do Valhalla com waypoints bíblicos, órbita suave 360° (Ease-In/Ease-Out), voo rente ao relevo bíblico (2.000m de altitude contra o horizonte) e câmera inicial precisamente calibrada na Terra Santa (Jerusalém: 35.2137° E, 31.7683° N).
-- **Performance e Validação:** Build de produção (`npm run build`) concluído com sucesso em recorde de **1.19s** (redução de minutos para segundos). **344 testes backend passando**, `static-checks.mjs` com 0 achados e typecheck do TypeScript 100% limpo (0 erros).
+- **Performance e Validação:** Build de produção (`npm run build`) concluído com sucesso em **1.57s**. **344 testes backend passando**, `static-checks.mjs` com 0 achados e typecheck do TypeScript 100% limpo (0 erros).
 
 **Próximos passos:**
 
