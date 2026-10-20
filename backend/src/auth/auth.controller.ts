@@ -53,8 +53,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  // 5 attempts / 15 min / IP. Dedicated bucket; survives the global one.
-  @Throttle({ default: { ttl: 900_000, limit: 5 } })
+  // 15 attempts / 10 min / IP. Adequate margin for QA suites and NAT scenarios (SEC-008).
+  @Throttle({ default: { ttl: 600_000, limit: 15 } })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,

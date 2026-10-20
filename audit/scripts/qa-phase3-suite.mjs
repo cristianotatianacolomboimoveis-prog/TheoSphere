@@ -131,10 +131,18 @@ async function main() {
   });
 
   await runTest('E2E-AUTH-02', 'Login de Usuário A com geração de JWT', 'auth', async () => {
-    const res = await fetchJson('/api/v1/auth/login', {
+    let res = await fetchJson('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email: userA.email, password: userA.password }),
     });
+    // Se o throttler de login estiver temporariamente saturado, tenta mais uma vez com breve espera
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000));
+      res = await fetchJson('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: userA.email, password: userA.password }),
+      });
+    }
     const passed = res.status === 200 && !!res.data?.accessToken;
     if (passed) {
       userA.token = res.data.accessToken;
@@ -160,10 +168,17 @@ async function main() {
       return { passed: false, evidence: `Registro B falhou com HTTP ${regRes.status}` };
     }
 
-    const loginRes = await fetchJson('/api/v1/auth/login', {
+    let loginRes = await fetchJson('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email: userB.email, password: userB.password }),
     });
+    if (loginRes.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000));
+      loginRes = await fetchJson('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: userB.email, password: userB.password }),
+      });
+    }
     const passed = loginRes.status === 200 && !!loginRes.data?.accessToken;
     if (passed) {
       userB.token = loginRes.data.accessToken;
