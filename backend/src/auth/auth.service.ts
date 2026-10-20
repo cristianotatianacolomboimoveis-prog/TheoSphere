@@ -121,13 +121,28 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-    await this.prisma.refreshToken.create({
-      data: {
-        token,
-        userId,
-        expiresAt,
-      },
-    });
+    try {
+      await this.prisma.refreshToken.create({
+        data: {
+          token,
+          userId,
+          expiresAt,
+        },
+      });
+    } catch (err: any) {
+      if (
+        err?.code === '25006' ||
+        err?.message?.includes('read-only transaction') ||
+        err?.cause?.code === '25006' ||
+        err?.cause?.originalCode === '25006'
+      ) {
+        this.logger.warn(
+          `Falha ao persistir refresh token para ${userId}: banco de dados em modo read-only. Continuando apenas com accessToken.`,
+        );
+        return token;
+      }
+      throw err;
+    }
 
     return token;
   }

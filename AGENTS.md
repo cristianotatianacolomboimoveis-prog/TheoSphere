@@ -11,9 +11,8 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-09-30**. Repositório limpo, suíte inteira passando
-(**339 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente,
-QA Fase 1: 100%, QA Fase 2: 100%, QA Fase 3: 100%).
+Última sessão: **2026-10-19**. Repositório limpo, suíte inteira passando
+(**345 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
 Backend Render (`https://theosphere.onrender.com`) operante e medido.
@@ -240,16 +239,25 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 
 37. **Correção Definitiva do Carregamento do Globo 3D Cesium e Zoom Real 2.5D (2026-10-13):**
     Identificado e solucionado o erro que impedia o carregamento do mapa 3D e os blocos de erro no zoom 2.5D no `/atlas`:
+
 - **Diagnóstico da Causa Raiz do Cesium 3D:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
 - **Nova Arquitetura Estática & Zero Bundler Bloat (`CesiumGlobe.tsx`):** Eliminado o empacotamento do Cesium (5.6MB) pelo bundler do React/Next.js. O Cesium agora é carregado de forma limpa, assíncrona e desacoplada diretamente de `public/cesium/Cesium.js` e `Widgets/widgets.css` via injeção dinâmica de scripts, instanciando o `new window.Cesium.Viewer` com controle nativo completo de ciclo de vida.
 - **Eliminação Definitiva dos Tiles "Map data not yet available" (2.5D e 3D):** Em regiões montanhosas/desérticas (Monte Nebo, Monte Sinai, Deserto de Judá), o ArcGIS não possui tiles nos níveis 17+. Quando o MapLibre e Cesium estavam com `maxzoom: 19`, o servidor retornava a imagem PNG de erro do Apache. Corrigido com `maxzoom: 16` e `maximumLevel: 16`, ativando o **overscaling/upsampling linear nativo da GPU (WebGL)** para que a fotografia real de satélite permaneça sempre nítida e contínua sem nenhum bloco em branco.
 - **Recursos Preservados e Otimizados:** Pins temáticos 4D, achados arqueológicos com badges de autenticidade, rotas neon do Valhalla com waypoints bíblicos, órbita suave 360° (Ease-In/Ease-Out), voo rente ao relevo bíblico (2.000m de altitude contra o horizonte) e câmera inicial precisamente calibrada na Terra Santa (Jerusalém: 35.2137° E, 31.7683° N).
 - **Performance e Validação:** Build de produção (`npm run build`) concluído com sucesso em **1.57s**. **344 testes backend passando**, `static-checks.mjs` com 0 achados e typecheck do TypeScript 100% limpo (0 erros).
 
+38. **Resiliência de Autenticação em Modo Read-Only & Correção do Agente QA Diário (2026-10-19):**
+    Solucionada a falha diária do GitHub Actions (`daily-qa.yml` run #39282085100, Fase 3):
+
+- **Diagnóstico da Causa Raiz:** O banco Supabase em produção atingiu 1,195 GB, ativando `default_transaction_read_only = on` (erro Postgres 25006). O método `AuthService.register` já emitia 503 com mensagem de manutenção, mas `qa-phase3-suite.mjs` só tratava 429 para chavear para credenciais de contingência. Além disso, `generateRefreshToken` tentava inserir em `RefreshToken` e quebrava com erro 25006, mascarado como 401 `credenciais inválidas` em `AuthController.login`.
+- **Correção no Backend (`auth.service.ts` e `auth.controller.ts`):** `generateRefreshToken` agora trata código 25006 com resiliência graceful (emite o `accessToken` JWT assinado em memória sem quebrar o login) e `AuthController` propaga `HttpException` sem mascarar erros como credenciais inválidas. Coberto com teste unitário em `auth.service.spec.ts` (14/14 specs do auth aprovados, **345 testes backend passando**).
+- **Correção no Agente QA (`qa-phase3-suite.mjs`):** `E2E-AUTH-01` e `E2E-AUTH-03` agora tratam HTTP 503 como gatilho de contingência (`fallbackUserA` e `fallbackUserB`), eliminando a falha em cascata.
+- **Workflow CI/CD (`daily-qa.yml`):** Atualizado para Node.js 22, eliminando o aviso de depreciação do Node 20.
+
 **Próximos passos:**
 
 1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
-2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para continuar ingestões de novos volumes do acervo.
+2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
 
 ---
 

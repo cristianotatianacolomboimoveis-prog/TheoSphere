@@ -206,6 +206,20 @@ describe('AuthService', () => {
       const res = await service.login('a@b.com', 'senha');
       expect(res.accessToken).toBe('signed.jwt');
     });
+
+    it('falha ao gravar refresh token em banco read-only (25006) NÃO quebra o login', async () => {
+      prisma.user.findUnique.mockResolvedValue(user);
+      mockedPw.verifyPassword.mockResolvedValue(true);
+      mockedPw.needsRehash.mockReturnValue(false);
+      prisma.refreshToken.create.mockRejectedValue({
+        code: '25006',
+        message: 'cannot execute INSERT in a read-only transaction',
+      });
+
+      const res = await service.login('a@b.com', 'senha');
+      expect(res.accessToken).toBe('signed.jwt');
+      expect(res.user.id).toBe(user.id);
+    });
   });
 
   describe('refresh', () => {

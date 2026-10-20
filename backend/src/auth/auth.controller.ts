@@ -7,6 +7,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  HttpException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
@@ -96,8 +97,8 @@ export class AuthController {
         payload: { email: dto.email, success: false },
         req,
       });
-      if (err instanceof UnauthorizedException) throw err;
-      throw new UnauthorizedException('credenciais inválidas');
+      if (err instanceof HttpException) throw err;
+      throw err;
     }
   }
 
