@@ -35,6 +35,7 @@ audit/brains-antigravity/**/*.webp
 audit/brains-antigravity/**/*.jpg
 audit/brains-antigravity/**/*.jpeg
 audit/brains-antigravity/**/*.gif
+audit/reports/**/*.png
 
 # Acervo clássico de domínio público — os EPUBs/TXTs baixados do Project
 # Gutenberg são fonte que já foi ingerida no UserEmbedding (banco Supabase);

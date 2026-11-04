@@ -1,0 +1,117 @@
+name: Esquadrão Diário de Usabilidade (UX Squad)
+
+on:
+  schedule:
+    # Executa todos os dias às 12:00 UTC (09:00 Horário de Brasília)
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      personas:
+        description: 'Personas para executar (all, caos, marcos, ana, joana, cida, rafael)'
+        required: false
+        default: 'auto'
+        type: string
+
+concurrency:
+  group: daily-ux-squad
+  cancel-in-progress: false
+
+jobs:
+  ux-squad:
+    name: Executar Teste com Usuários Reais (Playwright + Gemini Visão)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: 'audit/scripts/ux-squad/package-lock.json'
+
+      - name: Determinar Rodízio de Personas do Dia
+        id: rotation
+        run: |
+          INPUT_PERSONAS="${{ github.event.inputs.personas }}"
+          if [ -n "$INPUT_PERSONAS" ] && [ "$INPUT_PERSONAS" != "auto" ]; then
+            echo "PERSONAS=$INPUT_PERSONAS" >> $GITHUB_OUTPUT
+            echo "Personas manuais definidas: $INPUT_PERSONAS"
+          else
+            # Dia da semana no fuso de Brasília (0=Domingo, 1=Segunda, etc.)
+            DOW=$(TZ="America/Sao_Paulo" date +%u)
+            case $DOW in
+              1) PERSONAS="all" ;;                          # Segunda: Esquadrão completo
+              2) PERSONAS="caos,marcos,joana" ;;            # Terça
+              3) PERSONAS="caos,ana,cida" ;;                # Quarta
+              4) PERSONAS="caos,rafael,joana" ;;            # Quinta
+              5) PERSONAS="caos,marcos,ana" ;;              # Sexta
+              6) PERSONAS="caos,cida,rafael" ;;             # Sábado
+              7) PERSONAS="caos,joana,marcos" ;;            # Domingo
+              *) PERSONAS="all" ;;
+            esac
+            echo "PERSONAS=$PERSONAS" >> $GITHUB_OUTPUT
+            echo "Rodízio automático para o dia $DOW: $PERSONAS"
+          fi
+
+      - name: Instalar Dependências do Squad
+        working-directory: audit/scripts/ux-squad
+        run: |
+          npm ci
+
+      - name: Instalar Navegadores do Playwright
+        run: |
+          npx --prefix audit/scripts/ux-squad playwright install --with-deps chromium
+
+      - name: Executar Esquadrão UX
+        id: run_squad
+        working-directory: audit/scripts/ux-squad
+        env:
+          UX_BASE_URL: ${{ secrets.UX_BASE_URL || 'https://frontend-v2-lake.vercel.app' }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://theosphere.onrender.com' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          UX_TEST_EMAIL: ${{ secrets.UX_TEST_EMAIL }}
+          UX_TEST_PASSWORD: ${{ secrets.UX_TEST_PASSWORD }}
+          UX_TEST_B_EMAIL: ${{ secrets.UX_TEST_B_EMAIL }}
+          UX_TEST_B_PASSWORD: ${{ secrets.UX_TEST_B_PASSWORD }}
+        run: |
+          npm run squad -- --personas=${{ steps.rotation.outputs.PERSONAS }}
+
+      - name: Fazer Upload de Evidências e Screenshots (Retenção 14 dias)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-squad-evidencias-${{ github.run_id }}
+          path: audit/reports/ux-squad-*/
+          retention-days: 14
+
+      - name: Publicar Relatório Markdown na Branch ux-reports
+        if: always()
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          REPORT_FILE="audit/reports/ux-squad-${TODAY}.md"
+          if [ -f "$REPORT_FILE" ]; then
+            git config --global user.name "TheoSphere UX Bot"
+            git config --global user.email "bot@theosphere.com"
+            git checkout -b ux-reports 2>/dev/null || git checkout ux-reports
+            git add "$REPORT_FILE"
+            git commit -m "docs(ux): relatório do esquadrão de usabilidade para ${TODAY} [skip ci]" || echo "Sem mudanças para commitar"
+            # Push somente se o token do repositório tiver permissão
+            git push origin ux-reports || echo "Push ignorado (sem permissões de branch remota)"
+          fi
+
+      - name: Publicar Resumo no Job Summary ($GITHUB_STEP_SUMMARY)
+        if: always()
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          REPORT_FILE="audit/reports/ux-squad-${TODAY}.md"
+          if [ -f "$REPORT_FILE" ]; then
+            cat "$REPORT_FILE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Relatório UX não encontrado" >> $GITHUB_STEP_SUMMARY
+          fi

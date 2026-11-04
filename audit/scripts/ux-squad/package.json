@@ -1,0 +1,23 @@
+{
+  "name": "theosphere-ux-squad",
+  "private": true,
+  "type": "module",
+  "description": "Esquadrão de usabilidade (6 personas) — Playwright + Gemini visão",
+  "scripts": {
+    "squad": "tsx run.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "playwright": "^1.64.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.12.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}
