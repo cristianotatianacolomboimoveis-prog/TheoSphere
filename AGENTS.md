@@ -11,7 +11,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-10-19**. Repositório limpo, suíte inteira passando
+Última sessão: **2026-11-04**. Repositório limpo, suíte inteira passando
 (**345 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente).
 
 Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
@@ -253,6 +253,13 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Correção no Backend (`auth.service.ts` e `auth.controller.ts`):** `generateRefreshToken` agora trata código 25006 com resiliência graceful (emite o `accessToken` JWT assinado em memória sem quebrar o login) e `AuthController` propaga `HttpException` sem mascarar erros como credenciais inválidas. Coberto com teste unitário em `auth.service.spec.ts` (14/14 specs do auth aprovados, **345 testes backend passando**).
 - **Correção no Agente QA (`qa-phase3-suite.mjs`):** `E2E-AUTH-01` e `E2E-AUTH-03` agora tratam HTTP 503 como gatilho de contingência (`fallbackUserA` e `fallbackUserB`), eliminando a falha em cascata.
 - **Workflow CI/CD (`daily-qa.yml`):** Atualizado para Node.js 22, eliminando o aviso de depreciação do Node 20.
+
+39. **Versionamento do UX Squad na Nuvem, Hidratação Local de `node_modules` e Auditoria Completa (2026-11-04):**
+    Concluída a higienização do working tree, correção de caminhos do Esquadrão UX e revalidação integral local e em produção:
+
+- **Versionamento do UX Squad (`8a2a15f`):** `.github/workflows/daily-ux-squad.yml` atualizado para Node.js 22 e versionado junto com `audit/scripts/ux-squad/`. Corrigida a resolução de `rootDir` em `audit/scripts/ux-squad/run.ts` via `import.meta.dirname` para evitar criação de pasta aninhada `audit/scripts/ux-squad/audit/`.
+- **Hidratação Local contra Evicção do iCloud Drive (`+dataless`):** Identificado e resolvido timeout de 60s nos workers do `vitest` em `frontend-v2` causado por 46.368 arquivos `+dataless` em `frontend-v2/node_modules` e arquivos duplicados ` 2.ts` em `.next/types/`. Após `npm ci --prefer-offline`, os 49 testes do `vitest` voltaram a executar em **1,32s**.
+- **Validação Ao Vivo (Local + Produção):** **345 testes backend** (39 suítes), **49 testes frontend** (5 suítes), `static-checks.mjs` (0 achados), `verificar:acervo` coerente, **QA Fase 1** (13/13 probes 200 OK), **QA Fase 2** (14/14 aprovados, 100.0% Health Score) e **QA Fase 3 E2E** (13/13 aprovados, 100.0% Health Score).
 
 **Próximos passos:**
 
