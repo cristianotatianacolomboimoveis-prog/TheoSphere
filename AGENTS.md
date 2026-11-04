@@ -261,10 +261,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
 - **Hidratação Local contra Evicção do iCloud Drive (`+dataless`):** Identificado e resolvido timeout de 60s nos workers do `vitest` em `frontend-v2` causado por 46.368 arquivos `+dataless` em `frontend-v2/node_modules` e arquivos duplicados ` 2.ts` em `.next/types/`. Após `npm ci --prefer-offline`, os 49 testes do `vitest` voltaram a executar em **1,32s**.
 - **Validação Ao Vivo (Local + Produção):** **345 testes backend** (39 suítes), **49 testes frontend** (5 suítes), `static-checks.mjs` (0 achados), `verificar:acervo` coerente, **QA Fase 1** (13/13 probes 200 OK), **QA Fase 2** (14/14 aprovados, 100.0% Health Score) e **QA Fase 3 E2E** (13/13 aprovados, 100.0% Health Score).
 
+40. **Ativação e Validação das Chaves de IA em Produção no Render (2026-11-04):**
+    Configuradas `GEMINI_API_KEY` e `OPENAI_API_KEY` no painel de Environment do Render e executado deploy da `main` (`940ff4a`).
+    - **Medição Direta na Nuvem:** `GET https://theosphere.onrender.com/api/v1/health/ai` respondeu com **`status: "ok"`, `provider: "gemini"`, `configured: true`, `lastFailure: null`**.
+    - **Geração ao Vivo:** `POST /api/v1/rag/chat` validado gerando sínteses teológicas reformadas e arminianas em tempo real com modelo primário `gemini-3.8-flash` e fallback `gpt-4o-mini`.
+
 **Próximos passos:**
 
-1. **Configuração de Variáveis no Render Dashboard:** Definir `GEMINI_API_KEY` e `OPENAI_API_KEY` nas Environment Variables do Render para reflexão em nuvem.
-2. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
+1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
 
 ---
 
