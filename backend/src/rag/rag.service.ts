@@ -573,41 +573,13 @@ export class RagService {
     }
 
     // ═══ ETAPA 3: Buscar bases de conhecimento ═══
-    let theologicalContext = '';
-    let bibleContext = '';
-
-    try {
-      const results = await Promise.all([
-        this.contextBuilderInstance.getTheologicalContextWithSources(
-          sanitizedQuery,
-          tradition,
-          collectedSources,
-        ),
-        this.contextBuilderInstance.getBibleContextWithSources(
-          sanitizedQuery,
-          collectedSources,
-        ),
-        this.contextBuilderInstance.getLexicalContextWithSources(
-          sanitizedQuery,
-          collectedSources,
-        ),
-        this.contextBuilderInstance.getTechnicalCommentaryContextWithSources(
-          sanitizedQuery,
-          collectedSources,
-        ),
-      ]);
-      theologicalContext = results[0];
-      bibleContext = results[1];
-      const lexicalContext = results[2];
-      const commentaryContext = results[3];
-
-      if (lexicalContext) theologicalContext += `\n\n${lexicalContext}`;
-      if (commentaryContext) theologicalContext += `\n\n${commentaryContext}`;
-    } catch (error) {
-      this.logger.debug(
-        `Bases de conhecimento indisponíveis: ${(error as Error).message}`,
+    const { theologicalContext, bibleContext } =
+      await this.gatherKnowledgeContexts(
+        sanitizedQuery,
+        tradition,
+        collectedSources,
+        'Chat',
       );
-    }
 
     // ═══ ETAPA 4: Montar prompt e chamar IA ═══
     let responseContent: string = '';
@@ -976,37 +948,13 @@ export class RagService {
       });
     }
 
-    let theologicalContext = '';
-    let bibleContext = '';
-    try {
-      const results = await Promise.all([
-        this.contextBuilderInstance.getTheologicalContextWithSources(
-          sanitizedQuery,
-          tradition,
-          streamSources,
-        ),
-        this.contextBuilderInstance.getBibleContextWithSources(
-          sanitizedQuery,
-          streamSources,
-        ),
-        this.contextBuilderInstance.getLexicalContextWithSources(
-          sanitizedQuery,
-          streamSources,
-        ),
-        this.contextBuilderInstance.getTechnicalCommentaryContextWithSources(
-          sanitizedQuery,
-          streamSources,
-        ),
-      ]);
-      theologicalContext = results[0];
-      bibleContext = results[1];
-      if (results[2]) theologicalContext += `\n\n${results[2]}`;
-      if (results[3]) theologicalContext += `\n\n${results[3]}`;
-    } catch (error) {
-      this.logger.debug(
-        `[Stream] Bases de conhecimento indisponíveis: ${(error as Error).message}`,
+    const { theologicalContext, bibleContext } =
+      await this.gatherKnowledgeContexts(
+        sanitizedQuery,
+        tradition,
+        streamSources,
+        'Stream',
       );
-    }
 
     const dedupedStreamSources = this.contextBuilderInstance
       .deduplicateSources(streamSources)
@@ -1207,5 +1155,54 @@ export class RagService {
     `;
 
     return this.chat(prompt, undefined, 'ecumenical', [], false);
+  }
+  /**
+   * Busca as quatro bases de conhecimento de forma independente.
+   *
+   * Usa Promise.allSettled: a falha de uma base (ex.: embedding indisponível
+   * por cota do Gemini derruba só o braço teológico vetorial) não pode apagar
+   * as demais (bíblica, léxica, comentários). Cada falha é registrada em warn
+   * — antes ficava em debug, invisível em produção.
+   */
+  async gatherKnowledgeContexts(
+    query: string,
+    tradition: string | undefined,
+    sources: RagSource[],
+    tag: string,
+  ): Promise<{
+    theologicalContext: string;
+    bibleContext: string;
+    failed: string[];
+  }> {
+    const names = ['teologica', 'biblica', 'lexica', 'comentarios'];
+    const settled = await Promise.allSettled([
+      this.contextBuilderInstance.getTheologicalContextWithSources(
+        query,
+        tradition,
+        sources,
+      ),
+      this.contextBuilderInstance.getBibleContextWithSources(query, sources),
+      this.contextBuilderInstance.getLexicalContextWithSources(query, sources),
+      this.contextBuilderInstance.getTechnicalCommentaryContextWithSources(
+        query,
+        sources,
+      ),
+    ]);
+
+    const failed: string[] = [];
+    const values = settled.map((r, i) => {
+      if (r.status === 'fulfilled') return r.value || '';
+      failed.push(names[i]);
+      this.logger.warn(
+        `[${tag}] Base de conhecimento '${names[i]}' indisponível: ${(r.reason as Error)?.message ?? String(r.reason)}`,
+      );
+      return '';
+    });
+
+    let theologicalContext = values[0];
+    if (values[2]) theologicalContext += `\n\n${values[2]}`;
+    if (values[3]) theologicalContext += `\n\n${values[3]}`;
+
+    return { theologicalContext, bibleContext: values[1], failed };
   }
 }

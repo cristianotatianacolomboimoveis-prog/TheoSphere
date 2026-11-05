@@ -4,6 +4,11 @@ import {
   PaymentWebhookEvent,
 } from './payment-provider.interface';
 
+/**
+ * SOMENTE PARA TESTES. A assinatura aceita é uma constante pública no
+ * repositório; registrar este provider em produção permite que qualquer pessoa
+ * altere o plano de qualquer conta. O BillingModule usa DisabledPaymentProvider.
+ */
 @Injectable()
 export class FakePaymentProvider implements PaymentProvider {
   readonly name = 'fake-test-provider';

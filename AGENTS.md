@@ -13,7 +13,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 Última sessão: **2026-11-05**. Repositório limpo, suíte inteira passando:
 
-- **Backend:** 370 testes passando (42 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
+- **Backend:** 374 testes passando (42 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
 - **Frontend:** 49 testes passando (5 specs Vitest), lint 0, typecheck 0 (`tsc --noEmit`).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` respondendo **HTTP 200** (a URL legada `frontend-v2-omega-seven` é 404 e foi descontinuada).
 - **Backend Render:** `https://theosphere.onrender.com` operante e medido (**HTTP 200** em `/api/v1/health/live`).
@@ -29,13 +29,17 @@ lido por Antigravity, Cursor, Claude Code e afins.
 2. **T0.2 — Separar espaços vetoriais e isolar cache de embeddings (branch `fix/t0.2-vector-spaces`):**
    `createEmbedding` retorna `{ vector, provider, model, dimensions }` restrito exclusivamente ao modelo Gemini persistido (`gemini-embedding-001`, 768). Se indisponível, lança `EmbeddingUnavailableError`, propagando `meta.vectorArm = 'failed'`. Fallback hash e OpenAI isolados em `createEphemeralFallbackEmbedding` (somente em memória temporária). Diagnóstico no banco confirmou 0% de contaminação por vetores de hash na base persistente.
 3. **T0.3 — Plano de gestão de disco do Supabase (branch `feat/t0.3-plano-disco-supabase`):**
-   Medição detalhada por tabela e índice registrada. Extensão pgvector 0.8.0 suporta `halfvec(768)`. Migração local gerada (`20261105160000_halfvec_compression`) para reduzir ~389 MB dos índices HNSW sem perda de qualidade. Documentado em `docs/architecture/plano-disco-supabase.md`. Aguardando decisão D3 do mantenedor.
+   Medição detalhada por tabela e índice registrada. Extensão pgvector 0.8.0 suporta `halfvec(768)`. SQL de compressão preparado em `docs/architecture/sql/halfvec_compression.PENDENTE-D3.sql` (estimativa do agente: ~389 MB a menos nos índices HNSW; perda de qualidade não medida). Documentado em `docs/architecture/plano-disco-supabase.md`. Aguardando decisão D3 do mantenedor.
 4. **T0.4 — Anotações e marca-texto persistidos no servidor (branch `feat/t0.4-server-annotations`):**
    Criado modelo Prisma `Annotation` com `userId`, formato canônico `BBCCCVVV`, Last-Write-Wins (LWW) e soft-delete (`deletedAt`). Endpoint `POST /annotations/sync` com fallback amigável caso o banco esteja em read-only. Sincronização em segundo plano no frontend com persistência local de 0ms.
 5. **T0.5 — Correção de afirmações e restrição factual (branch `fix/t0.5-factual-claims`):**
    Removido `openTextCompliant: true` do diagrama sintático em favor do rótulo explícito "Segmentação aproximada (não é árvore sintática anotada)". O diff textual LCS de `BibleComparisonService` foi restrito a versões do mesmo idioma; versões de idiomas distintos exibem colunas paralelas sem diff indevido. Superlativos e termos não sustentados foram removidos da UI e código.
 6. **T0.6 — Higiene de documentação (branch `feat/t0.6-docs-hygiene`):**
    Histórico extenso movido para `CHANGELOG.md`. URLs e métricas unificadas em `AGENTS.md`. Catálogo de obras sincronizado via script automatizado `scripts/sync-catalog.mjs`.
+7. **T0.7 — Bloqueadores de deploy achados na revisão da Fase 0 (branch `fix/t0.7-deploy-blockers`):**
+   - **Webhook aberto:** o `BillingModule` registrava o `FakePaymentProvider` em produção. A assinatura aceita (`'valid-test-signature'`) é pública no repositório, então qualquer pessoa, sem login, promovia qualquer conta. Agora o módulo usa `DisabledPaymentProvider`, que rejeita toda assinatura até existir gateway (D2). Um teste falha se o fake voltar a ser registrado; isso foi conferido religando o fake de propósito.
+   - **Migração automática:** o `start` (package.json e Dockerfile) roda `prisma migrate deploy` a cada deploy. A migração de halfvec estava em `prisma/migrations/` e seria aplicada sem D3. Ela foi movida para `docs/architecture/sql/`. **Atenção:** `20261105154000_billing_events` e `20261105163000_annotations` continuam na pasta e precisam de banco gravável. Com o Supabase em read-only, `migrate deploy` falha e o novo backend não sobe.
+   - **Regressão no RAG:** depois de T0.2, uma falha de embedding (ex.: 429 do Gemini) rejeitava o `Promise.all` e derrubava também os contextos bíblico, léxico e de comentários, com log só em `debug`. Agora `RagService.gatherKnowledgeContexts` usa `Promise.allSettled` e registra em `warn` cada base indisponível. Coberto em `rag.service.spec.ts`.
 
 ### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6)
 

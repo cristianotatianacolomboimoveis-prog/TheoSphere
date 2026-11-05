@@ -9,6 +9,8 @@ import { BillingController } from './billing.controller';
 import { PrismaService } from '../prisma.service';
 import { AiQuotaService } from '../rag/ai-quota.service';
 import { FakePaymentProvider } from './fake-payment-provider';
+import { DisabledPaymentProvider } from './disabled-payment-provider';
+import { BillingModule } from './billing.module';
 
 describe('BillingModule (T0.1 Security & Idempotency)', () => {
   let service: BillingService;
@@ -196,6 +198,41 @@ describe('BillingModule (T0.1 Security & Idempotency)', () => {
         where: { id: 'user-1' },
         data: { plan: 'PLUS' },
       });
+    });
+  });
+  describe('Provider de produção (fail-closed até D2)', () => {
+    it('BillingModule registra DisabledPaymentProvider, nunca o FakePaymentProvider', () => {
+      const providers: any[] = Reflect.getMetadata('providers', BillingModule);
+      const payment = providers.find(
+        (p) => p && typeof p === 'object' && p.provide === 'PAYMENT_PROVIDER',
+      );
+      expect(payment).toBeDefined();
+      expect(payment.useClass).toBe(DisabledPaymentProvider);
+      expect(payment.useClass).not.toBe(FakePaymentProvider);
+    });
+
+    it('webhook com a assinatura de teste pública é rejeitado em produção e não altera plano', async () => {
+      const prodModule: TestingModule = await Test.createTestingModule({
+        controllers: [BillingController],
+        providers: [
+          BillingService,
+          { provide: PrismaService, useValue: mockPrisma },
+          { provide: AiQuotaService, useValue: mockAiQuota },
+          { provide: 'PAYMENT_PROVIDER', useClass: DisabledPaymentProvider },
+        ],
+      }).compile();
+      const prodController =
+        prodModule.get<BillingController>(BillingController);
+
+      await expect(
+        prodController.handleWebhook('valid-test-signature', {
+          eventId: 'evt-attack',
+          userId: 'victim',
+          plan: 'CHURCH',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.billingEvent.create).not.toHaveBeenCalled();
     });
   });
 });

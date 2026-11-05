@@ -61,7 +61,8 @@ Medição executada em runtime via script de somente leitura (`backend/scratch/m
 
 ## 3. Arquivos Preparados (Sem Aplicação)
 
-- Migração SQL gerada: [`backend/prisma/migrations/20261105160000_halfvec_compression/migration.sql`](file:///backend/prisma/migrations/20261105160000_halfvec_compression/migration.sql)
+- SQL preparado (fora da pasta de migrações): [`docs/architecture/sql/halfvec_compression.PENDENTE-D3.sql`](sql/halfvec_compression.PENDENTE-D3.sql)
+- **Por que não está em `backend/prisma/migrations/`:** o `start` do backend (package.json e Dockerfile) executa `npx prisma migrate deploy` a cada deploy. Qualquer arquivo naquela pasta seria aplicado automaticamente em produção. Após aprovação de D3, crie a migração com `prisma migrate dev --create-only`, cole este SQL, confirme espaço livre em disco para a reescrita das tabelas (`ALTER COLUMN ... TYPE` reescreve a tabela inteira e reconstrói o HNSW) e só então faça o deploy.
 - Script de medição: [`backend/scratch/medir-tamanho-banco.js`](file:///backend/scratch/medir-tamanho-banco.js)
 
 ---
