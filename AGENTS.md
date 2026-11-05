@@ -297,6 +297,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Integração Total:** Suporte nativo e instantâneo (0ms offline) no MapLibre 2.5D, no Globo 3D Cesium, no painel `RouteControlPanel`, no HUD passo a passo `RouteStepperHUD` e via protocolo MCP (`theosphere_map_navigate`).
     - **Validação:** 345 testes backend passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros, lint 0 erros, build de produção em 1.59s com 20/20 páginas geradas.
 
+45. **Expansão Canônica da Biblioteca Teológica Livre & História da Igreja (2026-11-05):**
+    Integradas 19 obras clássicas de domínio público cobrindo integralmente as lacunas históricas e teológicas da Biblioteca Livre (`/library`), totalizando **108 obras canônicas estruturadas**:
+    - **História da Igreja Clássica:** _História Eclesiástica_ de Eusébio de Cesaréia (séc. IV, fonte primária do cristianismo primitivo), _History of the Christian Church_ de Philip Schaff (8 volumes monumentais) e _História Eclesiástica do Povo Inglês_ de Beda, o Venerável.
+    - **Patrística Primária & Pais da Igreja:** _Didaquê_ (séc. I), _Epístolas_ de Santo Inácio de Antioquia, _Primeira Apologia & Diálogo com Trifão_ de São Justino Mártir, _Contra as Heresias_ de Santo Irineu de Lyon e _Sobre a Encarnação do Verbo_ de Santo Atanásio de Alexandria.
+    - **Credos Ecumênicos & Confissões Históricas:** Os Grandes Credos Ecumênicos (Apostólico, Niceno, Calcedônia), _Confissão de Fé de Westminster & Catecismo Maior_ (1647), _As Três Formas de Unidade_ (Confissão Belga, Catecismo de Heidelberg e Cânones de Dort), _Segunda Confissão Batista de Londres_ (1689) e _Os 39 Artigos da Igreja Anglicana_ (1563).
+    - **Equilíbrio Soteriológico & Avivamentos:** _The Works of James Arminius_ (3 volumes em domínio público CCEL), _O Servo Arbítrio_ de Martinho Lutero, _A Morte da Morte na Morte de Cristo_ de John Owen, _Sermões & Notas Explicativas do NT_ de John Wesley, _Tratado sobre as Afeições Religiosas_ de Jonathan Edwards e _Cur Deus Homo_ de Anselmo de Cantuária.
+    - **Frontend & Filtros:** Adicionadas as novas tradições `Arminiana` e `Ecumênica` com badges semânticos estilizados em `TheologicalLibrary.tsx`.
+    - **Validação:** 345 testes backend jest passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros (`tsc --noEmit`), lint 0 erros, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.

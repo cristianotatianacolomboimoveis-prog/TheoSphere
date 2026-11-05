@@ -42,12 +42,14 @@ const CATEGORIES = [
 
 const TRADITIONS = [
   "Todas",
+  "Patrística",
+  "Histórica",
+  "Escolástica",
   "Reformada",
   "Puritana",
-  "Escolástica",
-  "Patrística",
   "Luterana",
-  "Histórica",
+  "Arminiana",
+  "Ecumênica",
 ];
 
 const TRADITION_STYLES: Record<string, string> = {
@@ -61,6 +63,9 @@ const TRADITION_STYLES: Record<string, string> = {
     "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   Luterana:
     "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+  Arminiana: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30",
+  Ecumênica:
+    "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30",
   Histórica:
     "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
   Referência:
