@@ -456,7 +456,7 @@ export const SermonOutlineModal: React.FC<SermonOutlineModalProps> = ({
                 </button>
 
                 <div className="flex items-center gap-3 font-mono text-[11px]">
-                  <span>Padrão Expositivo Logos-Grade</span>
+                  <span>Esboço Expositivo Estruturado</span>
                   <button
                     onClick={onClose}
                     className="hover:text-white transition-colors"

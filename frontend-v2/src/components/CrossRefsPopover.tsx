@@ -33,7 +33,7 @@ const AVAILABLE_TRANSLATIONS = [
 /**
  * CrossRefsPopover — Popover de referências cruzadas canônicas (TSK - Treasury of Scripture Knowledge).
  *
- * Superior ao Logos Bible Software:
+ * Recursos exegéticos:
  *   • Pré-visualização instantânea do texto bíblico inline por versículo conectado
  *   • Alternância dinâmica de tradução (BLIVRE, NVA, KJV, WEB) sem recarregar a tela
  *   • Filtro textual e por livro bíblico em tempo real (0ms)

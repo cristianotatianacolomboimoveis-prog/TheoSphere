@@ -7,12 +7,16 @@ export interface VerseVariantComparison {
   base: {
     translation: string;
     text: string;
+    language: string;
   };
   targets: Record<
     string,
     {
       text: string;
-      diff: TextDiffResult;
+      language: string;
+      isSameLanguage: boolean;
+      diff?: TextDiffResult | null;
+      note?: string | null;
     }
   >;
 }
@@ -29,14 +33,16 @@ export interface ComparisonPassageResponse {
   metrics: Record<
     string,
     {
-      averageSimilarity: number;
+      averageSimilarity: number | null;
       totalVerses: number;
+      isSameLanguage: boolean;
+      note?: string;
     }
   >;
   verses: VerseVariantComparison[];
 }
 
-const ALLOWED_TRANSLATIONS = new Set([
+export const ALLOWED_TRANSLATIONS = new Set([
   'BLIVRE',
   'NVA',
   'KJV',
@@ -45,6 +51,16 @@ const ALLOWED_TRANSLATIONS = new Set([
   'WLC',
   'LXX',
 ]);
+
+export const TRANSLATION_LANGUAGES: Record<string, string> = {
+  BLIVRE: 'pt',
+  NVA: 'pt',
+  KJV: 'en',
+  WEB: 'en',
+  TR: 'grc',
+  LXX: 'grc',
+  WLC: 'hbo',
+};
 
 const BOOK_NAMES: Record<number, string> = {
   1: 'Gênesis',
@@ -123,6 +139,7 @@ export class BibleComparisonService {
 
   /**
    * Compara uma passagem bíblica entre uma tradução base e múltiplas traduções alvo.
+   * T0.5: Restringe o diff LCS e % de similaridade a versões do mesmo idioma.
    */
   async comparePassage(
     bookId: number,
@@ -135,6 +152,8 @@ export class BibleComparisonService {
     const validBase = ALLOWED_TRANSLATIONS.has(baseUpper)
       ? baseUpper
       : 'BLIVRE';
+
+    const baseLang = TRANSLATION_LANGUAGES[validBase] || 'unknown';
 
     // Normaliza e deduplica as versões solicitadas garantindo que a base faça parte
     const targetsSet = new Set<string>();
@@ -197,22 +216,40 @@ export class BibleComparisonService {
 
       const targetComparisons: Record<
         string,
-        { text: string; diff: TextDiffResult }
+        {
+          text: string;
+          language: string;
+          isSameLanguage: boolean;
+          diff?: TextDiffResult | null;
+          note?: string | null;
+        }
       > = {};
 
       for (const targetTrans of targetTranslationsOnly) {
         const targetText = translationsForVerse[targetTrans] || '';
-        const diff = computeWordDiff(baseText, targetText);
+        const targetLang = TRANSLATION_LANGUAGES[targetTrans] || 'unknown';
+        const isSameLanguage = baseLang === targetLang;
+
+        let diff: TextDiffResult | null = null;
+        let note: string | null = null;
+
+        if (isSameLanguage) {
+          diff = computeWordDiff(baseText, targetText);
+          if (targetText) {
+            similaritySums[targetTrans] += diff.similarity;
+            countSums[targetTrans] += 1;
+          }
+        } else {
+          note = `Comparação textual (diff/similaridade) restrita a versões no mesmo idioma (${baseLang.toUpperCase()} ≠ ${targetLang.toUpperCase()}). Textos exibidos lado a lado para análise sinótica.`;
+        }
 
         targetComparisons[targetTrans] = {
           text: targetText,
+          language: targetLang,
+          isSameLanguage,
           diff,
+          note,
         };
-
-        if (targetText) {
-          similaritySums[targetTrans] += diff.similarity;
-          countSums[targetTrans] += 1;
-        }
       }
 
       versesResult.push({
@@ -220,23 +257,39 @@ export class BibleComparisonService {
         base: {
           translation: validBase,
           text: baseText,
+          language: baseLang,
         },
         targets: targetComparisons,
       });
     }
 
-    // Calcula médias de similaridade léxica
+    // Calcula médias de similaridade léxica (apenas para versões no mesmo idioma)
     const metrics: Record<
       string,
-      { averageSimilarity: number; totalVerses: number }
+      {
+        averageSimilarity: number | null;
+        totalVerses: number;
+        isSameLanguage: boolean;
+        note?: string;
+      }
     > = {};
 
     for (const t of targetTranslationsOnly) {
+      const targetLang = TRANSLATION_LANGUAGES[t] || 'unknown';
+      const isSameLanguage = baseLang === targetLang;
       const total = countSums[t] || 0;
-      const avg = total > 0 ? Math.round(similaritySums[t] / total) : 0;
+      const avg =
+        isSameLanguage && total > 0
+          ? Math.round(similaritySums[t] / total)
+          : null;
+
       metrics[t] = {
         averageSimilarity: avg,
         totalVerses: total,
+        isSameLanguage,
+        note: isSameLanguage
+          ? undefined
+          : `Comparação percentual indisponível entre idiomas distintos (${baseLang.toUpperCase()} vs ${targetLang.toUpperCase()}).`,
       };
     }
 

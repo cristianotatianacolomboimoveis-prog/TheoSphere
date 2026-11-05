@@ -40,6 +40,11 @@ export interface ClauseNode {
   children?: ClauseNode[];
 }
 
+export type SyntaxDiagramMethod =
+  | "heuristic-interlinear"
+  | "heuristic-text"
+  | "treebank";
+
 export interface SyntaxDiagramResponse {
   reference: string;
   titlePt: string;
@@ -48,7 +53,8 @@ export interface SyntaxDiagramResponse {
   maxNestingDepth: number;
   rootClauses: ClauseNode[];
   isCanonicalPreset: boolean;
-  openTextCompliant?: boolean;
+  method?: SyntaxDiagramMethod;
+  methodLabelPt?: string;
 }
 
 export interface CanonicalDiagramSummary {

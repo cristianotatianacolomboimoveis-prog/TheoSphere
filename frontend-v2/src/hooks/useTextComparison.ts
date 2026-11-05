@@ -23,12 +23,16 @@ export interface VerseVariantComparison {
   base: {
     translation: string;
     text: string;
+    language?: string;
   };
   targets: Record<
     string,
     {
       text: string;
-      diff: TextDiffResult;
+      language?: string;
+      isSameLanguage?: boolean;
+      diff?: TextDiffResult | null;
+      note?: string | null;
     }
   >;
 }
@@ -45,8 +49,10 @@ export interface ComparisonPassageResponse {
   metrics: Record<
     string,
     {
-      averageSimilarity: number;
+      averageSimilarity: number | null;
       totalVerses: number;
+      isSameLanguage?: boolean;
+      note?: string;
     }
   >;
   verses: VerseVariantComparison[];

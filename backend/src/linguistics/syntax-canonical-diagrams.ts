@@ -11,6 +11,8 @@ export const CANONICAL_DIAGRAMS: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 7,
     maxNestingDepth: 3,
     isCanonicalPreset: true,
+    method: 'heuristic-text',
+    methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     rootClauses: [
       {
         id: 'eph-1-3a',
@@ -119,6 +121,8 @@ export const CANONICAL_DIAGRAMS: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 7,
     maxNestingDepth: 2,
     isCanonicalPreset: true,
+    method: 'heuristic-text',
+    methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     rootClauses: [
       {
         id: 'rom-8-28a',
@@ -211,6 +215,8 @@ export const CANONICAL_DIAGRAMS: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 6,
     maxNestingDepth: 2,
     isCanonicalPreset: true,
+    method: 'heuristic-text',
+    methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     rootClauses: [
       {
         id: 'col-1-15',
@@ -292,7 +298,8 @@ export const CANONICAL_DIAGRAMS: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 5,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    openTextCompliant: true,
+    method: 'heuristic-text',
+    methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     rootClauses: [
       {
         id: 'jhn-1-1a',
@@ -510,6 +517,8 @@ export const CANONICAL_DIAGRAMS: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 4,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
+    method: 'heuristic-text',
+    methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     rootClauses: [
       {
         id: 'gen-1-1',

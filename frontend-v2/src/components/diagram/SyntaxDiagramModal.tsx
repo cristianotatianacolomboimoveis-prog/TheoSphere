@@ -427,15 +427,16 @@ export function SyntaxDiagramModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-zinc-100">
-                  Árvore Sintática Hierárquica Profunda
+                  Diagramação Estrutural de Cláusulas
                 </h2>
-                <span className="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-2 py-0.5 rounded font-mono font-semibold">
-                  OpenText / Casimir-Grade
+                <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2.5 py-0.5 rounded font-sans font-medium">
+                  {activeDiagram?.methodLabelPt ||
+                    "Segmentação aproximada (não é árvore sintática anotada)"}
                 </span>
               </div>
               <p className="text-xs text-zinc-400">
-                Gramática Funcional de Cláusulas nos Textos Originais (Stanley
-                Porter & Matthew O&apos;Donnell)
+                Segmentação estrutural de orações e conectores nos textos
+                bíblicos.
               </p>
             </div>
           </div>

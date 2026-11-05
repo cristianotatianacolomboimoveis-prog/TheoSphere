@@ -1,7 +1,7 @@
 import { BibleComparisonService } from './bible-comparison.service';
 import { PrismaService } from '../prisma.service';
 
-describe('BibleComparisonService', () => {
+describe('BibleComparisonService (T0.5 Language-Restricted Comparison)', () => {
   let service: BibleComparisonService;
   let mockPrisma: any;
 
@@ -14,7 +14,7 @@ describe('BibleComparisonService', () => {
     service = new BibleComparisonService(mockPrisma);
   });
 
-  it('deve comparar versículos entre tradução base e alvos calculando diff e métricas', async () => {
+  it('deve comparar versículos no mesmo idioma calculando diff e métricas', async () => {
     mockPrisma.bibleVerse.findMany.mockResolvedValue([
       {
         verse: 1,
@@ -44,15 +44,55 @@ describe('BibleComparisonService', () => {
     const verse1 = result.verses[0];
     expect(verse1.verse).toBe(1);
     expect(verse1.base.translation).toBe('BLIVRE');
+    expect(verse1.base.language).toBe('pt');
     expect(verse1.targets.NVA).toBeDefined();
-    expect(verse1.targets.NVA.diff.similarity).toBeGreaterThan(0);
-    expect(verse1.targets.NVA.diff.tokens.length).toBeGreaterThan(0);
+    expect(verse1.targets.NVA.isSameLanguage).toBe(true);
+    expect(verse1.targets.NVA.diff?.similarity).toBeGreaterThan(0);
+    expect(verse1.targets.NVA.diff?.tokens.length).toBeGreaterThan(0);
 
     // Métricas de similaridade média
     expect(result.metrics.NVA).toBeDefined();
+    expect(result.metrics.NVA.isSameLanguage).toBe(true);
     expect(result.metrics.NVA.totalVerses).toBe(1);
     expect(result.metrics.NVA.averageSimilarity).toBe(
-      verse1.targets.NVA.diff.similarity,
+      verse1.targets.NVA.diff?.similarity,
+    );
+  });
+
+  it('deve restringir diff e % de similaridade para versões de idiomas distintos', async () => {
+    mockPrisma.bibleVerse.findMany.mockResolvedValue([
+      {
+        verse: 1,
+        translation: 'BLIVRE',
+        text: 'No princípio era o Verbo.',
+      },
+      {
+        verse: 1,
+        translation: 'TR',
+        text: 'Ἐν ἀρχῇ ἦν ὁ λόγος.',
+      },
+    ]);
+
+    const result = await service.comparePassage(
+      43, // João
+      1,
+      'BLIVRE',
+      ['BLIVRE', 'TR'],
+      1,
+    );
+
+    const target = result.verses[0].targets.TR;
+    expect(target).toBeDefined();
+    expect(target.isSameLanguage).toBe(false);
+    expect(target.diff).toBeNull();
+    expect(target.note).toContain('restrita a versões no mesmo idioma');
+    expect(target.text).toBe('Ἐν ἀρχῇ ἦν ὁ λόγος.');
+
+    // Métrica percentual nula para idiomas diferentes
+    expect(result.metrics.TR.isSameLanguage).toBe(false);
+    expect(result.metrics.TR.averageSimilarity).toBeNull();
+    expect(result.metrics.TR.note).toContain(
+      'indisponível entre idiomas distintos',
     );
   });
 

@@ -92,7 +92,11 @@ export function TextComparison({
       markdown += `### Versículo ${v.verse}\n`;
       markdown += `* **[${v.base.translation}]**: ${v.base.text}\n`;
       for (const [trans, res] of Object.entries(v.targets)) {
-        markdown += `* **[${trans}]** (${res.diff.similarity}% similaridade): ${res.text}\n`;
+        if (res.diff) {
+          markdown += `* **[${trans}]** (${res.diff.similarity}% similaridade): ${res.text}\n`;
+        } else {
+          markdown += `* **[${trans}]** (sinopse direta): ${res.text}\n`;
+        }
       }
       markdown += "\n";
     }
@@ -326,7 +330,7 @@ export function TextComparison({
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-600 text-white">
                           BASE
                         </span>
-                      ) : metric ? (
+                      ) : metric && metric.averageSimilarity !== null ? (
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                             metric.averageSimilarity >= 80
@@ -337,6 +341,13 @@ export function TextComparison({
                           }`}
                         >
                           {metric.averageSimilarity}% similar
+                        </span>
+                      ) : metric ? (
+                        <span
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400"
+                          title={metric.note || "Sinopse em idiomas distintos"}
+                        >
+                          Sinopse
                         </span>
                       ) : null}
                     </div>
@@ -407,11 +418,20 @@ export function TextComparison({
                             : ""
                       }`}
                     >
-                      <RenderDiffTokens
-                        tokens={targetData.diff.tokens}
-                        showAdditions={showAdditions}
-                        showOmissions={showOmissions}
-                      />
+                      {targetData.diff ? (
+                        <RenderDiffTokens
+                          tokens={targetData.diff.tokens}
+                          showAdditions={showAdditions}
+                          showOmissions={showOmissions}
+                        />
+                      ) : (
+                        <div>
+                          <span>{targetData.text}</span>
+                          <span className="block text-[10px] text-amber-500/80 mt-1 italic">
+                            (Sinopse direta — idiomas distintos)
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -453,7 +473,7 @@ export function TextComparison({
                 {/* Demais Versões com Alinhamento de Variantes */}
                 <div className="space-y-3 pt-2">
                   {Object.entries(row.targets).map(([trans, targetData]) => {
-                    const similarity = targetData.diff.similarity;
+                    const similarity = targetData.diff?.similarity;
                     return (
                       <div key={trans} className="space-y-1">
                         <div className="flex items-center justify-between">
@@ -461,17 +481,23 @@ export function TextComparison({
                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300">
                               {trans}
                             </span>
-                            <span
-                              className={`text-[10px] font-bold ${
-                                similarity >= 80
-                                  ? "text-emerald-500"
-                                  : similarity >= 50
-                                    ? "text-amber-500"
-                                    : "text-rose-500"
-                              }`}
-                            >
-                              {similarity}% concordância
-                            </span>
+                            {similarity !== undefined && similarity !== null ? (
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  similarity >= 80
+                                    ? "text-emerald-500"
+                                    : similarity >= 50
+                                      ? "text-amber-500"
+                                      : "text-rose-500"
+                                }`}
+                              >
+                                {similarity}% concordância
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-zinc-400 italic">
+                                Sinopse lado a lado (idiomas distintos)
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -484,11 +510,15 @@ export function TextComparison({
                                 : "font-serif"
                           }`}
                         >
-                          <RenderDiffTokens
-                            tokens={targetData.diff.tokens}
-                            showAdditions={showAdditions}
-                            showOmissions={showOmissions}
-                          />
+                          {targetData.diff ? (
+                            <RenderDiffTokens
+                              tokens={targetData.diff.tokens}
+                              showAdditions={showAdditions}
+                              showOmissions={showOmissions}
+                            />
+                          ) : (
+                            <span>{targetData.text}</span>
+                          )}
                         </p>
                       </div>
                     );

@@ -143,7 +143,7 @@ export default function WordStudy({
       }
       md += `\n`;
     }
-    md += `*Fonte: TheoSphere Bible Research — Logos-Grade Exegesis*\n`;
+    md += `*Fonte: TheoSphere Bible Research — Estudo Exegético*\n`;
 
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(md).then(() => {

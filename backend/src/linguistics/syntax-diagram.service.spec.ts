@@ -251,6 +251,10 @@ describe('SyntaxDiagramService', () => {
       const diagram = await service.getVerseDiagram('JHN', 3, 16);
       expect(diagram).toBeDefined();
       expect(diagram.totalClauses).toBeGreaterThanOrEqual(2);
+      expect(diagram.method).toBe('heuristic-interlinear');
+      expect(diagram.methodLabelPt).toBe(
+        'Segmentação aproximada (não é árvore sintática anotada)',
+      );
       expect(diagram.rootClauses[0].children).toBeDefined();
       expect(diagram.rootClauses[0].children?.[0].clauseType).toBe(
         'subordinate_purpose',
@@ -265,6 +269,10 @@ describe('SyntaxDiagramService', () => {
 
       const diagram = await service.getVerseDiagram('EPH', 2, 8);
       expect(diagram).toBeDefined();
+      expect(diagram.method).toBe('heuristic-text');
+      expect(diagram.methodLabelPt).toBe(
+        'Segmentação aproximada (não é árvore sintática anotada)',
+      );
       expect(diagram.rootClauses.length).toBeGreaterThan(1);
     });
   });

@@ -316,7 +316,8 @@ export class SyntaxDiagramService {
               },
             ],
       isCanonicalPreset: false,
-      openTextCompliant: true,
+      method: 'heuristic-interlinear',
+      methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     };
   }
 
@@ -444,6 +445,9 @@ export class SyntaxDiagramService {
           },
         ],
         isCanonicalPreset: false,
+        method: 'heuristic-text',
+        methodLabelPt:
+          'Segmentação aproximada (não é árvore sintática anotada)',
       };
     }
 
@@ -493,6 +497,8 @@ export class SyntaxDiagramService {
       maxNestingDepth: rootClauses.length > 1 ? 1 : 0,
       rootClauses,
       isCanonicalPreset: false,
+      method: 'heuristic-text',
+      methodLabelPt: 'Segmentação aproximada (não é árvore sintática anotada)',
     };
   }
 }

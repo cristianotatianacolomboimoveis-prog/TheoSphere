@@ -38,6 +38,11 @@ export interface ClauseNode {
   children?: ClauseNode[];
 }
 
+export type SyntaxDiagramMethod =
+  | 'heuristic-interlinear'
+  | 'heuristic-text'
+  | 'treebank';
+
 export interface SyntaxDiagramResponse {
   reference: string; // Ex: "EPH 1:3-4" ou "JHN 1:1"
   titlePt: string; // Ex: "Doxologia da Eleição Eterna"
@@ -46,7 +51,8 @@ export interface SyntaxDiagramResponse {
   maxNestingDepth: number;
   rootClauses: ClauseNode[];
   isCanonicalPreset: boolean;
-  openTextCompliant?: boolean; // Flag de conformidade com a gramática funcional de Stanley Porter
+  method: SyntaxDiagramMethod;
+  methodLabelPt: string; // Ex: "Segmentação aproximada (não é árvore sintática anotada)"
 }
 
 export interface CanonicalDiagramSummary {

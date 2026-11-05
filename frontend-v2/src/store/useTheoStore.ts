@@ -74,7 +74,7 @@ interface TheoState {
   books: BibleBook[];
   _hasHydrated: boolean;
 
-  // Workspace Layout (Inspirado no Logos Bible, mas superior)
+  // Workspace Layout (Foco único, paralelo, tríplice, copilot, grade)
   workspaceLayout: "single" | "split" | "triple" | "copilot" | "grid";
   setWorkspaceLayout: (
     layout: "single" | "split" | "triple" | "copilot" | "grid",
@@ -118,11 +118,16 @@ export const useTheoStore = create<TheoState>()(
       workspaceLayout: "triple",
       readerFontSize: 20,
 
-      setReaderFontSize: (size) => set({ readerFontSize: Math.max(14, Math.min(36, size)) }),
+      setReaderFontSize: (size) =>
+        set({ readerFontSize: Math.max(14, Math.min(36, size)) }),
       increaseFontSize: () =>
-        set((state) => ({ readerFontSize: Math.min(36, (state.readerFontSize || 20) + 2) })),
+        set((state) => ({
+          readerFontSize: Math.min(36, (state.readerFontSize || 20) + 2),
+        })),
       decreaseFontSize: () =>
-        set((state) => ({ readerFontSize: Math.max(14, (state.readerFontSize || 20) - 2) })),
+        set((state) => ({
+          readerFontSize: Math.max(14, (state.readerFontSize || 20) - 2),
+        })),
 
       setWorkspaceLayout: (layout) => set({ workspaceLayout: layout }),
       setActiveTool: (tool) => set({ activeTool: tool }),
