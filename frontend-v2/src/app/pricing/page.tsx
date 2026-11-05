@@ -6,20 +6,20 @@ import {
   Check,
   Sparkles,
   ArrowLeft,
-  ShieldCheck,
   Zap,
   HelpCircle,
-  QrCode,
-  CreditCard,
   Crown,
-  BookOpen,
+  Mail,
+  CheckCircle2,
 } from "lucide-react";
-import { THEOSPHERE_PLANS, PlanDefinition } from "@/data/plans";
+import { THEOSPHERE_PLANS } from "@/data/plans";
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
 
   const plans = [
     THEOSPHERE_PLANS.STARTER,
@@ -30,7 +30,15 @@ export default function PricingPage() {
 
   const handleSelectPlan = (planId: string) => {
     setSelectedPlan(planId);
+    setWaitlistSuccess(false);
+    setWaitlistEmail("");
     setCheckoutModalOpen(true);
+  };
+
+  const handleWaitlistSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!waitlistEmail.trim() || !waitlistEmail.includes("@")) return;
+    setWaitlistSuccess(true);
   };
 
   return (
@@ -54,7 +62,7 @@ export default function PricingPage() {
           </Link>
           <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Planos Oficiais TheoSphere</span>
+            <span>Planos e Assinaturas</span>
           </div>
         </header>
 
@@ -67,9 +75,8 @@ export default function PricingPage() {
             </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
-            Uma fração do custo do Logos Bible Software, com exegese original,
-            108 obras teológicas completas e inteligência artificial soberana em
-            português.
+            Estudo exegético no texto original, acervo teológico clássico e
+            inteligência artificial contextual em português.
           </p>
 
           {/* Billing Interval Toggle */}
@@ -100,52 +107,28 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Free Tier Guarantee Banner */}
-        <div className="mb-10 max-w-4xl mx-auto rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-emerald-950/40 border border-emerald-500/30 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-white">
-                Garantia de Leitura Livre Perpétua
-              </h4>
-              <p className="text-xs text-slate-300">
-                A Bíblia, o Atlas 3D e as 108 obras clássicas são 100% livres e
-                gratuitas para sempre, mesmo se a sua cota de IA terminar.
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-            Gratuito p/ Sempre
-          </span>
-        </div>
-
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {plans.map((plan: PlanDefinition) => {
-            const price = isYearly
-              ? plan.priceYearlyFormatted
-              : plan.priceMonthlyFormatted;
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
+          {plans.map((plan) => {
             const isPlus = plan.id === "PLUS";
 
             return (
               <div
                 key={plan.id}
-                className={`relative flex flex-col rounded-2xl p-6 transition-all duration-300 ${
+                className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                   isPlus
-                    ? "bg-slate-900/90 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/10 scale-102 lg:-translate-y-2"
-                    : "bg-slate-900/50 border border-white/10 hover:border-white/20 hover:bg-slate-900/70"
+                    ? "bg-gradient-to-b from-indigo-950/80 via-slate-900/95 to-slate-950 border-2 border-amber-500/40 shadow-2xl shadow-amber-500/10 scale-100 lg:-translate-y-2"
+                    : "bg-slate-900/60 border border-white/10 hover:border-white/20"
                 }`}
               >
-                {/* Badge if available */}
+                {/* Highlight Badge */}
                 {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <span
-                      className={`text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-full border shadow-sm ${
+                      className={`text-[10px] font-bold tracking-wide uppercase px-3 py-1 rounded-full shadow-lg ${
                         isPlus
-                          ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300"
-                          : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                          ? "bg-amber-400 text-slate-950 font-extrabold"
+                          : "bg-indigo-600 text-white"
                       }`}
                     >
                       {plan.badge}
@@ -202,7 +185,7 @@ export default function PricingPage() {
                       {plan.aiCreditsMonthly} Créditos de IA/mês
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      RAG com citações e evidências
+                      Consultas contextuais com evidências
                     </span>
                   </div>
                 </div>
@@ -229,7 +212,7 @@ export default function PricingPage() {
                       : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20"
                   }`}
                 >
-                  Assinar Plano {plan.name}
+                  Entrar na Lista de Espera
                 </button>
               </div>
             );
@@ -244,7 +227,7 @@ export default function PricingPage() {
               href="/"
               className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 font-medium"
             >
-              Continue usando o plano Gratuito com 10 créditos iniciais.
+              Continue usando o plano Gratuito com 10 créditos de degustação.
             </Link>
           </p>
         </div>
@@ -262,8 +245,8 @@ export default function PricingPage() {
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Cada consulta complexa enviada ao Copilot IA consome 1 crédito.
-                Consultas repetidas ou já respondidas pelo acervo clássico da
-                biblioteca não gastam seus créditos.
+                Consultas repetidas ou resolvidas pelo acervo clássico da
+                biblioteca não consomem seus créditos.
               </p>
             </div>
             <div className="p-5 rounded-2xl bg-slate-900/40 border border-white/5">
@@ -271,20 +254,20 @@ export default function PricingPage() {
                 O que acontece se eu gastar todos os meus créditos no mês?
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Você nunca fica na mão. A leitura bíblica, o atlas 3D, suas
-                anotações, a comparação de versões e as 108 obras clássicas
-                continuam 100% ilimitadas. Apenas novas perguntas para a IA
-                aguardam o ciclo mensal ou upgrade.
+                A leitura bíblica, o atlas 3D, suas anotações, a comparação de
+                versões e as obras clássicas continuam disponíveis. Apenas
+                perguntas adicionais para a IA aguardam a renovação do ciclo
+                mensal.
               </p>
             </div>
             <div className="p-5 rounded-2xl bg-slate-900/40 border border-white/5">
               <h4 className="text-sm font-semibold text-white mb-1.5">
-                Quais são as formas de pagamento disponíveis?
+                Quando as assinaturas estarão disponíveis?
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Aceitamos PIX instantâneo e Cartão de Crédito nacional em até
-                12x no plano anual, sem necessidade de cartão internacional ou
-                cobrança de IOF.
+                As assinaturas estão em fase de homologação. Ao cadastrar seu
+                e-mail na lista de espera, você receberá um aviso assim que o
+                processamento de pagamentos for homologado.
               </p>
             </div>
             <div className="p-5 rounded-2xl bg-slate-900/40 border border-white/5">
@@ -292,99 +275,89 @@ export default function PricingPage() {
                 Como funciona o plano Church para equipes?
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                O plano Church permite vincular até 10 contas de pastores,
+                O plano Church permitirá vincular até 10 contas de pastores,
                 presbíteros e professores da sua comunidade local,
-                compartilhando uma cota robusta de 1.500 créditos mensais de IA.
+                compartilhando uma cota de 1.500 créditos mensais de IA.
               </p>
             </div>
           </div>
         </section>
       </div>
 
-      {/* Checkout Modal / Feedback de Assinatura */}
+      {/* Waitlist Modal */}
       {checkoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-md rounded-2xl bg-slate-900 border border-white/10 p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-400" />
-              <span>Assinatura TheoSphere {selectedPlan}</span>
+              <span>Lista de Espera — {selectedPlan}</span>
             </h3>
-            <p className="text-xs text-slate-300 mb-6">
-              Você selecionou o plano{" "}
-              <strong className="text-white">
-                {THEOSPHERE_PLANS[selectedPlan || "STARTER"]?.name}
-              </strong>
-              . Escolha a forma de pagamento preferida:
-            </p>
 
-            <div className="space-y-3 mb-6">
-              <button
-                onClick={() => {
-                  alert(
-                    "Integração PIX ativa! O QR Code dinâmico será gerado na confirmação.",
-                  );
-                  setCheckoutModalOpen(false);
-                }}
-                className="w-full p-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-emerald-500/30 flex items-center justify-between text-left transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-white block">
-                      PIX Instantâneo
-                    </span>
-                    <span className="text-[10px] text-emerald-400">
-                      Liberação imediata sem taxa
-                    </span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-white">
-                  {isYearly
-                    ? THEOSPHERE_PLANS[selectedPlan || "STARTER"]
-                        ?.priceYearlyFormatted
-                    : THEOSPHERE_PLANS[selectedPlan || "STARTER"]
-                        ?.priceMonthlyFormatted}
-                </span>
-              </button>
+            {waitlistSuccess ? (
+              <div className="py-6 text-center">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                <h4 className="text-sm font-bold text-white mb-1">
+                  Inscrição Confirmada!
+                </h4>
+                <p className="text-xs text-slate-300 mb-6 leading-relaxed">
+                  Seu e-mail foi adicionado à lista prioritária do plano{" "}
+                  <strong className="text-white">
+                    {THEOSPHERE_PLANS[selectedPlan || "STARTER"]?.name}
+                  </strong>
+                  . Notificaremos assim que as assinaturas forem ativadas.
+                </p>
+                <button
+                  onClick={() => setCheckoutModalOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors cursor-pointer"
+                >
+                  Concluir
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                  As assinaturas ainda não estão disponíveis para contratação
+                  imediata. Cadastre seu e-mail para receber acesso prioritário
+                  ao plano{" "}
+                  <strong className="text-white">
+                    {THEOSPHERE_PLANS[selectedPlan || "STARTER"]?.name}
+                  </strong>
+                  :
+                </p>
 
-              <button
-                onClick={() => {
-                  alert("Integração com Cartão de Crédito iniciada!");
-                  setCheckoutModalOpen(false);
-                }}
-                className="w-full p-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-indigo-500/30 flex items-center justify-between text-left transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-                    <CreditCard className="w-5 h-5" />
+                <form
+                  onSubmit={handleWaitlistSubmit}
+                  className="space-y-4 mb-4"
+                >
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="seu-email@exemplo.com"
+                      value={waitlistEmail}
+                      onChange={(e) => setWaitlistEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-white block">
-                      Cartão de Crédito
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Recorrente mensal ou até 12x no anual
-                    </span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-white">
-                  {isYearly
-                    ? THEOSPHERE_PLANS[selectedPlan || "STARTER"]
-                        ?.priceYearlyFormatted
-                    : THEOSPHERE_PLANS[selectedPlan || "STARTER"]
-                        ?.priceMonthlyFormatted}
-                </span>
-              </button>
-            </div>
 
-            <button
-              onClick={() => setCheckoutModalOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors cursor-pointer"
+                  >
+                    Entrar na Lista de Espera
+                  </button>
+                </form>
+
+                <button
+                  type="button"
+                  onClick={() => setCheckoutModalOpen(false)}
+                  className="w-full py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Fechar
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

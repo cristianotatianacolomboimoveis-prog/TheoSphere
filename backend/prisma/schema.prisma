@@ -30,6 +30,7 @@ model User {
   chatHistory ChatHistory[]
   auditLogs   AuditLog[]
   refreshTokens RefreshToken[]
+  billingEvents BillingEvent[]
 
   @@index([institutionId])
   @@index([role])
@@ -48,6 +49,18 @@ model RefreshToken {
 
   @@index([userId])
   @@index([token])
+}
+
+model BillingEvent {
+  id              String   @id @default(uuid())
+  providerEventId String   @unique
+  userId          String
+  plan            String
+  receivedAt      DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Academic Institutions

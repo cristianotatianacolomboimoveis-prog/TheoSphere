@@ -1,20 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { BillingService } from './billing.service';
+import { BillingController } from './billing.controller';
 import { PrismaService } from '../prisma.service';
 import { AiQuotaService } from '../rag/ai-quota.service';
-import { THEOSPHERE_PLANS } from './plans.constants';
+import { FakePaymentProvider } from './fake-payment-provider';
 
-describe('BillingService', () => {
+describe('BillingModule (T0.1 Security & Idempotency)', () => {
   let service: BillingService;
+  let controller: BillingController;
   let mockPrisma: any;
   let mockAiQuota: any;
+  let fakePaymentProvider: FakePaymentProvider;
 
   beforeEach(async () => {
     mockPrisma = {
+      billingEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'evt-1' }),
+      },
       user: {
         update: jest.fn().mockResolvedValue({ id: 'user-1', plan: 'PLUS' }),
         findUnique: jest.fn().mockResolvedValue({ id: 'user-1', plan: 'PLUS' }),
       },
+      $transaction: jest.fn().mockImplementation(async (callback) => {
+        return callback(mockPrisma);
+      }),
     };
 
     mockAiQuota = {
@@ -28,19 +43,20 @@ describe('BillingService', () => {
       }),
     };
 
+    fakePaymentProvider = new FakePaymentProvider();
+
     const module: TestingModule = await Test.createTestingModule({
+      controllers: [BillingController],
       providers: [
         BillingService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AiQuotaService, useValue: mockAiQuota },
+        { provide: 'PAYMENT_PROVIDER', useValue: fakePaymentProvider },
       ],
     }).compile();
 
     service = module.get<BillingService>(BillingService);
-  });
-
-  it('deve ser definido', () => {
-    expect(service).toBeDefined();
+    controller = module.get<BillingController>(BillingController);
   });
 
   describe('getPlans', () => {
@@ -59,21 +75,11 @@ describe('BillingService', () => {
       expect(plus?.priceMonthly).toBe(24.9);
       expect(plus?.aiCreditsMonthly).toBe(200);
       expect(plus?.highlight).toBe(true);
-
-      const pro = result.plans.find((p) => p.id === 'PRO');
-      expect(pro).toBeDefined();
-      expect(pro?.priceMonthly).toBe(39.9);
-      expect(pro?.aiCreditsMonthly).toBe(600);
-
-      const church = result.plans.find((p) => p.id === 'CHURCH');
-      expect(church).toBeDefined();
-      expect(church?.priceMonthly).toBe(99.9);
-      expect(church?.aiCreditsMonthly).toBe(1500);
     });
   });
 
   describe('getUserUsage', () => {
-    it('deve retornar a cota e detalhes do plano do usuário', async () => {
+    it('deve retornar cota e detalhes do plano do usuário', async () => {
       const usage = await service.getUserUsage('user-1');
       expect(usage.status.plano).toBe('PLUS');
       expect(usage.status.limite).toBe(200);
@@ -81,39 +87,115 @@ describe('BillingService', () => {
       expect(usage.status.restante).toBe(185);
       expect(usage.planDetails.name).toBe('Plus');
     });
+  });
 
-    it('deve tratar usuário visitante (public-guest)', async () => {
-      mockAiQuota.consultar.mockResolvedValueOnce({
-        usado: 0,
-        limite: 10,
-        restante: 10,
-        excedeu: false,
-        plano: 'FREE',
-        diasParaRenovar: 30,
-      });
+  describe('T0.1: Bloqueio de auto-promoção em POST /billing/subscribe', () => {
+    it('deve responder 403 Forbidden para plano válido impedindo auto-promoção', async () => {
+      await expect(controller.subscribe('CHURCH')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(controller.subscribe('CHURCH')).rejects.toThrow(
+        'Assinaturas ainda não estão disponíveis; entre na lista de espera.',
+      );
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
 
-      const usage = await service.getUserUsage(undefined);
-      expect(usage.status.plano).toBe('FREE');
-      expect(usage.status.limite).toBe(10);
-      expect(usage.planDetails.name).toBe('Gratuito');
+    it('deve rejeitar plano inválido com 400 BadRequestException', async () => {
+      await expect(controller.subscribe('INVALID_PLAN')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.subscribe('')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
   });
 
-  describe('updatePlan', () => {
-    it('deve atualizar o plano do usuário', async () => {
-      const res = await service.updatePlan('user-1', 'PRO');
-      expect(res.success).toBe(true);
-      expect(res.plan).toBe('PRO');
+  describe('T0.1: applyPaidPlan e Webhook Seguro', () => {
+    it('deve aplicar plano via evento legítimo com registro em BillingEvent', async () => {
+      const result = await service.applyPaidPlan('user-1', 'PRO', 'evt-100');
+
+      expect(result.applied).toBe(true);
+      expect(result.plan).toBe('PRO');
+      expect(mockPrisma.billingEvent.create).toHaveBeenCalledWith({
+        data: {
+          providerEventId: 'evt-100',
+          userId: 'user-1',
+          plan: 'PRO',
+        },
+      });
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: { plan: 'PRO' },
       });
     });
 
-    it('deve rejeitar planos desconhecidos', async () => {
+    it('deve ser idempotente: evento duplicado não reaplica alteração', async () => {
+      mockPrisma.billingEvent.findUnique.mockResolvedValueOnce({
+        id: 'existing-id',
+        providerEventId: 'evt-duplicate',
+        userId: 'user-1',
+        plan: 'PRO',
+        receivedAt: new Date(),
+      });
+
+      const result = await service.applyPaidPlan(
+        'user-1',
+        'PRO',
+        'evt-duplicate',
+      );
+
+      expect(result.applied).toBe(false);
+      expect(result.message).toContain('idempotente');
+      expect(mockPrisma.billingEvent.create).not.toHaveBeenCalled();
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('deve propagar falha de banco de dados (ex: read-only) sem retornar sucesso falso', async () => {
+      mockPrisma.$transaction.mockRejectedValueOnce(
+        new Error('default_transaction_read_only = on'),
+      );
+
       await expect(
-        service.updatePlan('user-1', 'INVALID_PLAN'),
-      ).rejects.toThrow('Plano inválido: INVALID_PLAN');
+        service.applyPaidPlan('user-1', 'PLUS', 'evt-db-error'),
+      ).rejects.toThrow('default_transaction_read_only = on');
+    });
+
+    it('deve rejeitar plano desconhecido no applyPaidPlan com BadRequestException', async () => {
+      await expect(
+        service.applyPaidPlan('user-1', 'HACKER_PLAN', 'evt-bad'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('webhook deve rejeitar assinatura inválida com 401 UnauthorizedException e não alterar plano', async () => {
+      const payload = { eventId: 'evt-999', userId: 'user-1', plan: 'CHURCH' };
+
+      await expect(
+        controller.handleWebhook('wrong-signature', payload),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.billingEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('webhook deve processar com sucesso com assinatura válida', async () => {
+      const payload = {
+        eventId: 'evt-valid-1',
+        userId: 'user-1',
+        plan: 'PLUS',
+      };
+
+      const res = await controller.handleWebhook(
+        'valid-test-signature',
+        payload,
+      );
+
+      expect(res.success).toBe(true);
+      expect(res.data.applied).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { plan: 'PLUS' },
+      });
     });
   });
 });

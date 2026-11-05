@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AiQuotaService, QuotaStatus } from '../rag/ai-quota.service';
 import { THEOSPHERE_PLANS, PlanDefinition } from './plans.constants';
@@ -41,33 +41,70 @@ export class BillingService {
   }
 
   /**
-   * Atualiza o plano de assinatura do usuário.
+   * T0.1: Única via legítima de mudança de plano no sistema.
+   * Chamado exclusivamente pelo fluxo de webhook com verificação de assinatura.
+   * Garante idempotência via BillingEvent e propaga falhas de persistência.
    */
-  async updatePlan(
+  async applyPaidPlan(
     userId: string,
-    targetPlan: string,
-  ): Promise<{ success: boolean; plan: string; message: string }> {
-    const normalizedPlan = (targetPlan || 'FREE').toUpperCase();
-    if (!THEOSPHERE_PLANS[normalizedPlan]) {
-      throw new Error(`Plano inválido: ${targetPlan}`);
+    plan: string,
+    providerEventId: string,
+  ): Promise<{ applied: boolean; plan: string; message: string }> {
+    if (!plan || typeof plan !== 'string') {
+      throw new BadRequestException('O plano é obrigatório.');
     }
 
-    try {
-      await this.prisma.user.update({
+    const normalizedPlan = plan.toUpperCase().trim();
+    if (!THEOSPHERE_PLANS[normalizedPlan]) {
+      throw new BadRequestException(`Plano inválido: ${plan}`);
+    }
+
+    if (!providerEventId || !providerEventId.trim()) {
+      throw new BadRequestException('providerEventId é obrigatório.');
+    }
+
+    if (!userId || !userId.trim()) {
+      throw new BadRequestException('userId é obrigatório.');
+    }
+
+    // Idempotência: verificar se o evento do provedor já foi processado
+    const existingEvent = await this.prisma.billingEvent.findUnique({
+      where: { providerEventId },
+    });
+
+    if (existingEvent) {
+      this.logger.warn(
+        `Evento ${providerEventId} já foi processado anteriormente. Ignorando para idempotência.`,
+      );
+      return {
+        applied: false,
+        plan: existingEvent.plan,
+        message: 'Evento já processado anteriormente (idempotente).',
+      };
+    }
+
+    // Persistência em transação atômica. NUNCA engolir erros: propaga se falhar (ex.: DB read-only).
+    await this.prisma.$transaction(async (tx) => {
+      await tx.billingEvent.create({
+        data: {
+          providerEventId,
+          userId,
+          plan: normalizedPlan,
+        },
+      });
+
+      await tx.user.update({
         where: { id: userId },
         data: { plan: normalizedPlan },
       });
-      this.logger.log(
-        `Usuário ${userId} atualizado para o plano ${normalizedPlan}`,
-      );
-    } catch (err: any) {
-      this.logger.warn(
-        `Falha na persistência de plano para ${userId} (banco pode estar em read-only): ${err.message}`,
-      );
-    }
+    });
+
+    this.logger.log(
+      `Plano ${normalizedPlan} ativado com sucesso para usuário ${userId} via evento ${providerEventId}`,
+    );
 
     return {
-      success: true,
+      applied: true,
       plan: normalizedPlan,
       message: `Plano atualizado com sucesso para ${THEOSPHERE_PLANS[normalizedPlan].name}.`,
     };
