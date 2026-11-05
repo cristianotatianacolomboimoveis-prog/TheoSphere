@@ -282,6 +282,12 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Paridade Deck.gl e Cesium:** Tanto o motor 2.5D quanto o Cesium 3D operam no mesmo padrão ultra-clean sem caixas de texto flutuantes estáticas cobrindo o terreno.
     - **Validação:** 345 testes backend, 49 testes frontend vitest passando, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados.
 
+43. **Correção de Cascading Renders no React 19 e CI 100% Verde no GitHub (2026-11-04):**
+    Identificada e corrigida falha no workflow `CI` (job `Frontend (lint, tsc, build)`):
+    - **Causa Raiz:** Regra `react-hooks/set-state-in-effect` do React 19 barrou chamadas síncronas de `setState` dentro de `useEffect` em `NoteEditor.tsx`, `EventDeepDiveModal.tsx`, `LandmarkNavigator.tsx` e `RouteStepperHUD.tsx`.
+    - **Correções Aplicadas:** `useSyncExternalStore` para verificação de montagem no cliente, ajuste de estado reativo durante a fase de render para props (`prevIsOpen`, `prevRouteId`) e debounce assíncrono para o autosave. `realCommentaries` encapsulado em `useMemo`.
+    - **Validação:** CI GitHub Run #685 e Security Audit Run #513 concluídos com **`status: completed, conclusion: success`** (100% verde).
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
