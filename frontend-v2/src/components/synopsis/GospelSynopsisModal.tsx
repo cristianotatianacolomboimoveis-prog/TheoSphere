@@ -296,8 +296,11 @@ export const GospelSynopsisModal: React.FC<GospelSynopsisModalProps> = ({
                   <option value="WEB" className="bg-surface text-foreground">
                     WEB (EN)
                   </option>
+                  <option value="SBLGNT" className="bg-surface text-foreground">
+                    SBLGNT (Texto Crítico Grego)
+                  </option>
                   <option value="TR" className="bg-surface text-foreground">
-                    TR (Grego NT)
+                    TR (Grego Bizantino)
                   </option>
                 </select>
               </div>

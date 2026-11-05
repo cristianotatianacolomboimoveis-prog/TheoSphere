@@ -43,7 +43,14 @@ export interface GospelSynopsisDetailResponse {
   agreementMatrix: SynopsisAgreementPair[];
 }
 
-const ALLOWED_TRANSLATIONS = new Set(['BLIVRE', 'NVA', 'KJV', 'WEB', 'TR']);
+const ALLOWED_TRANSLATIONS = new Set([
+  'BLIVRE',
+  'NVA',
+  'KJV',
+  'WEB',
+  'SBLGNT',
+  'TR',
+]);
 
 const GOSPEL_META: Record<
   GospelKey,

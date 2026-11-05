@@ -130,7 +130,7 @@ export class TextualCriticismService {
     const isOldTestament = numericBookId <= 39;
     const relevantTranslations = isOldTestament
       ? ['WLC', 'LXX', 'BLIVRE', 'KJV']
-      : ['TR', 'BLIVRE', 'KJV', 'WEB'];
+      : ['SBLGNT', 'TR', 'BLIVRE', 'KJV', 'WEB'];
 
     const witnesses: {
       translationCode: string;
@@ -162,6 +162,10 @@ export class TextualCriticismService {
           language = 'Hebraico';
         } else if (row.translation === 'LXX') {
           sourceName = 'Septuaginta (Antigo Testamento Grego de Alexandria)';
+          language = 'Grego';
+        } else if (row.translation === 'SBLGNT') {
+          sourceName =
+            'SBL Greek New Testament (Texto Crítico Alexandrino, Holmes 2010)';
           language = 'Grego';
         } else if (row.translation === 'TR') {
           sourceName = 'Textus Receptus (Stephanus 1550 / Tradição Bizantina)';

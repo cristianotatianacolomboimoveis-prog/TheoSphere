@@ -100,6 +100,14 @@ export const TRANSLATIONS = [
     type: "Equivalência Formal • Domínio Público",
   },
   {
+    id: "sblgnt",
+    name: "SBL Greek New Testament (SBLGNT)",
+    lang: "GR",
+    type: "Texto Crítico Grego do NT • CC BY 4.0",
+    attribution:
+      "Copyright © 2010 Society of Biblical Literature and Logos Bible Software",
+  },
+  {
     id: "tr",
     name: "Textus Receptus (TR)",
     lang: "GR",
@@ -569,6 +577,19 @@ export default function BibleReader({
               </div>
             )}
           </div>
+          {(primaryTranslation?.toLowerCase() === "sblgnt" ||
+            secondaryTranslation?.toLowerCase() === "sblgnt") && (
+            <div
+              data-testid="sblgnt-attribution"
+              className="px-6 py-2 border-t border-border/40 text-[11px] text-muted-foreground/80 bg-surface/30 flex items-center justify-between"
+            >
+              <span>
+                📜 <strong>Texto Crítico Grego:</strong> SBL Greek New
+                Testament. Copyright © 2010 Society of Biblical Literature and
+                Logos Bible Software. Licenciado sob CC BY 4.0.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Global Component Overlays */}

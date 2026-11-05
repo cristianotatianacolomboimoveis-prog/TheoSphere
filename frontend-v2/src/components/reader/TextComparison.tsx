@@ -33,6 +33,12 @@ const AVAILABLE_VERSIONS = [
   { code: "NVA", name: "Nova Versão Acesso (NA28)", lang: "PT", badge: "PT" },
   { code: "KJV", name: "King James Version", lang: "EN", badge: "EN" },
   { code: "WEB", name: "World English Bible", lang: "EN", badge: "EN" },
+  {
+    code: "SBLGNT",
+    name: "SBL Greek New Testament (Texto Crítico)",
+    lang: "GRC",
+    badge: "GR",
+  },
   { code: "TR", name: "Textus Receptus (Grego NT)", lang: "GRC", badge: "GR" },
   {
     code: "WLC",
@@ -381,7 +387,9 @@ export function TextComparison({
                         className={`text-sm leading-relaxed ${
                           trans === "WLC"
                             ? "font-serif text-base dir-rtl text-right"
-                            : trans === "TR" || trans === "LXX"
+                            : trans === "TR" ||
+                                trans === "LXX" ||
+                                trans === "SBLGNT"
                               ? "font-serif text-sm"
                               : ""
                         }`}
@@ -413,7 +421,9 @@ export function TextComparison({
                       className={`text-sm leading-relaxed ${
                         trans === "WLC"
                           ? "font-serif text-base dir-rtl text-right"
-                          : trans === "TR" || trans === "LXX"
+                          : trans === "TR" ||
+                              trans === "LXX" ||
+                              trans === "SBLGNT"
                             ? "font-serif text-sm"
                             : ""
                       }`}
@@ -505,7 +515,9 @@ export function TextComparison({
                           className={`text-sm leading-relaxed pl-2 border-l-2 border-gray-200 dark:border-white/10 ${
                             trans === "WLC"
                               ? "font-serif text-base dir-rtl text-right"
-                              : trans === "TR" || trans === "LXX"
+                              : trans === "TR" ||
+                                  trans === "LXX" ||
+                                  trans === "SBLGNT"
                                 ? "font-serif text-sm"
                                 : "font-serif"
                           }`}

@@ -23,6 +23,7 @@ const ALLOWED_TRANSLATIONS = new Set([
   'BLIVRE',
   'NVA',
   'KJV',
+  'SBLGNT',
   'TR',
   'WLC',
   'LXX',
@@ -58,6 +59,12 @@ const VERSION_METADATA: Record<
   },
   KJV: { name: 'King James Version', lang: 'EN', license: 'free' },
   WEB: { name: 'World English Bible', lang: 'EN', license: 'free' },
+  SBLGNT: {
+    name: 'SBL Greek New Testament',
+    lang: 'GRC',
+    license: 'free',
+    holder: 'CC BY 4.0 (SBL / Logos Bible Software)',
+  },
   TR: { name: 'Textus Receptus', lang: 'GRC', license: 'free' },
   WLC: { name: 'Westminster Leningrad Codex', lang: 'HEB', license: 'free' },
   LXX: { name: 'Septuagint', lang: 'GRC', license: 'free' },
@@ -156,12 +163,13 @@ export class BibleController {
     // Filtrado na Etapa 1 do Risco 2 para conter apenas traduções completas de domínio público (BLIVRE e NVA)
     return {
       success: true,
-      data: ['BLIVRE', 'NVA', 'KJV', 'WEB', 'TR', 'WLC', 'LXX'],
+      data: ['BLIVRE', 'NVA', 'KJV', 'WEB', 'SBLGNT', 'TR', 'WLC', 'LXX'],
       meta: {
         BLIVRE: VERSION_METADATA.BLIVRE,
         NVA: VERSION_METADATA.NVA,
         KJV: VERSION_METADATA.KJV,
         WEB: VERSION_METADATA.WEB,
+        SBLGNT: VERSION_METADATA.SBLGNT,
         TR: VERSION_METADATA.TR,
         WLC: VERSION_METADATA.WLC,
         LXX: VERSION_METADATA.LXX,

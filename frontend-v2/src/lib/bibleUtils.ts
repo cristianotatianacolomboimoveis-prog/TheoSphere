@@ -142,8 +142,10 @@ export function isNewTestament(bookName: string): boolean {
   return id >= 40;
 }
 
-export function getOriginalLanguageTranslation(bookName: string): "TR" | "WLC" {
-  return isNewTestament(bookName) ? "TR" : "WLC";
+export function getOriginalLanguageTranslation(
+  bookName: string,
+): "SBLGNT" | "TR" | "WLC" {
+  return isNewTestament(bookName) ? "SBLGNT" : "WLC";
 }
 
 export function stripHtml(text: string): string {
