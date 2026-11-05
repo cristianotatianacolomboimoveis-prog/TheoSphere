@@ -9,6 +9,7 @@ import { CrossReferencesController } from './bible/cross-references.controller';
 import { PassageGuideService } from './bible/passage-guide.service';
 import { BibleComparisonService } from './bible/bible-comparison.service';
 import { ArchaeologyModule } from './archaeology/archaeology.module';
+import { ResourcesModule } from './resources/resources.module';
 import { HomileticsService } from './bible/homiletics.service';
 import { HomileticsController } from './bible/homiletics.controller';
 import { SynopsisService } from './bible/synopsis.service';
@@ -22,6 +23,7 @@ import { TimelineController } from './bible/timeline.controller';
     EmbeddingModule,
     LinguisticsModule,
     ArchaeologyModule,
+    ResourcesModule,
   ],
   controllers: [
     BibleController,

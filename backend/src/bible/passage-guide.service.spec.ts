@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { CrossReferencesService } from './cross-references.service';
 import { LinguisticsService } from '../linguistics/linguistics.service';
 import { ArchaeologyService } from '../archaeology/archaeology.service';
+import { ResourcesService } from '../resources/resources.service';
 
 describe('PassageGuideService', () => {
   let service: PassageGuideService;
@@ -119,5 +120,47 @@ describe('PassageGuideService', () => {
     expect(g.commentaries[0].author).toBe('John Calvin');
     expect(g.commentaries[0].source).toBe('Commentary on Romans');
     expect(g.commentaries[0].tags).toContain('clássico');
+  });
+
+  it('agrega comentários clássicos de ResourceReference quando disponíveis sem precisar de scan no UserEmbedding (T1.4)', async () => {
+    const mockResourcesService = {
+      findReferences: jest.fn().mockResolvedValue([
+        {
+          id: 'ref-1',
+          resourceTitle: 'Institutas da Religião Cristã',
+          author: 'João Calvino',
+          text: 'A justificação pela fé é o principal gonzos sobre o qual gira a religião.',
+          canonicalRef: 45008001,
+          confidence: 1.0,
+        },
+      ]),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PassageGuideService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: CrossReferencesService, useValue: crossRefs },
+        { provide: LinguisticsService, useValue: linguistics },
+        { provide: ArchaeologyService, useValue: archaeology },
+        {
+          provide: ResourcesService,
+          useValue: mockResourcesService,
+        },
+      ],
+    }).compile();
+
+    const pgWithResources =
+      module.get<PassageGuideService>(PassageGuideService);
+    const g = await pgWithResources.getGuide('BLIVRE', 45, 8, 1);
+
+    expect(mockResourcesService.findReferences).toHaveBeenCalledWith(
+      45008001,
+      4,
+    );
+    expect(g.commentaries).toHaveLength(1);
+    expect(g.commentaries[0].author).toBe('João Calvino');
+    expect(g.commentaries[0].source).toBe('Institutas da Religião Cristã');
+    expect(g.commentaries[0].tags).toContain('índice-canônico');
   });
 });

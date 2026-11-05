@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CrossReferencesService } from './cross-references.service';
 import { LinguisticsService } from '../linguistics/linguistics.service';
 import { ArchaeologyService } from '../archaeology/archaeology.service';
+import { ResourcesService } from '../resources/resources.service';
+import { toCanonicalRef } from '../common/canonical-ref';
 
 /**
  * PassageGuideService — o "Passage Guide" do TheoSphere (paridade com a
@@ -243,11 +245,13 @@ export class PassageGuideService {
     private readonly crossRefs: CrossReferencesService,
     private readonly linguistics: LinguisticsService,
     private readonly archaeology: ArchaeologyService,
+    @Optional() private readonly resourcesService?: ResourcesService,
   ) {}
 
   /**
-   * Extrai trechos exegéticos relevantes de Calvino, Matthew Henry e Lutero
-   * do acervo de 45.114 chunks em UserEmbedding.
+   * Extrai trechos exegéticos relevantes de Calvino, Matthew Henry e Lutero.
+   * T1.4: Consulta primeiramente o índice relacional de ResourceReference/ResourceChunk.
+   * Se vazio, recorre ao scan histórico de UserEmbedding como fallback retrocompatível.
    */
   private async getClassicCommentaries(
     bookId: number,
@@ -262,6 +266,31 @@ export class PassageGuideService {
       tags: string[];
     }>
   > {
+    // 1. Tenta consulta ao índice canônico rápido e desacoplado de recursos
+    if (this.resourcesService) {
+      try {
+        const canonicalRef = toCanonicalRef(bookId, chapter, verse ?? 1);
+        const citations = await this.resourcesService.findReferences(
+          canonicalRef,
+          4,
+        );
+        if (citations.length > 0) {
+          return citations.map((c) => ({
+            verse: verse ?? 1,
+            author: c.author,
+            content:
+              c.text.length > 1000 ? `${c.text.slice(0, 1000)}...` : c.text,
+            source: c.resourceTitle,
+            tags: ['clássico', 'exegese', 'índice-canônico', 'domínio-público'],
+          }));
+        }
+      } catch (err: any) {
+        this.logger.debug(
+          `Consulta ao ResourceReference contornada: ${err.message}`,
+        );
+      }
+    }
+
     const gids = COMMENTARY_BOOK_MAP[bookId];
     if (!gids || gids.length === 0) return [];
 

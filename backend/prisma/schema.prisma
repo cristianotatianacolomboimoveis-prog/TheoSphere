@@ -473,3 +473,57 @@ model ProjectMemory {
   @@index([taskId])
   @@index([agentId])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recursos Teológicos e Acervo Clássico Desacoplado (T1.4)
+// Desacopla o acervo histórico de UserEmbedding, permitindo índice relacional
+// invertido por referência bíblica canônica (BBCCCVVV).
+// ─────────────────────────────────────────────────────────────────────────────
+model Resource {
+  id             String          @id @default(uuid())
+  slug           String          @unique
+  title          String
+  author         String
+  year           Int?
+  language       String          @default("pt")
+  license        String          @default("Domínio Público")
+  isPublicDomain Boolean         @default(true)
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  chunks         ResourceChunk[]
+
+  @@index([author])
+  @@index([language])
+}
+
+model ResourceChunk {
+  id          String              @id @default(uuid())
+  resourceId  String
+  chunkIndex  Int
+  text        String
+  startRef    Int?
+  endRef      Int?
+  embedding   Unsupported("vector(768)")?
+  createdAt   DateTime            @default(now())
+
+  resource    Resource            @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  references  ResourceReference[]
+
+  @@unique([resourceId, chunkIndex])
+  @@index([resourceId, chunkIndex])
+  @@index([startRef, endRef])
+}
+
+model ResourceReference {
+  id           String        @id @default(uuid())
+  chunkId      String
+  canonicalRef Int
+  confidence   Float         @default(1.0)
+  createdAt    DateTime      @default(now())
+
+  chunk        ResourceChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
+  @@index([canonicalRef])
+  @@index([chunkId])
+}
