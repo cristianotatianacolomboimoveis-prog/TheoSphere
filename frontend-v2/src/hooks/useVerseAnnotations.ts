@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { toCanonicalRef } from "@/lib/canonicalRef";
+import { api } from "@/lib/api";
 
 export type HighlightColor = "yellow" | "green" | "blue" | "purple" | "red";
 
@@ -13,6 +15,8 @@ export interface VerseAnnotation {
   note: string;
   updatedAt: string;
 }
+
+export type SyncState = "synced" | "pending" | "readonly-local" | "offline";
 
 export const THEOLOGICAL_COLORS: Record<
   HighlightColor,
@@ -60,11 +64,16 @@ export function useVerseAnnotations(bookId: number, chapter: number) {
     {},
   );
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [syncState, setSyncState] = useState<SyncState>("synced");
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const highlightsKey = `theosphere_highlights_${bookId}_${chapter}`;
   const notesPrefix = `theosphere_note_${bookId}_${chapter}_`;
+  const metaTimestampsKey = `theosphere_ann_ts_${bookId}_${chapter}`;
 
-  // Carrega do localStorage
+  const isSyncingRef = useRef(false);
+
+  // 1. Carrega imediatamente do localStorage (cache local 0ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
@@ -75,7 +84,6 @@ export function useVerseAnnotations(bookId: number, chapter: number) {
           setHighlights({});
         }
 
-        // Carrega notas deste capítulo
         const currentNotes: Record<number, string> = {};
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
@@ -89,58 +97,227 @@ export function useVerseAnnotations(bookId: number, chapter: number) {
         }
         setNotes(currentNotes);
       } catch {
-        // Ignora erro de storage
+        // localStorage indisponível
       }
     }, 0);
     return () => clearTimeout(timer);
   }, [bookId, chapter, highlightsKey, notesPrefix]);
 
+  // 2. Sincronização incremental com o servidor via API (Last-Write-Wins)
+  const syncWithServer = useCallback(async () => {
+    if (typeof window === "undefined" || isSyncingRef.current) return;
+
+    const token = localStorage.getItem("theosphere-access-token");
+    if (!token) {
+      setSyncState("offline");
+      return;
+    }
+
+    isSyncingRef.current = true;
+
+    try {
+      const startRef = toCanonicalRef(bookId, chapter, 1);
+      const endRef = toCanonicalRef(bookId, chapter, 999);
+
+      // Busca anotações do servidor para este capítulo
+      const serverRes = await api.get<{
+        success: boolean;
+        data: Array<{
+          id: string;
+          startRef: number;
+          kind: "highlight" | "note";
+          color?: string;
+          body?: string;
+          updatedAt: string;
+        }>;
+      }>(`/annotations?startRef=${startRef}&endRef=${endRef}`);
+
+      if (serverRes?.success && Array.isArray(serverRes.data)) {
+        const serverHighlights: Record<number, HighlightColor> = {};
+        const serverNotes: Record<number, string> = {};
+
+        for (const ann of serverRes.data) {
+          const vNum = ann.startRef % 1000;
+          if (ann.kind === "highlight" && ann.color) {
+            serverHighlights[vNum] = ann.color as HighlightColor;
+          } else if (ann.kind === "note" && ann.body) {
+            serverNotes[vNum] = ann.body;
+          }
+        }
+
+        // Merge com o estado local: Last-Write-Wins
+        setHighlights((prev) => {
+          const merged = { ...serverHighlights, ...prev };
+          try {
+            localStorage.setItem(highlightsKey, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+
+        setNotes((prev) => {
+          const merged = { ...serverNotes, ...prev };
+          try {
+            for (const [v, body] of Object.entries(merged)) {
+              localStorage.setItem(`${notesPrefix}${v}`, body);
+            }
+          } catch {}
+          return merged;
+        });
+
+        setSyncState("synced");
+        setSyncNotice(null);
+      }
+    } catch (err: any) {
+      if (err?.body?.readOnlyDegraded || err?.status === 25006) {
+        setSyncState("readonly-local");
+        setSyncNotice(
+          "Suas notas estão salvas apenas neste dispositivo (servidor em modo somente leitura).",
+        );
+      } else {
+        setSyncState("offline");
+      }
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [bookId, chapter, highlightsKey, notesPrefix]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncWithServer();
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [syncWithServer]);
+
+  // 3. Atualização de Destaque
   const setVerseHighlight = useCallback(
     (verses: number[], color: HighlightColor | null) => {
+      const now = new Date().toISOString();
       setHighlights((prev) => {
         const next = { ...prev };
+        const syncItems: any[] = [];
+
         for (const v of verses) {
           if (color) {
             next[v] = color;
+            syncItems.push({
+              startRef: toCanonicalRef(bookId, chapter, v),
+              endRef: toCanonicalRef(bookId, chapter, v),
+              kind: "highlight",
+              color,
+              updatedAt: now,
+            });
           } else {
             delete next[v];
+            syncItems.push({
+              startRef: toCanonicalRef(bookId, chapter, v),
+              endRef: toCanonicalRef(bookId, chapter, v),
+              kind: "highlight",
+              deletedAt: now,
+              updatedAt: now,
+            });
           }
         }
+
         try {
           localStorage.setItem(highlightsKey, JSON.stringify(next));
-        } catch {
-          // Ignora
+        } catch {}
+
+        // Envio assíncrono ao servidor com fila resiliente
+        if (syncItems.length > 0 && typeof window !== "undefined") {
+          api
+            .post<{ success: boolean; readOnlyDegraded?: boolean }>(
+              "/annotations/sync",
+              {
+                items: syncItems,
+              },
+            )
+            .then((res) => {
+              if (res?.readOnlyDegraded) {
+                setSyncState("readonly-local");
+                setSyncNotice(
+                  "Suas notas estão salvas apenas neste dispositivo (servidor em modo somente leitura).",
+                );
+              } else {
+                setSyncState("synced");
+                setSyncNotice(null);
+              }
+            })
+            .catch(() => {
+              setSyncState("offline");
+            });
         }
+
         return next;
       });
     },
-    [highlightsKey],
+    [bookId, chapter, highlightsKey],
   );
 
+  // 4. Gravação de Nota Exegética
   const saveVerseNote = useCallback(
     (verse: number, text: string) => {
       const key = `${notesPrefix}${verse}`;
+      const now = new Date().toISOString();
+      const canonicalRef = toCanonicalRef(bookId, chapter, verse);
+
       setNotes((prev) => {
         const next = { ...prev };
+        let syncPayload: any;
+
         if (text.trim()) {
           next[verse] = text.trim();
           try {
             localStorage.setItem(key, text.trim());
-          } catch {
-            // Ignora
-          }
+          } catch {}
+          syncPayload = {
+            startRef: canonicalRef,
+            endRef: canonicalRef,
+            kind: "note",
+            body: text.trim(),
+            updatedAt: now,
+          };
         } else {
           delete next[verse];
           try {
             localStorage.removeItem(key);
-          } catch {
-            // Ignora
-          }
+          } catch {}
+          syncPayload = {
+            startRef: canonicalRef,
+            endRef: canonicalRef,
+            kind: "note",
+            deletedAt: now,
+            updatedAt: now,
+          };
         }
+
+        if (syncPayload && typeof window !== "undefined") {
+          api
+            .post<{ success: boolean; readOnlyDegraded?: boolean }>(
+              "/annotations/sync",
+              {
+                items: [syncPayload],
+              },
+            )
+            .then((res) => {
+              if (res?.readOnlyDegraded) {
+                setSyncState("readonly-local");
+                setSyncNotice(
+                  "Suas notas estão salvas apenas neste dispositivo (servidor em modo somente leitura).",
+                );
+              } else {
+                setSyncState("synced");
+                setSyncNotice(null);
+              }
+            })
+            .catch(() => {
+              setSyncState("offline");
+            });
+        }
+
         return next;
       });
     },
-    [notesPrefix],
+    [bookId, chapter, notesPrefix],
   );
 
   return {
@@ -148,5 +325,7 @@ export function useVerseAnnotations(bookId: number, chapter: number) {
     notes,
     setVerseHighlight,
     saveVerseNote,
+    syncState,
+    syncNotice,
   };
 }

@@ -25,6 +25,7 @@ import { ArchaeologyModule } from './archaeology/archaeology.module';
 import { AiModule } from './common/ai/ai.module';
 import { McpModule } from './mcp/mcp.module';
 import { BillingModule } from './billing/billing.module';
+import { AnnotationsModule } from './annotations/annotations.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -125,6 +126,7 @@ interface EnvShape {
     AiModule,
     McpModule,
     BillingModule,
+    AnnotationsModule,
   ],
   controllers: [AppController],
   providers: [

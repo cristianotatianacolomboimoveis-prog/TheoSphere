@@ -211,7 +211,7 @@ export default function BibleReader({
       (b) => b.namePt === activeBook || b.nameEn === activeBook,
     ) || BIBLE_BOOKS[0];
 
-  const { highlights, notes, setVerseHighlight, saveVerseNote } =
+  const { highlights, notes, setVerseHighlight, saveVerseNote, syncNotice } =
     useVerseAnnotations(selectedBook.id, activeChapter);
   const [noteModalTarget, setNoteModalTarget] = useState<{
     reference: string;
@@ -470,6 +470,12 @@ export default function BibleReader({
           className="flex-grow overflow-y-auto custom-scrollbar-academic py-12"
         >
           <div className="max-w-4xl mx-auto px-8 md:px-16">
+            {syncNotice && (
+              <div className="mb-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-center gap-2">
+                <span>⚠️</span>
+                <span>{syncNotice}</span>
+              </div>
+            )}
             {/* Chapter Heading — oculto durante busca */}
             {!loading && !searchMode && (
               <div className="text-center mb-16 space-y-4">

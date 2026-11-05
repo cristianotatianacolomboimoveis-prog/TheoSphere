@@ -31,6 +31,7 @@ model User {
   auditLogs   AuditLog[]
   refreshTokens RefreshToken[]
   billingEvents BillingEvent[]
+  annotations   Annotation[]
 
   @@index([institutionId])
   @@index([role])
@@ -61,6 +62,24 @@ model BillingEvent {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Annotation {
+  id        String    @id @default(uuid())
+  userId    String
+  startRef  Int
+  endRef    Int
+  kind      String    // 'highlight' | 'note'
+  color     String?   // 'yellow' | 'green' | 'blue' | 'purple' | 'red'
+  body      String?   // texto da nota
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft delete (tombstone)
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startRef])
+  @@index([userId, updatedAt])
 }
 
 // Academic Institutions

@@ -1,11 +1,11 @@
 {
   "backend/**/*.ts": [
-    "bash -c 'cd backend && npx eslint --fix \"$@\"' _",
-    "bash -c 'cd backend && npx prettier --write \"$@\"' _"
+    "bash -c 'for f in \"$@\"; do (cd backend && npx eslint --fix \"${f#backend/}\"); done' _",
+    "prettier --write"
   ],
   "frontend-v2/**/*.{ts,tsx}": [
-    "bash -c 'cd frontend-v2 && npx eslint --fix \"$@\"' _",
-    "bash -c 'cd frontend-v2 && npx prettier --write \"$@\"' _"
+    "bash -c 'for f in \"$@\"; do (cd frontend-v2 && npx eslint --fix \"${f#frontend-v2/}\"); done' _",
+    "prettier --write"
   ],
   "*.md": ["prettier --write"],
   "*.json": ["prettier --write"]
