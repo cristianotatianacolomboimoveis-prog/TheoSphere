@@ -1508,20 +1508,35 @@ export class McpProtocolService {
   private isRouteRelatedToEra(routeId: string, era: number): boolean {
     switch (routeId) {
       case 'abraao':
+      case 'jaco':
+      case 'jose_egito':
         return era < -1500;
       case 'exodo':
+      case 'conquista_canaa':
         return era >= -1500 && era < -1200;
+      case 'arca_alianca':
+      case 'davi_fugitivo':
       case 'terra_prometida':
-        return era >= -1400 && era < -500;
+        return era >= -1200 && era < -900;
+      case 'elias':
+      case 'jonas':
       case 'exilio_assirio':
-        return era >= -800 && era < -650;
+        return era >= -900 && era < -650;
       case 'exilio_babilonico':
-        return era >= -650 && era < -500;
+      case 'retorno_esdras_neemias':
+        return era >= -650 && era < -400;
+      case 'jesus_nascimento_infancia':
       case 'jesus_galileia':
-        return era >= 0 && era <= 35;
+      case 'jesus_peregrino_norte':
+      case 'jesus_paixao_jerusalem':
+        return era >= -10 && era <= 35;
+      case 'filipe_evangelista':
+      case 'pedro_missoes':
       case 'paulo':
+      case 'paulo_2_viagem':
+      case 'paulo_3_viagem':
       case 'paulo_roma':
-        return era >= 30 && era <= 70;
+        return era >= 30 && era <= 75;
       default:
         return false;
     }

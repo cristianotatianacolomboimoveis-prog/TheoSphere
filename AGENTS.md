@@ -288,6 +288,15 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Correções Aplicadas:** `useSyncExternalStore` para verificação de montagem no cliente, ajuste de estado reativo durante a fase de render para props (`prevIsOpen`, `prevRouteId`) e debounce assíncrono para o autosave. `realCommentaries` encapsulado em `useMemo`.
     - **Validação:** CI GitHub Run #685 e Security Audit Run #513 concluídos com **`status: completed, conclusion: success`** (100% verde).
 
+44. **Catálogo Exaustivo de Rotas Bíblicas Canônicas no Atlas 3D (2026-11-04):**
+    Construído o maior acervo cartográfico de rotas bíblicas em software teológico, expandindo de 8 para **23 rotas canônicas integrais** com waypoints georreferenciados, versículos, sínteses exegéticas, dados arqueológicos e modelos 3D:
+    - **Antigo Testamento (13 rotas):** 1. Peregrinação de Fé de Abraão, 2. Peregrinação de Jacó, 3. Trajetória de José no Egito, 4. Rota do Êxodo e Peregrinação no Deserto, 5. Conquista de Canaã sob Josué, 6. Peregrinação da Arca da Aliança, 7. Fuga e Refúgio de Davi, 8. Jornada Profética de Elias, 9. Missão de Jonas a Nínive, 10. Estabelecimento e Divisão dos Reinos, 11. Exílio Assírio e Dispersão, 12. Exílio Babilônico e Nova Aliança, 13. Retorno dos Exilados e Reconstrução de Jerusalém.
+    - **Ministério de Jesus (4 rotas):** 14. Nascimento e Infância de Jesus, 15. Ministério Galileu de Jesus Cristo, 16. Viagens ao Norte e Transfiguração no Hermom, 17. Última Jornada e Paixão em Jerusalém.
+    - **Ministério dos Apóstolos (2 rotas):** 18. Missão Evangelística de Filipe, 19. Viagens Apostólicas de Pedro.
+    - **Ministério do Apóstolo Paulo (4 rotas):** 20. 1ª Viagem Missionária, 21. 2ª Viagem Missionária (Visão Macedônia, Atenas, Corinto), 22. 3ª Viagem Missionária (Éfeso, Trôade, Mileto), 23. Viagem a Roma (Prisioneiro de Cristo).
+    - **Integração Total:** Suporte nativo e instantâneo (0ms offline) no MapLibre 2.5D, no Globo 3D Cesium, no painel `RouteControlPanel`, no HUD passo a passo `RouteStepperHUD` e via protocolo MCP (`theosphere_map_navigate`).
+    - **Validação:** 345 testes backend passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros, lint 0 erros, build de produção em 1.59s com 20/20 páginas geradas.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
