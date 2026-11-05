@@ -435,7 +435,8 @@ export function SyntaxDiagramModal({
                   </span>
                 ) : (
                   <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2.5 py-0.5 rounded font-sans font-medium">
-                    Segmentação Heurística (Aproximada)
+                    {activeDiagram?.methodLabelPt ||
+                      "Segmentação aproximada (não é árvore sintática anotada)"}
                   </span>
                 )}
               </div>

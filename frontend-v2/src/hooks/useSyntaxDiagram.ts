@@ -43,6 +43,7 @@ export interface ClauseNode {
 export type SyntaxDiagramMethod =
   | "heuristic-interlinear"
   | "heuristic-text"
+  | "curated-manual" // escrito à mão; não importado de treebank
   | "treebank";
 
 export interface SyntaxDiagramResponse {

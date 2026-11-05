@@ -30,4 +30,20 @@ describe("T1.2 — Mapeamento de Versificação no Frontend", () => {
     const wlcRef = mapTranslationRef(blivreRef, "BLIVRE", "WLC");
     expect(wlcRef).toEqual({ bookId: 1, chapter: 32, verse: 1 }); // Gn 32:1 no hebraico
   });
+
+  // Mesma tabela do backend (versification.spec.ts) — as duas cópias devem
+  // concordar com o LXX do banco (Rahlfs, capitulação do MT fora dos Salmos).
+  it.each([
+    [[19, 10, 1], [19, 9, 22]],
+    [[19, 9, 1], [19, 9, 2]],
+    [[19, 51, 1], [19, 50, 3]],
+    [[19, 115, 1], [19, 113, 9]],
+    [[39, 4, 1], [39, 3, 19]],
+    [[29, 2, 28], [29, 3, 1]],
+  ])("KJV %j → LXX %j com ida e volta", ([b, c, v], [eb, ec, ev]) => {
+    const kjv = { bookId: b, chapter: c, verse: v };
+    const lxx = mapRef(kjv, "KJV", "LXX");
+    expect(lxx).toEqual({ bookId: eb, chapter: ec, verse: ev });
+    expect(mapRef(lxx, "LXX", "KJV")).toEqual(kjv);
+  });
 });

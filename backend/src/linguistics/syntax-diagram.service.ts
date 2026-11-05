@@ -10,7 +10,7 @@ import {
   CANONICAL_DIAGRAMS,
   CANONICAL_DIAGRAMS_LIST,
 } from './syntax-canonical-diagrams';
-import { MACULA_TREEBANK_VERSES } from './treebanks/macula-treebank.data';
+import { CURATED_SYNTAX_VERSES } from './treebanks/curated-syntax.data';
 import { BOOK_ID_TO_NAME_PT, resolveBookId } from '../common/book-map';
 import { InterlinearWordRow } from './linguistics.service';
 
@@ -127,9 +127,11 @@ export class SyntaxDiagramService {
     const usfmCode = USFM_BOOK_CODES[numericBookId] || bookInput.toUpperCase();
     const treebankKey = `${usfmCode}.${chapter}.${verse}`;
 
-    // 1. T1.5: Prioridade máxima para árvore real anotada de Treebank (MACULA Greek / Lowfat)
-    if (MACULA_TREEBANK_VERSES[treebankKey]) {
-      return MACULA_TREEBANK_VERSES[treebankKey];
+    // 1. Diagramas curados manualmente (7 versículos). NÃO são treebank —
+    //    ver curated-syntax.data.ts. Quando o MACULA for importado de fato,
+    //    o treebank entra antes deste passo.
+    if (CURATED_SYNTAX_VERSES[treebankKey]) {
+      return CURATED_SYNTAX_VERSES[treebankKey];
     }
 
     const canonicalKey = `${bookInput.toUpperCase()}.${chapter}.${verse}`;

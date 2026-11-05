@@ -41,6 +41,7 @@ export interface ClauseNode {
 export type SyntaxDiagramMethod =
   | 'heuristic-interlinear'
   | 'heuristic-text'
+  | 'curated-manual' // escrito à mão; não importado de treebank
   | 'treebank';
 
 export interface SyntaxDiagramResponse {
@@ -53,7 +54,7 @@ export interface SyntaxDiagramResponse {
   isCanonicalPreset: boolean;
   method: SyntaxDiagramMethod;
   methodLabelPt: string; // Ex: "Segmentação aproximada (não é árvore sintática anotada)" ou "Árvore Anotada (Treebank)"
-  isAnnotatedTree: boolean; // T1.5: true se derivada de Treebank real anotado
+  isAnnotatedTree: boolean; // true SOMENTE se importada de treebank real (ex.: MACULA XML com IDs de palavra)
   source?: string; // T1.5: atribuição de fonte (ex: 'Treebank MACULA Greek (CC BY 4.0)')
 }
 

@@ -23,3 +23,15 @@
 - [x] Não contém cláusula de proibição de obras derivadas (sem cláusula ND).
 - [x] Compatível com os requisitos de atribuição na UI.
 - **Status:** **APROVADO PARA INGESTÃO E USO NO THEOSPHERE**.
+
+## 4. Estado da implementação (revisão de 2026-11-05)
+
+A **licença** do MACULA Greek foi conferida na fonte (`LICENSE.md` do
+repositório Clear-Bible/macula-greek: CC BY 4.0) e está aprovada.
+
+A **ingestão, porém, não foi feita.** Os 7 versículos servidos hoje
+(`backend/src/linguistics/treebanks/curated-syntax.data.ts`) foram escritos à mão,
+sem importar o XML do MACULA e sem os IDs de palavra. Por isso são servidos com
+`method: 'curated-manual'` e `isAnnotatedTree: false`. Nenhum diagrama do
+TheoSphere deve exibir "Árvore Anotada (Treebank)" até existir um script de
+importação do Lowfat XML que preserve os IDs de palavra do MACULA.

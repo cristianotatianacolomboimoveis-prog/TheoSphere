@@ -285,8 +285,10 @@ export class PassageGuideService {
           }));
         }
       } catch (err: any) {
-        this.logger.debug(
-          `Consulta ao ResourceReference contornada: ${err.message}`,
+        // warn, não debug: se o índice novo falhar, o guia cai para o ILIKE
+        // legado e isso precisa aparecer no log de produção.
+        this.logger.warn(
+          `Índice ResourceReference indisponível; usando busca legada (ILIKE): ${err.message}`,
         );
       }
     }

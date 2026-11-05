@@ -71,7 +71,25 @@ async function main() {
       console.log(`→ Obra: "${work.title}" (${work.author}, GID ${work.gid})`);
 
       if (isDryRun) {
-        // Apenas simula
+        // Somente leitura: mede o que SERIA migrado (chunks, referências
+        // extraídas e chunks com embedding), sem gravar nada.
+        const rows = (await (prisma as any).$queryRawUnsafe(
+          `SELECT content, (embedding IS NOT NULL) AS "hasEmbedding"
+           FROM "UserEmbedding"
+           WHERE metadata->>'gutenbergId' = $1 OR metadata->>'title' = $2;`,
+          work.gid,
+          work.title,
+        )) as Array<{ content: string; hasEmbedding: boolean }>;
+        const refs = rows.reduce(
+          (n, r) => n + extractCitationsFromText(r.content || '').length,
+          0,
+        );
+        const withEmb = rows.filter((r) => r.hasEmbedding).length;
+        console.log(
+          `   [dry-run] ${rows.length} chunks (${withEmb} com embedding), ${refs} referências extraídas.`,
+        );
+        totalMigratedChunks += rows.length;
+        totalExtractedRefs += refs;
         continue;
       }
 
@@ -141,16 +159,31 @@ async function main() {
         });
         totalMigratedChunks++;
 
-        // Insere referências encontradas
-        for (const canonicalRef of citations) {
-          await prisma.resourceReference.create({
-            data: {
+        // Copia o vetor já pago (gemini-embedding-001, 768 dims) — sem isso a
+        // migração obrigaria a regerar ~45 mil embeddings (custo, AGENTS §7).
+        await (prisma as any).$executeRawUnsafe(
+          `UPDATE "ResourceChunk" rc
+             SET embedding = ue.embedding
+            FROM "UserEmbedding" ue
+           WHERE rc.id = $1 AND ue.id = $2 AND ue.embedding IS NOT NULL;`,
+          chunk.id,
+          item.id,
+        );
+
+        // Idempotente: reexecutar substitui as referências do chunk em vez de
+        // duplicá-las (antes, cada execução inseria todas de novo).
+        await prisma.resourceReference.deleteMany({
+          where: { chunkId: chunk.id },
+        });
+        if (citations.length > 0) {
+          await prisma.resourceReference.createMany({
+            data: citations.map((canonicalRef) => ({
               chunkId: chunk.id,
               canonicalRef,
               confidence: 1.0,
-            },
+            })),
           });
-          totalExtractedRefs++;
+          totalExtractedRefs += citations.length;
         }
       }
     }

@@ -277,33 +277,54 @@ describe('SyntaxDiagramService', () => {
       expect(diagram.rootClauses.length).toBeGreaterThan(1);
     });
 
-    it('deve retornar árvore anotada real do Treebank MACULA Greek para João 1:1 (T1.5)', async () => {
+    // Revisão 2026-11-05: os 7 versículos de curated-syntax.data.ts foram
+    // escritos à mão — sem importação do MACULA nem IDs de palavra. Não podem
+    // ser apresentados como árvore anotada (regra explícita de T1.5).
+    it('João 1:1 vem da curadoria manual e é rotulado como tal, não como treebank', async () => {
       const diagram = await service.getVerseDiagram('JHN', 1, 1);
 
-      expect(diagram).toBeDefined();
-      expect(diagram.isAnnotatedTree).toBe(true);
-      expect(diagram.method).toBe('treebank');
-      expect(diagram.methodLabelPt).toBe(
-        'Árvore Anotada (Treebank MACULA Greek)',
-      );
-      expect(diagram.source).toContain('Clear Bible');
+      expect(diagram.isAnnotatedTree).toBe(false);
+      expect(diagram.method).toBe('curated-manual');
+      expect(diagram.methodLabelPt).toContain('não é árvore anotada');
+      expect(diagram.source).not.toMatch(/Treebank MACULA/);
       expect(diagram.rootClauses).toHaveLength(3);
-      expect(diagram.rootClauses[0].words).toBeDefined();
-      expect(diagram.rootClauses[0].words?.[0].role).toBe('A'); // 'Ἐν' como Adjunto
-      expect(diagram.rootClauses[0].words?.[2].role).toBe('P'); // 'ἦν' como Predicador
+      expect(diagram.rootClauses[0].words?.[0].role).toBe('A');
+      expect(diagram.rootClauses[0].words?.[2].role).toBe('P');
     });
 
-    it('deve retornar árvore anotada real do Treebank MACULA Greek para Romanos 8:28 (T1.5)', async () => {
+    it('Romanos 8:28 vem da curadoria manual com a subordinada causal', async () => {
       const diagram = await service.getVerseDiagram('ROM', 8, 28);
 
-      expect(diagram).toBeDefined();
-      expect(diagram.isAnnotatedTree).toBe(true);
-      expect(diagram.method).toBe('treebank');
-      expect(diagram.rootClauses).toHaveLength(1);
-      expect(diagram.rootClauses[0].children).toBeDefined();
+      expect(diagram.isAnnotatedTree).toBe(false);
+      expect(diagram.method).toBe('curated-manual');
       expect(diagram.rootClauses[0].children?.[0].clauseType).toBe(
         'subordinate_causal',
       );
+    });
+
+    it('invariante: nenhum diagrama servido hoje se declara treebank (não há importação real)', async () => {
+      const refs: Array<[string, number, number]> = [
+        ['JHN', 1, 1],
+        ['JHN', 1, 2],
+        ['JHN', 1, 3],
+        ['JHN', 1, 14],
+        ['JHN', 1, 18],
+        ['ROM', 8, 1],
+        ['ROM', 8, 28],
+        ['EPH', 2, 8],
+      ];
+      for (const [b, c, v] of refs) {
+        const d = await service.getVerseDiagram(b, c, v);
+        expect({
+          ref: `${b} ${c}:${v}`,
+          annotated: d.isAnnotatedTree,
+          method: d.method,
+        }).toEqual({
+          ref: `${b} ${c}:${v}`,
+          annotated: false,
+          method: expect.not.stringMatching(/^treebank$/),
+        });
+      }
     });
   });
 });

@@ -163,4 +163,38 @@ describe('PassageGuideService', () => {
     expect(g.commentaries[0].source).toBe('Institutas da Religião Cristã');
     expect(g.commentaries[0].tags).toContain('índice-canônico');
   });
+  it('índice ResourceReference indisponível: registra warn e não derruba o guia', async () => {
+    const { Logger } = await import('@nestjs/common');
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const failingResources = {
+      findReferences: jest
+        .fn()
+        .mockRejectedValue(
+          new Error('relation "ResourceReference" does not exist'),
+        ),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PassageGuideService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: CrossReferencesService, useValue: crossRefs },
+        { provide: LinguisticsService, useValue: linguistics },
+        { provide: ArchaeologyService, useValue: archaeology },
+        { provide: ResourcesService, useValue: failingResources },
+      ],
+    }).compile();
+
+    const g = await module
+      .get<PassageGuideService>(PassageGuideService)
+      .getGuide('BLIVRE', 43, 3, 16);
+
+    expect(g).toBeDefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Índice ResourceReference indisponível'),
+    );
+    warn.mockRestore();
+  });
 });

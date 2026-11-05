@@ -212,6 +212,41 @@ describe('T1.2 — Mapeamento de Versificação Canônica (KJV vs MT vs LXX)', (
       expect(mapRef(kjv, 'KJV', 'LXX')).toEqual(kjv);
       expect(mapRef(kjv, 'LXX', 'KJV')).toEqual(kjv);
     });
+
+    // Casos conferidos contra o LXX do banco (Rahlfs: título = v.1, capitulação
+    // do MT fora dos Salmos). Contagens medidas em 2026-11-05: LXX Sl 9 = 39 vv.,
+    // Sl 113 = 26 vv., Ml 3 = 24 vv., Jl 3 = 5 vv., Nm 17 = 28 vv.
+    test.each([
+      ['Sl 10:1 (MT 9+10 = LXX 9)', [19, 10, 1], [19, 9, 22]],
+      ['Sl 10:18 (último verso de LXX 9)', [19, 10, 18], [19, 9, 39]],
+      ['Sl 9:1 (título conta como v.1)', [19, 9, 1], [19, 9, 2]],
+      ['Sl 51:1 (título de 2 vv.)', [19, 51, 1], [19, 50, 3]],
+      ['Sl 114:1 (MT 114+115 = LXX 113)', [19, 114, 1], [19, 113, 1]],
+      ['Sl 115:1', [19, 115, 1], [19, 113, 9]],
+      ['Sl 115:18 (último verso de LXX 113)', [19, 115, 18], [19, 113, 26]],
+      ['Sl 116:10', [19, 116, 10], [19, 115, 1]],
+      ['Sl 147:12', [19, 147, 12], [19, 147, 1]],
+      ['Ml 4:1 (LXX segue o MT 3:19)', [39, 4, 1], [39, 3, 19]],
+      ['Jl 2:28 (LXX segue o MT 3:1)', [29, 2, 28], [29, 3, 1]],
+      ['Nm 16:36 (LXX segue o MT 17:1)', [4, 16, 36], [4, 17, 1]],
+    ])('KJV→LXX %s, com ida e volta', (_label, [b, c, v], [eb, ec, ev]) => {
+      const kjv = { bookId: b, chapter: c, verse: v };
+      const lxx = mapRef(kjv, 'KJV', 'LXX');
+      expect(lxx).toEqual({ bookId: eb, chapter: ec, verse: ev });
+      expect(mapRef(lxx, 'LXX', 'KJV')).toEqual(kjv);
+    });
+
+    it('MT↔LXX é consistente com KJV↔LXX', () => {
+      const mt = { bookId: 19, chapter: 10, verse: 1 };
+      expect(mapRef(mt, 'MT', 'LXX')).toEqual({
+        bookId: 19,
+        chapter: 9,
+        verse: 22,
+      });
+      expect(
+        mapRef({ bookId: 19, chapter: 9, verse: 22 }, 'LXX', 'MT'),
+      ).toEqual(mt);
+    });
   });
 
   describe('Mapeamento por Tradução e Identificação de Esquema', () => {

@@ -1,18 +1,25 @@
 /**
- * macula-treebank.data.ts (T1.5)
+ * curated-syntax.data.ts
  *
- * Árvores sintáticas reais derivadas do corpus MACULA Greek Linguistic Datasets
- * (Clear Bible / Lowfat Syntax Treebank), sob licença CC BY 4.0.
+ * Diagramas de cláusulas CURADOS MANUALMENTE para 7 versículos
+ * (Jo 1:1-3, 1:14, 1:18; Rm 8:1, 8:28).
  *
- * Mapeamento:
- * - Cláusulas independentes/principais e dependentes/subordinadas
- * - Papéis funcionais: S (Subject), P (Predicator), C (Complement), A (Adjunct), Conj (Conjunction)
- * - Níveis de aninhamento sintático estritos
+ * ⚠️ NÃO é treebank. Revisão de 2026-11-05: estes dados foram escritos à mão
+ * (títulos e notas teológicas em PT-BR), sem importação do XML do MACULA Greek
+ * e sem os IDs de palavra do MACULA — portanto não há como verificar que
+ * reproduzem a análise do treebank. O plano (T1.5) proíbe rotular conteúdo
+ * não importado como "árvore anotada". Por isso: isAnnotatedTree=false,
+ * method='curated-manual'.
+ *
+ * Para T1.5 de verdade: importar o Lowfat XML do MACULA Greek (CC BY 4.0,
+ * github.com/Clear-Bible/macula-greek) por script, preservando os IDs de
+ * palavra, e servir com method='treebank'. Ver o prompt de finalização em
+ * audit/prompts/.
  */
 
 import { SyntaxDiagramResponse } from '../syntax-diagram.dto';
 
-export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
+export const CURATED_SYNTAX_VERSES: Record<string, SyntaxDiagramResponse> = {
   // ── João 1:1 ────────────────────────────────────────────────────────
   'JHN.1.1': {
     reference: 'João 1:1',
@@ -21,10 +28,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 3,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'jhn-1-1a',
@@ -224,10 +233,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 1,
     maxNestingDepth: 0,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'jhn-1-2a',
@@ -310,10 +321,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 2,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'jhn-1-3a',
@@ -453,10 +466,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 3,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'jhn-1-14a',
@@ -630,10 +645,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 2,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'jhn-1-18a',
@@ -802,10 +819,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 2,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'rom-8-1a',
@@ -900,10 +919,12 @@ export const MACULA_TREEBANK_VERSES: Record<string, SyntaxDiagramResponse> = {
     totalClauses: 2,
     maxNestingDepth: 1,
     isCanonicalPreset: true,
-    isAnnotatedTree: true,
-    method: 'treebank',
-    methodLabelPt: 'Árvore Anotada (Treebank MACULA Greek)',
-    source: 'Treebank MACULA Greek / Lowfat Syntax (Clear Bible, CC BY 4.0)',
+    isAnnotatedTree: false,
+    method: 'curated-manual',
+    methodLabelPt:
+      'Diagrama curado manualmente (não é árvore anotada de treebank)',
+    source:
+      'Curadoria TheoSphere — não importado nem conferido contra o MACULA Greek',
     rootClauses: [
       {
         id: 'rom-8-28a',

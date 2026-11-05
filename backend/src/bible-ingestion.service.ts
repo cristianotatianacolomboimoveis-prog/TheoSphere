@@ -196,10 +196,24 @@ export class BibleIngestionService {
       // JSONB array and UNNEST it server-side, so the entire chapter is
       // inserted/updated in ONE statement. For a 30-verse chapter this drops
       // round-trips from 30 to 1 — measurable wall-time win on remote DBs.
-      await this.bulkUpsertVerses(versesToSave);
+      // Gravar é cache; o texto já foi obtido. Se o banco recusar a escrita
+      // (ex.: Supabase em read-only, erro 25006), servimos o capítulo assim
+      // mesmo e registramos em warn — antes, a falha de gravação descartava o
+      // texto baixado e o leitor recebia [] (ex.: SBLGNT inteiro, T1.1).
+      let persisted = true;
+      try {
+        await this.bulkUpsertVerses(versesToSave);
+      } catch (saveError) {
+        persisted = false;
+        const saveMsg =
+          saveError instanceof Error ? saveError.message : String(saveError);
+        this.logger.warn(
+          `[Ingestion] ${transUpper} ${bookId}:${chapter} servido sem persistir (gravação recusada): ${saveMsg}`,
+        );
+      }
 
       // Trigger embeddings em background de forma eficiente
-      if (shouldEmbed) {
+      if (shouldEmbed && persisted) {
         void this.triggerBatchEmbeddings(transUpper, bookId, chapter);
       }
 

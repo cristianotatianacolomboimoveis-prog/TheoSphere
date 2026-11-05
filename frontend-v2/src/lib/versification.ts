@@ -464,76 +464,85 @@ export function mapMtToKjv(ref: VerseRef): VerseRef {
   return { bookId, chapter, verse };
 }
 
-export function mapKjvToLxx(ref: VerseRef): VerseRef {
+/**
+ * Converte referência do esquema Massorético (MT/WLC) para a LXX.
+ *
+ * Verificado contra o LXX do banco (2026-11-05): a LXX ingerida segue a
+ * numeração de Rahlfs, que conta o título dos Salmos como versículo (igual ao
+ * MT) e segue a capitulação do MT fora dos Salmos (Ml 3:19-24, Jl 3–4,
+ * Nm 17:1-28). Portanto MT→LXX só muda capítulos nos Salmos:
+ * - MT 9 + 10 = LXX 9 (MT 10:v = LXX 9:v+21; LXX 9 tem 39 vv.)
+ * - MT 114 + 115 = LXX 113 (MT 115:v = LXX 113:v+8; LXX 113 tem 26 vv.)
+ * - MT 116:1-9 = LXX 114; MT 116:10-19 = LXX 115:1-10
+ * - MT 147:1-11 = LXX 146; MT 147:12-20 = LXX 147:1-9
+ */
+export function mapMtToLxx(ref: VerseRef): VerseRef {
   const { bookId, chapter, verse } = ref;
+  if (bookId !== 19) return { bookId, chapter, verse };
 
-  if (bookId === 19) {
-    if (chapter <= 8) {
-      return { bookId, chapter, verse };
-    }
-    if (chapter === 9 || chapter === 10) {
-      return { bookId, chapter: 9, verse };
-    }
-    if (chapter >= 11 && chapter <= 113) {
-      return { bookId, chapter: chapter - 1, verse };
-    }
-    if (chapter === 114 || chapter === 115) {
-      return { bookId, chapter: 113, verse };
-    }
-    if (chapter === 116) {
-      return verse <= 9
-        ? { bookId, chapter: 114, verse }
-        : { bookId, chapter: 115, verse: verse - 9 };
-    }
-    if (chapter >= 117 && chapter <= 146) {
-      return { bookId, chapter: chapter - 1, verse };
-    }
-    if (chapter === 147) {
-      return verse <= 11
-        ? { bookId, chapter: 146, verse }
-        : { bookId, chapter: 147, verse: verse - 11 };
-    }
-    return { bookId, chapter, verse };
+  if (chapter <= 8) return { bookId, chapter, verse };
+  if (chapter === 9) return { bookId, chapter: 9, verse };
+  if (chapter === 10) return { bookId, chapter: 9, verse: verse + 21 };
+  if (chapter >= 11 && chapter <= 113)
+    return { bookId, chapter: chapter - 1, verse };
+  if (chapter === 114) return { bookId, chapter: 113, verse };
+  if (chapter === 115) return { bookId, chapter: 113, verse: verse + 8 };
+  if (chapter === 116) {
+    return verse <= 9
+      ? { bookId, chapter: 114, verse }
+      : { bookId, chapter: 115, verse: verse - 9 };
   }
-
+  if (chapter >= 117 && chapter <= 146)
+    return { bookId, chapter: chapter - 1, verse };
+  if (chapter === 147) {
+    return verse <= 11
+      ? { bookId, chapter: 146, verse }
+      : { bookId, chapter: 147, verse: verse - 11 };
+  }
   return { bookId, chapter, verse };
 }
 
-export function mapLxxToKjv(ref: VerseRef): VerseRef {
+/**
+ * Inversa de mapMtToLxx.
+ */
+export function mapLxxToMt(ref: VerseRef): VerseRef {
   const { bookId, chapter, verse } = ref;
+  if (bookId !== 19) return { bookId, chapter, verse };
 
-  if (bookId === 19) {
-    if (chapter <= 8) {
-      return { bookId, chapter, verse };
-    }
-    if (chapter === 9) {
-      return { bookId, chapter: 9, verse };
-    }
-    if (chapter >= 10 && chapter <= 112) {
-      return { bookId, chapter: chapter + 1, verse };
-    }
-    if (chapter === 113) {
-      return { bookId, chapter: 114, verse };
-    }
-    if (chapter === 114) {
-      return { bookId, chapter: 116, verse };
-    }
-    if (chapter === 115) {
-      return { bookId, chapter: 116, verse: verse + 9 };
-    }
-    if (chapter >= 116 && chapter <= 145) {
-      return { bookId, chapter: chapter + 1, verse };
-    }
-    if (chapter === 146) {
-      return { bookId, chapter: 147, verse };
-    }
-    if (chapter === 147) {
-      return { bookId, chapter: 147, verse: verse + 11 };
-    }
-    return { bookId, chapter, verse };
+  if (chapter <= 8) return { bookId, chapter, verse };
+  if (chapter === 9) {
+    return verse <= 21
+      ? { bookId, chapter: 9, verse }
+      : { bookId, chapter: 10, verse: verse - 21 };
   }
-
+  if (chapter >= 10 && chapter <= 112)
+    return { bookId, chapter: chapter + 1, verse };
+  if (chapter === 113) {
+    return verse <= 8
+      ? { bookId, chapter: 114, verse }
+      : { bookId, chapter: 115, verse: verse - 8 };
+  }
+  if (chapter === 114) return { bookId, chapter: 116, verse };
+  if (chapter === 115) return { bookId, chapter: 116, verse: verse + 9 };
+  if (chapter >= 116 && chapter <= 145)
+    return { bookId, chapter: chapter + 1, verse };
+  if (chapter === 146) return { bookId, chapter: 147, verse };
+  if (chapter === 147) return { bookId, chapter: 147, verse: verse + 11 };
   return { bookId, chapter, verse };
+}
+
+/**
+ * KJV → LXX passando pelo MT (títulos dos Salmos, Ml 4, Jl 2–3, Nm 16–17 etc.).
+ */
+export function mapKjvToLxx(ref: VerseRef): VerseRef {
+  return mapMtToLxx(mapKjvToMt(ref));
+}
+
+/**
+ * LXX → KJV passando pelo MT.
+ */
+export function mapLxxToKjv(ref: VerseRef): VerseRef {
+  return mapMtToKjv(mapLxxToMt(ref));
 }
 
 export function mapRef(
