@@ -189,5 +189,42 @@ describe('AnnotationsService (T0.4 Server Persistence & Sync)', () => {
       expect(res.readOnlyDegraded).toBe(true);
       expect(res.message).toContain('salvas apenas neste dispositivo');
     });
+    it('degrada para local quando a tabela ainda não existe (migração pendente, P2021)', async () => {
+      mockPrisma.$transaction.mockRejectedValueOnce(
+        Object.assign(
+          new Error('The table `public.Annotation` does not exist'),
+          {
+            code: 'P2021',
+          },
+        ),
+      );
+      const res = await service.syncBatch('user-1', [
+        {
+          startRef: 1001001,
+          endRef: 1001001,
+          kind: 'highlight',
+          color: 'blue',
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
+      expect(res.readOnlyDegraded).toBe(true);
+    });
+
+    it('propaga erros desconhecidos (não mascara como read-only)', async () => {
+      mockPrisma.$transaction.mockRejectedValueOnce(
+        Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }),
+      );
+      await expect(
+        service.syncBatch('user-1', [
+          {
+            startRef: 1001001,
+            endRef: 1001001,
+            kind: 'note',
+            body: 'x',
+            updatedAt: new Date().toISOString(),
+          },
+        ]),
+      ).rejects.toThrow('connection reset');
+    });
   });
 });

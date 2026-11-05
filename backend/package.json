@@ -14,7 +14,7 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "npx prisma migrate deploy && node dist/main",
+    "start": "npx prisma migrate deploy || echo '[STARTUP][ERRO] prisma migrate deploy FALHOU — servidor iniciando com migracoes pendentes.' >&2; node dist/main",
     "start:local": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

@@ -124,10 +124,14 @@ export class AnnotationsService {
         synced: results,
       };
     } catch (err: any) {
+      // Read-only (25006) ou tabela ainda não criada porque a migração ficou
+      // pendente no boot (Prisma P2021 / Postgres 42P01): degrada para local.
       const isReadOnly =
         err.message?.includes('read_only') ||
         err.message?.includes('read-only') ||
-        err.code === '25006';
+        err.code === '25006' ||
+        err.code === 'P2021' ||
+        err.code === '42P01';
 
       if (isReadOnly) {
         this.logger.warn(

@@ -56,6 +56,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Migrações não bloqueiam o boot: com o Supabase em read-only (25006) o
+# `migrate deploy` falha e, com `&&`, o servidor nunca subia — o Render mantinha
+# a versão antiga no ar (inclusive com falhas de segurança já corrigidas).
+# A falha é registrada em ERRO no log; o próximo restart com banco gravável
+# aplica as migrações pendentes. Endpoints que dependem delas degradam.
+CMD ["sh", "-c", "npx prisma migrate deploy || echo '[STARTUP][ERRO] prisma migrate deploy FALHOU — servidor iniciando com migracoes pendentes (banco read-only?). Ver AGENTS.md T0.7.' >&2; node dist/main"]
 
 
