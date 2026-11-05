@@ -5,6 +5,7 @@ import {
   BOOK_ID_TO_NAME_PT,
   normalizeRefToCanonicalEn,
 } from '../common/book-map';
+import { parseRefToCanonical, fromCanonicalRef } from '../common/canonical-ref';
 
 export interface CrossRef {
   target: string;
@@ -58,18 +59,69 @@ export class CrossReferencesService {
   ): Promise<CrossRef[]> {
     const safeLimit = Math.min(Math.max(1, limit), 200);
     const normalizedSource = normalizeRefToCanonicalEn(sourceRef);
+    const numericSource =
+      parseRefToCanonical(sourceRef) || parseRefToCanonical(normalizedSource);
+
+    const orConditions: any[] = [
+      { sourceRef },
+      { sourceRef: normalizedSource },
+    ];
+    if (numericSource) {
+      orConditions.push({ sourceNumRef: numericSource });
+    }
 
     const rows = await this.prisma.crossReference.findMany({
       where: {
-        OR: [{ sourceRef }, { sourceRef: normalizedSource }],
+        OR: orConditions,
       },
       orderBy: [{ rank: { sort: 'asc', nulls: 'last' } }, { votes: 'desc' }],
       take: safeLimit,
-      select: { targetRef: true, rank: true, votes: true },
+      select: { targetRef: true, targetNumRef: true, rank: true, votes: true },
     });
 
     if (rows.length === 0) return [];
+    return this.enrichTargets(rows, translation, includeText);
+  }
 
+  /**
+   * Consulta referências cruzadas originadas dentro de um intervalo BBCCCVVV.
+   * T1.3: Suporte a consultas por intervalo canônico numérico indexado.
+   */
+  async listByNumericRange(
+    startRef: number,
+    endRef: number,
+    limit = 50,
+    translation = 'BLIVRE',
+    includeText = true,
+  ): Promise<CrossRef[]> {
+    const safeLimit = Math.min(Math.max(1, limit), 200);
+
+    const rows = await this.prisma.crossReference.findMany({
+      where: {
+        sourceNumRef: {
+          gte: Math.min(startRef, endRef),
+          lte: Math.max(startRef, endRef),
+        },
+      },
+      orderBy: [{ rank: { sort: 'asc', nulls: 'last' } }, { votes: 'desc' }],
+      take: safeLimit,
+      select: { targetRef: true, targetNumRef: true, rank: true, votes: true },
+    });
+
+    if (rows.length === 0) return [];
+    return this.enrichTargets(rows, translation, includeText);
+  }
+
+  private async enrichTargets(
+    rows: {
+      targetRef: string;
+      targetNumRef?: number | null;
+      rank: number | null;
+      votes: number | null;
+    }[],
+    translation = 'BLIVRE',
+    includeText = true,
+  ): Promise<CrossRef[]> {
     // Deduplica alvos preservando a melhor ordem
     const seen = new Set<string>();
     const uniqueRows: typeof rows = [];
@@ -81,6 +133,19 @@ export class CrossReferencesService {
     }
 
     const parsedTargets = uniqueRows.map((r) => {
+      if (r.targetNumRef) {
+        const { bookId, chapter, verse } = fromCanonicalRef(r.targetNumRef);
+        return {
+          ...r,
+          parsed: {
+            bookName: BOOK_ID_TO_NAME_PT[bookId] || '',
+            chapter,
+            verse,
+          },
+          bookId,
+        };
+      }
+
       const m = r.targetRef.match(
         /^(\d?\s*[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]*?)\s+(\d+):(\d+)$/,
       );

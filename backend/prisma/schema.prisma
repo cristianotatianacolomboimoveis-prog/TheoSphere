@@ -303,17 +303,21 @@ model TechnicalCommentary {
 /// canonical English short references (e.g. "John 3:16") to match the
 /// frontend store's `activeBook` convention.
 model CrossReference {
-  id        String   @id @default(uuid())
-  sourceRef String // ex: "John 3:16"
-  targetRef String // ex: "Romans 5:8"
+  id           String   @id @default(uuid())
+  sourceRef    String // ex: "John 3:16"
+  targetRef    String // ex: "Romans 5:8"
+  sourceNumRef Int?     // Formato canônico BBCCCVVV (T1.3)
+  targetNumRef Int?     // Formato canônico BBCCCVVV (T1.3)
   /// TSK provides a relevance hint; openbible.info also exposes community
   /// votes. Lower rank / higher votes = better hit. NULL when unknown.
-  rank      Int?
-  votes     Int?
-  createdAt DateTime @default(now())
+  rank         Int?
+  votes        Int?
+  createdAt    DateTime @default(now())
 
   @@unique([sourceRef, targetRef])
   @@index([sourceRef])
+  @@index([sourceNumRef])
+  @@index([targetNumRef])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

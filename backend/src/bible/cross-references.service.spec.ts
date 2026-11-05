@@ -62,7 +62,11 @@ describe('CrossReferencesService', () => {
       expect(prisma.crossReference.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            OR: [{ sourceRef: 'John 3:16' }, { sourceRef: 'John 3:16' }],
+            OR: [
+              { sourceRef: 'John 3:16' },
+              { sourceRef: 'John 3:16' },
+              { sourceNumRef: 43003016 },
+            ],
           },
         }),
       );
@@ -100,7 +104,7 @@ describe('CrossReferencesService', () => {
       });
     });
 
-    it('deve normalizar sourceRef em português para o canônico em inglês na query do banco', async () => {
+    it('deve normalizar sourceRef em português para o canônico em inglês e calcular sourceNumRef', async () => {
       prisma.crossReference.findMany.mockResolvedValue([]);
 
       await service.list('João 3:16');
@@ -108,7 +112,11 @@ describe('CrossReferencesService', () => {
       expect(prisma.crossReference.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            OR: [{ sourceRef: 'João 3:16' }, { sourceRef: 'John 3:16' }],
+            OR: [
+              { sourceRef: 'João 3:16' },
+              { sourceRef: 'John 3:16' },
+              { sourceNumRef: 43003016 },
+            ],
           },
         }),
       );
@@ -120,6 +128,72 @@ describe('CrossReferencesService', () => {
       const result = await service.list('Obadiah 1:21');
       expect(result).toEqual([]);
       expect(prisma.bibleVerse.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listByNumericRange', () => {
+    it('deve consultar por intervalo numérico [startRef, endRef]', async () => {
+      prisma.crossReference.findMany.mockResolvedValue([
+        {
+          targetRef: 'Romans 5:8',
+          targetNumRef: 45005008,
+          rank: 1,
+          votes: 10,
+        },
+      ]);
+      prisma.bibleVerse.findMany.mockResolvedValue([
+        {
+          bookId: 45,
+          chapter: 5,
+          verse: 8,
+          text: 'Mas Deus prova o seu próprio amor...',
+        },
+      ]);
+
+      const res = await service.listByNumericRange(
+        43003001,
+        43003016,
+        25,
+        'BLIVRE',
+        true,
+      );
+
+      expect(prisma.crossReference.findMany).toHaveBeenCalledWith({
+        where: {
+          sourceNumRef: {
+            gte: 43003001,
+            lte: 43003016,
+          },
+        },
+        orderBy: [{ rank: { sort: 'asc', nulls: 'last' } }, { votes: 'desc' }],
+        take: 25,
+        select: {
+          targetRef: true,
+          targetNumRef: true,
+          rank: true,
+          votes: true,
+        },
+      });
+
+      expect(res).toHaveLength(1);
+      expect(res[0].target).toBe('Romans 5:8');
+      expect(res[0].bookNamePt).toBe('Romanos');
+    });
+
+    it('deve inverter limites se startRef > endRef', async () => {
+      prisma.crossReference.findMany.mockResolvedValue([]);
+      await service.listByNumericRange(43003036, 43003001);
+
+      expect(prisma.crossReference.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            sourceNumRef: {
+              gte: 43003001,
+              lte: 43003036,
+            },
+          },
+        }),
+      );
     });
   });
 
