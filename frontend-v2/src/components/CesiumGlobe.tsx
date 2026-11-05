@@ -645,21 +645,6 @@ export default function CesiumGlobe({
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 2,
           },
-          label: {
-            text: `🏺 ${find.namePt}`,
-            font: "bold 11px Inter, system-ui, sans-serif",
-            fillColor: Cesium.Color.fromCssColorString("#FFE4E6"),
-            outlineColor: Cesium.Color.fromCssColorString("#881337"),
-            outlineWidth: 3,
-            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-            pixelOffset: new Cesium.Cartesian2(0, -14),
-            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(
-              0,
-              2500000,
-            ),
-          },
         });
       }
     }

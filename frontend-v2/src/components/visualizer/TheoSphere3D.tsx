@@ -845,26 +845,23 @@ export default function TheoSphere3D({
         },
       }),
 
-    // Rótulos dos Locais Bíblicos (TextLayer com background nítido e LOD sem colisão)
+    // Rótulos dos Locais Bíblicos Principais (apenas centros capitais para manter satélite limpo; demais no hover)
     showCities &&
       new TextLayer({
         id: "labels",
-        data:
-          viewState.zoom < 5.5
-            ? (locations || []).filter(
-                (loc: any) =>
-                  loc.name === "Jerusalém" ||
-                  loc.name === "Samaria" ||
-                  loc.name === "Damasco" ||
-                  loc.name === "Hebrom" ||
-                  loc.name === "Alexandria" ||
-                  loc.name === "Babilônia" ||
-                  loc.name === "Roma" ||
-                  loc.name === "Éfeso" ||
-                  loc.name === "Nazaré" ||
-                  loc.name === "Cafarnaum",
-              )
-            : locations || [],
+        data: (locations || []).filter(
+          (loc: any) =>
+            loc.name === "Jerusalém" ||
+            loc.name === "Samaria" ||
+            loc.name === "Damasco" ||
+            loc.name === "Hebrom" ||
+            loc.name === "Alexandria" ||
+            loc.name === "Babilônia" ||
+            loc.name === "Roma" ||
+            loc.name === "Éfeso" ||
+            loc.name === "Nazaré" ||
+            loc.name === "Cafarnaum",
+        ),
         getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
         getText: (d: any) => d?.name || "",
         getSize: viewState.zoom > 7 ? 13 : 11,
@@ -878,39 +875,12 @@ export default function TheoSphere3D({
         fontFamily: "'Literata', Georgia, serif",
         fontWeight: "bold",
       }),
-
-    // Rótulos dos Achados Arqueológicos (TextLayer com badge temático de autenticidade)
-    showArchaeology &&
-      new TextLayer({
-        id: "arch-labels",
-        data: archFinds,
-        getPosition: (f: ArchaeologicalFind) => [
-          f.longitude as number,
-          f.latitude as number,
-        ],
-        getText: (f: ArchaeologicalFind) =>
-          `🏺 ${f.namePt.length > 22 ? f.namePt.slice(0, 21) + "…" : f.namePt}`,
-        getSize: viewState.zoom > 7 ? 12 : 10,
-        sizeUnits: "pixels",
-        getColor: [255, 228, 230, 250],
-        getPixelOffset: [0, -14],
-        characterSet: "auto",
-        background: true,
-        getBackgroundColor: [35, 10, 20, 225],
-        backgroundPadding: [5, 2],
-        fontFamily: "'Inter', sans-serif",
-        fontWeight: "bold",
-      }),
   ].filter(Boolean);
 
   const getDeckTooltip = useCallback((info: any) => {
     if (!info || !info.object) return null;
     const obj = info.object;
-    if (
-      info.layer?.id === "arch-finds" ||
-      info.layer?.id === "arch-labels" ||
-      obj.slug
-    ) {
+    if (info.layer?.id === "arch-finds" || obj.slug) {
       return {
         html: `<div style="padding: 8px 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); font-family: Inter, sans-serif; max-width: 260px; backdrop-filter: blur(8px);">
           <div style="font-weight: bold; font-size: 12px; color: #f43f5e; display: flex; align-items: center; gap: 4px;">

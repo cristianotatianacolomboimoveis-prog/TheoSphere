@@ -274,6 +274,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Filtro de Camadas no Topo (`MapHeader.tsx`):** Adicionadas pílulas compactas de toggle de 1 clique (`[🏛️ Cidades]` e `[🏺 Achados]`) para alternar a exibição sem poluição visual.
     - **Validação:** 345 testes backend, 49 testes frontend vitest, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados e build de produção aprovado em 1.96s.
 
+42. **Modo Ultra-Clean no Atlas 3D com Identificação Exclusiva no Hover (2026-11-04):**
+    Aprimorada a experiência visual do mapa bíblico e globo 3D conforme decisão de usabilidade:
+    - **Zero Poluição de Satélite:** Removidos rótulos de texto fixos sobre os sítios arqueológicos (pontos vermelhos) e locais secundários (pontos laranjas), eliminando conflitos visuais e mantendo 100% visível o relevo de satélite e a topografia bíblica.
+    - **Hover Instantâneo (0ms):** Ao passar o mouse por cima de qualquer ponto vermelho ou laranja, o tooltip contextual surge instantaneamente exibindo nome, local de descoberta, autenticidade e referências bíblicas.
+    - **Centros Canônicos Fixos:** Mantidos apenas os grandes centros de orientação espacial macro (Jerusalém, Babilônia, Roma, Damasco, Alexandria, Samaria, etc.) no `TextLayer` com contraste e padding escuro.
+    - **Paridade Deck.gl e Cesium:** Tanto o motor 2.5D quanto o Cesium 3D operam no mesmo padrão ultra-clean sem caixas de texto flutuantes estáticas cobrindo o terreno.
+    - **Validação:** 345 testes backend, 49 testes frontend vitest passando, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
