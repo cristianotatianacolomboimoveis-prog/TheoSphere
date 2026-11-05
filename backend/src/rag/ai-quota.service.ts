@@ -1,36 +1,43 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import Redis from 'ioredis';
+import { PrismaService } from '../prisma.service';
+import { THEOSPHERE_PLANS } from '../billing/plans.constants';
+
+export interface QuotaStatus {
+  usado: number;
+  limite: number;
+  restante: number;
+  excedeu: boolean;
+  plano: string;
+  diasParaRenovar: number;
+  mensagem?: string;
+}
 
 /**
- * AiQuotaService — cota diária de chamadas à IA por usuário.
+ * AiQuotaService — Gestão de cotas mensais de IA por plano de assinatura.
  *
- * Existe porque em 29-30/07/2026 o teto de gastos do projeto Gemini estourou e
- * derrubou a IA para todo mundo. Sem cota individual, um único testador
- * consumindo com afinco esgota o limite do dia da plataforma inteira.
+ * Planos e Limites:
+ * - FREE (Degustação): 10 créditos
+ * - STARTER (R$ 14,90): 60 créditos/mês
+ * - PLUS (R$ 24,90): 200 créditos/mês (Recomendado para Pastores)
+ * - PRO (R$ 39,90): 600 créditos/mês (Pesquisa Teológica / Acadêmico)
+ * - CHURCH (R$ 99,90): 1.500 créditos/mês (Igrejas e Equipes)
  *
- * Regra central: **só consome cota o que realmente chama a IA.**
- * Resposta vinda do cache semântico ou da biblioteca do Drive é gratuita para
- * a plataforma, então também é gratuita para o usuário. Isso alinha o
- * incentivo — quem repete pergunta ou usa o acervo não é punido.
- *
- * Armazenamento: Redis com expiração na virada do dia (mesma janela do RPD do
- * Google, que zera à meia-noite no Pacífico — usamos meia-noite local, que é
- * mais previsível para o usuário). Sem REDIS_URL, cai para memória: o
- * contador se perde no restart, o que é aceitável para um limite de cortesia.
+ * Regra vital: apenas chamadas efetivas ao provedor de IA consomem cota.
+ * Respostas servidas pelo cache semântico ou pelas 108 obras clássicas são
+ * gratuitas para o usuário e preservam o saldo de IA.
  */
 @Injectable()
 export class AiQuotaService implements OnModuleDestroy {
   private readonly logger = new Logger(AiQuotaService.name);
   private readonly redis: Redis | null = null;
   private readonly memoria = new Map<string, { n: number; expiraEm: number }>();
+  private readonly cachePlanos = new Map<
+    string,
+    { plano: string; expiraEm: number }
+  >();
 
-  /** Limite diário por usuário. 0 desliga a checagem. */
-  private readonly LIMITE: number;
-
-  constructor() {
-    const bruto = Number(process.env.AI_DAILY_LIMIT_PER_USER ?? 30);
-    this.LIMITE = Number.isFinite(bruto) && bruto >= 0 ? bruto : 30;
-
+  constructor(@Optional() private readonly prisma?: PrismaService) {
     const url = process.env.REDIS_URL;
     if (url) {
       this.redis = new Redis(url, {
@@ -42,7 +49,7 @@ export class AiQuotaService implements OnModuleDestroy {
       );
     } else {
       this.logger.warn(
-        'REDIS_URL ausente — cota de IA contada em memória (zera a cada restart).',
+        'REDIS_URL ausente — cotas de IA armazenadas em memória resiliente.',
       );
     }
   }
@@ -51,78 +58,163 @@ export class AiQuotaService implements OnModuleDestroy {
     await this.redis?.quit().catch(() => undefined);
   }
 
-  /** Segundos até a próxima meia-noite local. */
-  private segundosAteVirada(): number {
+  /** Segundos até o primeiro dia do próximo mês (janela de renovação mensal). */
+  private segundosAteViradaDoMes(): number {
     const agora = new Date();
-    const meiaNoite = new Date(agora);
-    meiaNoite.setHours(24, 0, 0, 0);
+    const proximoMes = new Date(
+      agora.getFullYear(),
+      agora.getMonth() + 1,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
     return Math.max(
       60,
-      Math.ceil((meiaNoite.getTime() - agora.getTime()) / 1000),
+      Math.ceil((proximoMes.getTime() - agora.getTime()) / 1000),
     );
   }
 
-  private chave(userId: string): string {
-    const hoje = new Date().toISOString().slice(0, 10);
-    return `ai-quota:${hoje}:${userId}`;
+  /** Dias restantes até o próximo ciclo de renovação. */
+  private diasAteRenovacao(): number {
+    const agora = new Date();
+    const proximoMes = new Date(
+      agora.getFullYear(),
+      agora.getMonth() + 1,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+    const diffMs = proximoMes.getTime() - agora.getTime();
+    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  }
+
+  private chaveMensal(userId: string): string {
+    const anoMes = new Date().toISOString().slice(0, 7); // ex: '2026-11'
+    return `ai-quota:month:${anoMes}:${userId}`;
   }
 
   /**
-   * Consulta o estado da cota SEM consumir. Usado antes de decidir se vale a
-   * pena chamar a IA.
+   * Obtém o plano de assinatura do usuário (com cache em memória de 10 min).
    */
-  async consultar(userId: string): Promise<{
-    usado: number;
-    limite: number;
-    restante: number;
-    excedeu: boolean;
-  }> {
-    if (this.LIMITE === 0) {
-      return { usado: 0, limite: 0, restante: Infinity, excedeu: false };
+  async obterPlanoUsuario(userId: string): Promise<string> {
+    if (!userId || userId === 'public-guest') return 'FREE';
+
+    const cache = this.cachePlanos.get(userId);
+    if (cache && cache.expiraEm > Date.now()) {
+      return cache.plano;
     }
+
+    if (!this.prisma) return 'FREE';
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { plan: true },
+      });
+      const plano = (user?.plan || 'FREE').toUpperCase();
+      this.cachePlanos.set(userId, {
+        plano,
+        expiraEm: Date.now() + 10 * 60 * 1000, // 10 minutos
+      });
+      return plano;
+    } catch (err: any) {
+      this.logger.debug(
+        `Não foi possível buscar plano de ${userId}: ${err.message}`,
+      );
+      return 'FREE';
+    }
+  }
+
+  /**
+   * Retorna o limite mensal de créditos de IA para o plano especificado.
+   */
+  obterLimitePlano(plano: string): number {
+    const upper = (plano || 'FREE').toUpperCase();
+    const def = THEOSPHERE_PLANS[upper];
+    if (def) return def.aiCreditsMonthly;
+    return THEOSPHERE_PLANS.FREE.aiCreditsMonthly;
+  }
+
+  /**
+   * Consulta o estado atual da cota SEM consumir créditos.
+   */
+  async consultar(userId: string): Promise<QuotaStatus> {
+    if (!userId || userId === 'public-guest') {
+      return {
+        usado: 0,
+        limite: 10,
+        restante: 10,
+        excedeu: false,
+        plano: 'FREE',
+        diasParaRenovar: this.diasAteRenovacao(),
+      };
+    }
+
+    const plano = await this.obterPlanoUsuario(userId);
+    const limite = this.obterLimitePlano(plano);
+    const chave = this.chaveMensal(userId);
+    const diasParaRenovar = this.diasAteRenovacao();
 
     let usado: number;
     try {
       if (this.redis) {
-        usado = Number((await this.redis.get(this.chave(userId))) ?? 0);
+        usado = Number((await this.redis.get(chave)) ?? 0);
       } else {
-        const reg = this.memoria.get(this.chave(userId));
+        const reg = this.memoria.get(chave);
         usado = reg && reg.expiraEm > Date.now() ? reg.n : 0;
       }
     } catch (err) {
-      // Falha de infraestrutura não pode bloquear o usuário.
       this.logger.warn(`Falha ao ler cota: ${(err as Error).message}`);
       return {
         usado: 0,
-        limite: this.LIMITE,
-        restante: this.LIMITE,
+        limite,
+        restante: limite,
         excedeu: false,
+        plano,
+        diasParaRenovar,
       };
+    }
+
+    const excedeu = usado >= limite;
+    const restante = Math.max(0, limite - usado);
+
+    let mensagem: string | undefined;
+    if (excedeu) {
+      const nomePlano = THEOSPHERE_PLANS[plano]?.name || plano;
+      mensagem =
+        `Você atingiu o limite de ${limite} consultas à IA do plano ${nomePlano}. ` +
+        `Seu saldo será renovado em ${diasParaRenovar} dias.\n\n` +
+        `Enquanto isso, a leitura bíblica, as 108 obras clássicas (Calvino, Matthew Henry, Tomás de Aquino), ` +
+        `o Atlas 3D e suas anotações continuam 100% liberados e ilimitados.`;
     }
 
     return {
       usado,
-      limite: this.LIMITE,
-      restante: Math.max(0, this.LIMITE - usado),
-      excedeu: usado >= this.LIMITE,
+      limite,
+      restante,
+      excedeu,
+      plano,
+      diasParaRenovar,
+      mensagem,
     };
   }
 
   /**
-   * Registra UMA chamada efetiva à IA. Deve ser invocado apenas quando o
-   * provedor foi mesmo acionado — nunca em cache hit nem em resposta servida
-   * pela biblioteca.
+   * Registra UMA chamada efetiva à IA, deduzindo 1 crédito do ciclo mensal.
    */
   async registrarUso(userId: string): Promise<void> {
-    if (this.LIMITE === 0) return;
+    if (!userId || userId === 'public-guest') return;
 
-    const chave = this.chave(userId);
-    const ttl = this.segundosAteVirada();
+    const chave = this.chaveMensal(userId);
+    const ttl = this.segundosAteViradaDoMes();
 
     try {
       if (this.redis) {
         const n = await this.redis.incr(chave);
-        // Só define expiração na primeira ocorrência do dia.
         if (n === 1) await this.redis.expire(chave, ttl);
       } else {
         const reg = this.memoria.get(chave);

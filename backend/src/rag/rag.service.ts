@@ -459,18 +459,20 @@ export class RagService {
       }
     }
 
-    // ═══ ETAPA 1.3: Cota diária de IA ═══
+    // ═══ ETAPA 1.3: Cota de IA (Mensal por Plano) ═══
     if (userId && userId !== 'public-guest') {
       const cota = await this.aiQuota.consultar(userId);
       if (cota.excedeu) {
         this.logger.warn(
-          `[RAG] Cota diária esgotada para ${userId} (${cota.usado}/${cota.limite}).`,
+          `[RAG] Cota de IA esgotada para ${userId} (${cota.usado}/${cota.limite} - Plano: ${cota.plano}).`,
         );
         return {
-          content: `Você atingiu o limite de ${cota.limite} consultas à IA por dia. O limite existe para que a plataforma continue disponível para todos os testadores — ele reinicia à meia-noite.\n\nEnquanto isso, a busca bíblica, o léxico, as referências cruzadas e a sua biblioteca continuam liberados.`,
+          content:
+            cota.mensagem ||
+            `Você atingiu o limite de ${cota.limite} consultas à IA do seu plano. Seu saldo será renovado no próximo ciclo mensal.\n\nEnquanto isso, a busca bíblica, o léxico, as 108 obras clássicas e a sua biblioteca continuam liberados.`,
           cached: false,
           degraded: true,
-          degradedReason: `Cota diária atingida (${cota.usado}/${cota.limite})`,
+          degradedReason: `Cota de IA atingida (${cota.usado}/${cota.limite})`,
           contextUsed: false,
           contextDocCount: 0,
           tokensEstimated: 0,

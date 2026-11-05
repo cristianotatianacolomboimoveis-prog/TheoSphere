@@ -306,6 +306,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Frontend & Filtros:** Adicionadas as novas tradições `Arminiana` e `Ecumênica` com badges semânticos estilizados em `TheologicalLibrary.tsx`.
     - **Validação:** 345 testes backend jest passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros (`tsc --noEmit`), lint 0 erros, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado.
 
+46. **Sistema de Planos e Limites de IA em Real (BRL) & Página de Assinatura (/pricing) (2026-11-05):**
+    Implantada a arquitetura oficial de precificação e controle de cotas de IA baseada na proposta oficial:
+    - **Tabela Oficial de Planos (`plans.constants.ts` e `plans.ts`):** Starter (R$ 14,90/mês, 60 créditos), Plus (R$ 24,90/mês, 200 créditos - Mais Popular / Pastores), Pro (R$ 39,90/mês, 600 créditos - Acadêmico / Grego e Hebraico) e Church / Instituição (R$ 99,90/mês, 1.500 créditos multi-usuário).
+    - **Backend & Gestão de Cotas:** `AiQuotaService` atualizado para gerenciar cotas mensais resilientes por plano (`user.plan`) com janela de renovação mensal automática. Criado `BillingModule` com endpoints `/api/v1/billing/plans`, `/api/v1/billing/usage` e `/api/v1/billing/subscribe`.
+    - **Garantia de Fail-Soft:** Ao atingir a cota de IA, as 108 obras clássicas, as 7 Bíblias canônicas, o Atlas 3D e as anotações continuam 100% livres e ilimitadas.
+    - **Frontend & UX:** Criada a página de planos `/pricing` com switch Mensal/Anual (2 meses grátis), botão `[👑 Planos]` na TopBar e link contextual no Copilot IA (`AIAssistant.tsx`).
+    - **Validação:** **351 testes backend jest passando** (40 suítes), **49 testes frontend vitest passando** (5 suítes), typecheck e lint 100% limpos, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado com **21/21 páginas geradas**.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.

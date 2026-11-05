@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   X,
   Send,
@@ -816,9 +817,19 @@ export default function AIAssistant({ onClose }: { onClose: () => void }) {
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-[9px] text-white/15 text-center mt-2 uppercase tracking-widest">
-          TheoAI · RAG · Cache Semântico · Economia ~95%
-        </p>
+        <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 px-1">
+          <span className="flex items-center gap-1">
+            <Zap className="w-3 h-3 text-indigo-400" />
+            <span>Consultas com evidências & 108 obras clássicas</span>
+          </span>
+          <Link
+            href="/pricing"
+            className="text-amber-400 hover:text-amber-300 font-medium transition-colors flex items-center gap-1"
+          >
+            <span>Planos & Cotas</span>
+            <span>→</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
