@@ -11,6 +11,9 @@ jobs:
     name: Executar Testes E2E e Fluxos Críticos
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout do Repositório
@@ -48,3 +51,11 @@ jobs:
         with:
           name: relatorio-qa-diario-${{ github.run_id }}
           path: audit/reports/
+
+      - name: Executar Agente de Auto-Fix e Abertura de PR (se houver falhas)
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== 4. AGENTE DE AUTO-FIX (ABERTURA DE PULL REQUEST EM CASO DE FALHA) ==="
+          node audit/scripts/auto-fix-pr.mjs

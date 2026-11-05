@@ -314,6 +314,12 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Frontend & UX:** Criada a página de planos `/pricing` com switch Mensal/Anual (2 meses grátis), botão `[👑 Planos]` na TopBar e link contextual no Copilot IA (`AIAssistant.tsx`).
     - **Validação:** **351 testes backend jest passando** (40 suítes), **49 testes frontend vitest passando** (5 suítes), typecheck e lint 100% limpos, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado com **21/21 páginas geradas**.
 
+47. **Perfil Altimétrico Interativo do Terreno Bíblico (Elevation Profile HUD) & Agente de Auto-Fix de PR (2026-11-05):**
+    Construído o motor de análise topográfica bíblica e a automação de auto-reparo do ecossistema:
+    - **Perfil Altimétrico de Rotas Bíblicas (`ElevationProfileHUD.tsx`):** Primeiro motor interativo de altimetria e relevo de rotas bíblicas do mercado (superando o Logos que possui apenas mapas rasterizados estáticos). Gráfico SVG dinâmico com tabela canônica de elevações (de -430m no Mar Morto até +2.814m no Hermom), distância geodésica acumulada (fórmula de Haversine em km), ganho acumulado de elevação e estimativa de marcha bíblica a pé (~dias de caravana). Hover exibe altitude instantânea e clique reposiciona a câmera 3D no cume.
+    - **Agente de Auto-Fix & Pull Requests Automáticos (`auto-fix-pr.mjs` e `daily-qa.yml`):** Script autônomo que inspeciona relatórios diários de QA e UX Squad. Se houver falhas, provisiona uma branch de reparo e abre automaticamente um Pull Request no GitHub com diagnósticos e aprovação em 1 clique pelo mantenedor.
+    - **Validação:** **351 testes backend jest passando**, **49 testes frontend vitest passando**, typecheck e lint 100% limpos, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado com 21/21 páginas geradas.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.

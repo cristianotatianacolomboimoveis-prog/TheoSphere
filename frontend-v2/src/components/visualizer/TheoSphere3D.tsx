@@ -32,6 +32,7 @@ import { RouteControlPanel } from "./RouteControlPanel";
 import { MapHeader } from "./MapHeader";
 import { LandmarkNavigator } from "./LandmarkNavigator";
 import { RouteStepperHUD } from "./RouteStepperHUD";
+import { ElevationProfileHUD } from "./ElevationProfileHUD";
 import { CameraControlsHUD } from "./CameraControlsHUD";
 import { CANONICAL_ROUTES } from "@/data/canonicalRoutes";
 
@@ -1377,6 +1378,9 @@ export default function TheoSphere3D({
         route={activeStepperRoute}
         onClose={() => setActiveStepperRoute(null)}
       />
+
+      {/* Perfil Altimétrico Interativo do Terreno */}
+      <ElevationProfileHUD route={activeStepperRoute} />
 
       {/* Seletor Rápido de Marcos Bíblicos (Quick Jump) */}
       <LandmarkNavigator
