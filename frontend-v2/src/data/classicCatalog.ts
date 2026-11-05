@@ -1,6 +1,7 @@
 /**
- * classic-catalog.ts — Catálogo Canônico das Obras Clássicas Teológicas do TheoSphere.
- * Gerado a partir das 89 obras e 45.092 trechos indexados ativamente no UserEmbedding.
+ * classicCatalog.ts — Catálogo Oficial das Obras Teológicas do TheoSphere.
+ * ATENÇÃO: Arquivo sincronizado automaticamente a partir de backend/src/bible/classic-catalog.ts
+ * NÃO editar manualmente. Execute `node scripts/sync-catalog.mjs` para atualizar.
  */
 
 export interface ClassicWorkItem {

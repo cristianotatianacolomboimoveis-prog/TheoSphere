@@ -1,0 +1,69 @@
+{
+  "agent": "Atlas & Cartography Guardian Agent",
+  "timestamp": "2026-11-05T15:02:26.191Z",
+  "healthScore": 57,
+  "totalTests": 7,
+  "passedTests": 4,
+  "failedCount": 3,
+  "status": "FAILED",
+  "results": [
+    {
+      "id": "MAP-ROUTES-23",
+      "name": "Catálogo Canônico de 23 Rotas Bíblicas",
+      "passed": true,
+      "evidence": "Todas as 23 rotas bíblicas canônicas estão íntegras e pré-carregadas offline (0ms).",
+      "durationMs": 2,
+      "details": {
+        "totalRoutes": 23
+      }
+    },
+    {
+      "id": "MAP-LANDMARKS-25",
+      "name": "25 Marcos Bíblicos Canônicos e Voo 3D",
+      "passed": false,
+      "evidence": "Marcos críticos ausentes: sinai, capernaum, galilee_sea, babylon, rome, ephesus",
+      "durationMs": 0,
+      "details": null
+    },
+    {
+      "id": "MAP-ELEVATION-ENGINE",
+      "name": "Motor Matemático de Elevação e Distâncias de Haversine",
+      "passed": true,
+      "evidence": "Motor altimétrico calibrado (-430m no Mar Morto até +2.814m no Hermom).",
+      "durationMs": 1,
+      "details": null
+    },
+    {
+      "id": "MAP-MCP-ROUTES",
+      "name": "Navegação de Rotas via Protocolo MCP (/mcp)",
+      "passed": false,
+      "evidence": "Status HTTP 404 ao consultar MCP",
+      "durationMs": 475,
+      "details": null
+    },
+    {
+      "id": "MAP-MCP-FLYTO",
+      "name": "Resolução Léxica de Coordenadas no MCP (flyTo)",
+      "passed": false,
+      "evidence": "Status HTTP 404",
+      "durationMs": 226,
+      "details": null
+    },
+    {
+      "id": "MAP-CESIUM-ASSETS",
+      "name": "Assets de Fotogrametria e Shaders do Cesium 3D",
+      "passed": true,
+      "evidence": "Cesium.js estático acessível na CDN Vercel com HTTP 200.",
+      "durationMs": 699,
+      "details": null
+    },
+    {
+      "id": "MAP-ATLAS-HTTP-200",
+      "name": "Disponibilidade e Headers da Rota /atlas",
+      "passed": true,
+      "evidence": "Página /atlas respondendo com HTTP 200 OK e prerender ativo.",
+      "durationMs": 307,
+      "details": null
+    }
+  ]
+}

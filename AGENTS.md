@@ -11,318 +11,40 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-04**. Repositório limpo, suíte inteira passando
-(**345 testes backend**, 49 frontend, lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente).
-
-Produção frontend (`https://frontend-v2-lake.vercel.app`) respondendo **HTTP 200**.
-Backend Render (`https://theosphere.onrender.com`) operante e medido.
-
-**Progresso das pendências e novas entregas (medido e verificado em 2026-09-11):**
-
-1. **Agente Autônomo Diário de QA (Fases 2 e 3 Ativas na Nuvem):** Configurado em `.github/workflows/daily-qa.yml` para rodar todos os dias às 06:00 BRT (09:00 UTC). Suíte Fase 2 (14 testes) e Fase 3 (13 testes E2E com isolamento multi-tenant, leitura, anotações, interlinear e encerramento de sessão) validadas contra a produção com **100.0% de Health Score**.
-2. **Povoamento Incremental de Embeddings & Suporte Unicode:** Corrigido bug crítico em `EmbeddingService.normalizeText` para suportar nativamente diacríticos e caracteres gregos/hebraicos (`\p{L}\p{N}\p{M}`). Povoamento com Gemini executado: **66.296 versículos com embeddings ativos** (BLIVRE 100%, NVA 100%, KJV 1.600, TR 1.000, WLC 500, LXX 500, WEB 500) e busca híbrida validada com `vectorArm: ok`.
-3. **Pipeline de Ingestão do Acervo Clássico (Domínio Público):** Ingestão e indexação vetorial de **38 obras clássicas completas (18.790 chunks de 500 palavras)** no `UserEmbedding` com portão de licença fail-closed (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Aquino, Bunyan, Comentários de Matthew Henry e Easton's Bible Dictionary), validado com citação precisa de 7 fontes pelo Copilot IA RAG.
-4. **Sistema de Layouts Superior ao Logos:** Implementado `LayoutSwitcher.tsx` e `Workspace.tsx` com 5 layouts dinâmicos em 1 clique (Foco Único, Paralelo 50/50, Bancada Exegética Tríplice, Copilot IA e Grade Sinótica 2x2), além de maximização individual por painel e Link Set A automático.
-5. **Speed Search & Busca Híbrida:** Implementado `TheoSphereCommandPalette.tsx` com atalho global `Cmd+K`/`Ctrl+K`, parser de referências canônicas (`bibleReference.ts`) e operadores booleanos do Logos (`AND`, `OR`, `NOT`, `book:`, `chapter:`).
-6. **Painel Contextual de Ideias:** Criado `ContextualInsightsPanel.tsx` e botão `[💡 Ideias]` na toolbar da Bíblia, integrando comentários de domínio público (JFB, Matthew Henry, Calvino), referências TSK e Copilot IA RAG via `/rag/chat`.
-7. **Factbook com Lentes e Atlas 3D:** Adicionadas lentes temáticas (_Tudo_, _Bíblico_, _Teológico_, _Geografia_, _Biblioteca_), galeria de tópicos populares e botão de 1 clique para plotar no globo 3D.
-8. **Morfologia Interlinear de 1 Clique:** `VerseRow.tsx` enriquecido para que duplo-clique em qualquer palavra do versículo acione o `StrongOverlay.tsx` na posição do cursor.
-9. **Deploy em Produção:** Backend sincronizado via Git push (`main ae4562d`) e frontend publicado com sucesso na Vercel (`https://frontend-v2-lake.vercel.app`).
-10. **Limpeza e Normalização de Traduções (Concluído):** Normalizado `opts.translation` com `.toUpperCase().trim()` em `SearchService` (abrangendo detecção de referências, busca híbrida e avançada). No frontend (`BibleReader.tsx` e `TranslationPicker.tsx`), atualizado o catálogo com as 7 edições integrais canônicas de domínio público/licença livre (`BLIVRE`, `NVA`, `KJV`, `WEB`, `TR`, `WLC`, `LXX`) com badges estilizados para grego (`GR`) e hebraico (`HE`), e sinalização explícita de versões parciais/amostras (`isPartial: true`).
-
-11. **Migração cross-tool para Claude Code (2026-09-15):** Removido o TheoSphere do workspace do Antigravity IDE — `storage.json` (2 refs), `state.vscdb` (5 chaves com `TheoSphere` limpas) e `workspaceStorage/d66ebd…c6bb/` deletado. Backups `.bak.<ts>` mantidos ao lado dos originais. `~/.gemini/GEMINI.md` global já é agnóstico (só instrui a ler AGENTS.md). `.agent/workflows/audit-weekly.md` reescrito para ser cross-tool. Repositório agora é operado exclusivamente pelo Claude Code / Cowork.
-12. **Sinalização `meta.vectorArm` verificada, corrigida e coberta por teste (2026-09-15):** o item que estava listado em §6 como "melhoria sugerida, ainda não aplicada" tinha a instrumentação de saída aplicada (`search.controller.ts:38-40` expõe `meta: { vectorArm: (data as any).vectorStatus || 'ok' }` sobre a propriedade não-enumerável anexada em `search.service.ts:135-161`), mas o teste que escrevi para o cenário `gemini 429` — o que motivou a instrumentação — falhou revelando um bug: `vectorSearch` engolia o erro de `createEmbedding` no `try/catch` interno e devolvia `[]`, o que virava `vectorStatus='empty'` em vez de `'failed'`. Ou seja, teto de gastos do Gemini era indistinguível de "biblioteca sem embeddings povoados" — exatamente o tipo de falha silenciosa que a sinalização existe para tornar visível. **Corrigido**: removido o `try/catch` interno de `vectorSearch`, deixando o erro propagar para o outer `.catch` de `hybridSearchVerses` que já marca `'failed'`. **Testes**: adicionados 4 casos em `search.service.spec.ts` (`describe('meta.vectorArm exposure')`) cobrindo os estados `ok`, `empty`, `failed` (via `createEmbedding` rejeitado) e o invariante de não-enumerabilidade (para não vazar `vectorStatus` no `JSON.stringify` do array de hits, evitando duplicação com o `meta.vectorArm` que já vem no envelope). 18/18 do spec, 145/145 do backend, lint e typecheck limpos.
-13. **Ingestão Massiva e Conclusão de Comentários Exegéticos Canônicos (2026-09-23):**
-    Acervo clássico expandido para **45.114 chunks ativos** em **90 obras teológicas completas** (+13.713 chunks e +36 obras nesta sessão).
-
-- **Matthew Henry:** Todos os 6 volumes 100% completos no banco (Vols 1 a 6 somando 14.591 chunks).
-- **João Calvino:** 100% do Novo Testamento concluído (Harmonia dos Evangelhos 3 vols, João 2 vols, Atos 2 vols, 8 volumes de Epístolas) e grande parte do Antigo Testamento concluído (Gênesis 2 vols, Pentateuco 4 vols, Josué, Salmos Vols 1 a 5, Isaías, Jeremias, Ezequiel, Daniel).
-- **Tomás de Aquino:** _Summa Theologica_ completa indexada (Partes I, I-II, II-II e III somando mais de 4.400 chunks).
-- **Martinho Lutero:** Comentário aos Gálatas (Gutenberg #3390, 55 chunks) e Catecismos.
-- **John Bunyan:** Trilogia clássica completa (_O Peregrino_, _Graça Abundante_, _Guerra Santa_).
-- **Flávio Josefo & John Foxe:** _Antiguidades Judaicas_, _Guerras dos Judeus_ e _Livro dos Mártires_.
-- **Agostinho de Hipona:** _A Cidade de Deus_ e _Escritos Anti-Pelagianos_.
-- **Jonathan Edwards & Charles Spurgeon:** Tratados clássicos e sermões de domínio público.
-- **Banco de Dados Supabase:** Banco atingiu 1.194 MB (1,19 GB) com 45.114 chunks no `UserEmbedding`. Busca vetorial, híbrida e textual plenamente ativas. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB (requer ajuste no dashboard do Supabase para novas gravações em lote).
-
-14. **Guia de Passagem Exegético em 1 Clique (2026-09-23):**
-    Conectados os **45.114 chunks de comentários clássicos** (João Calvino, Matthew Henry, Martinho Lutero) ao leitor e bancada exegética via `PassageGuideService.getClassicCommentaries`.
-
-- **Backend:** Mapeamento canônico dos 66 livros para os respectivos Gutenberg IDs e volumes do acervo. Filtro inteligente para descarte de índices remissivos numéricos e extração de prosa teológica pura.
-- **Frontend:** Atualizados `ContextualInsightsPanel.tsx`, `PassageGuide.tsx` e `ReaderToolbar.tsx` com novo botão `[📖 Guia Exegético]` de 1 clique, badges de autores (`JC`, `MH`, `ML`) e sincronização fluida de passagens.
-- **Validação:** 254 testes backend e 49 testes frontend passando.
-
-15. **Comparação de Versões & Alinhamento Sinótico com Diff Textual (2026-09-24):**
-    Implementada a ferramenta de **Text Comparison** estilo Logos Bible Software para análise exegética e de variantes textuais entre versões bíblicas canônicas:
-
-- **Backend (`text-diff.ts` e `BibleComparisonService`):** Algoritmo LCS (Longest Common Subsequence) para alinhamento palavra por palavra e detecção de acréscimos textuais (`added`), omissões textuais (`removed`) e cálculo de percentual de similaridade léxica. Endpoint orquestrado `@Get('compare/:bookId/:chapter')` com suporte a versões primárias e alvos (`BLIVRE`, `NVA`, `KJV`, `WEB`, `TR`, `WLC`, `LXX`).
-- **Frontend (`TextComparison.tsx` e `useTextComparison.ts`):** Componente modal de alta resolução com switch entre **Grid Sinótico (Colunas)** e **Intercalado (Verso a Verso)**, toggles para destaque visual de adições/omissões, cópia para Markdown e integração direta via botão `[⚖️ Sinopse & Variantes]` na `ReaderToolbar.tsx`.
-- **Validação:** **262 testes backend** (+8 novos testes cobrindo diff e comparação) e **49 testes frontend** passando, 0 erros de lint, 0 erros de typecheck.
-
-16. **Catálogo Teológico Clássico Conectado à Biblioteca (2026-09-24):**
-    O acervo completo das 89 obras canônicas (João Calvino, Matthew Henry, Tomás de Aquino, Martinho Lutero, Santo Agostinho, John Bunyan, Flávio Josefo, John Foxe, etc.) totalizando **45.092 chunks indexados no Supabase** foi conectado diretamente à Biblioteca Teológica (`/library`):
-
-- **Backend (`classic-catalog.ts` e `BibleController`):** Mapeamento canônico tipado das 89 obras com metadados estruturados (autor limpo, categoria exegética/sistemática/patrística/histórica/devocional, tradição reformada/escolástica/patrística/puritana, contagem precisa de chunks e link de domínio público Gutenberg/CCEL). Endpoint `@Get('catalog')` com `Cache-Control: public, max-age=86400`.
-- **Frontend (`TheologicalLibrary.tsx` e `classicCatalog.ts`):** Interface reformulada estilo Logos com catálogo offline instantâneo (0ms) e revalidação assíncrona, banner de métricas (89 obras / 45.092 chunks), busca em tempo real, tabs de categorias, pills de tradição com cores temáticas e modal de consulta rápida para o Copilot IA ancorado na obra.
-- **Validação:** **262 testes backend**, **49 testes frontend**, `static-checks.mjs` limpo (0 achados), build e typecheck 100% aprovados.
-
-17. **Estudo de Palavra Original de Nível Acadêmico — Logos-Grade Word Study (2026-09-24):**
-    Construído o motor de estudo exegético aprofundado para lemas gregos e hebraicos, superando o modelo fragmentado do Logos:
-
-- **Backend (`LinguisticsService` & `LinguisticsController`):** Adicionado `BOOK_ID_TO_NAME_PT` e `getCanonicalDivision` em `book-map.ts`. Criado método `getWordStudyDetails(strongId)` que calcula em tempo real a distribuição canônica (Pentateuco, Históricos, Poéticos, Profetas, Evangelhos, Atos, Paulinas, Gerais, Apocalipse), a contagem detalhada por livro bíblico e o agrupamento das formas flexionadas no corpus grego/hebraico com morfologia e contagem de ocorrências. Exposto via endpoint `@Get('word-study/:strongId')` com LRU cache em memória e Cache-Control de 24h.
-- **Frontend (`WordStudy.tsx`, `CanonicalDistributionChart.tsx` & `InflectedFormsTable.tsx`):** Gráfico de barras horizontais temáticas da distribuição canônica, listagem de frequências por livro bíblico, tabela interlinear de formas flexionadas com tradução morfológica legível em português, disparo automático ao selecionar termo, integração com citações do Acervo Clássico das 89 obras e botão de 1 clique "Copiar Ficha Exegética em Markdown".
-- **Validação:** **267 testes backend** (+5 novos testes unitários cobrindo divisões canônicas, agregação e cache), **49 testes frontend**, `static-checks.mjs` com 0 achados, ESLint e TypeScript limpos.
-
-18. **Caderno de Anotações Pessoais & Marca-Texto Temático no Leitor (2026-09-24):**
-    Construído o sistema de estudo bíblico pessoal de padrão Logos Bible Software, permitindo anotações homiléticas e marca-texto com semântica teológica diretamente no texto:
-
-- **Hook de Persistência (`useVerseAnnotations.ts`):** Gerencia reativamente destaques e anotações por livro e capítulo, com sincronização em `localStorage`.
-- **Paleta Teológica de 5 Cores:** Amarelo (Doutrina Geral), Esmeralda (Graça & Salvação), Azul (Aliança & Promessas), Roxo (Soberania de Deus) e Vermelho (Mandamentos & Alerta), com estilos ricos de fundo e borda aplicados no `VerseRow.tsx`.
-- **Barra Flutuante (`VerseSelectionToolbar.tsx`) & Modal de Anotações (`VerseNoteModal.tsx`):** Exibição instantânea ao selecionar um ou mais versículos, com paleta de 1 clique, atalho para abrir/editar notas de sermão, cópia formatada com referências e botão para sinopse textual.
-
-19. **Diretriz de Equilíbrio Teológico (Meio-termo Calvinista / Arminiano) no Copilot IA (2026-09-24):**
-    Configurada uma abordagem acadêmica imparcial e de equilíbrio teológico (meio-termo entre Calvinismo e Arminianismo) como padrão da IA:
-
-- **Prompts & System Instructions (`prompts.ts` e `rag.service.ts`):** Quando a biblioteca não retorna trechos específicos ou não há tradição especificada pelo usuário, a IA apresenta com igual rigor acadêmico os argumentos da tradição Calvinista/Reformada (Calvino, Spurgeon, Owen, Dort) e da tradição Arminiana/Wesleyana (Armínio, Wesley, Remonstrantes, Clarke), destacando convergências essenciais (Sola Gratia, Sola Fide, Solus Christus) e distinções hermenêuticas legítimas, sem impor uma linha sobre a outra (respeitando escolhas explícitas quando indicadas).
-- **Fallback Estático (`fallback-responses.ts`):** Respostas de contingência offline estruturadas com análise teológica equilibrada entre as visões Reformada e Arminiana, consenso bíblico e grau de tensão ecumênica.
-- **Segurança e Qualidade:** MapLibre GL atualizado para `6.11.2` (eliminando vulnerabilidade GHSA-jrc7-96c5-q579), cookie de `/refresh` corrigido com flags dinâmicas de segurança, `addUserXP` instrumentado com logging visível.
-- **Validação:** **327 testes backend** (todos os 38 specs aprovados, incluindo 4 testes unitários cobrindo o equilíbrio teológico), **49 testes frontend**, `static-checks.mjs` com 0 achados, `verificar:acervo` coerente, build, typecheck e lint 100% limpos.
-
-20. **Overhaul do Design System Global & Estética Acadêmica de Luxo (2026-09-24):**
-    Reformulação dos tokens e estética de interface para padrão premium de workstation acadêmica (superando Logos 10 e alinhado a interfaces modernas como Linear/Raycast):
-
-- **Tokens de Cor & Tipografia (`globals.css`):** Eliminação de overrides de templates antigos em favor de uma escala de ardósia obsidiana profunda (`#090C12`), azul safira lapis-lazúli (`#3B82F6`), ouro bizantino sacro (`#F59E0B`), esmeralda espiritual (`#10B981`) e tipografia editorial com `Literata`, `Outfit` e `Plus Jakarta Sans`.
-- **Glassmorphism 2.0 & Micro-Interações:** Novas classes de utilidade (`.glass-panel`, `.glass-card`, `.text-gradient-gold`, `.glow-indigo`), scrollbars auto-ocultantes ultra-finas e animações fluidas (`cubic-bezier(0.16, 1, 0.3, 1)`).
-- **TopBar & Command Palette (`TheoSphereTopBar.tsx` e `TheoSphereCommandPalette.tsx`):** Barra superior em vidro translúcido com desfoque de 24px, caixa de comando com realce luminoso no foco, novo atalho `⌘K`, cards de navegação com bordas sutis e status de velocidade.
-- **Bancada de Trabalho (`Workspace.tsx`):** Abas de cabeçalho refinadas com gradiente celeste, insígnia dourada de sincronização (_Link Set A_), indicador pulsante esmeralda e separadores de redimensionamento suaves.
-- **Validação:** 49/49 testes frontend passando (vitest), typecheck limpo com 0 erros (`tsc --noEmit`), `static-checks.mjs` limpo (0 achados).
-
-21. **Ferramenta de Navegação 3D via Protocolo MCP (`theosphere_map_navigate`) (2026-09-24):**
-    Implementado o controle de navegação e exploração cartográfica 3D/2.5D do atlas bíblico via protocolo MCP (Model Context Protocol):
-
-- **Ferramenta MCP (`theosphere_map_navigate`):** Registrada no catálogo de ferramentas do MCP com permissão governada `'map:navigate'` concedida por padrão aos agentes orquestradores e protocolos.
-- **Ações Disponíveis:**
-  - `listRoutes`: enumera todas as 8 rotas bíblicas/teológicas mapeadas (Abraão, Êxodo, Jesus na Galileia, Viagens de Paulo, Terra Prometida, Exílios Assírio e Babilônico) com contagem de marcos e coordenadas iniciais.
-  - `selectRoute` e `getRoute`: carrega e ativa a rota selecionada, calculando o centro inicial da câmera e retornando waypoints com referências bíblicas, dados arqueológicos e modelos 3D.
-  - `flyTo`: posiciona a câmera 3D de forma fluida a partir de coordenadas geográficas `[lat, lng]` ou por resolução léxica de marcos bíblicos canônicos (Jerusalém, Cafarnaum, Monte Sinai, Nazaré, Belém, Ur, Roma, Éfeso, Babilônia, etc.), com controle de `zoom`, `pitch`, `bearing` e `mode` (`satellite`, `vector`, `cesium3d`).
-  - `setEra`: sintoniza o atlas em períodos históricos (-2000 a +100 d.C.) e filtra as rotas correspondentes à época.
-  - `queryLocation`: consulta metadados geográficos, teológicos e arqueológicos de marcos bíblicos.
-- **Validação:** **335 testes backend** (+8 novos testes cobrindo listagem, navegação, rota e eras), **49 testes frontend**, `static-checks.mjs` com 0 achados, typecheck e build 100% limpos.
-
-22. **Paridade Funcional e Estética Total entre Mapa 2.5D e Globo 3D (2026-09-24):**
-    Unificada a experiência de exploração bíblica, geográfica e arqueológica entre os motores 2.5D (MapLibre/Deck.gl) e 3D (Cesium):
-
-- **Card Flutuante Interativo:** Removida a limitação de exibição exclusiva em tela cheia (`selectedEvent`). O card flutuante premium glassmorphism agora abre tanto no modo normal quanto em tela cheia, posicionado elegantemente em `top-20 left-5` (abaixo do `MapHeader`), sem sobrepor o painel de rotas ou o controlador temporal.
-- **Rótulos de Texto Dinâmicos (3D Labels):** Adicionados `<LabelGraphics>` aos locais bíblicos, achados arqueológicos e waypoints das rotas no Cesium, com contorno escuro legível, posicionamento otimizado e `distanceDisplayCondition` para nitidez impecável sem poluição visual.
-- **Hover Responsivo (Pointer):** Implementado `ScreenSpaceEventHandler` no Cesium canvas que detecta movimento sobre entidades e atualiza instantaneamente o cursor para `pointer`.
-- **Eliminação Definitiva da Caixa Branca do Cesium:** Substituído o iframe nativo instável do Cesium pelo design system TheoSphere (`glass-heavy`), integrando citação teológica, referência bíblica com atalho para o módulo de exegese (`[📖 Estudar na Exegese]`), artefatos 3D e foco de câmera.
-- **Sincronia Dupla:** A seleção de qualquer entidade no globo ou mapa 2.5D sincroniza reativamente o card flutuante sobre o mapa e a barra lateral (`TheoSphereDashboard`).
-
-23. **Modo Imersão Real — Padrão National Geographic / Voyager no Atlas 3D (2026-09-24):**
-    Construída a experiência imersiva de campo histórico-geográfico para visualização de sítios bíblicos em primeira pessoa:
-
-- **Voo Cinematográfico Rente ao Relevo:** Substituída a altitude estática de 45.000m por voo dinâmico de solo (1.800m a 2.800m) com inclinação de horizonte (`pitch: -22°`) para visualização tridimensional de montanhas, vales e escarpas contra o céu atmosférico.
-- **Órbita 360° Contínua:** Implementada rotação contínua da câmera ao redor do local histórico (`cameraCommand: toggleOrbit`), com botão interativo pulsante verde esmeralda na Ficha de Campo.
-- **Modo Foco Total (Zero Poluição):** Adicionado botão de toggle no `MapHeader` (`[ ◨ Foco Total ]` / `[ Modo Imersão Ativo ]`) com recolhimento suave da barra lateral de 350px e minimização automática do painel de rotas para liberar 100% da tela para o relevo bíblico.
-- **Ficha de Campo com Fotografia Real de Alta Resolução:** Banner panorâmico do sítio arqueológico/geográfico (Monte Sinai, Jerusalém, Cafarnaum, Babilônia, Belém, etc.) integrado a dados de terreno, citação bíblica e botão `[📖 Estudar na Exegese]`.
-- **Validação:** 335 testes backend, 49 testes frontend passando, `static-checks.mjs` com 0 achados, typecheck 100% aprovado e capturas Playwright comprovando a imersão.
-
-24. **Navegação Orbital e Órbita 360° via MCP no Atlas 3D (2026-09-25):**
-    Expandida a ferramenta governada `theosphere_map_navigate` com perspectiva macro e rotação angular contínua:
-
-- **Perspectiva Orbital (`perspective: 'orbital'`):** Posiciona a câmera em altitude macro (~25.000m) e pitch de 45° para visualização por satélite em alta escala do relevo geográfico regional.
-- **Órbita 360° Contínua (`action: 'orbit360'`):** Ativa rotação 360° ininterrupta da câmera em tempo real ao redor do marco geográfico (altitude 2.400m e pitch -22°).
-- **Validação:** **338 testes backend** (38 specs aprovados com +3 novos testes cobrindo perspectiva orbital e órbita 360°), **49 testes frontend**, `npm run verificar` 100% verde, `static-checks.mjs` com 0 achados, typecheck com 0 erros.
-
-25. **Kit de Lançamento para Testes Externos & Beta Fechado (2026-09-28):**
-    Construído o ecossistema de acolhimento e suporte para abertura do TheoSphere a pastores, teólogos e pesquisadores convidados:
-
-- **Keep-Alive do Backend na Nuvem (`.github/workflows/keep-alive.yml`):** Ping HTTP a cada 10 minutos (24/7) no endpoint `/api/v1/health/live` para neutralizar o auto-sleep do Render Free Tier e garantir resposta instantânea no primeiro clique.
-- **Banner de Aquecimento Elegante (`ServerWarmupBanner.tsx`):** Alerta não intrusivo com pulso e detecção inteligente de cold start (>2.8s) no primeiro carregamento do app com transição suave para conectado.
-- **Mini-Tour de Onboarding (`WelcomeTourModal.tsx`):** Guia de boas-vindas com 4 passos essenciais (morfologia Strong com duplo-clique, Speed Search ⌘K, bancada com 90 obras e Atlas 3D com órbita 360°), persistência no `localStorage` e botão de reabertura permanente na TopBar (`[?] Guia`).
-- **Canal de Feedback & Relato de Bugs Integrado (`FeedbackModal.tsx`):** Modal com seleção de 4 categorias (Sugestão, Bug, Dúvida Teológica, Elogio), avaliação de 1 a 5 estrelas, coleta automática de contexto e confirmação visual calorosa acionável via botão `[💬 Feedback BETA]` na TopBar.
-- **Responsividade Aprimorada para Tablets/iPad (`Sidebar.tsx`):** Auto-recolhimento da barra lateral para modo de ícones finos (`w-18`) em viewports entre 768px e 1024px, liberando 200px extras para leitura bíblica e exegese confortável.
-- **Mensagens Humanas de Cota & Fallback no Copilot IA (`AIAssistant.tsx`):** Respostas empáticas e informativas em casos de rate limit (429) do Gemini com ativação transparente do acervo clássico offline.
-- **Validação:** 338 testes backend passando, 49 testes frontend passando, lint 0 erros, capturas Playwright atestando a renderização impecável.
-
-26. **Duplo Provedor de IA com Failover Automático (Gemini Primário + OpenAI Fallback) (2026-09-28):**
-    Arquitetura de alta disponibilidade para a IA teológica no Copilot RAG:
-
-- **Google Gemini 3.8 Flash (`gemini-3.8-flash`):** Provedor primário ativo padrão (respostas exegéticas BDAG e síntese das 90 obras teológicas com custo zero no Free Tier).
-- **OpenAI GPT-4o-mini (`gpt-4o-mini`):** Provedor de fallback de contingência inicializado em paralelo. É acionado de forma transparente e imediata se o Gemini atingir cota (429), indisponibilidade temporária ou timeout, tanto no chat síncrono quanto no streaming SSE.
-- **Validação:** 338 testes backend e 49 frontend passando. Simulação de queda de cota (429) validou a transferência automática de requisição para a OpenAI em 7,1s sem interrupção.
-
-27. **Árvore Sintática Profunda (OpenText/Casimir) & Mapeamento Deuterocanônico (2026-09-28):**
-    Implementada a ferramenta de análise gramatical funcional de cláusulas profunda superando o padrão Logos/Accordance, além do suporte ao corpus intertestamentário:
-
-- **Árvore Sintática OpenText:** `SyntaxDiagramService` e DTOs expandidos para conformidade com a gramática funcional de Stanley Porter / Matthew O'Donnell, incluindo papéis funcionais (`[S]` Sujeito, `[P]` Predicador, `[C]` Complemento, `[A]` Adjunto, `[Conj]` Conector), segmentação de orações primárias/secundárias e tokenização palavra a palavra com lema e Strong.
-- **Frontend Interativo (`SyntaxDiagramModal.tsx` & `ReaderToolbar.tsx`):** Novo botão `[🌳 Sintaxe]` de 1 clique na barra do leitor bíblico. Switch visual entre **Árvore Gráfica Ramificada OpenText** (com conectores visuais, badges de papéis e chips clicáveis com lema/Strong) e **Ficha Exegética Estruturada**.
-- **Cânon Estendido Intertestamentário (Contexto Histórico):** Mapeados os livros deuterocanônicos e apócrifos (IDs 67 a 82: Tobias, Judite, Sabedoria, Sirácida, Baruque, 1-4 Macabeus, 1-2 Esdras, Oração de Manassés, Salmo 151, Adições a Ester e Daniel) no `book-map.ts` e `bibleBooks.ts` sob a divisão canônica `'Intertestamentário / Deuterocanônico'` (`testament: "AP"`), com distinção clara para preservação da identidade canônica das 66 obras protestantes.
-- **Validação:** **339 testes backend** (+1 novo teste de regressão em `book-map.spec.ts`), **49 testes frontend** vitest, `npx tsc --noEmit` 0 erros e Next.js turbopack build com sucesso.
-
-28. **Landing Direta na Tela de Login com Vídeo e Dicas Beta (2026-09-28):**
-    Garantido que visitantes e pesquisadores convidados caiam diretamente na tela de boas-vindas com o vídeo ao vivo de Israel e as instruções de teste, eliminando flashes do dashboard não autenticado:
-
-- **Guarda de Layout & Rota Raiz (`layout.tsx` e `page.tsx`):** Unificado o portão de autenticação para que qualquer requisição não autenticada a `/` ou rotas protegidas renderize imediatamente o `<LoginPage />` em modo full-screen (sem TopBar ou Sidebar), eliminando o carregamento estático do painel e mantendo apenas `/privacidade` e `/termos` como rotas públicas de texto.
-- **Experiência Multimídia Integrada:** Vídeo aéreo de Jerusalém em HD (`israel_jerusalem.webm`), sintetizador de áudio ambiente Web Audio, telemetria de sessão, manifesto `THEOSPHERE AI FIRST`, alternador `[Entrar]` / `[Cadastre-se]`, instrução clara para primeiro acesso e as 5 dicas rápidas de experimentação da plataforma.
-- **Deploy em Produção:** Publicado e validado na Vercel (`https://frontend-v2-lake.vercel.app`) com HTTP 200 e confirmação de presença do vídeo e mensagem oficial de convite.
-
-29. **Unificação e Reorganização Definitiva da Estrutura de Pastas (2026-09-30):**
-    Eliminada a duplicidade estrutural que existia entre a pasta mãe do Desktop e a subpasta aninhada `TheoSphere/`:
-
-- **Segurança Fail-Safe:** Criado backup integral dos arquivos legados soltos em `Theosphere_2026_backup_legado_2026-09-29.tar.gz` (229 MB no Desktop) antes de qualquer exclusão.
-- **Promoção da Raiz Única:** O repositório Git oficial com todo o histórico, código ativo (`backend/`, `frontend-v2/`), as 90 obras teológicas completas (`acervo-traduzido/`) e as suítes de QA foram promovidos diretamente para a raiz do workspace `/Users/cristianocolombo/Desktop/Theosphere 2026`. A subpasta aninhada vazia `TheoSphere/` foi excluída.
-- **Correção nos Scripts de QA:** Corrigida a URL de produção no `qa-phase1.mjs` de `cristianocolombo.vercel.app` para a oficial `https://frontend-v2-lake.vercel.app`. Resolvidos os 6 achados do `static-checks.mjs` (alerta visível no `FeedbackModal`, `role="alert"` no `ServerWarmupBanner` e documentação de degradação graciosa na `static-checks.allowlist.json`).
-- **Validação:** `npm run verify` na nova raiz executou com sucesso total (339 testes backend, 49 testes frontend vitest, typecheck 0 erros, lint 0 erros, build Next.js 20 rotas geradas). `static-checks.mjs` retornou 0 achados e `qa-phase1.mjs` concluiu com 100% de probes HTTP 200 contra a produção.
-
-30. **Tradução Automática Dinâmica para Português (PT-BR) nos Comentários Clássicos (2026-10-01):**
-    Implementada a localização e tradução fluida para português nos comentários históricos e exegéticos (João Calvino, Matthew Henry, Martinho Lutero, etc.):
-
-- **Módulo de Tradução (`translate.ts`):** Heurística de detecção de textos em inglês com cache em memória (LRU instantâneo 0ms para passagens já consultadas) e fallback de contingência.
-- **Proxy `/api/translate`:** Flexibilizado para permitir sessões de convidados/visitantes com rate limit por IP, sem rejeição 401 por ausência de JWT de login.
-- **Painéis Atualizados (`ContextualInsightsPanel.tsx` e `PassageGuide.tsx`):**
-  - Textos em inglês são automaticamente traduzidos para Português (PT-BR) ao abrir o Guia de Passagem ou a gaveta de Ideias.
-  - Indicador visual e sutil com spinner (`Loader2`) durante a tradução assíncrona.
-  - Botão interativo `[Original (EN)]` / `[Traduzido (PT)]` para que pastores e acadêmicos possam alternar e auditar o original a qualquer momento.
-- **Validação:** 339 testes backend passando, 49 testes frontend vitest passando, typecheck (tsc) 0 erros, build Next.js com 20 rotas pré-renderizadas aprovado e commit `82cc66a` sincronizado no repositório remoto.
-
-31. **Eliminação de Sobreposições & Interface Ultra-Clean no Atlas 3D (2026-10-02):**
-    Solucionado o conflito de layout e amontoamento de painéis sobre o mapa histórico (`/atlas`):
-
-- **Sidebar Lateral Direita em Segundo Plano:** `isSidebarOpen` alterado para `false` por padrão. O mapa agora abre com 100% de largura útil desimpedida, eliminando a compressão da viewport.
-- **Painel de Rotas Recolhido por Padrão (`RouteControlPanel.tsx`):** Inicia como pílula compacta e elegante (`Rotas & Locais` + badge `8`). Quando expandido pelo usuário, possui largura contida (`290px`), botão de fechar (`✕`) e rolagem vertical com limite estrito (`max-h-[calc(100vh-210px)]`), impedindo qualquer choque com a timeline inferior.
-- **MapHeader em Cápsula Única e Não-Quebrável (`MapHeader.tsx`):** Unificados os seletores de satélite, Globo 3D, Câmera Solo de Israel e botões de tela cheia/imersão em uma cápsula de vidro compacta de altura única (~42px), sem empilhamento caótico em duas linhas.
-- **Timeline Bíblica Otimizada & Minimizável (`TimeController.tsx`):** Removidos wrappers absolutos duplicados; dimensões contidas no rodapé (`max-w-3xl`) com suporte a modo minimizado de 1 clique (`[🕰️ 2000 a.C. • Era dos Patriarcas ⌃]`).
-- **Validação:** Typecheck limpo com 0 erros (`tsc --noEmit`), commit `d04d52b` sincronizado com deploy automático na Vercel.
-
-32. **Resolução de Colisão de Toponímia (Rótulos de Cidades) no Atlas (2026-10-02):**
-    Eliminada a sobreposição caótica de nomes modernos e bíblicos identificada pelo usuário (ex: "Betel" sobre "Ramla", "Siquém" sobre "Nablus", "Hebrom" sobre "Territórios Palestinianos"):
-
-- **Causa Raiz Identificada:** A camada raster `labels-layer` do CartoDB injetava no satélite da Esri cidades e divisões políticas contemporâneas da ONU, competindo nas mesmas coordenadas com o `TextLayer` dos sítios bíblicos antigos.
-- **Satélite Bíblico Puro:** Removida a camada de cidades modernas de `SATELLITE_STYLE`. O satélite agora renderiza a fotografia espacial de alta resolução da Terra Santa sem ruído contemporâneo.
-- **Tipografia Bíblica com Fundo & Offset:** `TextLayer` atualizado com `getPixelOffset: [0, -14]` (flutua acima do ponto sem cobrir o marcador), fundo escuro translúcido com contraste (`getBackgroundColor: [10, 14, 23, 215]`), padding e tipografia editorial (`Literata`).
-- **LOD Dinâmico (Level of Detail):** Em zoom distante (< 6), renderiza apenas metrópoles e capitais para não aglomerar; em zoom próximo (>= 6), revela todas as cidades bíblicas com legibilidade perfeita.
-- **Validação:** `tsc --noEmit` com 0 erros, commit `f179e88` enviado e publicado na Vercel.
-
-33. **Correção de Caracteres Acentuados no TextLayer do Deck.gl & Desativação do Liberty Vector Labels (2026-10-02):**
-    Resolvida a ausência da letra "é" em "Siquém" (que aparecia como "Siqu m") e desativação das cidades modernas remanescentes:
-
-- **Causa da Letra Faltante ("Siqu m"):** O `TextLayer` do Deck.gl usa por padrão uma textura de atlas de fontes restrita ao ASCII básico (0–127). Qualquer caractere latino com acento ("é", "ê", "ã", "ó") era omitido. Corrigido adicionando `characterSet: "auto"` tanto no layer de locais bíblicos quanto nos waypoints.
-- **Filtro de Cidades Modernas no `customStyle`:** Removida a permissão de `id.startsWith("label_")` no `style.layers` do processamento dinâmico do OpenFreeMap/Liberty, eliminando de vez rótulos contemporâneos como "Nablus", "Har Bracha" e "Askar RC" no modo satélite.
-- **Validação:** `tsc --noEmit` aprovado com 0 erros, commit `b4670b6` enviado e publicado na Vercel.
-
-34. **Exegese Histórica, Teológica e Arqueológica Profunda nos Eventos da Linha do Tempo & Desambiguação de Eras (2026-10-02):**
-    Atendida a solicitação do usuário para que o clique em qualquer evento da timeline (Criação, Dilúvio, Queda, Babel, Abraão, Êxodo, Davi, Calvário, etc.) abra uma investigação profunda fundamentada nos maiores teólogos, historiadores e arqueólogos do mundo:
-
-- **Acervo Estruturado (`timelineEventDetails.ts`):** Mapeamento exegético e enciclopédico contendo síntese teológica, perspectiva patrística/reformada/escolástica (Agostinho, Calvino, Lutero, Tomás de Aquino, Edwards, Spurgeon, Bavinck, Barth), consenso historiográfico e arqueológico (Flávio Josefo, Albright, Kitchen, Hoffmeier, Woolley, Biran, George Smith), artefatos físicos reais (Tabletes de Enuma Elish e Gilgamesh, Estela de Tel Dã, Inscrição de Pilatos, Estela de Merneptah, Ossuário de Caifás, Crucificado de Givat HaMivtar) e significado cristocêntrico na História da Redenção.
-- **Modal de Alta Resolução (`EventDeepDiveModal.tsx`):** Interface com 5 abas ricas (_Teologia & Grandes Teólogos_, _Arqueologia & História_, _Cristocentrismo & Redenção_, _Passagens Bíblicas_ e _Copilot Teológico com RAG_), atalho para cópia em Markdown e botão de voo de câmera 3D.
-- **Voo Automático e Sincronia no Mapa (`TheoSphere3D.tsx`):** `onTimeChange(year, location)` sincronizado com `MapAdapter.flyTo(lat, lng, 7)`, guiando o usuário visualmente para a coordenada geográfica do evento ao selecioná-lo.
-- **Eliminação de Sobreposição das Eras (`TimeController.tsx`):** Escalonamento vertical alternado (staggered em duas linhas) dos marcadores de era na timeline, impedindo o embolamento de texto visível na régua cronológica.
-- **Validação:** `tsc --noEmit` com 0 erros.
-
-35. **Esquadrão Diário de Usabilidade (UX Squad) & Testes com Usuários Reais (2026-10-09):**
-    Construído o sistema de testes de usabilidade com personas reais (Pastor Marcos, Ana seminarista, Joana mobile, Dona Cida, Rafael usuário Logos e Caos destrutivo) em `audit/scripts/ux-squad/`:
-
-- **Nuvem & Automação Diária:** Configurado em `.github/workflows/daily-ux-squad.yml` para rodar todos os dias às 09:00 BRT (12:00 UTC) com rodízio semanal, Playwright headless Chromium e avaliação visual com IA (Gemini Vision `gemini-flash-latest`).
-- **Execução e Relatórios:** Salva o relatório consolidado em `audit/reports/ux-squad-AAAA-MM-DD.md` com evidências (53 screenshots capturados na primeira rodada) e resumo automático no `$GITHUB_STEP_SUMMARY`.
-- **Validação:** Rodada local `--personas=all` executada com sucesso, suíte typecheck 0 erros e relatório `audit/reports/ux-squad-2026-10-09.md` gerado.
-
-36. **Navegação Completa do Atlas Bíblico 3D & HUD de Exploração (2026-10-09):**
-    Construída a suíte definitiva de navegação espacial, geográfica e de rotas bíblicas no Atlas 3D (`/atlas`):
-
-- **Catálogo Canônico em 0ms (`canonicalRoutes.ts`):** 25 marcos bíblicos canônicos consolidados (Jerusalém, Monte Sinai, Cafarnaum, Mar da Galileia, Belém, Nazaré, Babilônia, Roma, Éfeso, Ur, Jericó, Hebrom, etc.) e as 8 rotas bíblicas canônicas pré-carregadas offline no frontend, neutralizando cold starts do Render.
-- **Navegador Rápido de Marcos Bíblicos (`LandmarkNavigator.tsx`):** Popover retrátil acionável via botão `[📍 Marcos]` no cabeçalho ou atalho global `⌘+M` / `Ctrl+M`, com busca instantânea, filtros temáticos (Cidades, Montes Sagrados, Mares e Rios), sincronização automática da era histórica na timeline e voo de câmera suave.
-- **Controlador de Jornadas Bíblicas Passo a Passo (`RouteStepperHUD.tsx`):** HUD flutuante para navegar waypoint por waypoint em rotas selecionadas (ex: passos do Êxodo ou viagens de Paulo) com botões `[◀ Anterior]`, `[Próximo ▶]`, atalhos de seta do teclado (`←` e `→`) e modo de apresentação automática (`Tour Auto`).
-- **HUD Flutuante de Orientação & Câmera (`CameraControlsHUD.tsx`):** Mini-painel no canto inferior direito com bússola de reset do Norte (`🧭`), alternador rápido de perspectiva (Solo 2.400m de relevo vs Orbital 25.000m), botão de giro contínuo 360° e controles de zoom.
-- **Atalhos Rápidos de Teclado no Globo:** `Espaço` para iniciar/pausar o giro 360°, `1` para satélite real, `2` para vetor esquemático, `3` para globo 3D Cesium, e `Esc` para fechar fichas e parar giros.
-- **Validação:** 344 testes backend passando (39 test suites), `npx tsc --noEmit` no frontend 100% limpo (0 erros), e `static-checks.mjs` com 0 achados novos.
-
-37. **Correção Definitiva do Carregamento do Globo 3D Cesium e Zoom Real 2.5D (2026-10-13):**
-    Identificado e solucionado o erro que impedia o carregamento do mapa 3D e os blocos de erro no zoom 2.5D no `/atlas`:
-
-- **Diagnóstico da Causa Raiz do Cesium 3D:** O minificador do Turbopack/Next.js 16 convertia expressões do CesiumJS (`knockout-3.5.1` e WASM `protobufjs`) para template strings contendo caracteres de escape octais ilegais (`SyntaxError: Octal escape sequences are not allowed in template strings`), travando a montagem do componente React.
-- **Nova Arquitetura Estática & Zero Bundler Bloat (`CesiumGlobe.tsx`):** Eliminado o empacotamento do Cesium (5.6MB) pelo bundler do React/Next.js. O Cesium agora é carregado de forma limpa, assíncrona e desacoplada diretamente de `public/cesium/Cesium.js` e `Widgets/widgets.css` via injeção dinâmica de scripts, instanciando o `new window.Cesium.Viewer` com controle nativo completo de ciclo de vida.
-- **Eliminação Definitiva dos Tiles "Map data not yet available" (2.5D e 3D):** Em regiões montanhosas/desérticas (Monte Nebo, Monte Sinai, Deserto de Judá), o ArcGIS não possui tiles nos níveis 17+. Quando o MapLibre e Cesium estavam com `maxzoom: 19`, o servidor retornava a imagem PNG de erro do Apache. Corrigido com `maxzoom: 16` e `maximumLevel: 16`, ativando o **overscaling/upsampling linear nativo da GPU (WebGL)** para que a fotografia real de satélite permaneça sempre nítida e contínua sem nenhum bloco em branco.
-- **Recursos Preservados e Otimizados:** Pins temáticos 4D, achados arqueológicos com badges de autenticidade, rotas neon do Valhalla com waypoints bíblicos, órbita suave 360° (Ease-In/Ease-Out), voo rente ao relevo bíblico (2.000m de altitude contra o horizonte) e câmera inicial precisamente calibrada na Terra Santa (Jerusalém: 35.2137° E, 31.7683° N).
-- **Performance e Validação:** Build de produção (`npm run build`) concluído com sucesso em **1.57s**. **344 testes backend passando**, `static-checks.mjs` com 0 achados e typecheck do TypeScript 100% limpo (0 erros).
-
-38. **Resiliência de Autenticação em Modo Read-Only & Correção do Agente QA Diário (2026-10-19):**
-    Solucionada a falha diária do GitHub Actions (`daily-qa.yml` run #39282085100, Fase 3):
-
-- **Diagnóstico da Causa Raiz:** O banco Supabase em produção atingiu 1,195 GB, ativando `default_transaction_read_only = on` (erro Postgres 25006). O método `AuthService.register` já emitia 503 com mensagem de manutenção, mas `qa-phase3-suite.mjs` só tratava 429 para chavear para credenciais de contingência. Além disso, `generateRefreshToken` tentava inserir em `RefreshToken` e quebrava com erro 25006, mascarado como 401 `credenciais inválidas` em `AuthController.login`.
-- **Correção no Backend (`auth.service.ts` e `auth.controller.ts`):** `generateRefreshToken` agora trata código 25006 com resiliência graceful (emite o `accessToken` JWT assinado em memória sem quebrar o login) e `AuthController` propaga `HttpException` sem mascarar erros como credenciais inválidas. Coberto com teste unitário em `auth.service.spec.ts` (14/14 specs do auth aprovados, **345 testes backend passando**).
-- **Correção no Agente QA (`qa-phase3-suite.mjs`):** `E2E-AUTH-01` e `E2E-AUTH-03` agora tratam HTTP 503 como gatilho de contingência (`fallbackUserA` e `fallbackUserB`), eliminando a falha em cascata.
-- **Workflow CI/CD (`daily-qa.yml`):** Atualizado para Node.js 22, eliminando o aviso de depreciação do Node 20.
-
-39. **Versionamento do UX Squad na Nuvem, Hidratação Local de `node_modules` e Auditoria Completa (2026-11-04):**
-    Concluída a higienização do working tree, correção de caminhos do Esquadrão UX e revalidação integral local e em produção:
-
-- **Versionamento do UX Squad (`8a2a15f`):** `.github/workflows/daily-ux-squad.yml` atualizado para Node.js 22 e versionado junto com `audit/scripts/ux-squad/`. Corrigida a resolução de `rootDir` em `audit/scripts/ux-squad/run.ts` via `import.meta.dirname` para evitar criação de pasta aninhada `audit/scripts/ux-squad/audit/`.
-- **Hidratação Local contra Evicção do iCloud Drive (`+dataless`):** Identificado e resolvido timeout de 60s nos workers do `vitest` em `frontend-v2` causado por 46.368 arquivos `+dataless` em `frontend-v2/node_modules` e arquivos duplicados ` 2.ts` em `.next/types/`. Após `npm ci --prefer-offline`, os 49 testes do `vitest` voltaram a executar em **1,32s**.
-- **Validação Ao Vivo (Local + Produção):** **345 testes backend** (39 suítes), **49 testes frontend** (5 suítes), `static-checks.mjs` (0 achados), `verificar:acervo` coerente, **QA Fase 1** (13/13 probes 200 OK), **QA Fase 2** (14/14 aprovados, 100.0% Health Score) e **QA Fase 3 E2E** (13/13 aprovados, 100.0% Health Score).
-
-40. **Ativação e Validação das Chaves de IA em Produção no Render (2026-11-04):**
-    Configuradas `GEMINI_API_KEY` e `OPENAI_API_KEY` no painel de Environment do Render e executado deploy da `main` (`940ff4a`).
-    - **Medição Direta na Nuvem:** `GET https://theosphere.onrender.com/api/v1/health/ai` respondeu com **`status: "ok"`, `provider: "gemini"`, `configured: true`, `lastFailure: null`**.
-    - **Geração ao Vivo:** `POST /api/v1/rag/chat` validado gerando sínteses teológicas reformadas e arminianas em tempo real com modelo primário `gemini-3.8-flash` e fallback `gpt-4o-mini`.
-
-41. **Identificação Visual Inteligente, Rótulos Semânticos e Hover no Atlas 3D (2026-11-04):**
-    Resolvida a ausência de identificação dos pontos no mapa histórico (`/atlas`):
-    - **Rótulos de Achados Arqueológicos (Vermelhos):** Adicionado `TextLayer` com ícone temático (`🏺 Nome do Achado`), tipografia nítida e fundo de alto contraste no motor 2.5D (`TheoSphere3D.tsx`) e labels tridimensionais no Globo Cesium (`CesiumGlobe.tsx`).
-    - **LOD e Nomes de Cidades (Laranja):** Flexibilizado o filtro de cidades canônicas (exibição de capitais em zoom macro e de todos os marcos bíblicos em zoom médio/próximo).
-    - **Tooltip Instantâneo (Hover em 0ms):** Implementado `getTooltip` no Deck.gl com cards glassmorphism estilizados ao passar o mouse sobre cidades, achados ou rotas, exibindo datação, relevância e versículos antes do clique.
-    - **Filtro de Camadas no Topo (`MapHeader.tsx`):** Adicionadas pílulas compactas de toggle de 1 clique (`[🏛️ Cidades]` e `[🏺 Achados]`) para alternar a exibição sem poluição visual.
-    - **Validação:** 345 testes backend, 49 testes frontend vitest, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados e build de produção aprovado em 1.96s.
-
-42. **Modo Ultra-Clean no Atlas 3D com Identificação Exclusiva no Hover (2026-11-04):**
-    Aprimorada a experiência visual do mapa bíblico e globo 3D conforme decisão de usabilidade:
-    - **Zero Poluição de Satélite:** Removidos rótulos de texto fixos sobre os sítios arqueológicos (pontos vermelhos) e locais secundários (pontos laranjas), eliminando conflitos visuais e mantendo 100% visível o relevo de satélite e a topografia bíblica.
-    - **Hover Instantâneo (0ms):** Ao passar o mouse por cima de qualquer ponto vermelho ou laranja, o tooltip contextual surge instantaneamente exibindo nome, local de descoberta, autenticidade e referências bíblicas.
-    - **Centros Canônicos Fixos:** Mantidos apenas os grandes centros de orientação espacial macro (Jerusalém, Babilônia, Roma, Damasco, Alexandria, Samaria, etc.) no `TextLayer` com contraste e padding escuro.
-    - **Paridade Deck.gl e Cesium:** Tanto o motor 2.5D quanto o Cesium 3D operam no mesmo padrão ultra-clean sem caixas de texto flutuantes estáticas cobrindo o terreno.
-    - **Validação:** 345 testes backend, 49 testes frontend vitest passando, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados.
-
-43. **Correção de Cascading Renders no React 19 e CI 100% Verde no GitHub (2026-11-04):**
-    Identificada e corrigida falha no workflow `CI` (job `Frontend (lint, tsc, build)`):
-    - **Causa Raiz:** Regra `react-hooks/set-state-in-effect` do React 19 barrou chamadas síncronas de `setState` dentro de `useEffect` em `NoteEditor.tsx`, `EventDeepDiveModal.tsx`, `LandmarkNavigator.tsx` e `RouteStepperHUD.tsx`.
-    - **Correções Aplicadas:** `useSyncExternalStore` para verificação de montagem no cliente, ajuste de estado reativo durante a fase de render para props (`prevIsOpen`, `prevRouteId`) e debounce assíncrono para o autosave. `realCommentaries` encapsulado em `useMemo`.
-    - **Validação:** CI GitHub Run #685 e Security Audit Run #513 concluídos com **`status: completed, conclusion: success`** (100% verde).
-
-44. **Catálogo Exaustivo de Rotas Bíblicas Canônicas no Atlas 3D (2026-11-04):**
-    Construído o maior acervo cartográfico de rotas bíblicas em software teológico, expandindo de 8 para **23 rotas canônicas integrais** com waypoints georreferenciados, versículos, sínteses exegéticas, dados arqueológicos e modelos 3D:
-    - **Antigo Testamento (13 rotas):** 1. Peregrinação de Fé de Abraão, 2. Peregrinação de Jacó, 3. Trajetória de José no Egito, 4. Rota do Êxodo e Peregrinação no Deserto, 5. Conquista de Canaã sob Josué, 6. Peregrinação da Arca da Aliança, 7. Fuga e Refúgio de Davi, 8. Jornada Profética de Elias, 9. Missão de Jonas a Nínive, 10. Estabelecimento e Divisão dos Reinos, 11. Exílio Assírio e Dispersão, 12. Exílio Babilônico e Nova Aliança, 13. Retorno dos Exilados e Reconstrução de Jerusalém.
-    - **Ministério de Jesus (4 rotas):** 14. Nascimento e Infância de Jesus, 15. Ministério Galileu de Jesus Cristo, 16. Viagens ao Norte e Transfiguração no Hermom, 17. Última Jornada e Paixão em Jerusalém.
-    - **Ministério dos Apóstolos (2 rotas):** 18. Missão Evangelística de Filipe, 19. Viagens Apostólicas de Pedro.
-    - **Ministério do Apóstolo Paulo (4 rotas):** 20. 1ª Viagem Missionária, 21. 2ª Viagem Missionária (Visão Macedônia, Atenas, Corinto), 22. 3ª Viagem Missionária (Éfeso, Trôade, Mileto), 23. Viagem a Roma (Prisioneiro de Cristo).
-    - **Integração Total:** Suporte nativo e instantâneo (0ms offline) no MapLibre 2.5D, no Globo 3D Cesium, no painel `RouteControlPanel`, no HUD passo a passo `RouteStepperHUD` e via protocolo MCP (`theosphere_map_navigate`).
-    - **Validação:** 345 testes backend passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros, lint 0 erros, build de produção em 1.59s com 20/20 páginas geradas.
-
-45. **Expansão Canônica da Biblioteca Teológica Livre & História da Igreja (2026-11-05):**
-    Integradas 19 obras clássicas de domínio público cobrindo integralmente as lacunas históricas e teológicas da Biblioteca Livre (`/library`), totalizando **108 obras canônicas estruturadas**:
-    - **História da Igreja Clássica:** _História Eclesiástica_ de Eusébio de Cesaréia (séc. IV, fonte primária do cristianismo primitivo), _History of the Christian Church_ de Philip Schaff (8 volumes monumentais) e _História Eclesiástica do Povo Inglês_ de Beda, o Venerável.
-    - **Patrística Primária & Pais da Igreja:** _Didaquê_ (séc. I), _Epístolas_ de Santo Inácio de Antioquia, _Primeira Apologia & Diálogo com Trifão_ de São Justino Mártir, _Contra as Heresias_ de Santo Irineu de Lyon e _Sobre a Encarnação do Verbo_ de Santo Atanásio de Alexandria.
-    - **Credos Ecumênicos & Confissões Históricas:** Os Grandes Credos Ecumênicos (Apostólico, Niceno, Calcedônia), _Confissão de Fé de Westminster & Catecismo Maior_ (1647), _As Três Formas de Unidade_ (Confissão Belga, Catecismo de Heidelberg e Cânones de Dort), _Segunda Confissão Batista de Londres_ (1689) e _Os 39 Artigos da Igreja Anglicana_ (1563).
-    - **Equilíbrio Soteriológico & Avivamentos:** _The Works of James Arminius_ (3 volumes em domínio público CCEL), _O Servo Arbítrio_ de Martinho Lutero, _A Morte da Morte na Morte de Cristo_ de John Owen, _Sermões & Notas Explicativas do NT_ de John Wesley, _Tratado sobre as Afeições Religiosas_ de Jonathan Edwards e _Cur Deus Homo_ de Anselmo de Cantuária.
-    - **Frontend & Filtros:** Adicionadas as novas tradições `Arminiana` e `Ecumênica` com badges semânticos estilizados em `TheologicalLibrary.tsx`.
-    - **Validação:** 345 testes backend jest passando, 49 testes frontend vitest passando, typecheck limpo com 0 erros (`tsc --noEmit`), lint 0 erros, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado.
-
-46. **Sistema de Planos e Limites de IA em Real (BRL) & Página de Assinatura (/pricing) (2026-11-05):**
-    Implantada a arquitetura oficial de precificação e controle de cotas de IA baseada na proposta oficial:
-    - **Tabela Oficial de Planos (`plans.constants.ts` e `plans.ts`):** Starter (R$ 14,90/mês, 60 créditos), Plus (R$ 24,90/mês, 200 créditos - Mais Popular / Pastores), Pro (R$ 39,90/mês, 600 créditos - Acadêmico / Grego e Hebraico) e Church / Instituição (R$ 99,90/mês, 1.500 créditos multi-usuário).
-    - **Backend & Gestão de Cotas:** `AiQuotaService` atualizado para gerenciar cotas mensais resilientes por plano (`user.plan`) com janela de renovação mensal automática. Criado `BillingModule` com endpoints `/api/v1/billing/plans`, `/api/v1/billing/usage` e `/api/v1/billing/subscribe`.
-    - **Garantia de Fail-Soft:** Ao atingir a cota de IA, as 108 obras clássicas, as 7 Bíblias canônicas, o Atlas 3D e as anotações continuam 100% livres e ilimitadas.
-    - **Frontend & UX:** Criada a página de planos `/pricing` com switch Mensal/Anual (2 meses grátis), botão `[👑 Planos]` na TopBar e link contextual no Copilot IA (`AIAssistant.tsx`).
-    - **Validação:** **351 testes backend jest passando** (40 suítes), **49 testes frontend vitest passando** (5 suítes), typecheck e lint 100% limpos, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado com **21/21 páginas geradas**.
-
-47. **Perfil Altimétrico Interativo do Terreno Bíblico (Elevation Profile HUD) & Agente de Auto-Fix de PR (2026-11-05):**
-    Construído o motor de análise topográfica bíblica e a automação de auto-reparo do ecossistema:
-    - **Perfil Altimétrico de Rotas Bíblicas (`ElevationProfileHUD.tsx`):** Primeiro motor interativo de altimetria e relevo de rotas bíblicas do mercado (superando o Logos que possui apenas mapas rasterizados estáticos). Gráfico SVG dinâmico com tabela canônica de elevações (de -430m no Mar Morto até +2.814m no Hermom), distância geodésica acumulada (fórmula de Haversine em km), ganho acumulado de elevação e estimativa de marcha bíblica a pé (~dias de caravana). Hover exibe altitude instantânea e clique reposiciona a câmera 3D no cume.
-    - **Agente de Auto-Fix & Pull Requests Automáticos (`auto-fix-pr.mjs` e `daily-qa.yml`):** Script autônomo que inspeciona relatórios diários de QA e UX Squad. Se houver falhas, provisiona uma branch de reparo e abre automaticamente um Pull Request no GitHub com diagnósticos e aprovação em 1 clique pelo mantenedor.
-    - **Validação:** **351 testes backend jest passando**, **49 testes frontend vitest passando**, typecheck e lint 100% limpos, `static-checks.mjs` com 0 achados novos e build de produção Next.js aprovado com 21/21 páginas geradas.
-
-**Próximos passos:**
-
-1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.
+Última sessão: **2026-11-05**. Repositório limpo, suíte inteira passando:
+
+- **Backend:** 370 testes passando (42 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
+- **Frontend:** 49 testes passando (5 specs Vitest), lint 0, typecheck 0 (`tsc --noEmit`).
+- **Produção frontend:** `https://frontend-v2-lake.vercel.app` respondendo **HTTP 200** (a URL legada `frontend-v2-omega-seven` é 404 e foi descontinuada).
+- **Backend Render:** `https://theosphere.onrender.com` operante e medido (**HTTP 200** em `/api/v1/health/live`).
+- **Banco de Dados Supabase:** 1.195 MB (1,195 GB) medidos em 2026-11-05 via `backend/scratch/medir-tamanho-banco.js`. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB.
+- **Acervo Teológico Medido:** **45.114 chunks indexados** no `UserEmbedding` (88 obras clássicas com trechos ativos no banco). O catálogo canônico estruturado mapeia **108 obras** (`backend/src/bible/classic-catalog.ts`), sincronizado com o frontend via `node scripts/sync-catalog.mjs`.
+
+> **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](file:///Users/cristianocolombo/Desktop/Theosphere%202026/CHANGELOG.md).
+
+### Fase 0 — Bloqueadores (Concluída em 2026-11-05)
+
+1. **T0.1 — Fechar auto-promoção de plano em `/billing/subscribe` (branch `fix/t0.1-billing-subscribe`):**
+   `POST /billing/subscribe` responde 403 Forbidden para planos válidos e 400 BadRequest para inválidos. Mudança de plano é restrita a `BillingService.applyPaidPlan` via webhook autenticado e idempotente (`BillingEvent`). Frontend `/pricing` atualizado para lista de espera sem promessas de ativação imediata.
+2. **T0.2 — Separar espaços vetoriais e isolar cache de embeddings (branch `fix/t0.2-vector-spaces`):**
+   `createEmbedding` retorna `{ vector, provider, model, dimensions }` restrito exclusivamente ao modelo Gemini persistido (`gemini-embedding-001`, 768). Se indisponível, lança `EmbeddingUnavailableError`, propagando `meta.vectorArm = 'failed'`. Fallback hash e OpenAI isolados em `createEphemeralFallbackEmbedding` (somente em memória temporária). Diagnóstico no banco confirmou 0% de contaminação por vetores de hash na base persistente.
+3. **T0.3 — Plano de gestão de disco do Supabase (branch `feat/t0.3-plano-disco-supabase`):**
+   Medição detalhada por tabela e índice registrada. Extensão pgvector 0.8.0 suporta `halfvec(768)`. Migração local gerada (`20261105160000_halfvec_compression`) para reduzir ~389 MB dos índices HNSW sem perda de qualidade. Documentado em `docs/architecture/plano-disco-supabase.md`. Aguardando decisão D3 do mantenedor.
+4. **T0.4 — Anotações e marca-texto persistidos no servidor (branch `feat/t0.4-server-annotations`):**
+   Criado modelo Prisma `Annotation` com `userId`, formato canônico `BBCCCVVV`, Last-Write-Wins (LWW) e soft-delete (`deletedAt`). Endpoint `POST /annotations/sync` com fallback amigável caso o banco esteja em read-only. Sincronização em segundo plano no frontend com persistência local de 0ms.
+5. **T0.5 — Correção de afirmações e restrição factual (branch `fix/t0.5-factual-claims`):**
+   Removido `openTextCompliant: true` do diagrama sintático em favor do rótulo explícito "Segmentação aproximada (não é árvore sintática anotada)". O diff textual LCS de `BibleComparisonService` foi restrito a versões do mesmo idioma; versões de idiomas distintos exibem colunas paralelas sem diff indevido. Superlativos e termos não sustentados foram removidos da UI e código.
+6. **T0.6 — Higiene de documentação (branch `feat/t0.6-docs-hygiene`):**
+   Histórico extenso movido para `CHANGELOG.md`. URLs e métricas unificadas em `AGENTS.md`. Catálogo de obras sincronizado via script automatizado `scripts/sync-catalog.mjs`.
+
+### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6)
+
+- **D1:** Revogar o token do Railway exposto em `scripts/check-production-health.ts` no painel do Railway.
+- **D2:** Escolher e contratar gateway de pagamento (Mercado Pago, Asaas, Stripe) e configurar credenciais no dashboard do Render.
+- **D3:** Decisão sobre o disco do Supabase: upgrade para plano Pro ($25/mês) OU aprovação da migração de compressão `halfvec` (T0.3).
+- **D4:** Licenciamento comercial de traduções modernas brasileiras de púlpito (ARA/ARC/NAA — SBB; NVI — Biblica).
+- **D5:** Orçamento mensal de infraestrutura (Render pago, Redis dedicado, CDN de assets).
+- **D6:** Definição do público prioritário (pastoral/homilético vs seminarista/acadêmico) para ordenação de entregas da Fase 2.
 
 ---
 
@@ -344,7 +66,7 @@ busca morfológica no original e latência de milissegundos.
 
 **Produção:** backend em Render (`https://theosphere.onrender.com`, free tier —
 auto-sleep de 15 min, cold start de ~60 s); frontend em Vercel
-(`https://frontend-v2-omega-seven.vercel.app`, deploy por `npx vercel --prod`, sem
+(`https://frontend-v2-lake.vercel.app`, deploy por `npx vercel --prod`, sem
 repo Git conectado); banco em Supabase.
 
 ## 3. Convenções inegociáveis
@@ -489,7 +211,9 @@ A tabela `BibleVerse` contém 7 traduções integrais e canônicas de domínio p
 ### ⚪ Acervo Clássico e Biblioteca Teológica
 
 - **Léxico** integrado com concordância Strong e léxico TAGNT grego/hebraico.
-- **Acervo de Domínio Público:** **38 obras clássicas completas e 18.790 trechos** indexados no `UserEmbedding` com embeddings vetoriais (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Matthew Henry, Aquino, Bunyan, Easton's Bible Dictionary). O Copilot IA cita diretamente as obras nos debates e exegeses. Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `scratch/diagnostico-embeddings.js` para medir o acervo persistente no PostgreSQL.
+- **Acervo de Domínio Público Medido no PostgreSQL (2026-11-05):** **45.114 chunks ativos** indexados no `UserEmbedding` com embeddings vetoriais, distribuídos em 88 obras com trechos indexados (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Matthew Henry, Aquino, Bunyan, Flávio Josefo, Foxe, etc.). O Copilot IA cita diretamente as obras nos debates e exegeses.
+- **Catálogo Canônico Estruturado:** **108 obras** cadastradas em `backend/src/bible/classic-catalog.ts`, sincronizadas automaticamente com `frontend-v2/src/data/classicCatalog.ts` via `node scripts/sync-catalog.mjs`.
+- Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `backend/scratch/medir-tamanho-banco.js` ou `backend/scratch/diagnostico-espacos-vetoriais.js` para medir o acervo persistente no PostgreSQL.
 
 ### ⚖️ Portão de licença
 
