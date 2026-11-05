@@ -266,6 +266,14 @@ Backend Render (`https://theosphere.onrender.com`) operante e medido.
     - **Medição Direta na Nuvem:** `GET https://theosphere.onrender.com/api/v1/health/ai` respondeu com **`status: "ok"`, `provider: "gemini"`, `configured: true`, `lastFailure: null`**.
     - **Geração ao Vivo:** `POST /api/v1/rag/chat` validado gerando sínteses teológicas reformadas e arminianas em tempo real com modelo primário `gemini-3.8-flash` e fallback `gpt-4o-mini`.
 
+41. **Identificação Visual Inteligente, Rótulos Semânticos e Hover no Atlas 3D (2026-11-04):**
+    Resolvida a ausência de identificação dos pontos no mapa histórico (`/atlas`):
+    - **Rótulos de Achados Arqueológicos (Vermelhos):** Adicionado `TextLayer` com ícone temático (`🏺 Nome do Achado`), tipografia nítida e fundo de alto contraste no motor 2.5D (`TheoSphere3D.tsx`) e labels tridimensionais no Globo Cesium (`CesiumGlobe.tsx`).
+    - **LOD e Nomes de Cidades (Laranja):** Flexibilizado o filtro de cidades canônicas (exibição de capitais em zoom macro e de todos os marcos bíblicos em zoom médio/próximo).
+    - **Tooltip Instantâneo (Hover em 0ms):** Implementado `getTooltip` no Deck.gl com cards glassmorphism estilizados ao passar o mouse sobre cidades, achados ou rotas, exibindo datação, relevância e versículos antes do clique.
+    - **Filtro de Camadas no Topo (`MapHeader.tsx`):** Adicionadas pílulas compactas de toggle de 1 clique (`[🏛️ Cidades]` e `[🏺 Achados]`) para alternar a exibição sem poluição visual.
+    - **Validação:** 345 testes backend, 49 testes frontend vitest, typecheck limpo com 0 erros, `static-checks.mjs` com 0 achados e build de produção aprovado em 1.96s.
+
 **Próximos passos:**
 
 1. **Ajuste de Cota de Disco no Supabase:** Habilitar expansão de disco no Supabase (ou aplicar compressão `halfvec` nos embeddings) para desativar o modo read-only e continuar ingestões de novos volumes do acervo.

@@ -13,6 +13,7 @@ interface CesiumGlobeProps {
   visibleRouteIds?: string[];
   routes?: any[];
   showArchaeology?: boolean;
+  showCities?: boolean;
 }
 
 const ARCH_COLORS: Record<string, string> = {
@@ -145,6 +146,7 @@ export default function CesiumGlobe({
   visibleRouteIds = [],
   routes = [],
   showArchaeology = true,
+  showCities = true,
 }: CesiumGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -477,21 +479,18 @@ export default function CesiumGlobe({
     const pointerHandler = new Cesium.ScreenSpaceEventHandler(
       viewer.scene.canvas,
     );
-    pointerHandler.setInputAction(
-      (movement: { endPosition: any }) => {
-        try {
-          const picked = viewer.scene.pick(movement.endPosition);
-          if (Cesium.defined(picked) && picked?.id instanceof Cesium.Entity) {
-            viewer.canvas.style.cursor = "pointer";
-          } else {
-            viewer.canvas.style.cursor = "default";
-          }
-        } catch {
+    pointerHandler.setInputAction((movement: { endPosition: any }) => {
+      try {
+        const picked = viewer.scene.pick(movement.endPosition);
+        if (Cesium.defined(picked) && picked?.id instanceof Cesium.Entity) {
+          viewer.canvas.style.cursor = "pointer";
+        } else {
           viewer.canvas.style.cursor = "default";
         }
-      },
-      Cesium.ScreenSpaceEventType.MOUSE_MOVE,
-    );
+      } catch {
+        viewer.canvas.style.cursor = "default";
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
     return () => {
       removeTickListener?.();
@@ -563,54 +562,58 @@ export default function CesiumGlobe({
     // Limpar entidades anteriores
     viewer.entities.removeAll();
 
-    // Locais Históricos 4D
-    const activeLocations = SEED_LOCATIONS.filter((loc: any) => {
-      const start = loc.period_start ?? loc.timeline?.start_year ?? -4000;
-      const end = loc.period_end ?? loc.timeline?.end_year ?? 2100;
-      return currentTime >= start && currentTime <= end;
-    });
-
-    for (const loc of activeLocations) {
-      viewer.entities.add({
-        id: loc.id,
-        position: Cesium.Cartesian3.fromDegrees(
-          loc.coordinates[0],
-          loc.coordinates[1],
-          (loc.coordinates as any)[2] || 0,
-        ),
-        name: loc.names.pt,
-        properties: new Cesium.PropertyBag({
-          name: loc.names.pt,
-          category: loc.type,
-          description:
-            (loc as any).description || (loc as any).theologicalSignificance,
-          verse: loc.references?.[0] || "",
-          quote: (loc as any).theologicalSignificance || "",
-          lat: loc.coordinates[1],
-          lng: loc.coordinates[0],
-        }),
-        point: {
-          pixelSize: 8,
-          color: Cesium.Color.fromCssColorString(getCategoryColorHex(loc.type)),
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 2,
-        },
-        label: {
-          text: loc.names.pt,
-          font: "12px Inter, system-ui, sans-serif",
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium.Cartesian2(0, -14),
-          horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(
-            0,
-            3500000,
-          ),
-        },
+    // Locais Históricos 4D (Cidades e Marcos Bíblicos)
+    if (showCities) {
+      const activeLocations = SEED_LOCATIONS.filter((loc: any) => {
+        const start = loc.period_start ?? loc.timeline?.start_year ?? -4000;
+        const end = loc.period_end ?? loc.timeline?.end_year ?? 2100;
+        return currentTime >= start && currentTime <= end;
       });
+
+      for (const loc of activeLocations) {
+        viewer.entities.add({
+          id: loc.id,
+          position: Cesium.Cartesian3.fromDegrees(
+            loc.coordinates[0],
+            loc.coordinates[1],
+            (loc.coordinates as any)[2] || 0,
+          ),
+          name: loc.names.pt,
+          properties: new Cesium.PropertyBag({
+            name: loc.names.pt,
+            category: loc.type,
+            description:
+              (loc as any).description || (loc as any).theologicalSignificance,
+            verse: loc.references?.[0] || "",
+            quote: (loc as any).theologicalSignificance || "",
+            lat: loc.coordinates[1],
+            lng: loc.coordinates[0],
+          }),
+          point: {
+            pixelSize: 8,
+            color: Cesium.Color.fromCssColorString(
+              getCategoryColorHex(loc.type),
+            ),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+          },
+          label: {
+            text: loc.names.pt,
+            font: "12px Inter, system-ui, sans-serif",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -14),
+            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(
+              0,
+              3500000,
+            ),
+          },
+        });
+      }
     }
 
     // Achados Arqueológicos
@@ -643,11 +646,11 @@ export default function CesiumGlobe({
             outlineWidth: 2,
           },
           label: {
-            text: find.namePt,
-            font: "11px Inter, system-ui, sans-serif",
-            fillColor: Cesium.Color.fromCssColorString("#fed7aa"),
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 2,
+            text: `🏺 ${find.namePt}`,
+            font: "bold 11px Inter, system-ui, sans-serif",
+            fillColor: Cesium.Color.fromCssColorString("#FFE4E6"),
+            outlineColor: Cesium.Color.fromCssColorString("#881337"),
+            outlineWidth: 3,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cesium.Cartesian2(0, -14),
             horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
@@ -739,6 +742,7 @@ export default function CesiumGlobe({
   }, [
     isCesiumReady,
     currentTime,
+    showCities,
     showArchaeology,
     archFinds,
     visibleRouteIds,

@@ -22,6 +22,10 @@ interface MapHeaderProps {
   onToggleSidebar?: () => void;
   onLiveIsrael?: () => void;
   onOpenLandmarks?: () => void;
+  showCities?: boolean;
+  onToggleCities?: () => void;
+  showArchaeology?: boolean;
+  onToggleArchaeology?: () => void;
   onClose?: () => void;
 }
 
@@ -36,6 +40,10 @@ export function MapHeader({
   onToggleSidebar,
   onLiveIsrael,
   onOpenLandmarks,
+  showCities = true,
+  onToggleCities,
+  showArchaeology = true,
+  onToggleArchaeology,
   onClose,
 }: MapHeaderProps) {
   return (
@@ -107,6 +115,67 @@ export function MapHeader({
           >
             <MapPin className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-[11px]">Marcos</span>
+          </button>
+        )}
+
+        {/* Separator */}
+        {(onToggleCities || onToggleArchaeology) && (
+          <div className="w-[1px] h-4 bg-white/15" />
+        )}
+
+        {/* Toggle Cidades Bíblicas */}
+        {onToggleCities && (
+          <button
+            onClick={onToggleCities}
+            className={`px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-all text-xs font-semibold active:scale-95 cursor-pointer ${
+              showCities
+                ? "bg-amber-950/60 border-amber-500/50 text-amber-200"
+                : "bg-slate-900/60 hover:bg-slate-900/80 border-white/10 text-slate-400 opacity-60"
+            }`}
+            title={
+              showCities
+                ? "Ocultar Cidades Bíblicas"
+                : "Exibir Cidades Bíblicas"
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                showCities
+                  ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]"
+                  : "bg-slate-600"
+              }`}
+            />
+            <span className="text-[11px] font-medium hidden sm:inline">
+              Cidades
+            </span>
+          </button>
+        )}
+
+        {/* Toggle Achados Arqueológicos */}
+        {onToggleArchaeology && (
+          <button
+            onClick={onToggleArchaeology}
+            className={`px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-all text-xs font-semibold active:scale-95 cursor-pointer ${
+              showArchaeology
+                ? "bg-rose-950/60 border-rose-500/50 text-rose-200"
+                : "bg-slate-900/60 hover:bg-slate-900/80 border-white/10 text-slate-400 opacity-60"
+            }`}
+            title={
+              showArchaeology
+                ? "Ocultar Achados Arqueológicos"
+                : "Exibir Achados Arqueológicos"
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                showArchaeology
+                  ? "bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.8)]"
+                  : "bg-slate-600"
+              }`}
+            />
+            <span className="text-[11px] font-medium hidden sm:inline">
+              Achados
+            </span>
           </button>
         )}
 

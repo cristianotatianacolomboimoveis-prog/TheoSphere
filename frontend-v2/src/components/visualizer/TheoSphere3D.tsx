@@ -192,11 +192,15 @@ export default function TheoSphere3D({
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isOrbiting, setIsOrbiting] = useState(false);
   const [isLandmarksOpen, setIsLandmarksOpen] = useState(false);
-  const [activeStepperRoute, setActiveStepperRoute] = useState<any | null>(null);
+  const [activeStepperRoute, setActiveStepperRoute] = useState<any | null>(
+    null,
+  );
 
   const [rawLibertyStyle, setRawLibertyStyle] = useState<any>(null);
 
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
+  const [showCities, setShowCities] = useState(true);
+  const [showArchaeology, setShowArchaeology] = useState(true);
   const [isLegendExpanded, setIsLegendExpanded] = useState(false);
   const [archFinds, setArchFinds] = useState<ArchaeologicalFind[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<{
@@ -423,7 +427,9 @@ export default function TheoSphere3D({
         let nextVisible: string[];
         if (isVisible) {
           nextVisible = prev.filter((id) => id !== routeId);
-          setActiveStepperRoute((cur: any) => (cur?.id === routeId ? null : cur));
+          setActiveStepperRoute((cur: any) =>
+            cur?.id === routeId ? null : cur,
+          );
         } else {
           nextVisible = [...prev, routeId];
           const found = routes.find((r) => r.id === routeId);
@@ -536,10 +542,7 @@ export default function TheoSphere3D({
         // Keep only boundary and water label layers in satellite mode (avoid modern city name collisions like Nablus, Ramla, etc.)
         style.layers = style.layers.filter((layer: any) => {
           const id = layer.id || "";
-          return (
-            id.startsWith("boundary_") ||
-            id.startsWith("water_name_")
-          );
+          return id.startsWith("boundary_") || id.startsWith("water_name_");
         });
 
         // Optimize colors for high readability on satellite background
@@ -769,106 +772,207 @@ export default function TheoSphere3D({
     }),
 
     // Locais Bíblicos Originais (ScatterplotLayer)
-    new ScatterplotLayer({
-      id: "points",
-      data: locations || [],
-      getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
-      getFillColor: [245, 158, 11, 200], // Amber/Orange (#f59e0b) to match the legend
-      getRadius: 100,
-      radiusMinPixels: 6,
-      radiusMaxPixels: 10,
-      pickable: true,
-      onClick: (info: any) => {
-        if (info.object) {
-          const mappedLocation = {
-            id: info.object.id || info.object.name,
-            name: info.object.name,
-            category: getCategoryLabel(info.object.category || "city"),
-            description: info.object.description,
-            lat: info.object.lat,
-            lng: info.object.lng,
-            era: info.object.era ?? currentTime,
-          };
-          setSelectedEvent(mappedLocation);
-          if (MapAdapter) {
-            MapAdapter.events.publish("onLocationSelected", mappedLocation);
+    showCities &&
+      new ScatterplotLayer({
+        id: "points",
+        data: locations || [],
+        getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
+        getFillColor: [245, 158, 11, 200], // Amber/Orange (#f59e0b) to match the legend
+        getRadius: 100,
+        radiusMinPixels: 6,
+        radiusMaxPixels: 10,
+        pickable: true,
+        onClick: (info: any) => {
+          if (info.object) {
+            const mappedLocation = {
+              id: info.object.id || info.object.name,
+              name: info.object.name,
+              category: getCategoryLabel(info.object.category || "city"),
+              description: info.object.description,
+              lat: info.object.lat,
+              lng: info.object.lng,
+              era: info.object.era ?? currentTime,
+            };
+            setSelectedEvent(mappedLocation);
+            if (MapAdapter) {
+              MapAdapter.events.publish("onLocationSelected", mappedLocation);
+            }
           }
-        }
-      },
-    }),
+        },
+      }),
 
     // Acervo Arqueológico (ScatterplotLayer) — cor por autenticidade
-    new ScatterplotLayer({
-      id: "arch-finds",
-      data: archFinds,
-      getPosition: (f: ArchaeologicalFind) => [
-        f.longitude as number,
-        f.latitude as number,
-      ],
-      getFillColor: (f: ArchaeologicalFind) =>
-        f.authenticity === "confirmada"
-          ? [244, 63, 94, 220] // rose
-          : f.authenticity === "debatida"
-            ? [245, 158, 11, 220] // amber
-            : [148, 163, 184, 220], // slate (disputada)
-      getRadius: 90,
-      radiusMinPixels: 5,
-      radiusMaxPixels: 9,
-      pickable: true,
-      onClick: (info: any) => {
-        const f = info.object as ArchaeologicalFind | undefined;
-        if (f) {
-          const mappedLocation = {
-            id: `arch-${f.slug}`,
-            name: `🏺 ${f.namePt}`,
-            category: `Arqueologia (${f.authenticity})`,
-            description: f.description,
-            quote: f.significance,
-            geo: `Descoberta: ${f.discoverySite}${f.discoveryYear ? ` (${f.discoveryYear})` : ""}`,
-            arch: f.currentLocation
-              ? `Acervo: ${f.currentLocation}`
-              : undefined,
-            lat: f.latitude as number,
-            lng: f.longitude as number,
-            era: currentTime,
-          };
-          setSelectedEvent(mappedLocation);
-          if (MapAdapter) {
-            MapAdapter.events.publish("onLocationSelected", mappedLocation);
+    showArchaeology &&
+      new ScatterplotLayer({
+        id: "arch-finds",
+        data: archFinds,
+        getPosition: (f: ArchaeologicalFind) => [
+          f.longitude as number,
+          f.latitude as number,
+        ],
+        getFillColor: (f: ArchaeologicalFind) =>
+          f.authenticity === "confirmada"
+            ? [244, 63, 94, 220] // rose
+            : f.authenticity === "debatida"
+              ? [245, 158, 11, 220] // amber
+              : [148, 163, 184, 220], // slate (disputada)
+        getRadius: 90,
+        radiusMinPixels: 5,
+        radiusMaxPixels: 9,
+        pickable: true,
+        onClick: (info: any) => {
+          const f = info.object as ArchaeologicalFind | undefined;
+          if (f) {
+            const mappedLocation = {
+              id: `arch-${f.slug}`,
+              name: `🏺 ${f.namePt}`,
+              category: `Arqueologia (${f.authenticity})`,
+              description: f.description,
+              quote: f.significance,
+              geo: `Descoberta: ${f.discoverySite}${f.discoveryYear ? ` (${f.discoveryYear})` : ""}`,
+              arch: f.currentLocation
+                ? `Acervo: ${f.currentLocation}`
+                : undefined,
+              lat: f.latitude as number,
+              lng: f.longitude as number,
+              era: currentTime,
+            };
+            setSelectedEvent(mappedLocation);
+            if (MapAdapter) {
+              MapAdapter.events.publish("onLocationSelected", mappedLocation);
+            }
           }
-        }
-      },
-    }),
+        },
+      }),
 
     // Rótulos dos Locais Bíblicos (TextLayer com background nítido e LOD sem colisão)
-    new TextLayer({
-      id: "labels",
-      data:
-        viewState.zoom < 6
-          ? (locations || []).filter(
-              (loc: any) =>
-                loc.name === "Jerusalém" ||
-                loc.name === "Samaria" ||
-                loc.name === "Damasco" ||
-                loc.name === "Hebrom" ||
-                loc.name === "Alexandria" ||
-                loc.name === "Babilônia",
-            )
-          : locations || [],
-      getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
-      getText: (d: any) => d?.name || "",
-      getSize: viewState.zoom > 7 ? 13 : 11,
-      sizeUnits: "pixels",
-      getColor: [255, 255, 255, 255],
-      getPixelOffset: [0, -14],
-      characterSet: "auto",
-      background: true,
-      getBackgroundColor: [10, 14, 23, 215],
-      backgroundPadding: [5, 2],
-      fontFamily: "'Literata', Georgia, serif",
-      fontWeight: "bold",
-    }),
-  ];
+    showCities &&
+      new TextLayer({
+        id: "labels",
+        data:
+          viewState.zoom < 5.5
+            ? (locations || []).filter(
+                (loc: any) =>
+                  loc.name === "Jerusalém" ||
+                  loc.name === "Samaria" ||
+                  loc.name === "Damasco" ||
+                  loc.name === "Hebrom" ||
+                  loc.name === "Alexandria" ||
+                  loc.name === "Babilônia" ||
+                  loc.name === "Roma" ||
+                  loc.name === "Éfeso" ||
+                  loc.name === "Nazaré" ||
+                  loc.name === "Cafarnaum",
+              )
+            : locations || [],
+        getPosition: (d: any) => [d?.lng || 0, d?.lat || 0],
+        getText: (d: any) => d?.name || "",
+        getSize: viewState.zoom > 7 ? 13 : 11,
+        sizeUnits: "pixels",
+        getColor: [255, 255, 255, 255],
+        getPixelOffset: [0, -14],
+        characterSet: "auto",
+        background: true,
+        getBackgroundColor: [10, 14, 23, 215],
+        backgroundPadding: [5, 2],
+        fontFamily: "'Literata', Georgia, serif",
+        fontWeight: "bold",
+      }),
+
+    // Rótulos dos Achados Arqueológicos (TextLayer com badge temático de autenticidade)
+    showArchaeology &&
+      new TextLayer({
+        id: "arch-labels",
+        data: archFinds,
+        getPosition: (f: ArchaeologicalFind) => [
+          f.longitude as number,
+          f.latitude as number,
+        ],
+        getText: (f: ArchaeologicalFind) =>
+          `🏺 ${f.namePt.length > 22 ? f.namePt.slice(0, 21) + "…" : f.namePt}`,
+        getSize: viewState.zoom > 7 ? 12 : 10,
+        sizeUnits: "pixels",
+        getColor: [255, 228, 230, 250],
+        getPixelOffset: [0, -14],
+        characterSet: "auto",
+        background: true,
+        getBackgroundColor: [35, 10, 20, 225],
+        backgroundPadding: [5, 2],
+        fontFamily: "'Inter', sans-serif",
+        fontWeight: "bold",
+      }),
+  ].filter(Boolean);
+
+  const getDeckTooltip = useCallback((info: any) => {
+    if (!info || !info.object) return null;
+    const obj = info.object;
+    if (
+      info.layer?.id === "arch-finds" ||
+      info.layer?.id === "arch-labels" ||
+      obj.slug
+    ) {
+      return {
+        html: `<div style="padding: 8px 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); font-family: Inter, sans-serif; max-width: 260px; backdrop-filter: blur(8px);">
+          <div style="font-weight: bold; font-size: 12px; color: #f43f5e; display: flex; align-items: center; gap: 4px;">
+            <span>🏺</span> <span>${obj.namePt || obj.name}</span>
+          </div>
+          <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;">
+            ${obj.discoverySite ? `<strong>Descoberta:</strong> ${obj.discoverySite}<br/>` : ""}
+            <span style="color: #fda4af;"><strong>Autenticidade:</strong> ${obj.authenticity || "confirmada"}</span>
+          </div>
+          ${obj.significance ? `<div style="font-size: 10px; color: #fde68a; font-style: italic; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">${obj.significance}</div>` : ""}
+        </div>`,
+        style: {
+          backgroundColor: "transparent",
+          padding: "0px",
+          border: "none",
+        },
+      };
+    }
+    if (
+      info.layer?.id === "points" ||
+      info.layer?.id === "labels" ||
+      obj.category
+    ) {
+      return {
+        html: `<div style="padding: 8px 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); font-family: Inter, sans-serif; max-width: 260px; backdrop-filter: blur(8px);">
+          <div style="font-weight: bold; font-size: 12px; color: #f59e0b; display: flex; align-items: center; gap: 4px;">
+            <span>📍</span> <span>${obj.name}</span>
+          </div>
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 2px;">
+            ${getCategoryLabel(obj.category || "city")}
+          </div>
+          ${obj.description ? `<div style="font-size: 11px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;">${obj.description}</div>` : ""}
+        </div>`,
+        style: {
+          backgroundColor: "transparent",
+          padding: "0px",
+          border: "none",
+        },
+      };
+    }
+    if (
+      info.layer?.id === "route-waypoints" ||
+      info.layer?.id === "route-waypoint-labels" ||
+      obj.step
+    ) {
+      return {
+        html: `<div style="padding: 8px 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); font-family: Inter, sans-serif; max-width: 260px; backdrop-filter: blur(8px);">
+          <div style="font-weight: bold; font-size: 12px; color: #818cf8; display: flex; align-items: center; gap: 4px;">
+            <span>🚩</span> <span>${obj.indexInRoute ? `${obj.indexInRoute}. ` : ""}${obj.title || obj.name}</span>
+          </div>
+          ${obj.verse ? `<div style="font-size: 10px; color: #c7d2fe; margin-top: 2px;">${obj.verse}</div>` : ""}
+          ${obj.quote ? `<div style="font-size: 10px; color: #cbd5e1; font-style: italic; margin-top: 4px;">"${obj.quote}"</div>` : ""}
+        </div>`,
+        style: {
+          backgroundColor: "transparent",
+          padding: "0px",
+          border: "none",
+        },
+      };
+    }
+    return null;
+  }, []);
 
   return (
     <div
@@ -887,6 +991,10 @@ export default function TheoSphere3D({
         onToggleSidebar={onToggleSidebar}
         onLiveIsrael={handleLiveIsrael}
         onOpenLandmarks={() => setIsLandmarksOpen(true)}
+        showCities={showCities}
+        onToggleCities={() => setShowCities((prev) => !prev)}
+        showArchaeology={showArchaeology}
+        onToggleArchaeology={() => setShowArchaeology((prev) => !prev)}
         onClose={onClose}
       />
 
@@ -992,7 +1100,12 @@ export default function TheoSphere3D({
           }
         >
           {useCesium ? (
-            <CesiumGlobe visibleRouteIds={visibleRouteIds} routes={routes} />
+            <CesiumGlobe
+              visibleRouteIds={visibleRouteIds}
+              routes={routes}
+              showArchaeology={showArchaeology}
+              showCities={showCities}
+            />
           ) : (
             <Map
               mapLib={maplibregl}
@@ -1009,7 +1122,9 @@ export default function TheoSphere3D({
               minPitch={0}
               maxPitch={65}
             >
-              {isMapLoaded && <DeckGLOverlay layers={layers} />}
+              {isMapLoaded && (
+                <DeckGLOverlay layers={layers} getTooltip={getDeckTooltip} />
+              )}
               <NavigationControl position="bottom-right" />
             </Map>
           )}
@@ -1021,7 +1136,11 @@ export default function TheoSphere3D({
         currentTime={currentTime}
         onTimeChange={(year, location) => {
           setCurrentTime(year);
-          if (location && MapAdapter && typeof MapAdapter.flyTo === "function") {
+          if (
+            location &&
+            MapAdapter &&
+            typeof MapAdapter.flyTo === "function"
+          ) {
             MapAdapter.flyTo(location[1], location[0], 7);
           }
         }}
