@@ -52,7 +52,9 @@ export interface SyntaxDiagramResponse {
   rootClauses: ClauseNode[];
   isCanonicalPreset: boolean;
   method: SyntaxDiagramMethod;
-  methodLabelPt: string; // Ex: "Segmentação aproximada (não é árvore sintática anotada)"
+  methodLabelPt: string; // Ex: "Segmentação aproximada (não é árvore sintática anotada)" ou "Árvore Anotada (Treebank)"
+  isAnnotatedTree: boolean; // T1.5: true se derivada de Treebank real anotado
+  source?: string; // T1.5: atribuição de fonte (ex: 'Treebank MACULA Greek (CC BY 4.0)')
 }
 
 export interface CanonicalDiagramSummary {

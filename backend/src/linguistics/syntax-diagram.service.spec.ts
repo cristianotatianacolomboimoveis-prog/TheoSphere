@@ -269,11 +269,41 @@ describe('SyntaxDiagramService', () => {
 
       const diagram = await service.getVerseDiagram('EPH', 2, 8);
       expect(diagram).toBeDefined();
+      expect(diagram.isAnnotatedTree).toBe(false);
       expect(diagram.method).toBe('heuristic-text');
       expect(diagram.methodLabelPt).toBe(
         'Segmentação aproximada (não é árvore sintática anotada)',
       );
       expect(diagram.rootClauses.length).toBeGreaterThan(1);
+    });
+
+    it('deve retornar árvore anotada real do Treebank MACULA Greek para João 1:1 (T1.5)', async () => {
+      const diagram = await service.getVerseDiagram('JHN', 1, 1);
+
+      expect(diagram).toBeDefined();
+      expect(diagram.isAnnotatedTree).toBe(true);
+      expect(diagram.method).toBe('treebank');
+      expect(diagram.methodLabelPt).toBe(
+        'Árvore Anotada (Treebank MACULA Greek)',
+      );
+      expect(diagram.source).toContain('Clear Bible');
+      expect(diagram.rootClauses).toHaveLength(3);
+      expect(diagram.rootClauses[0].words).toBeDefined();
+      expect(diagram.rootClauses[0].words?.[0].role).toBe('A'); // 'Ἐν' como Adjunto
+      expect(diagram.rootClauses[0].words?.[2].role).toBe('P'); // 'ἦν' como Predicador
+    });
+
+    it('deve retornar árvore anotada real do Treebank MACULA Greek para Romanos 8:28 (T1.5)', async () => {
+      const diagram = await service.getVerseDiagram('ROM', 8, 28);
+
+      expect(diagram).toBeDefined();
+      expect(diagram.isAnnotatedTree).toBe(true);
+      expect(diagram.method).toBe('treebank');
+      expect(diagram.rootClauses).toHaveLength(1);
+      expect(diagram.rootClauses[0].children).toBeDefined();
+      expect(diagram.rootClauses[0].children?.[0].clauseType).toBe(
+        'subordinate_causal',
+      );
     });
   });
 });

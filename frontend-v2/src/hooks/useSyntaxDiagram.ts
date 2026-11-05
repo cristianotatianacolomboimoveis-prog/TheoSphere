@@ -55,6 +55,8 @@ export interface SyntaxDiagramResponse {
   isCanonicalPreset: boolean;
   method?: SyntaxDiagramMethod;
   methodLabelPt?: string;
+  isAnnotatedTree?: boolean;
+  source?: string;
 }
 
 export interface CanonicalDiagramSummary {

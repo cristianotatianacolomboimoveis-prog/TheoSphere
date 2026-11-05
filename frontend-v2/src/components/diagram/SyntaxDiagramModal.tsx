@@ -429,14 +429,20 @@ export function SyntaxDiagramModal({
                 <h2 className="text-lg font-bold text-zinc-100">
                   Diagramação Estrutural de Cláusulas
                 </h2>
-                <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2.5 py-0.5 rounded font-sans font-medium">
-                  {activeDiagram?.methodLabelPt ||
-                    "Segmentação aproximada (não é árvore sintática anotada)"}
-                </span>
+                {activeDiagram?.isAnnotatedTree ? (
+                  <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-2.5 py-0.5 rounded font-sans font-medium flex items-center gap-1">
+                    ✓ Árvore Anotada (Treebank)
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/60 px-2.5 py-0.5 rounded font-sans font-medium">
+                    Segmentação Heurística (Aproximada)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-zinc-400">
-                Segmentação estrutural de orações e conectores nos textos
-                bíblicos.
+                {activeDiagram?.source
+                  ? `Fonte: ${activeDiagram.source}`
+                  : "Segmentação estrutural de orações e conectores nos textos bíblicos."}
               </p>
             </div>
           </div>
