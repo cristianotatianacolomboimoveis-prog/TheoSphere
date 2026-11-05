@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -35,7 +35,11 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
   onFlyToLocation,
   onAskCopilot,
 }) => {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [activeTab, setActiveTab] = useState<
     "theology" | "archaeology" | "christ" | "scripture" | "copilot"
   >("theology");
@@ -44,10 +48,6 @@ export const EventDeepDiveModal: React.FC<EventDeepDiveModalProps> = ({
   const [copilotAnswer, setCopilotAnswer] = useState<string | null>(null);
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Fechar com tecla ESC
   useEffect(() => {
@@ -99,7 +99,7 @@ ${deepDive.christocentricSignificance}
     try {
       // Chamada à API RAG do TheoSphere
       const promptText = `No contexto do evento bíblico e histórico "${deepDive.label}" (${deepDive.yearDisplay}), responda à seguinte questão com profundidade exegética, citando os maiores teólogos e arqueólogos: ${copilotQuestion}`;
-      
+
       const res = await fetch("/api/v1/rag/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,17 +108,21 @@ ${deepDive.christocentricSignificance}
 
       if (res.ok) {
         const data = await res.json();
-        setCopilotAnswer(data.response || data.answer || "Resposta processada.");
+        setCopilotAnswer(
+          data.response || data.answer || "Resposta processada.",
+        );
       } else {
         // Fallback enriquecido
         setCopilotAnswer(
-          `De acordo com os registros teológicos e arqueológicos de ${deepDive.label}: A questão "${copilotQuestion}" toca o cerne da Revelação bíblica. Os teólogos clássicos (como Agostinho e Calvino) enfatizam a soberania e fidelidade de Deus neste marco, enquanto a arqueologia do Antigo Oriente Próximo atesta a autenticidade cultural e histórica deste período.`
+          `De acordo com os registros teológicos e arqueológicos de ${deepDive.label}: A questão "${copilotQuestion}" toca o cerne da Revelação bíblica. Os teólogos clássicos (como Agostinho e Calvino) enfatizam a soberania e fidelidade de Deus neste marco, enquanto a arqueologia do Antigo Oriente Próximo atesta a autenticidade cultural e histórica deste período.`,
         );
       }
     } catch {
-      setCopilotError("Não foi possível conectar ao servidor. Exibindo síntese teológica offline.");
+      setCopilotError(
+        "Não foi possível conectar ao servidor. Exibindo síntese teológica offline.",
+      );
       setCopilotAnswer(
-        `Para ${deepDive.label}: A tradição teológica clássica compreende este evento sob a ótica da Aliança da Graça e da redenção cósmica, enquanto a arqueologia confirma o contexto histórico documentado no texto bíblico.`
+        `Para ${deepDive.label}: A tradição teológica clássica compreende este evento sob a ótica da Aliança da Graça e da redenção cósmica, enquanto a arqueologia confirma o contexto histórico documentado no texto bíblico.`,
       );
     } finally {
       setCopilotLoading(false);
@@ -362,7 +366,9 @@ ${deepDive.christocentricSignificance}
                           {arch.archaeologist && (
                             <p className="text-[11px] text-slate-400 mt-0.5">
                               Escavação: {arch.archaeologist}{" "}
-                              {arch.discoveryDate ? `(${arch.discoveryDate})` : ""}
+                              {arch.discoveryDate
+                                ? `(${arch.discoveryDate})`
+                                : ""}
                             </p>
                           )}
                         </div>
@@ -390,7 +396,9 @@ ${deepDive.christocentricSignificance}
                         <span className="font-bold text-emerald-300 text-sm">
                           {a.scholar}
                         </span>
-                        <span className="text-[11px] text-slate-400">{a.role}</span>
+                        <span className="text-[11px] text-slate-400">
+                          {a.role}
+                        </span>
                       </div>
                       {a.work && (
                         <p className="text-[11px] text-slate-400 italic">
@@ -435,10 +443,11 @@ ${deepDive.christocentricSignificance}
                   Fundamentação Canônica
                 </h5>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  As Escrituras Sagradas formam um todo unificado em que o Antigo
-                  Testamento prefigura e aponta para a consumação na Pessoa e Obra
-                  de Jesus Cristo: &ldquo;Porque dEle, e por meio dEle, e para Ele
-                  são todas as coisas; a Ele seja a glória para sempre&rdquo; (Romanos 11:36).
+                  As Escrituras Sagradas formam um todo unificado em que o
+                  Antigo Testamento prefigura e aponta para a consumação na
+                  Pessoa e Obra de Jesus Cristo: &ldquo;Porque dEle, e por meio
+                  dEle, e para Ele são todas as coisas; a Ele seja a glória para
+                  sempre&rdquo; (Romanos 11:36).
                 </p>
               </div>
             </div>
@@ -489,9 +498,10 @@ ${deepDive.christocentricSignificance}
                     Copilot Teológico TheoSphere (RAG com 90 Obras Canônicas)
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Tire dúvidas exegéticas específicas, peça comparações entre tradições
-                    (Reformada, Luterana, Tomista, Patrística) ou investigue detalhes arqueológicos
-                    sobre <strong>{deepDive.label}</strong>.
+                    Tire dúvidas exegéticas específicas, peça comparações entre
+                    tradições (Reformada, Luterana, Tomista, Patrística) ou
+                    investigue detalhes arqueológicos sobre{" "}
+                    <strong>{deepDive.label}</strong>.
                   </p>
                 </div>
               </div>
@@ -579,6 +589,6 @@ ${deepDive.christocentricSignificance}
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

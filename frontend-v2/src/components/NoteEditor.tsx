@@ -9,7 +9,9 @@ export default function NoteEditor({ reference }: { reference: string }) {
     { ref: string; text: string; date: string }[]
   >([]);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -29,7 +31,7 @@ export default function NoteEditor({ reference }: { reference: string }) {
   // Auto-save debounced em 500ms para evitar perda de dados ao navegar
   useEffect(() => {
     if (!note) return;
-    setSaveStatus("saving");
+    const savingTimer = setTimeout(() => setSaveStatus("saving"), 0);
     const timer = setTimeout(() => {
       localStorage.setItem(`note_${reference}`, note);
       localStorage.setItem("last_note_draft", note);
@@ -37,7 +39,10 @@ export default function NoteEditor({ reference }: { reference: string }) {
       const hideTimer = setTimeout(() => setSaveStatus("idle"), 2000);
       return () => clearTimeout(hideTimer);
     }, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(savingTimer);
+      clearTimeout(timer);
+    };
   }, [note, reference]);
 
   const saveNote = () => {

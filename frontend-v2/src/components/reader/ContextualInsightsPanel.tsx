@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Sparkles,
   BookOpen,
@@ -125,7 +125,10 @@ export function ContextualInsightsPanel({
     }
   };
 
-  const realCommentaries = guide?.commentaries || [];
+  const realCommentaries = useMemo(
+    () => guide?.commentaries || [],
+    [guide?.commentaries],
+  );
 
   // Estados de tradução dinâmica para português (PT-BR)
   const [translatedTexts, setTranslatedTexts] = useState<

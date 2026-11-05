@@ -12,10 +12,7 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import {
-  CANONICAL_LANDMARKS,
-  CanonicalLandmark,
-} from "@/data/canonicalRoutes";
+import { CANONICAL_LANDMARKS, CanonicalLandmark } from "@/data/canonicalRoutes";
 import { MapAdapter } from "@/lib/BibleMapAdapter";
 import { useTheoStore } from "@/store/useTheoStore";
 
@@ -32,14 +29,21 @@ export function LandmarkNavigator({
 }: LandmarkNavigatorProps) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
   const { setCurrentTime } = useTheoStore();
 
+  if (prevIsOpen !== isOpen) {
+    setPrevIsOpen(isOpen);
+    if (!isOpen) {
+      setQuery("");
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } else {
-      setQuery("");
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -211,7 +215,9 @@ export function LandmarkNavigator({
                       {item.name}
                     </h4>
                     <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 whitespace-nowrap">
-                      {item.era < 0 ? `${Math.abs(item.era)} a.C.` : `${item.era} d.C.`}
+                      {item.era < 0
+                        ? `${Math.abs(item.era)} a.C.`
+                        : `${item.era} d.C.`}
                     </span>
                   </div>
 
@@ -226,17 +232,25 @@ export function LandmarkNavigator({
 
                 {/* Ação de Voo */}
                 <div className="flex items-center gap-1 text-slate-500 group-hover:text-indigo-400 transition-colors flex-shrink-0">
-                  <span className="text-[11px] font-bold hidden sm:inline">Voar</span>
+                  <span className="text-[11px] font-bold hidden sm:inline">
+                    Voar
+                  </span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             ))
           ) : (
             <div className="text-center py-12 px-4 text-slate-400">
-              <Compass className="w-8 h-8 mx-auto text-slate-600 mb-2 animate-spin" style={{ animationDuration: "12s" }} />
-              <p className="text-sm font-semibold text-slate-300">Nenhum marco bíblico encontrado para "{query}"</p>
+              <Compass
+                className="w-8 h-8 mx-auto text-slate-600 mb-2 animate-spin"
+                style={{ animationDuration: "12s" }}
+              />
+              <p className="text-sm font-semibold text-slate-300">
+                Nenhum marco bíblico encontrado para "{query}"
+              </p>
               <p className="text-xs text-slate-500 mt-1">
-                Tente buscar por "Sinai", "Jerusalém", "Cafarnaum", "Galileia" ou "Babilônia".
+                Tente buscar por "Sinai", "Jerusalém", "Cafarnaum", "Galileia"
+                ou "Babilônia".
               </p>
             </div>
           )}
@@ -248,7 +262,9 @@ export function LandmarkNavigator({
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Voo cinematográfico em relevo 3D de alta definição</span>
           </div>
-          <span className="hidden sm:inline text-slate-500 font-mono">Dica: Pressione Esc para fechar</span>
+          <span className="hidden sm:inline text-slate-500 font-mono">
+            Dica: Pressione Esc para fechar
+          </span>
         </div>
       </div>
     </div>

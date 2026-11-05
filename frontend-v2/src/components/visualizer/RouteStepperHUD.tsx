@@ -23,13 +23,15 @@ interface RouteStepperHUDProps {
 export function RouteStepperHUD({ route, onClose }: RouteStepperHUDProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlayingTour, setIsPlayingTour] = useState(false);
+  const [prevRouteId, setPrevRouteId] = useState(route?.id);
   const { setCurrentTime } = useTheoStore();
 
-  // Resetar passo quando a rota mudar
-  useEffect(() => {
+  // Resetar passo quando a rota mudar (durante o render para evitar renders em cascata)
+  if (prevRouteId !== route?.id) {
+    setPrevRouteId(route?.id);
     setCurrentStepIndex(0);
     setIsPlayingTour(false);
-  }, [route?.id]);
+  }
 
   const goToStep = useCallback(
     (index: number) => {
@@ -103,7 +105,10 @@ export function RouteStepperHUD({ route, onClose }: RouteStepperHUDProps) {
   useEffect(() => {
     if (!route) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
       if (e.key === "ArrowRight") {
