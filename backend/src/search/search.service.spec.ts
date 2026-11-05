@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SearchService } from './search.service';
-import { EmbeddingService } from '../rag/embedding.service';
+import {
+  EmbeddingService,
+  EmbeddingUnavailableError,
+} from '../rag/embedding.service';
 import { PrismaService } from '../prisma.service';
 
 /**
@@ -277,6 +280,21 @@ describe('SearchService', () => {
       expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
         'failed',
       );
+    });
+
+    it('anexa vectorStatus="failed" quando EmbeddingService lança EmbeddingUnavailableError real', async () => {
+      embeddings.createEmbedding.mockRejectedValue(
+        new EmbeddingUnavailableError('Gemini 429 quota exceeded'),
+      );
+      prisma.$queryRaw.mockResolvedValue([
+        { id: 'K1', rank: 0.8, text: 'text arm still works' },
+      ]);
+      const out = await service.hybridSearchVerses('grace');
+      expect((out as unknown as { vectorStatus: string }).vectorStatus).toBe(
+        'failed',
+      );
+      expect(out).toHaveLength(1);
+      expect(out[0].id).toBe('K1');
     });
 
     it('vectorStatus não é enumerável — não vaza no JSON.stringify do array de hits', async () => {

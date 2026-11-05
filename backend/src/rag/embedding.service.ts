@@ -4,15 +4,49 @@ import { OpenAI } from 'openai';
 import Redis from 'ioredis';
 import { createHash } from 'node:crypto';
 
+export class EmbeddingUnavailableError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = 'EmbeddingUnavailableError';
+  }
+}
+
+export class EmbeddingResult {
+  constructor(
+    public readonly vector: number[],
+    public readonly provider: 'gemini' | 'openai' | 'local-hash',
+    public readonly model: string,
+    public readonly dimensions: number = 768,
+  ) {}
+
+  toJSON(): number[] {
+    return this.vector;
+  }
+
+  [Symbol.iterator]() {
+    return this.vector[Symbol.iterator]();
+  }
+
+  map<T>(fn: (val: number, index: number, array: number[]) => T): T[] {
+    return this.vector.map(fn);
+  }
+
+  get length(): number {
+    return this.vector.length;
+  }
+}
+
 /**
- * EmbeddingService — Gerencia a criação de embeddings vetoriais via Google Gemini (Prioridade) ou OpenAI (Fallback).
+ * EmbeddingService — Gerencia a criação de embeddings vetoriais via Google Gemini (Exclusivo para índices persistidos).
  *
- * Usa gemini-embedding-001 do Google (768 dimensões) ou text-embedding-3-small (1536 dimensões - truncado).
+ * Modelo Canônico: gemini-embedding-001 (768 dimensões).
  *
- * Para economizar ainda mais, implementa:
- * - Cache local de embeddings recentes (evita reprocessar queries iguais)
- * - Normalização de texto antes de gerar embedding
- * - Batch processing nativo do Gemini
+ * T0.2: Não mistura espaços vetoriais. Para índices persistidos (pgvector),
+ * somente embeddings gerados pelo mesmo provedor+modelo (Gemini) são aceitos.
+ * Fallbacks locais ou de terceiros são estritamente efêmeros e nunca gravados em cache ou banco.
  */
 @Injectable()
 export class EmbeddingService implements OnModuleDestroy {
@@ -20,14 +54,12 @@ export class EmbeddingService implements OnModuleDestroy {
   private genAI: GoogleGenAI | null = null;
   private openai: OpenAI | null = null;
   private readonly VECTOR_DIM = 768;
+  private readonly PRIMARY_PROVIDER = 'gemini';
+  private readonly PRIMARY_MODEL = 'gemini-embedding-001';
 
   // ─── Cache layer ────────────────────────────────────────────────────────
-  // Two-tier:
-  //   L1 (in-process Map) — sub-µs, capped at 1k entries via LRU.
-  //   L2 (Redis)          — cross-pod, TTL 24h, ~1ms hit.
-  // Embedding cost saved per L1 hit ≈ $0.000025 (Gemini); per L2 hit ≈ same
-  // minus 1ms RTT. The combined hit-rate dominates RAG/search throughput
-  // when users repeat semantically-identical queries.
+  // Two-tier: L1 (in-process Map), L2 (Redis).
+  // Cache keys incluem explicitamente provider:model:dim para evitar contaminação.
   private readonly MAX_CACHE_SIZE = 1000;
   private readonly L1_TTL_MS = 3_600_000; // 1h
   private readonly L2_TTL_S = 86_400; // 24h
@@ -44,22 +76,18 @@ export class EmbeddingService implements OnModuleDestroy {
     if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
       this.genAI = new GoogleGenAI({ apiKey: geminiKey });
       this.logger.log(
-        'Google Gemini AI inicializado para Embeddings (768 dims).',
-      );
-    } else if (openaiKey && !openaiKey.startsWith('sk-your')) {
-      this.openai = new OpenAI({ apiKey: openaiKey });
-      this.logger.log(
-        'OpenAI inicializado para Embeddings (Fallback 1536->768 dims).',
+        'Google Gemini AI inicializado para Embeddings primários (768 dims).',
       );
     } else {
       this.logger.warn(
-        'Nenhuma API KEY (Gemini/OpenAI) configurada. Operando em modo Fallback Local.',
+        'Nenhuma GEMINI_API_KEY configurada. Consultas vetoriais persistidas reportarão falha.',
       );
     }
 
-    // Redis L2 cache. If REDIS_URL is unset or the connection fails, the
-    // service degrades to L1-only — RAG still works, just with a smaller
-    // hit-rate after pod restarts / scale-out.
+    if (openaiKey && !openaiKey.startsWith('sk-your')) {
+      this.openai = new OpenAI({ apiKey: openaiKey });
+    }
+
     const redisUrl = process.env.REDIS_URL;
     if (redisUrl) {
       this.redis = new Redis(redisUrl, {
@@ -88,26 +116,33 @@ export class EmbeddingService implements OnModuleDestroy {
 
   // ─── Cache helpers ──────────────────────────────────────────────────────
 
-  private cacheKey(normalized: string): string {
-    // SHA-256 keeps Redis keys bounded (8KB texts → 64-char hex) and avoids
-    // weird chars in keys.
-    return `emb:768:${createHash('sha256').update(normalized).digest('hex')}`;
+  /**
+   * T0.2: Chave de cache inclui explicitamente provider:model:dim
+   */
+  private cacheKey(
+    normalized: string,
+    provider = this.PRIMARY_PROVIDER,
+    model = this.PRIMARY_MODEL,
+    dim = this.VECTOR_DIM,
+  ): string {
+    const hash = createHash('sha256').update(normalized).digest('hex');
+    return `emb:${provider}:${model}:${dim}:${hash}`;
   }
 
   private async readCache(normalized: string): Promise<number[] | null> {
+    const key = this.cacheKey(normalized);
     // L1
-    const l1 = this.embeddingCache.get(normalized);
+    const l1 = this.embeddingCache.get(key);
     if (l1 && Date.now() - l1.timestamp < this.L1_TTL_MS) {
       return l1.embedding;
     }
     // L2
     if (this.redis && this.redis.status === 'ready') {
       try {
-        const raw = await this.redis.get(this.cacheKey(normalized));
+        const raw = await this.redis.get(key);
         if (raw) {
           const parsed = JSON.parse(raw) as number[];
-          // Promote to L1.
-          this.setL1(normalized, parsed);
+          this.setL1(key, parsed);
           return parsed;
         }
       } catch (err) {
@@ -119,17 +154,30 @@ export class EmbeddingService implements OnModuleDestroy {
 
   private async writeCache(
     normalized: string,
-    embedding: number[],
+    result: EmbeddingResult,
   ): Promise<void> {
-    this.setL1(normalized, embedding);
+    // T0.2: Escreve no cache APENAS embeddings do provedor primário
+    if (
+      result.provider !== this.PRIMARY_PROVIDER ||
+      result.model !== this.PRIMARY_MODEL
+    ) {
+      this.logger.warn(
+        `Ignorando gravação em cache de vetor não-primário (${result.provider}:${result.model})`,
+      );
+      return;
+    }
+
+    const key = this.cacheKey(
+      normalized,
+      result.provider,
+      result.model,
+      result.dimensions,
+    );
+    this.setL1(key, result.vector);
+
     if (this.redis && this.redis.status === 'ready') {
-      // Fire-and-forget; latency mustn't block the caller.
       this.redis
-        .setex(
-          this.cacheKey(normalized),
-          this.L2_TTL_S,
-          JSON.stringify(embedding),
-        )
+        .setex(key, this.L2_TTL_S, JSON.stringify(result.vector))
         .catch((err) =>
           this.logger.warn(`L2 write failed: ${(err as Error).message}`),
         );
@@ -137,11 +185,9 @@ export class EmbeddingService implements OnModuleDestroy {
   }
 
   private setL1(key: string, embedding: number[]): void {
-    // Remove antes de inserir para que a chave vá ao final da ordem de inserção do Map
     this.embeddingCache.delete(key);
     this.embeddingCache.set(key, { embedding, timestamp: Date.now() });
     if (this.embeddingCache.size > this.MAX_CACHE_SIZE) {
-      // Map.keys() retorna na ordem de inserção — a primeira chave é a mais antiga (LRU)
       const oldest = this.embeddingCache.keys().next().value;
       if (oldest) this.embeddingCache.delete(oldest);
     }
@@ -149,19 +195,19 @@ export class EmbeddingService implements OnModuleDestroy {
 
   /**
    * Normaliza o texto antes de criar o embedding.
-   * Reduz tokens desnecessários = menos custo.
    */
-  private normalizeText(text: string): string {
+  public normalizeText(text: string): string {
     return text
       .toLowerCase()
-      .replace(/\s+/g, ' ') // colapsa espaços
-      .replace(/[^\p{L}\p{N}\p{M}\s.,;:!?()"-]/gu, '') // preserva letras, números, marcas e diacríticos em qualquer idioma (Grego, Hebraico, PT, EN)
+      .replace(/\s+/g, ' ')
+      .replace(/[^\p{L}\p{N}\p{M}\s.,;:!?()"-]/gu, '')
       .trim()
-      .slice(0, 8000); // Limite para evitar tokens excessivos (~2000 tokens)
+      .slice(0, 8000);
   }
 
   /**
-   * Gera um embedding determinístico de 768 dimensões baseado no texto.
+   * Gera um embedding determinístico de fallback para contextos puramente efêmeros em memória.
+   * AVISO: Nunca gravar em banco nem em cache de busca vetorial.
    */
   private generateLocalFallbackEmbedding(text: string): number[] {
     const vector = new Array(this.VECTOR_DIM).fill(0);
@@ -191,35 +237,74 @@ export class EmbeddingService implements OnModuleDestroy {
   }
 
   /**
-   * Cria embedding para um texto único via Google Gemini.
+   * T0.2: Cria embedding para consulta contra índice persistido.
+   * Retorna { vector, provider, model, dimensions }.
+   * Se o provedor primário (Gemini) estiver indisponível, LANÇA EmbeddingUnavailableError.
    */
-  async createEmbedding(text: string): Promise<number[]> {
+  async createEmbedding(text: string): Promise<EmbeddingResult> {
     const normalized = this.normalizeText(text);
 
     const cached = await this.readCache(normalized);
-    if (cached) return cached;
-
-    if (this.genAI) {
-      try {
-        // @google/genai 2.x: a chamada de embedding é única (sem
-        // getGenerativeModel intermediário). `contents` aceita string
-        // ou array. `config` carrega taskType + outputDimensionality.
-        const result = await this.genAI.models.embedContent({
-          model: 'gemini-embedding-001',
-          contents: normalized,
-          config: {
-            taskType: 'RETRIEVAL_DOCUMENT',
-            outputDimensionality: 768,
-          },
-        });
-        const embedding = result.embeddings?.[0]?.values;
-        if (!embedding) throw new Error('Gemini retornou embedding vazio');
-        await this.writeCache(normalized, embedding);
-        return embedding;
-      } catch (error) {
-        this.logger.error(`Erro Gemini embedding: ${(error as Error).message}`);
-      }
+    if (cached) {
+      return new EmbeddingResult(
+        cached,
+        this.PRIMARY_PROVIDER,
+        this.PRIMARY_MODEL,
+        this.VECTOR_DIM,
+      );
     }
+
+    if (!this.genAI) {
+      throw new EmbeddingUnavailableError(
+        'Provedor primário de embeddings (Google Gemini gemini-embedding-001) não está disponível.',
+      );
+    }
+
+    try {
+      const result = await this.genAI.models.embedContent({
+        model: this.PRIMARY_MODEL,
+        contents: normalized,
+        config: {
+          taskType: 'RETRIEVAL_DOCUMENT',
+          outputDimensionality: this.VECTOR_DIM,
+        },
+      });
+
+      const embedding = result.embeddings?.[0]?.values;
+      if (!embedding || embedding.length !== this.VECTOR_DIM) {
+        throw new Error(
+          `Gemini retornou vetor inválido (esperado ${this.VECTOR_DIM} dimensões)`,
+        );
+      }
+
+      const embResult = new EmbeddingResult(
+        embedding,
+        this.PRIMARY_PROVIDER,
+        this.PRIMARY_MODEL,
+        this.VECTOR_DIM,
+      );
+
+      await this.writeCache(normalized, embResult);
+      return embResult;
+    } catch (error) {
+      this.logger.error(
+        `Erro no provedor primário Gemini embedding: ${(error as Error).message}`,
+      );
+      throw new EmbeddingUnavailableError(
+        `Falha na geração de embedding com Gemini: ${(error as Error).message}`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * T0.2: Criação de embedding para contextos efêmeros (ex: similaridade de request local).
+   * NUNCA gravar no banco de dados nem no cache de embeddings.
+   */
+  async createEphemeralFallbackEmbedding(
+    text: string,
+  ): Promise<EmbeddingResult> {
+    const normalized = this.normalizeText(text);
 
     if (this.openai) {
       try {
@@ -229,30 +314,40 @@ export class EmbeddingService implements OnModuleDestroy {
           dimensions: this.VECTOR_DIM,
         });
         const embedding = res.data[0].embedding;
-        await this.writeCache(normalized, embedding);
-        return embedding;
+        return new EmbeddingResult(
+          embedding,
+          'openai',
+          'text-embedding-3-small',
+          this.VECTOR_DIM,
+        );
       } catch (error) {
-        this.logger.error(`Erro OpenAI embedding: ${(error as Error).message}`);
+        this.logger.warn(
+          `Erro OpenAI ephemeral embedding: ${(error as Error).message}`,
+        );
       }
     }
 
     const fallback = this.generateLocalFallbackEmbedding(normalized);
-    await this.writeCache(normalized, fallback);
-    return fallback;
+    return new EmbeddingResult(
+      fallback,
+      'local-hash',
+      'deterministic-hash-v1',
+      this.VECTOR_DIM,
+    );
   }
 
   /**
    * Cria embeddings em batch via Gemini.
+   * Falhas propagam EmbeddingUnavailableError em vez de injetar hashes no banco.
    */
   async createBatchEmbeddings(texts: string[]): Promise<number[][]> {
     if (!this.genAI) {
-      return texts.map((t) =>
-        this.generateLocalFallbackEmbedding(this.normalizeText(t)),
+      throw new EmbeddingUnavailableError(
+        'Provedor primário Gemini não configurado para batch.',
       );
     }
 
     const normalized = texts.map((t) => this.normalizeText(t));
-    // Resolve all cache lookups in parallel (L1 sync, L2 async).
     const results: (number[] | null)[] = await Promise.all(
       normalized.map((n) => this.readCache(n)),
     );
@@ -263,45 +358,43 @@ export class EmbeddingService implements OnModuleDestroy {
 
     if (uncachedIndices.length === 0) return results as number[][];
 
-    try {
-      const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
+    const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
+    const subBatchSize = 10;
 
-      // Process in small sub-batches to prevent undici socket exhaustion (ENOMEM / fetch failed)
-      const subBatchSize = 10;
-      for (let i = 0; i < uncachedIndices.length; i += subBatchSize) {
-        const subBatch = uncachedIndices.slice(i, i + subBatchSize);
-        await Promise.all(
-          subBatch.map(async (originalIndex, j) => {
-            const text = uncachedTexts[i + j];
-            const result = await this.genAI!.models.embedContent({
-              model: 'gemini-embedding-001',
-              contents: text,
-              config: {
-                taskType: 'RETRIEVAL_DOCUMENT',
-                outputDimensionality: 768,
-              },
-            });
+    for (let i = 0; i < uncachedIndices.length; i += subBatchSize) {
+      const subBatch = uncachedIndices.slice(i, i + subBatchSize);
+      await Promise.all(
+        subBatch.map(async (originalIndex, j) => {
+          const text = uncachedTexts[i + j];
+          const result = await this.genAI!.models.embedContent({
+            model: this.PRIMARY_MODEL,
+            contents: text,
+            config: {
+              taskType: 'RETRIEVAL_DOCUMENT',
+              outputDimensionality: this.VECTOR_DIM,
+            },
+          });
 
-            const embedding = result.embeddings?.[0]?.values;
-            if (!embedding) throw new Error('Gemini retornou embedding vazio');
-            results[originalIndex] = embedding;
-            await this.writeCache(normalized[originalIndex], embedding);
-          }),
-        );
-      }
+          const embedding = result.embeddings?.[0]?.values;
+          if (!embedding) throw new Error('Gemini retornou embedding vazio');
+          results[originalIndex] = embedding;
 
-      return results as number[][];
-    } catch (error) {
-      this.logger.error(`Erro Gemini embedding: ${(error as Error).message}`);
-      return texts.map((t) =>
-        this.generateLocalFallbackEmbedding(this.normalizeText(t)),
+          const embResult = new EmbeddingResult(
+            embedding,
+            this.PRIMARY_PROVIDER,
+            this.PRIMARY_MODEL,
+            this.VECTOR_DIM,
+          );
+          await this.writeCache(normalized[originalIndex], embResult);
+        }),
       );
     }
+
+    return results as number[][];
   }
 
   /**
    * Calcula a similaridade cosseno entre dois vetores.
-   * Usado para busca semântica local sem precisar do pgvector.
    */
   cosineSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) return 0;
@@ -324,8 +417,10 @@ export class EmbeddingService implements OnModuleDestroy {
   async clearCache(): Promise<void> {
     this.embeddingCache.clear();
     if (this.redis && this.redis.status === 'ready') {
-      // SCAN-DEL the namespace to avoid blocking-KEYS in production.
-      const stream = this.redis.scanStream({ match: 'emb:768:*', count: 200 });
+      const stream = this.redis.scanStream({
+        match: 'emb:gemini:gemini-embedding-001:*',
+        count: 200,
+      });
       const pipeline = this.redis.pipeline();
       let pending = 0;
       stream.on('data', (keys: string[]) => {

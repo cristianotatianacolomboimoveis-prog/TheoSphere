@@ -94,7 +94,8 @@ export class SemanticCacheService {
 
     let embedding: number[];
     try {
-      embedding = await this.embeddingService.createEmbedding(query);
+      const res = await this.embeddingService.createEmbedding(query);
+      embedding = (res as any).vector || res;
     } catch (err) {
       this.logger.warn(
         `Embedding failed; cache lookup skipped: ${(err as Error).message}`,
@@ -129,7 +130,8 @@ export class SemanticCacheService {
   ): Promise<void> {
     let embedding: number[];
     try {
-      embedding = await this.embeddingService.createEmbedding(query);
+      const res = await this.embeddingService.createEmbedding(query);
+      embedding = (res as any).vector || res;
     } catch (err) {
       this.logger.warn(
         `Embedding failed; cache store skipped: ${(err as Error).message}`,
@@ -211,7 +213,8 @@ export class SemanticCacheService {
   async invalidateSimilar(query: string): Promise<number> {
     let embedding: number[];
     try {
-      embedding = await this.embeddingService.createEmbedding(query);
+      const res = await this.embeddingService.createEmbedding(query);
+      embedding = (res as any).vector || res;
     } catch (err) {
       this.logger.warn(
         `Embedding failed; invalidateSimilar skipped: ${(err as Error).message}`,

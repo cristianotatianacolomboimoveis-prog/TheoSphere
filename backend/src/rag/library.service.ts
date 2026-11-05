@@ -105,8 +105,10 @@ export class LibraryService {
     limit: number,
     strongId?: string,
   ): Promise<LibraryExcerpt[]> {
-    const embedding = await this.embeddingService.createEmbedding(term);
-    const literal = this.toVectorLiteral(embedding);
+    const embResult = await this.embeddingService.createEmbedding(term);
+    const literal = this.toVectorLiteral(
+      (embResult as any).vector || embResult,
+    );
 
     // Strong's filter via JSONB key — only kicks in if metadata.strongId
     // was actually populated during ingestion. Falls open otherwise.

@@ -145,7 +145,8 @@ export class UserContextService implements OnModuleInit {
     query: string,
     maxResults: number = this.MAX_CONTEXT_DOCS,
   ): Promise<{ document: UserDocument; similarity: number }[]> {
-    const queryEmbedding = await this.embeddingService.createEmbedding(query);
+    const embResult = await this.embeddingService.createEmbedding(query);
+    const queryEmbedding = (embResult as any).vector || embResult;
 
     // 1. Busca em Memória (Tier 1 - Ultrarápido)
     const userDocs = this.userIndex.get(userId) || [];
@@ -254,7 +255,8 @@ export class UserContextService implements OnModuleInit {
     // 2. Busca na Biblioteca do Google Drive do Usuário (via pgvector)
     let libraryContextParts: string[] = [];
     try {
-      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const embResult = await this.embeddingService.createEmbedding(query);
+      const queryEmbedding = (embResult as any).vector || embResult;
       const libraryDocs = await this.prisma.$queryRaw<any[]>`
         SELECT content, metadata, 
                1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
@@ -312,7 +314,8 @@ export class UserContextService implements OnModuleInit {
     { title: string; content: string; similarity: number; fileName: string }[]
   > {
     try {
-      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const embResult = await this.embeddingService.createEmbedding(query);
+      const queryEmbedding = (embResult as any).vector || embResult;
       const owner = userId || 'public-guest';
 
       const rows = await this.prisma.$queryRaw<any[]>`
@@ -386,7 +389,8 @@ export class UserContextService implements OnModuleInit {
       Number.isFinite(minVotesRaw) && minVotesRaw >= 1 ? minVotesRaw : 1;
 
     try {
-      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const embResult = await this.embeddingService.createEmbedding(query);
+      const queryEmbedding = (embResult as any).vector || embResult;
 
       // Pergunta validada quase idêntica já existe? → conta como VOTO, não duplicata cega
       const existing = await this.prisma.$queryRaw<any[]>`
@@ -527,7 +531,8 @@ export class UserContextService implements OnModuleInit {
     maxResults: number = 2,
   ): Promise<{ question: string; answer: string; similarity: number }[]> {
     try {
-      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const embResult = await this.embeddingService.createEmbedding(query);
+      const queryEmbedding = (embResult as any).vector || embResult;
       // Só entradas 'active' (quórum de votos atingido) alimentam o chat;
       // 'pending' aguarda mais validações. IS NULL cobre entradas legadas.
       const rows = await this.prisma.$queryRaw<any[]>`

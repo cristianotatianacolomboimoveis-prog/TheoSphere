@@ -161,7 +161,8 @@ export class RagContextBuilderService {
     tradition: string | undefined,
     sources: RagSource[],
   ): Promise<string> {
-    const queryEmbedding = await this.embeddingService.createEmbedding(query);
+    const embResult = await this.embeddingService.createEmbedding(query);
+    const queryEmbedding = (embResult as any).vector || embResult;
 
     try {
       let docs: any[];

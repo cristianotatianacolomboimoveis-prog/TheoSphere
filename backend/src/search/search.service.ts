@@ -391,9 +391,10 @@ export class SearchService {
     // `vectorStatus='failed'` (visível ao cliente como `meta.vectorArm`).
     // Engolir o erro aqui e devolver [] tornava um teto de gastos no Gemini
     // indistinguível de "não há embeddings povoados" (regressão 2026-07).
-    const embedding = await this.embeddings.createEmbedding(query);
-    const literal = `[${embedding
-      .map((n) => (Number.isFinite(n) ? n : 0))
+    const embResult = await this.embeddings.createEmbedding(query);
+    const vector = (embResult as any).vector || embResult;
+    const literal = `[${vector
+      .map((n: number) => (Number.isFinite(n) ? n : 0))
       .join(',')}]`;
 
     return this.prisma.$queryRaw<VectorRow[]>`

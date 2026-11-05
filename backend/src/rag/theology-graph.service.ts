@@ -102,7 +102,8 @@ export class TheologyGraphService {
 
     // 3. Buscar Conceitos Teológicos (Embeddings)
     try {
-      const queryEmbedding = await this.embeddingService.createEmbedding(query);
+      const embResult = await this.embeddingService.createEmbedding(query);
+      const queryEmbedding = (embResult as any).vector || embResult;
       const theologyDocs: any[] = await this.prisma.$queryRaw`
         SELECT id, tradition, 
                substring(content from 1 for 40) as preview
