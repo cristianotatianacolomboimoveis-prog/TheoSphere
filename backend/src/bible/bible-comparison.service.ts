@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { computeWordDiff, TextDiffResult } from './text-diff';
+import { mapTranslationRef } from './versification';
 
 export interface VerseVariantComparison {
   verse: number;
@@ -173,36 +174,56 @@ export class BibleComparisonService {
       (t) => t !== validBase,
     );
 
-    // Consulta os versículos no banco de dados Supabase
+    // Identifica capítulos a consultar (incluindo possíveis divergências de versificação entre esquemas)
+    const chaptersToFetch = new Set<number>([chapter]);
+    for (const t of targetTranslationsOnly) {
+      const sampleVerses = verse ? [verse] : [1, 5, 10, 20, 30, 40, 50];
+      for (const v of sampleVerses) {
+        const mapped = mapTranslationRef(
+          { bookId, chapter, verse: v },
+          validBase,
+          t,
+        );
+        chaptersToFetch.add(mapped.chapter);
+      }
+    }
+
     const whereClause: any = {
       translation: { in: allTranslations },
       bookId,
-      chapter,
+      chapter: { in: Array.from(chaptersToFetch) },
     };
-    if (verse) {
+    if (verse && chaptersToFetch.size === 1) {
       whereClause.verse = verse;
     }
 
     const rows = await this.prisma.bibleVerse.findMany({
       where: whereClause,
       select: {
+        chapter: true,
         verse: true,
         text: true,
         translation: true,
       },
-      orderBy: [{ verse: 'asc' }, { translation: 'asc' }],
+      orderBy: [{ chapter: 'asc' }, { verse: 'asc' }, { translation: 'asc' }],
     });
 
-    // Agrupa por número de versículo
-    const verseMap = new Map<number, Record<string, string>>();
+    // Mapa composto: translation:chapter:verse -> text
+    const lookupMap = new Map<string, string>();
+    const baseVersesSet = new Set<number>();
+
     for (const row of rows) {
-      if (!verseMap.has(row.verse)) {
-        verseMap.set(row.verse, {});
+      const rowChapter = row.chapter ?? chapter;
+      const key = `${row.translation}:${rowChapter}:${row.verse}`;
+      lookupMap.set(key, row.text);
+      if (row.translation === validBase && rowChapter === chapter) {
+        if (!verse || row.verse === verse) {
+          baseVersesSet.add(row.verse);
+        }
       }
-      verseMap.get(row.verse)![row.translation] = row.text;
     }
 
-    const sortedVerseNums = Array.from(verseMap.keys()).sort((a, b) => a - b);
+    const sortedVerseNums = Array.from(baseVersesSet).sort((a, b) => a - b);
     const versesResult: VerseVariantComparison[] = [];
     const similaritySums: Record<string, number> = {};
     const countSums: Record<string, number> = {};
@@ -213,8 +234,8 @@ export class BibleComparisonService {
     }
 
     for (const vNum of sortedVerseNums) {
-      const translationsForVerse = verseMap.get(vNum)!;
-      const baseText = translationsForVerse[validBase] || '';
+      const baseKey = `${validBase}:${chapter}:${vNum}`;
+      const baseText = lookupMap.get(baseKey) || '';
 
       const targetComparisons: Record<
         string,
@@ -228,7 +249,14 @@ export class BibleComparisonService {
       > = {};
 
       for (const targetTrans of targetTranslationsOnly) {
-        const targetText = translationsForVerse[targetTrans] || '';
+        // Alinha a referência da tradução alvo segundo o esquema de versificação
+        const mapped = mapTranslationRef(
+          { bookId, chapter, verse: vNum },
+          validBase,
+          targetTrans,
+        );
+        const targetKey = `${targetTrans}:${mapped.chapter}:${mapped.verse}`;
+        const targetText = lookupMap.get(targetKey) || '';
         const targetLang = TRANSLATION_LANGUAGES[targetTrans] || 'unknown';
         const isSameLanguage = baseLang === targetLang;
 
@@ -243,6 +271,11 @@ export class BibleComparisonService {
           }
         } else {
           note = `Comparação textual (diff/similaridade) restrita a versões no mesmo idioma (${baseLang.toUpperCase()} ≠ ${targetLang.toUpperCase()}). Textos exibidos lado a lado para análise sinótica.`;
+        }
+
+        if (mapped.chapter !== chapter || mapped.verse !== vNum) {
+          const versificationNote = `[Versificação alinhada: ref original ${mapped.chapter}:${mapped.verse}]`;
+          note = note ? `${note} ${versificationNote}` : versificationNote;
         }
 
         targetComparisons[targetTrans] = {

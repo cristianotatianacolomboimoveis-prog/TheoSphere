@@ -96,6 +96,38 @@ describe('BibleComparisonService (T0.5 Language-Restricted Comparison)', () => {
     );
   });
 
+  it('deve alinhar versificação divergente entre português e hebraico (ex: Salmo 51:1 BLIVRE -> Sl 51:3 WLC)', async () => {
+    mockPrisma.bibleVerse.findMany.mockResolvedValue([
+      {
+        chapter: 51,
+        verse: 1,
+        translation: 'BLIVRE',
+        text: 'Compadece-te de mim, ó Deus, segundo a tua benignidade.',
+      },
+      {
+        chapter: 51,
+        verse: 3,
+        translation: 'WLC',
+        text: 'חָנֵּנִי אֱלֹהִים כְּחַסְדֶּךָ',
+      },
+    ]);
+
+    const result = await service.comparePassage(
+      19, // Salmos
+      51,
+      'BLIVRE',
+      ['BLIVRE', 'WLC'],
+      1,
+    );
+
+    expect(result.verses.length).toBe(1);
+    const target = result.verses[0].targets.WLC;
+    expect(target).toBeDefined();
+    expect(target.text).toBe('חָנֵּנִי אֱלֹהִים כְּחַסְדֶּךָ');
+    expect(target.note).toContain('Versificação alinhada');
+    expect(target.note).toContain('51:3');
+  });
+
   it('deve usar BLIVRE como fallback se base for inválida', async () => {
     mockPrisma.bibleVerse.findMany.mockResolvedValue([]);
 
