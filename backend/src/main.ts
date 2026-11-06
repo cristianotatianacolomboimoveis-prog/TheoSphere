@@ -17,6 +17,9 @@ async function bootstrap() {
   // env vars before NestFactory.create returns. If anything was missing or
   // malformed, the process aborts with a descriptive error before this point.
   const app = await NestFactory.create(AppModule);
+  // Atrás do balanceador do Render, sem isto `req.ip` é o IP do proxy: todos
+  // os visitantes dividiam o mesmo rate limit e a mesma cota de IA.
+  (app as any).set?.('trust proxy', 1);
 
   const config = app.get(ConfigService);
   const allowedOrigins = config

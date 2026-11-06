@@ -19,8 +19,12 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
+      # Teste fechado: amplia a cota mensal de IA do plano gratuito sem mudar
+      # a tabela de /pricing (padrão do plano: 10). Remova ao fim do teste.
+      - key: AI_CREDITS_FREE_MONTHLY
+        value: "100"
       - key: ALLOWED_ORIGINS
-        value: "https://cristianocolombo.vercel.app,https://theosphere.vercel.app,https://frontend-v2-omega-seven.vercel.app"
+        value: "https://cristianocolombo.vercel.app,https://theosphere.vercel.app,https://frontend-v2-lake.vercel.app"
       # Redis (Render Key Value) — usado pelo EventBus (pub/sub), throttler
       # distribuído e cache L2 de embeddings. Sem esta var o backend roda com
       # pub/sub desabilitado (não é fatal, mas perde eventos e rate-limit global).

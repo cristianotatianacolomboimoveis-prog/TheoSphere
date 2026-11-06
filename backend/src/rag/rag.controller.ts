@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { AiQuotaService } from './ai-quota.service';
 import { RagService, ChatMessage } from './rag.service';
 import { UserDocument, UserContextService } from './user-context.service';
 import { SemanticCacheService } from './semantic-cache.service';
@@ -141,6 +142,7 @@ export class RagController {
     private readonly bibleIngestion: BibleIngestionService,
     private readonly audit: AuditService,
     private readonly userContext: UserContextService,
+    private readonly aiQuota: AiQuotaService,
   ) {}
 
   /**
@@ -180,6 +182,14 @@ export class RagController {
     };
   }
 
+  private mensagemCotaVisitante(limite: number): string {
+    return (
+      `Você usou as ${limite} consultas à IA disponíveis para visitantes neste mês. ` +
+      `Crie uma conta gratuita (ou entre) para continuar usando o assistente.\n\n` +
+      `A leitura bíblica, a busca, o léxico e as obras clássicas continuam liberados.`
+    );
+  }
+
   @Post('chat')
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async chat(@Body() body: ChatDto, @Req() req: Request) {
@@ -189,6 +199,30 @@ export class RagController {
       `[Chat] User: ${userId} | Query: "${body.query.slice(0, 60)}..."`,
     );
 
+    // Usuário logado: a cota é aplicada dentro do RagService.chat. Visitante:
+    // aplicada aqui, por IP (antes, visitante não tinha cota nenhuma).
+    const guestKey =
+      userId === 'public-guest'
+        ? this.aiQuota.identidadeDeCota(undefined, req.ip)
+        : null;
+    if (guestKey) {
+      const cota = await this.aiQuota.consultar(guestKey);
+      if (cota.excedeu) {
+        return {
+          success: true,
+          data: {
+            content: this.mensagemCotaVisitante(cota.limite),
+            sources: [],
+            meta: {
+              cached: false,
+              degraded: true,
+              degradedReason: `Cota de IA de visitante atingida (${cota.usado}/${cota.limite})`,
+            },
+          },
+        };
+      }
+    }
+
     const response = await this.ragService.chat(
       body.query,
       userId,
@@ -196,6 +230,10 @@ export class RagController {
       body.history || [],
       body.jsonMode,
     );
+
+    if (guestKey && !response.cached && !response.degraded) {
+      await this.aiQuota.registrarUso(guestKey);
+    }
 
     return {
       success: true,
@@ -238,7 +276,28 @@ export class RagController {
     res.setHeader('X-Accel-Buffering', 'no'); // Desabilita buffering no Nginx/Render
     res.flushHeaders();
 
+    // Cota de IA também no stream (é o caminho do chat principal do app e
+    // antes não aplicava cota para ninguém). Logado: por usuário; visitante: IP.
+    const quotaKey = this.aiQuota.identidadeDeCota(req.user?.userId, req.ip);
+    const cota = await this.aiQuota.consultar(quotaKey);
+    if (cota.excedeu) {
+      const texto = quotaKey.startsWith('guest:')
+        ? this.mensagemCotaVisitante(cota.limite)
+        : cota.mensagem ||
+          `Você atingiu o limite de ${cota.limite} consultas à IA deste mês.`;
+      res.write(
+        `data: ${JSON.stringify({ type: 'chunk', data: { text: texto } })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ type: 'done', data: { cached: false, tokens: 0, degraded: true } })}\n\n`,
+      );
+      res.end();
+      return;
+    }
+
     try {
+      let produced = false;
+      let cachedAnswer = false;
       for await (const event of this.ragService.chatStream(
         body.query,
         userId,
@@ -246,7 +305,13 @@ export class RagController {
         body.history || [],
         body.jsonMode,
       )) {
+        if (event?.type === 'chunk') produced = true;
+        if (event?.type === 'done' && (event as any).data?.cached)
+          cachedAnswer = true;
         res.write(`data: ${JSON.stringify(event)}\n\n`);
+      }
+      if (produced && !cachedAnswer) {
+        await this.aiQuota.registrarUso(quotaKey);
       }
     } catch (error: any) {
       this.logger.error(`[ChatStream] Erro: ${error.message}`);

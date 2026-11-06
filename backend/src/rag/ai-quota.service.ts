@@ -101,7 +101,8 @@ export class AiQuotaService implements OnModuleDestroy {
    * Obtém o plano de assinatura do usuário (com cache em memória de 10 min).
    */
   async obterPlanoUsuario(userId: string): Promise<string> {
-    if (!userId || userId === 'public-guest') return 'FREE';
+    if (!userId || userId === 'public-guest' || userId.startsWith('guest:'))
+      return 'FREE';
 
     const cache = this.cachePlanos.get(userId);
     if (cache && cache.expiraEm > Date.now()) {
@@ -130,10 +131,26 @@ export class AiQuotaService implements OnModuleDestroy {
   }
 
   /**
+   * Identidade de cota: o usuário do JWT ou, para visitante, `guest:<ip>`.
+   * Antes, visitante ('public-guest') nunca tinha cota e o chat em stream não
+   * aplicava cota para ninguém.
+   */
+  identidadeDeCota(userId: string | undefined, ip: string | undefined): string {
+    if (userId && userId !== 'public-guest') return userId;
+    return `guest:${ip || 'desconhecido'}`;
+  }
+
+  /**
    * Retorna o limite mensal de créditos de IA para o plano especificado.
    */
   obterLimitePlano(plano: string): number {
     const upper = (plano || 'FREE').toUpperCase();
+    // Período de teste: AI_CREDITS_FREE_MONTHLY amplia o limite do plano
+    // gratuito sem alterar a tabela de planos exibida em /pricing.
+    if (upper === 'FREE') {
+      const override = Number(process.env.AI_CREDITS_FREE_MONTHLY);
+      if (Number.isInteger(override) && override > 0) return override;
+    }
     const def = THEOSPHERE_PLANS[upper];
     if (def) return def.aiCreditsMonthly;
     return THEOSPHERE_PLANS.FREE.aiCreditsMonthly;
