@@ -315,8 +315,10 @@ export class RagController {
       }
     } catch (error: any) {
       this.logger.error(`[ChatStream] Erro: ${error.message}`);
+      // A mensagem crua do provedor (JSON do Google, detalhes de chave) fica
+      // só no log; o usuário recebe texto neutro.
       res.write(
-        `data: ${JSON.stringify({ type: 'error', data: { message: error.message } })}\n\n`,
+        `data: ${JSON.stringify({ type: 'error', data: { message: 'Não foi possível gerar a resposta agora. Tente novamente em alguns minutos.' } })}\n\n`,
       );
     }
 

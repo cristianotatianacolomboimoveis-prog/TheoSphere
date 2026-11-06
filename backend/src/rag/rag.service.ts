@@ -154,6 +154,31 @@ export class RagService {
     };
   }
 
+  /**
+   * Etapa de contexto opcional: se falhar (ex.: embedding indisponível por
+   * chave inválida ou cota do Gemini), a resposta segue sem ela em vez de
+   * virar 500. A falha fica visível em warn e em GET /health/ai.
+   */
+  private async optionalContext<T>(
+    tag: string,
+    label: string,
+    fallback: T,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      const err = error as Error;
+      this.logger.warn(
+        `[${tag}] Etapa '${label}' indisponível, seguindo sem ela: ${err?.message ?? String(error)}`,
+      );
+      if (/embedding|gemini|api key|api_key/i.test(err?.message ?? '')) {
+        this.recordAiFailure('gemini', err);
+      }
+      return fallback;
+    }
+  }
+
   getAiHealth() {
     const provider = this.genAI ? 'gemini' : this.openai ? 'openai' : 'none';
     const fallback = Boolean(this.genAI && this.openai);
@@ -409,10 +434,16 @@ export class RagService {
 
     // ═══ ETAPA 1: Semantic Cache ═══
     if (!jsonMode) {
-      const cached = await this.semanticCache.findSimilarResponse(
-        sanitizedQuery,
-        userId,
-        tradition,
+      const cached = await this.optionalContext(
+        'RAG',
+        'cache semântico',
+        null,
+        () =>
+          this.semanticCache.findSimilarResponse(
+            sanitizedQuery,
+            userId,
+            tradition,
+          ),
       );
 
       if (cached) {
@@ -440,11 +471,16 @@ export class RagService {
 
     // ═══ ETAPA 1.2: Biblioteca do usuário responde sozinha? ═══
     if (!jsonMode) {
-      const daBiblioteca =
-        await this.contextBuilderInstance.tentarRespostaDaBiblioteca(
-          sanitizedQuery,
-          userId,
-        );
+      const daBiblioteca = await this.optionalContext(
+        'RAG',
+        'resposta da biblioteca',
+        null,
+        () =>
+          this.contextBuilderInstance.tentarRespostaDaBiblioteca(
+            sanitizedQuery,
+            userId,
+          ),
+      );
       if (daBiblioteca) {
         await this.addUserXP(userId, 10);
         return {
@@ -486,12 +522,17 @@ export class RagService {
     const collectedSources: RagSource[] = [];
 
     // ═══ ETAPA 1.55: Biblioteca RAG do Drive — FONTE PRIORITÁRIA ═══
-    const driveLibraryContext =
-      await this.contextBuilderInstance.buildDriveLibraryContext(
-        sanitizedQuery,
-        userId,
-        collectedSources,
-      );
+    const driveLibraryContext = await this.optionalContext(
+      'RAG',
+      'biblioteca',
+      '',
+      () =>
+        this.contextBuilderInstance.buildDriveLibraryContext(
+          sanitizedQuery,
+          userId,
+          collectedSources,
+        ),
+    );
     const libraryHasHits = driveLibraryContext.length > 0;
     if (!libraryHasHits) {
       this.logger.log(
@@ -502,9 +543,11 @@ export class RagService {
     // ═══ ETAPA 1.57: Respostas validadas (👍) — contexto SECUNDÁRIO ═══
     const validatedQaContext = jsonMode
       ? ''
-      : await this.contextBuilderInstance.buildValidatedQaContext(
-          sanitizedQuery,
-          collectedSources,
+      : await this.optionalContext('RAG', 'respostas validadas', '', () =>
+          this.contextBuilderInstance.buildValidatedQaContext(
+            sanitizedQuery,
+            collectedSources,
+          ),
         );
 
     // ═══ ETAPA 1.6: Busca Híbrida ═══
@@ -539,9 +582,11 @@ export class RagService {
         if (userId) {
           const topRefs = osResults.slice(0, 2).map((r) => r.reference);
           const crossRefQuery = `O que eu escrevi sobre ${topRefs.join(' e ')}?`;
-          hybridUserContext = await this.userContext.buildUserContext(
-            userId,
-            crossRefQuery,
+          hybridUserContext = await this.optionalContext(
+            'RAG',
+            'contexto do usuário',
+            '',
+            () => this.userContext.buildUserContext(userId, crossRefQuery),
           );
         }
       }
@@ -552,9 +597,11 @@ export class RagService {
     // ═══ ETAPA 2: Contexto do Usuário ═══
     let directUserContext = '';
     if (userId) {
-      directUserContext = await this.userContext.buildUserContext(
-        userId,
-        sanitizedQuery,
+      directUserContext = await this.optionalContext(
+        'RAG',
+        'contexto do usuário',
+        '',
+        () => this.userContext.buildUserContext(userId, sanitizedQuery),
       );
     }
 
@@ -840,10 +887,16 @@ export class RagService {
     };
 
     if (!jsonMode) {
-      const cached = await this.semanticCache.findSimilarResponse(
-        sanitizedQuery,
-        userId,
-        tradition,
+      const cached = await this.optionalContext(
+        'Stream',
+        'cache semântico',
+        null,
+        () =>
+          this.semanticCache.findSimilarResponse(
+            sanitizedQuery,
+            userId,
+            tradition,
+          ),
       );
 
       if (cached) {
@@ -865,12 +918,17 @@ export class RagService {
 
     const streamSources: RagSource[] = [];
 
-    const driveLibraryContext =
-      await this.contextBuilderInstance.buildDriveLibraryContext(
-        sanitizedQuery,
-        userId,
-        streamSources,
-      );
+    const driveLibraryContext = await this.optionalContext(
+      'Stream',
+      'biblioteca',
+      '',
+      () =>
+        this.contextBuilderInstance.buildDriveLibraryContext(
+          sanitizedQuery,
+          userId,
+          streamSources,
+        ),
+    );
     const libraryHasHits = driveLibraryContext.length > 0;
     if (!libraryHasHits) {
       this.logger.log(
@@ -880,9 +938,11 @@ export class RagService {
 
     const validatedQaContext = jsonMode
       ? ''
-      : await this.contextBuilderInstance.buildValidatedQaContext(
-          sanitizedQuery,
-          streamSources,
+      : await this.optionalContext('Stream', 'respostas validadas', '', () =>
+          this.contextBuilderInstance.buildValidatedQaContext(
+            sanitizedQuery,
+            streamSources,
+          ),
         );
 
     let openSourceContext = '';
@@ -915,9 +975,11 @@ export class RagService {
         if (userId) {
           const topRefs = osResults.slice(0, 2).map((r) => r.reference);
           const crossRefQuery = `O que eu escrevi sobre ${topRefs.join(' e ')}?`;
-          hybridUserContext = await this.userContext.buildUserContext(
-            userId,
-            crossRefQuery,
+          hybridUserContext = await this.optionalContext(
+            'Stream',
+            'contexto do usuário',
+            '',
+            () => this.userContext.buildUserContext(userId, crossRefQuery),
           );
         }
       }
@@ -929,9 +991,11 @@ export class RagService {
 
     let directUserContext = '';
     if (userId) {
-      directUserContext = await this.userContext.buildUserContext(
-        userId,
-        sanitizedQuery,
+      directUserContext = await this.optionalContext(
+        'Stream',
+        'contexto do usuário',
+        '',
+        () => this.userContext.buildUserContext(userId, sanitizedQuery),
       );
     }
     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
