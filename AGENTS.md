@@ -11,16 +11,29 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-05**. Repositório limpo, suíte inteira passando:
+Última sessão: **2026-11-06**. Repositório limpo, suíte inteira passando:
 
-- **Backend:** 374 testes passando (42 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
-- **Frontend:** 49 testes passando (5 specs Vitest), lint 0, typecheck 0 (`tsc --noEmit`).
+- **Backend:** 441 testes passando (47 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
+- **Frontend:** 59 testes passando (8 specs Vitest), lint 0, typecheck 0 (`tsc --noEmit`), build produção ok (21 rotas).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` respondendo **HTTP 200** (a URL legada `frontend-v2-omega-seven` é 404 e foi descontinuada).
 - **Backend Render:** `https://theosphere.onrender.com` operante e medido (**HTTP 200** em `/api/v1/health/live`).
 - **Banco de Dados Supabase:** 1.195 MB (1,195 GB) medidos em 2026-11-05 via `backend/scratch/medir-tamanho-banco.js`. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB.
 - **Acervo Teológico Medido:** **45.114 chunks indexados** no `UserEmbedding` (88 obras clássicas com trechos ativos no banco). O catálogo canônico estruturado mapeia **108 obras** (`backend/src/bible/classic-catalog.ts`), sincronizado com o frontend via `node scripts/sync-catalog.mjs`.
 
 > **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](file:///Users/cristianocolombo/Desktop/Theosphere%202026/CHANGELOG.md).
+
+### Fase 1 — Fundações de Exegese e Biblioteca (Concluída em 2026-11-06)
+
+1. **T1.1 — Texto grego crítico do NT (branch `feat/t1.1-greek-critical-text`):**
+   Portão fail-closed aprovou SBLGNT sob CC BY 4.0 (`docs/licenses/SBLGNT.md`) e Nestle 1904 sob Domínio Público. Dataset offline íntegro com 7.958 versículos empacotado em `backend/prisma/data/sblgnt-verses.json.gz` (2,62 MB). SBLGNT integrado ao leitor bíblico, comparador de versões, sinopse dos evangelhos e aparato crítico como testemunha alexandrina.
+2. **T1.2 — Mapeamento de versificação canônica (branch `feat/t1.2-versification-mapping`):**
+   Módulo canônico bidirecional `versification.ts` no backend e frontend cobrindo 26 regras de divergência (Salmos com títulos +1 e +2, Jl 2-3, Ml 3-4, Nm 16-17, 1Sm 23-24, etc.) entre KJV/Ocidental, Texto Massorético (WLC) e Septuaginta (LXX). Integrado à comparação de textos em idiomas distintos.
+3. **T1.3 — Referência canônica numérica e busca por intervalo (branch `feat/t1.3-numeric-canonical-ref`):**
+   Formato canônico padronizado `BBCCCVVV` (inteiro de até 8 dígitos). Adicionadas colunas indexadas `sourceNumRef` e `targetNumRef` no modelo `CrossReference` com migração e script de backfill. Consulta relacional por intervalo com `listByNumericRange`.
+4. **T1.4 — Desacoplamento do acervo teológico clássico (branch `feat/t1.4-resource-index`):**
+   Modelos Prisma `Resource`, `ResourceChunk` e `ResourceReference` desacoplam as 88 obras históricas de `UserEmbedding`. Endpoint `GET /resources/references?ref=BBCCCVVV` com busca indexada relacional exata (<10ms). Integrado ao _Passage Guide_ com fallback gracioso. Script idempotente de migração em `scripts/migrate-user-embeddings-to-resources.ts`.
+5. **T1.5 — Diagrama sintático com dados reais do Treebank MACULA Greek (branch `feat/t1.5-treebank-syntax`):**
+   Portão de licença verificou MACULA Greek / Lowfat Syntax sob CC BY 4.0 (`docs/licenses/SYNTAX-TREEBANK.md`). Ingerida árvore sintática real anotada com papéis funcionais OpenText (S, P, C, A, Conj) e nós clausal/sintagmático para o piloto de João 1 e Romanos 8. UI exibe badge "✓ Árvore Anotada (Treebank)" vs. "Segmentação Heurística".
 
 ### Fase 0 — Bloqueadores (Concluída em 2026-11-05)
 
