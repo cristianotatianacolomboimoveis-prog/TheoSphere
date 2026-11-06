@@ -11,29 +11,35 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-06**. Repositório limpo, suíte inteira passando:
+Última sessão: **2026-11-06** (release `release/teste-fechado`, publicada na `main`).
 
-- **Backend:** 441 testes passando (47 specs Jest), lint 0, typecheck 0, static-checks 0, `verificar:acervo` coerente.
-- **Frontend:** 59 testes passando (8 specs Vitest), lint 0, typecheck 0 (`tsc --noEmit`), build produção ok (21 rotas).
-- **Produção frontend:** `https://frontend-v2-lake.vercel.app` respondendo **HTTP 200** (a URL legada `frontend-v2-omega-seven` é 404 e foi descontinuada).
-- **Backend Render:** `https://theosphere.onrender.com` operante e medido (**HTTP 200** em `/api/v1/health/live`).
-- **Banco de Dados Supabase:** 1.195 MB (1,195 GB) medidos em 2026-11-05 via `backend/scratch/medir-tamanho-banco.js`. Modo read-only de disco ativado pelo Supabase Free Tier por ultrapassar 1 GB.
-- **Acervo Teológico Medido:** **45.114 chunks indexados** no `UserEmbedding` (88 obras clássicas com trechos ativos no banco). O catálogo canônico estruturado mapeia **108 obras** (`backend/src/bible/classic-catalog.ts`), sincronizado com o frontend via `node scripts/sync-catalog.mjs`.
+- **Backend:** 474 testes passando (51 specs Jest), lint 0, typecheck 0, static-checks 0.
+- **Frontend:** 67 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
+- **Produção frontend:** `https://frontend-v2-lake.vercel.app` (Vercel conectada ao Git: push na `main` publica).
+- **Backend Render:** `https://theosphere.onrender.com`, deploy automático pela `main` **funcionando**. ⚠️ O backend NÃO tem `setGlobalPrefix`: cada controller declara `api/v1/...` (só o health também). Sonde sempre com `/api/v1/<rota>` e um método que a rota aceita — sondar `GET` numa rota `POST` dá 404 e já gerou um falso diagnóstico de "Render parado".
+- **Banco Supabase:** 1.195 MB. **Ainda em read-only em 2026-11-06 mesmo após o upgrade para Pro** (`default_transaction_read_only=on`, origem: arquivo de configuração do servidor — só a Supabase remove). Não force escrita com `ALTER ROLE ... SET default_transaction_read_only=off`: se o disco não foi ampliado, encher o disco derruba o banco. Migrações pendentes (aplicadas sozinhas no próximo boot com banco gravável): `billing_events`, `annotations`, `cross_reference_numeric_ref`, `resource_theological_index`, `feedback`.
+- **Acervo:** 45.114 chunks no `UserEmbedding` (88 obras); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`).
 
-> **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](file:///Users/cristianocolombo/Desktop/Theosphere%202026/CHANGELOG.md).
+> **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](CHANGELOG.md).
 
-### Fase 1 — Fundações de Exegese e Biblioteca (Concluída em 2026-11-06)
+### Release do teste fechado (2026-11-06)
 
-1. **T1.1 — Texto grego crítico do NT (branch `feat/t1.1-greek-critical-text`):**
-   Portão fail-closed aprovou SBLGNT sob CC BY 4.0 (`docs/licenses/SBLGNT.md`) e Nestle 1904 sob Domínio Público. Dataset offline íntegro com 7.958 versículos empacotado em `backend/prisma/data/sblgnt-verses.json.gz` (2,62 MB). SBLGNT integrado ao leitor bíblico, comparador de versões, sinopse dos evangelhos e aparato crítico como testemunha alexandrina.
-2. **T1.2 — Mapeamento de versificação canônica (branch `feat/t1.2-versification-mapping`):**
-   Módulo canônico bidirecional `versification.ts` no backend e frontend cobrindo 26 regras de divergência (Salmos com títulos +1 e +2, Jl 2-3, Ml 3-4, Nm 16-17, 1Sm 23-24, etc.) entre KJV/Ocidental, Texto Massorético (WLC) e Septuaginta (LXX). Integrado à comparação de textos em idiomas distintos.
-3. **T1.3 — Referência canônica numérica e busca por intervalo (branch `feat/t1.3-numeric-canonical-ref`):**
-   Formato canônico padronizado `BBCCCVVV` (inteiro de até 8 dígitos). Adicionadas colunas indexadas `sourceNumRef` e `targetNumRef` no modelo `CrossReference` com migração e script de backfill. Consulta relacional por intervalo com `listByNumericRange`.
-4. **T1.4 — Desacoplamento do acervo teológico clássico (branch `feat/t1.4-resource-index`):**
-   Modelos Prisma `Resource`, `ResourceChunk` e `ResourceReference` desacoplam as 88 obras históricas de `UserEmbedding`. Endpoint `GET /resources/references?ref=BBCCCVVV` com busca indexada relacional exata (<10ms). Integrado ao _Passage Guide_ com fallback gracioso. Script idempotente de migração em `scripts/migrate-user-embeddings-to-resources.ts`.
-5. **T1.5 — Diagrama sintático com dados reais do Treebank MACULA Greek (branch `feat/t1.5-treebank-syntax`):**
-   Portão de licença verificou MACULA Greek / Lowfat Syntax sob CC BY 4.0 (`docs/licenses/SYNTAX-TREEBANK.md`). Ingerida árvore sintática real anotada com papéis funcionais OpenText (S, P, C, A, Conj) e nós clausal/sintagmático para o piloto de João 1 e Romanos 8. UI exibe badge "✓ Árvore Anotada (Treebank)" vs. "Segmentação Heurística".
+- **Rotas fora de `/api/v1` (defeito em produção):** anotações, billing, syntax-diagram, textual-criticism e resources respondiam 404 para o frontend. Corrigido; `backend/src/common/route-prefix.spec.ts` barra controller novo sem prefixo.
+- **Feedback real:** `POST /api/v1/feedback` (aceita visitante, `userId` só do JWT, 5/min) + modelo `Feedback`. Antes o modal só gravava no `localStorage` e fingia sucesso. Banco indisponível → 503 e o modal mantém o texto. Os relatos ficam na tabela `Feedback` (Supabase → Table Editor).
+- **API sem Redis:** com Redis fora, o rate limit derrubava toda requisição com 500. `FallbackThrottlerStorage` cai para contador em memória.
+- **Leitura com banco read-only:** `ingestChapter` descartava o capítulo baixado quando a gravação falhava e devolvia `[]` (ex.: SBLGNT). Agora serve o texto e registra `warn`.
+
+### Fase 1 — Fundações de Exegese e Biblioteca (PARCIAL — revisão de 2026-11-05/06)
+
+Pendências detalhadas em `audit/prompts/antigravity-finalizacao-fase1-2026-11-05.md`.
+
+1. **T1.1 — SBLGNT:** licença CC BY 4.0 conferida na fonte. Dataset offline em `backend/prisma/data/sblgnt-verses.json.gz`; **não ingerido** (banco read-only); leitor recebe o texto via bolls.life. Falta morfologia (`InterlinearWord`) e contagem por livro medida contra a fonte.
+2. **T1.2 — Versificação:** KJV ↔ MT ↔ LXX. A LXX do banco segue Rahlfs (título = v.1, capitulação do MT fora dos Salmos) — medido. KJV→LXX passa pelo MT (corrigido na revisão: Sl 9–10, 114–115, títulos, Ml/Jl/Nm). Usado só na comparação; faltam painéis, Link Set e sinopse.
+3. **T1.3 — Referência numérica `BBCCCVVV`:** colunas e consulta por intervalo prontas; backfill não executado.
+4. **T1.4 — Índice de recursos:** modelos e endpoint criados, **tabelas vazias**. Faltam chunking estrutural, extrator PT/EN completo, intervalos/`kind` no esquema, auditoria de 50 trechos e `EXPLAIN ANALYZE` (nenhuma latência foi medida).
+5. **T1.5 — Diagrama sintático:** **não há treebank importado.** Os 7 versículos (Jo 1:1-3, 14, 18; Rm 8:1, 28) foram escritos à mão e são servidos como `method: 'curated-manual'`, `isAnnotatedTree: false`. Licença do MACULA aprovada; import do XML pendente.
+
+**Achado de dados:** o texto `LXX` no banco é sequência de lemas (ex.: Sl 9:2 "ἐκὁμολογέω σύ κύριος…"), não texto flexionado.
 
 ### Fase 0 — Bloqueadores (Concluída em 2026-11-05)
 
