@@ -17,7 +17,8 @@ lido por Antigravity, Cursor, Claude Code e afins.
 - **Frontend:** 67 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` (Vercel conectada ao Git: push na `main` publica).
 - **Backend Render:** `https://theosphere.onrender.com`, deploy automático pela `main` **funcionando**. ⚠️ O backend NÃO tem `setGlobalPrefix`: cada controller declara `api/v1/...` (só o health também). Sonde sempre com `/api/v1/<rota>` e um método que a rota aceita — sondar `GET` numa rota `POST` dá 404 e já gerou um falso diagnóstico de "Render parado".
-- **Banco Supabase:** 1.195 MB. **Ainda em read-only em 2026-11-06 mesmo após o upgrade para Pro** (`default_transaction_read_only=on`, origem: arquivo de configuração do servidor — só a Supabase remove). Não force escrita com `ALTER ROLE ... SET default_transaction_read_only=off`: se o disco não foi ampliado, encher o disco derruba o banco. Migrações pendentes (aplicadas sozinhas no próximo boot com banco gravável): `billing_events`, `annotations`, `cross_reference_numeric_ref`, `resource_theological_index`, `feedback`.
+- **Banco Supabase:** 1.195 MB, plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 21 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
+- **Chave do Gemini no Render inválida (2026-11-06):** o Google responde `API_KEY_INVALID`. O chat degrada para resposta de fallback (não dá mais 500) e `GET /api/v1/health/ai` responde `status: "degraded"`. Só o dono troca a chave em Render → Environment (`GEMINI_API_KEY`).
 - **Acervo:** 45.114 chunks no `UserEmbedding` (88 obras); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`).
 
 > **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](CHANGELOG.md).
@@ -33,7 +34,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 Pendências detalhadas em `audit/prompts/antigravity-finalizacao-fase1-2026-11-05.md`.
 
-1. **T1.1 — SBLGNT:** licença CC BY 4.0 conferida na fonte. Dataset offline em `backend/prisma/data/sblgnt-verses.json.gz`; **não ingerido** (banco read-only); leitor recebe o texto via bolls.life. Falta morfologia (`InterlinearWord`) e contagem por livro medida contra a fonte.
+1. **T1.1 — SBLGNT:** licença CC BY 4.0 conferida na fonte. Dataset offline em `backend/prisma/data/sblgnt-verses.json.gz`; **ainda não ingerido** (banco já gravável — rodar a ingestão); leitor recebe o texto via bolls.life. Falta morfologia (`InterlinearWord`) e contagem por livro medida contra a fonte.
 2. **T1.2 — Versificação:** KJV ↔ MT ↔ LXX. A LXX do banco segue Rahlfs (título = v.1, capitulação do MT fora dos Salmos) — medido. KJV→LXX passa pelo MT (corrigido na revisão: Sl 9–10, 114–115, títulos, Ml/Jl/Nm). Usado só na comparação; faltam painéis, Link Set e sinopse.
 3. **T1.3 — Referência numérica `BBCCCVVV`:** colunas e consulta por intervalo prontas; backfill não executado.
 4. **T1.4 — Índice de recursos:** modelos e endpoint criados, **tabelas vazias**. Faltam chunking estrutural, extrator PT/EN completo, intervalos/`kind` no esquema, auditoria de 50 trechos e `EXPLAIN ANALYZE` (nenhuma latência foi medida).
