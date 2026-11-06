@@ -14,7 +14,7 @@ import { AnnotationsService, SyncAnnotationItem } from './annotations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { Request } from 'express';
 
-@Controller('annotations')
+@Controller('api/v1/annotations')
 @UseGuards(JwtAuthGuard)
 export class AnnotationsController {
   constructor(private readonly annotationsService: AnnotationsService) {}

@@ -26,8 +26,10 @@ import { AiModule } from './common/ai/ai.module';
 import { McpModule } from './mcp/mcp.module';
 import { BillingModule } from './billing/billing.module';
 import { AnnotationsModule } from './annotations/annotations.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { ResourcesModule } from './resources/resources.module';
 import { ThrottlerUserGuard } from './common/guards/throttler-user.guard';
+import { FallbackThrottlerStorage } from './common/throttler-fallback.storage';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
@@ -106,7 +108,13 @@ interface EnvShape {
           throttlers: [{ ttl: 60_000, limit: 100 }], // Increased to 100/min
         };
         if (redisUrl) {
-          base.storage = new ThrottlerStorageRedisService(new Redis(redisUrl));
+          // Poucas tentativas por comando: com o Redis fora, falhar rápido e
+          // cair para o contador em memória em vez de segurar a requisição.
+          base.storage = new FallbackThrottlerStorage(
+            new ThrottlerStorageRedisService(
+              new Redis(redisUrl, { maxRetriesPerRequest: 1 }),
+            ),
+          );
         }
         return base;
       },
@@ -128,6 +136,7 @@ interface EnvShape {
     McpModule,
     BillingModule,
     AnnotationsModule,
+    FeedbackModule,
     ResourcesModule,
   ],
   controllers: [AppController],

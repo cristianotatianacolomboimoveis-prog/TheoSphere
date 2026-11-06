@@ -8,7 +8,7 @@ import {
 import { ResourcesService, ResourceCitationItem } from './resources.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('resources')
+@Controller('api/v1/resources')
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 

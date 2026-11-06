@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { CONFIG } from "@/lib/config";
 import { TEXTUAL_VARIANTS_CATALOG } from "@/data/textualCriticismData";
 
 export type ManuscriptFamily =
@@ -72,8 +73,9 @@ export interface ManuscriptApparatusResponse {
   }[];
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://theosphere.onrender.com";
+// Mesma base do resto do app (já termina em /api/v1). Antes este hook usava
+// a raiz do backend e só funcionava porque o controller não tinha prefixo.
+const API_BASE_URL = CONFIG.API_BASE_URL;
 
 export function useTextualCriticism(initialPassage?: {
   bookId: number;

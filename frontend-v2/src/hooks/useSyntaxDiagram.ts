@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { CONFIG } from "@/lib/config";
 
 export type ClauseType =
   | "main"
@@ -69,8 +70,9 @@ export interface CanonicalDiagramSummary {
   clauseCount: number;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://theosphere.onrender.com";
+// Mesma base do resto do app (já termina em /api/v1). Antes este hook usava
+// a raiz do backend e só funcionava porque o controller não tinha prefixo.
+const API_BASE_URL = CONFIG.API_BASE_URL;
 
 export function useSyntaxDiagram(initialReference?: {
   bookId: string | number;

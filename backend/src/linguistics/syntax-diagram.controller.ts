@@ -12,7 +12,7 @@ import type {
   SyntaxDiagramResponse,
 } from './syntax-diagram.dto';
 
-@Controller('syntax-diagram')
+@Controller('api/v1/syntax-diagram')
 export class SyntaxDiagramController {
   constructor(private readonly syntaxDiagramService: SyntaxDiagramService) {}
 

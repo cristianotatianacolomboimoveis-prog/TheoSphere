@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -42,34 +43,22 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     setErrorMessage("");
 
     const feedbackPayload = {
-      id: `fb_${Date.now()}`,
       category,
       rating,
       message: message.trim(),
       email: userEmail.trim() || undefined,
-      url: typeof window !== "undefined" ? window.location.href : pathname,
       pathname,
       viewport:
         typeof window !== "undefined"
           ? `${window.innerWidth}x${window.innerHeight}`
           : "",
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
-      createdAt: new Date().toISOString(),
     };
 
     try {
-      // Salva duravelmente no histórico local do usuário
-      const existing = JSON.parse(
-        localStorage.getItem("theosphere_feedbacks_sent") || "[]",
-      );
-      existing.push(feedbackPayload);
-      localStorage.setItem(
-        "theosphere_feedbacks_sent",
-        JSON.stringify(existing),
-      );
-
-      // Simula envio para endpoint ou webhook de telemetria
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      // Envio real ao backend (antes: só localStorage + atraso simulado, e o
+      // relato nunca chegava à equipe). O userId vem do JWT, se houver login.
+      await api.post("/feedback", feedbackPayload);
 
       setSubmitted(true);
       setTimeout(() => {
@@ -79,8 +68,18 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         setErrorMessage("");
         onClose();
       }, 2200);
-    } catch {
-      setErrorMessage("Não foi possível enviar seu relato. Tente novamente.");
+    } catch (err) {
+      // Mantém o texto no formulário para o usuário tentar de novo.
+      const status = err instanceof ApiError ? err.status : 0;
+      setErrorMessage(
+        status === 429
+          ? "Muitos envios seguidos. Aguarde um minuto e tente de novo."
+          : status === 400 && err instanceof Error
+            ? err.message
+            : status === 0
+              ? "Sem conexão com o servidor (ele pode estar acordando — leva até 1 minuto). Seu texto foi mantido; tente de novo."
+              : "Não foi possível registrar seu relato agora. Seu texto foi mantido; tente de novo em alguns minutos.",
+      );
     } finally {
       setSending(false);
     }

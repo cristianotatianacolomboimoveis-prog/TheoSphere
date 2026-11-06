@@ -18,7 +18,7 @@ import { THEOSPHERE_PLANS } from './plans.constants';
 import type { PaymentProvider } from './payment-provider.interface';
 import type { Request } from 'express';
 
-@Controller('billing')
+@Controller('api/v1/billing')
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,

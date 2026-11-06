@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { McpAuditEvent } from './mcp.types';
 import { McpProjectMemoryService } from './mcp.project-memory.service';
@@ -6,12 +6,25 @@ import { McpProjectMemoryService } from './mcp.project-memory.service';
 @Injectable()
 export class McpAuditService {
   private readonly events: McpAuditEvent[] = [];
+  private readonly logger = new Logger(McpAuditService.name);
 
   constructor(@Optional() private readonly memory?: McpProjectMemoryService) {}
 
   async onModuleInit(): Promise<void> {
     if (!this.memory) return;
-    const entries = await this.memory.latestByKeyPrefix('audits', 'mcp:audit:');
+    // Reidratar o histórico é opcional; um soluço do banco no boot não pode
+    // derrubar o servidor inteiro (antes, qualquer erro aqui abortava o start).
+    let entries: Awaited<
+      ReturnType<McpProjectMemoryService['latestByKeyPrefix']>
+    >;
+    try {
+      entries = await this.memory.latestByKeyPrefix('audits', 'mcp:audit:');
+    } catch (error) {
+      this.logger.warn(
+        `Histórico de auditoria MCP não reidratado no boot: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return;
+    }
     for (const entry of entries.sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     )) {

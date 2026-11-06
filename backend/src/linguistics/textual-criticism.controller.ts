@@ -13,7 +13,7 @@ import type {
   TextualVariantItem,
 } from './textual-criticism.dto';
 
-@Controller('textual-criticism')
+@Controller('api/v1/textual-criticism')
 export class TextualCriticismController {
   constructor(
     private readonly textualCriticismService: TextualCriticismService,

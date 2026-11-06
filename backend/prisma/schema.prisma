@@ -527,3 +527,21 @@ model ResourceReference {
   @@index([canonicalRef])
   @@index([chunkId])
 }
+
+// Relatos dos testadores (botão "Feedback"). userId vem SEMPRE do JWT — nulo
+// quando o relato é enviado sem login (ex.: "não consigo me cadastrar").
+model Feedback {
+  id           String   @id @default(uuid())
+  userId       String?
+  category     String   // 'sugestao' | 'bug' | 'duvida' | 'elogio'
+  rating       Int?
+  message      String
+  contactEmail String?
+  pathname     String?
+  userAgent    String?
+  viewport     String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
