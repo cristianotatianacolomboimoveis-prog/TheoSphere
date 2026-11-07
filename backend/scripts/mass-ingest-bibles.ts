@@ -22,7 +22,7 @@ const TRANSLATIONS_TO_INGEST = [
   'KJV', // King James Version (EN)
   'WEB', // World English Bible (EN)
   'WLC', // Westminster Leningrad Codex (Hebrew)
-  'LXX', // Septuagint (Greek)
+  // LXX é ingerida via scripts/ingest-lxx-brenton.ts (Brenton Public Domain); bolls.life serve lemas quebrados.
   'TR', // Textus Receptus (Greek)
 ];
 
@@ -44,7 +44,7 @@ const BOOKS = [
   { id: 15, name: 'Esdras', chapters: 10 },
   { id: 16, name: 'Neemias', chapters: 13 },
   { id: 17, name: 'Ester', chapters: 10 },
-  { id: 18, name: 'Jó', chapters: 18 },
+  { id: 18, name: 'Jó', chapters: 42 },
   { id: 19, name: 'Salmos', chapters: 150 },
   { id: 20, name: 'Provérbios', chapters: 31 },
   { id: 21, name: 'Eclesiastes', chapters: 12 },
