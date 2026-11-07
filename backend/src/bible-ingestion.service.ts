@@ -116,6 +116,12 @@ export class BibleIngestionService {
       return existing.map((v) => ({ verse: v.verse, text: v.text }));
     }
 
+    // LXX é servida exclusivamente do banco local (Brenton Public Domain, AT 1-39).
+    // Nunca buscar LXX em bolls.life, pois o endpoint externo entrega lemas de dicionário.
+    if (transUpper === 'LXX') {
+      return [];
+    }
+
     this.logger.log(
       `[Ingestion] Fetching & Saving: ${transUpper} ${bookId}:${chapter}...`,
     );
