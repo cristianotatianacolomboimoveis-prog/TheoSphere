@@ -1,4 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as zlib from 'zlib';
 import { PrismaService } from '../prisma.service';
 import {
   CanonicalDiagramSummary,
@@ -13,6 +16,57 @@ import {
 import { CURATED_SYNTAX_VERSES } from './treebanks/curated-syntax.data';
 import { BOOK_ID_TO_NAME_PT, resolveBookId } from '../common/book-map';
 import { InterlinearWordRow } from './linguistics.service';
+
+const MACULA_ID_REGEX = /^n\d{11}$/;
+
+/**
+ * Invariante T1.5: todo diagrama rotulado como `treebank` / `isAnnotatedTree: true`
+ * deve ter ID MACULA válido (`nBBCCCVVVPPP`, 12 caracteres) em todas as cláusulas
+ * e em todas as palavras. Lança erro se qualquer nó violar o invariante.
+ */
+export function assertValidMaculaTreebankDiagram(
+  diagram: SyntaxDiagramResponse,
+): void {
+  if (diagram.method !== 'treebank' || !diagram.isAnnotatedTree) {
+    throw new Error(
+      `Invariante T1.5 violado: diagrama em assertValidMaculaTreebankDiagram deve ter method="treebank" e isAnnotatedTree=true`,
+    );
+  }
+  if (!diagram.rootClauses || diagram.rootClauses.length === 0) {
+    throw new Error(
+      `Invariante T1.5 violado: diagrama treebank (${diagram.reference}) sem cláusulas raiz`,
+    );
+  }
+
+  const checkClause = (node: ClauseNode) => {
+    if (!node.id || !MACULA_ID_REGEX.test(node.id)) {
+      throw new Error(
+        `Invariante T1.5 violado: cláusula sem ID MACULA válido (recebido: "${node.id ?? ''}")`,
+      );
+    }
+    if (!node.words || node.words.length === 0) {
+      throw new Error(
+        `Invariante T1.5 violado: cláusula ${node.id} sem palavras associadas`,
+      );
+    }
+    for (const w of node.words) {
+      if (!w.id || !MACULA_ID_REGEX.test(w.id)) {
+        throw new Error(
+          `Invariante T1.5 violado: palavra "${w.word}" na cláusula ${node.id} sem ID MACULA válido (recebido: "${w.id ?? ''}")`,
+        );
+      }
+    }
+    if (node.children) {
+      for (const child of node.children) {
+        checkClause(child);
+      }
+    }
+  };
+
+  for (const root of diagram.rootClauses) {
+    checkClause(root);
+  }
+}
 
 const USFM_BOOK_CODES: Record<number, string> = {
   1: 'GEN',
@@ -86,8 +140,52 @@ const USFM_BOOK_CODES: Record<number, string> = {
 @Injectable()
 export class SyntaxDiagramService {
   private readonly logger = new Logger(SyntaxDiagramService.name);
+  private static maculaTreesCache: Record<
+    string,
+    SyntaxDiagramResponse
+  > | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Carrega sob demanda o dataset versionado de árvores sintáticas MACULA Greek Lowfat.
+   */
+  getMaculaTrees(): Record<string, SyntaxDiagramResponse> {
+    if (SyntaxDiagramService.maculaTreesCache) {
+      return SyntaxDiagramService.maculaTreesCache;
+    }
+
+    const candidates = [
+      path.join(__dirname, '../../prisma/data/macula-syntax-trees.json.gz'),
+      path.join(__dirname, '../../../prisma/data/macula-syntax-trees.json.gz'),
+      path.join(process.cwd(), 'prisma/data/macula-syntax-trees.json.gz'),
+      path.join(
+        process.cwd(),
+        'backend/prisma/data/macula-syntax-trees.json.gz',
+      ),
+    ];
+
+    for (const filePath of candidates) {
+      if (fs.existsSync(filePath)) {
+        try {
+          const raw = fs.readFileSync(filePath);
+          const json = zlib.gunzipSync(raw).toString('utf8');
+          const parsed = JSON.parse(json) as {
+            trees?: Record<string, SyntaxDiagramResponse>;
+          };
+          SyntaxDiagramService.maculaTreesCache = parsed.trees || {};
+          return SyntaxDiagramService.maculaTreesCache;
+        } catch (err) {
+          this.logger.error(
+            `Falha ao carregar dataset MACULA em ${filePath}: ${String(err)}`,
+          );
+        }
+      }
+    }
+
+    SyntaxDiagramService.maculaTreesCache = {};
+    return SyntaxDiagramService.maculaTreesCache;
+  }
 
   /**
    * Retorna o resumo dos diagramas exegéticos canônicos disponíveis.
@@ -127,15 +225,22 @@ export class SyntaxDiagramService {
     const usfmCode = USFM_BOOK_CODES[numericBookId] || bookInput.toUpperCase();
     const treebankKey = `${usfmCode}.${chapter}.${verse}`;
 
-    // 1. Diagramas curados manualmente (7 versículos). NÃO são treebank —
-    //    ver curated-syntax.data.ts. Quando o MACULA for importado de fato,
-    //    o treebank entra antes deste passo.
+    // 1. Árvore sintática real importada do MACULA Greek Lowfat XML (CC BY 4.0).
+    //    Garante o invariante T1.5 (todos os nós possuem ID MACULA válido) e nunca mistura com curadoria manual.
+    const maculaTrees = this.getMaculaTrees();
+    if (maculaTrees[treebankKey]) {
+      const diagram = maculaTrees[treebankKey];
+      assertValidMaculaTreebankDiagram(diagram);
+      return diagram;
+    }
+
+    // 2. Diagramas curados manualmente (mantidos apenas como fallback separado caso fora do treebank)
     if (CURATED_SYNTAX_VERSES[treebankKey]) {
       return CURATED_SYNTAX_VERSES[treebankKey];
     }
 
     const canonicalKey = `${bookInput.toUpperCase()}.${chapter}.${verse}`;
-    // 2. Verifica se há preset canônico predefinido
+    // 3. Verifica se há preset canônico predefinido (ex.: GEN.1.1-3 no AT)
     for (const [k, diagram] of Object.entries(CANONICAL_DIAGRAMS)) {
       if (k.startsWith(canonicalKey) || k === canonicalKey) {
         return diagram;

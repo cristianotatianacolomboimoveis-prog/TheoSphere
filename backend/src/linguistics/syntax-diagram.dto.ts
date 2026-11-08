@@ -12,6 +12,7 @@ export type ClauseType =
   | 'vocative_apposition'; // Vocativo ou Aposição Exegética
 
 export interface SyntaxWordItem {
+  id?: string; // ID MACULA (ex: n43001001001) quando method === 'treebank'
   word: string;
   translit?: string;
   lemma?: string;
@@ -19,6 +20,7 @@ export interface SyntaxWordItem {
   gloss?: string;
   strongId?: string;
   role?: 'S' | 'P' | 'C' | 'A' | 'Conj'; // OpenText Functional Roles
+  maculaRole?: string; // Papel funcional original no MACULA Lowfat (S, P, O, IO, O2, ADV, V, VC, AUX, CONJ)
 }
 
 export interface ClauseNode {
