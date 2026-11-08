@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { cleanBollsText } from '../src/bible/bolls-text';
 
 /**
  * 🚀 TheoSphere Mass Ingestion Script
@@ -100,7 +101,7 @@ async function sleep(ms: number) {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>?/gm, '');
+  return cleanBollsText(html);
 }
 
 async function ingest() {

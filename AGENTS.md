@@ -23,6 +23,14 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 > **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](CHANGELOG.md).
 
+### Correções de dados bíblicos (2026-11-08, Claude Code)
+
+- **KJV com números de Strong no texto:** 30.459 de 30.470 versículos apareciam no leitor como "For1063 God2316 so3779…". A bolls.life manda `God<S>2316</S>` e o `stripHtml` antigo tirava só a tag. Corrigido no banco (backup em scratchpad, 0 versículos com dígito depois) e na origem: `src/bible/bolls-text.ts` (`cleanBollsText`, com spec), usado por `bible-ingestion.service.ts` e `scripts/mass-ingest-bibles.ts`. Os embeddings da KJV foram refeitos sobre o texto limpo.
+- **Capítulos faltando:** Jó 19–42 não existia em KJV, WEB e WLC (642 vv. cada); o WLC também não tinha Joel 4 (21 vv.). Inseridos por `scripts/completar-capitulos-faltantes.ts` (idempotente, só insere). Inventário por `bookId` contra a NVA: 0 capítulos faltando.
+- **Versificação LXX (Brenton) ↔ KJV:** a LXX de Brenton segue a ordem da Septuaginta. Medido por embeddings (LXX × WEB, Viterbi + sequências com deslocamento constante), havia 921 versículos em sequências desalinhadas (599 em Jeremias). Agora: `src/bible/lxx-alignment.data.ts` (gerado, com cópia idêntica no frontend; um teste exige a igualdade) tem prioridade sobre as regras em `mapLxxToKjv`/`mapKjvToLxx`. Depois: 0 sequências desalinhadas nos 39 livros; Jeremias passou de 44,8% para 92,8% de pares aceitáveis. Daniel 3:24-90 (sem paralelo na KJV) ancora em Dn 3:23. 409 versículos KJV não têm correspondente na LXX (o "minus" de Jeremias e de Êx 35–40) e apontam para o versículo anterior.
+- **Regras KJV↔MT que faltavam** (afetavam também o WLC): 1 Cr 6:1-81 = MT 5:27–6:66; Zc 1:18-21 + 2:1-13 = MT 2:1-17. Achadas pela mesma auditoria (WLC × WEB), que depois deu 0 sequências desalinhadas.
+- **Não verificado:** os 13 versículos curtos e repetitivos que o método não distingue (listas de Nm 1/26, títulos de salmos) continuam com o mapeamento por regra; a auditoria mostra a mesma taxa de "não top-1" que livros sem divergência (ruído do método, não erro sistemático).
+
 ### Release do teste fechado (2026-11-06)
 
 - **Rotas fora de `/api/v1` (defeito em produção):** anotações, billing, syntax-diagram, textual-criticism e resources respondiam 404 para o frontend. Corrigido; `backend/src/common/route-prefix.spec.ts` barra controller novo sem prefixo.

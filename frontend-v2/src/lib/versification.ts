@@ -9,6 +9,12 @@
  * Fonte de referência: Paratext / SIL Versification Tables e STEPBible Data (CC BY 4.0).
  */
 
+import {
+  KJV_TO_LXX_SEGMENTS,
+  LXX_TO_KJV_SEGMENTS,
+  type LxxAlignmentSegment,
+} from "./lxx-alignment.data";
+
 export type VersificationScheme = "KJV" | "MT" | "LXX";
 
 export interface VerseRef {
@@ -259,6 +265,43 @@ export const BLOCK_RULES: VersificationRule[] = [
     mtChapter: 21,
     mtVerseStart: 6,
   },
+  // 1 Crônicas 5:27-41 e 6:1-66 (MT) = 6:1-81 (KJV)
+  // Detectado por auditoria de embeddings WLC × WEB (2026-11-08).
+  {
+    bookId: 13,
+    kjvChapter: 6,
+    kjvVerseStart: 1,
+    kjvVerseEnd: 15,
+    mtChapter: 5,
+    mtVerseStart: 27,
+  },
+  {
+    bookId: 13,
+    kjvChapter: 6,
+    kjvVerseStart: 16,
+    kjvVerseEnd: 81,
+    mtChapter: 6,
+    mtVerseStart: 1,
+  },
+
+  // Zacarias 2:1-17 (MT) = 1:18-21 + 2:1-13 (KJV)
+  {
+    bookId: 38,
+    kjvChapter: 1,
+    kjvVerseStart: 18,
+    kjvVerseEnd: 21,
+    mtChapter: 2,
+    mtVerseStart: 1,
+  },
+  {
+    bookId: 38,
+    kjvChapter: 2,
+    kjvVerseStart: 1,
+    kjvVerseEnd: 13,
+    mtChapter: 2,
+    mtVerseStart: 5,
+  },
+
   {
     bookId: 27,
     kjvChapter: 4,
@@ -535,14 +578,40 @@ export function mapLxxToMt(ref: VerseRef): VerseRef {
  * KJV → LXX passando pelo MT (títulos dos Salmos, Ml 4, Jl 2–3, Nm 16–17 etc.).
  */
 export function mapKjvToLxx(ref: VerseRef): VerseRef {
-  return mapMtToLxx(mapKjvToMt(ref));
+  return lookupSegment(KJV_TO_LXX_SEGMENTS, ref) ?? mapMtToLxx(mapKjvToMt(ref));
 }
 
 /**
  * LXX → KJV passando pelo MT.
  */
 export function mapLxxToKjv(ref: VerseRef): VerseRef {
-  return mapMtToKjv(mapLxxToMt(ref));
+  return lookupSegment(LXX_TO_KJV_SEGMENTS, ref) ?? mapMtToKjv(mapLxxToMt(ref));
+}
+
+/**
+ * Tabela medida (lxx-alignment.data.ts) tem prioridade sobre as regras: cobre
+ * as reordenações da LXX de Brenton (Jeremias 25–51, 1 Rs 7 e 20–21, Êx
+ * 36–39, Dn 3–4…), que nenhuma regra de deslocamento descreve.
+ */
+function lookupSegment(
+  table: readonly LxxAlignmentSegment[],
+  ref: VerseRef,
+): VerseRef | null {
+  for (const [b, c, v1, v2, tc, tv, step] of table) {
+    if (
+      b === ref.bookId &&
+      c === ref.chapter &&
+      ref.verse >= v1 &&
+      ref.verse <= v2
+    ) {
+      return {
+        bookId: b,
+        chapter: tc,
+        verse: step === 1 ? tv + (ref.verse - v1) : tv,
+      };
+    }
+  }
+  return null;
 }
 
 export function mapRef(

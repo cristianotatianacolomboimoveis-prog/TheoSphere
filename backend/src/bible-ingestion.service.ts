@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { cleanBollsText } from './bible/bolls-text';
 import { PrismaService } from './prisma.service';
 import { EmbeddingService } from './rag/embedding.service';
 import { Cron } from '@nestjs/schedule';
@@ -522,7 +523,7 @@ export class BibleIngestionService {
   }
 
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]*>?/gm, '');
+    return cleanBollsText(html);
   }
 
   /**

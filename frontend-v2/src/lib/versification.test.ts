@@ -46,4 +46,15 @@ describe("T1.2 — Mapeamento de Versificação no Frontend", () => {
     expect(lxx).toEqual({ bookId: eb, chapter: ec, verse: ev });
     expect(mapRef(lxx, "LXX", "KJV")).toEqual(kjv);
   });
+
+  // 2026-11-08: a LXX de Brenton reordena Jeremias 25–51; conferido no texto.
+  it("KJV Jr 49:35 (Elão) ↔ LXX Jr 25:15", () => {
+    expect(mapRef({ bookId: 24, chapter: 49, verse: 35 }, "KJV", "LXX")).toEqual({ bookId: 24, chapter: 25, verse: 15 });
+    expect(mapRef({ bookId: 24, chapter: 25, verse: 15 }, "LXX", "KJV")).toEqual({ bookId: 24, chapter: 49, verse: 35 });
+  });
+
+  it("KJV Zc 1:18 ↔ MT Zc 2:1 e 1 Cr 6:1 ↔ MT 5:27", () => {
+    expect(mapRef({ bookId: 38, chapter: 1, verse: 18 }, "KJV", "MT")).toEqual({ bookId: 38, chapter: 2, verse: 1 });
+    expect(mapRef({ bookId: 13, chapter: 6, verse: 1 }, "KJV", "MT")).toEqual({ bookId: 13, chapter: 5, verse: 27 });
+  });
 });
