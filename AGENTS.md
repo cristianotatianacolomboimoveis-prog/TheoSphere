@@ -11,15 +11,15 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-06** (release `release/teste-fechado`, publicada na `main`).
+Última sessão: **2026-11-08** (fechamento da Fase 1 publicado na `main`).
 
-- **Backend:** 474 testes passando (51 specs Jest), lint 0, typecheck 0, static-checks 0.
+- **Backend:** 503 testes passando (54 specs Jest), lint 0, typecheck 0, static-checks 0.
 - **Frontend:** 67 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` (Vercel conectada ao Git: push na `main` publica).
 - **Backend Render:** `https://theosphere.onrender.com`, deploy automático pela `main` **funcionando**. ⚠️ O backend NÃO tem `setGlobalPrefix`: cada controller declara `api/v1/...` (só o health também). Sonde sempre com `/api/v1/<rota>` e um método que a rota aceita — sondar `GET` numa rota `POST` dá 404 e já gerou um falso diagnóstico de "Render parado".
-- **Banco Supabase:** 1.195 MB, plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 21 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
+- **Banco Supabase:** 2.473 MB, plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 22 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
 - **IA em produção restabelecida (2026-11-07):** chave nova do Gemini no Render; `/health/ai` = `ok`, chat com `degraded: false` (conferido de forma independente). No Render, `GEMINI_MODEL=gemini-3.5-flash` sobrepõe o padrão do código (`gemini-3.8-flash`), que estourava o timeout de 30 s. Ao mudar o padrão no código, lembre que a variável do Render prevalece. `AI_CREDITS_FREE_MONTHLY=100` ativo (smoke: `limite: 100`).
-- **Acervo:** 45.114 chunks no `UserEmbedding` (88 obras); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`).
+- **Acervo e Índice de Recursos:** 88 obras distintas no `Resource` (89 entradas de catálogo), 45.092 chunks em `ResourceChunk` com embeddings `gemini:gemini-embedding-001:768` migrados sem custo de API e 140.286 referências em `ResourceReference` (31.912 `heading` + 108.374 `inline`); `UserEmbedding` preservado intacto (45.092 `book_chunk` + 24 `note`/`highlight`); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`).
 
 > **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](CHANGELOG.md).
 
@@ -30,17 +30,21 @@ lido por Antigravity, Cursor, Claude Code e afins.
 - **API sem Redis:** com Redis fora, o rate limit derrubava toda requisição com 500. `FallbackThrottlerStorage` cai para contador em memória.
 - **Leitura com banco read-only:** `ingestChapter` descartava o capítulo baixado quando a gravação falhava e devolvia `[]` (ex.: SBLGNT). Agora serve o texto e registra `warn`.
 
-### Fase 1 — Fundações de Exegese e Biblioteca (PARCIAL — revisão de 2026-11-05/06)
+### Fase 1 — Fundações de Exegese e Biblioteca (Concluída em 2026-11-08)
 
-Pendências detalhadas em `audit/prompts/antigravity-finalizacao-fase1-2026-11-05.md`.
-
-1. **T1.1 — SBLGNT:** licença CC BY 4.0 conferida na fonte. Dataset offline em `backend/prisma/data/sblgnt-verses.json.gz`; **ainda não ingerido** (banco já gravável — rodar a ingestão); leitor recebe o texto via bolls.life. Falta morfologia (`InterlinearWord`) e contagem por livro medida contra a fonte.
-2. **T1.2 — Versificação:** KJV ↔ MT ↔ LXX. A LXX do banco segue Rahlfs (título = v.1, capitulação do MT fora dos Salmos) — medido. KJV→LXX passa pelo MT (corrigido na revisão: Sl 9–10, 114–115, títulos, Ml/Jl/Nm). Usado só na comparação; faltam painéis, Link Set e sinopse.
-3. **T1.3 — Referência numérica `BBCCCVVV`:** colunas e consulta por intervalo prontas; backfill não executado.
-4. **T1.4 — Índice de recursos:** modelos e endpoint criados, **tabelas vazias**. Faltam chunking estrutural, extrator PT/EN completo, intervalos/`kind` no esquema, auditoria de 50 trechos e `EXPLAIN ANALYZE` (nenhuma latência foi medida).
-5. **T1.5 — Diagrama sintático:** **não há treebank importado.** Os 7 versículos (Jo 1:1-3, 14, 18; Rm 8:1, 28) foram escritos à mão e são servidos como `method: 'curated-manual'`, `isAnnotatedTree: false`. Licença do MACULA aprovada; import do XML pendente.
-
-**Achado de dados:** o texto `LXX` no banco é sequência de lemas (ex.: Sl 9:2 "ἐκὁμολογέω σύ κύριος…"), não texto flexionado.
+1. **Tarefa A — Septuaginta com texto grego flexionado real (branch `fix/lxx-texto-real`):**
+   Substituída a sequência de lemas da `bolls.life` pela edição de Sir Lancelot C. L. Brenton (_The Septuagint Version of the Old Testament_, 1851, domínio público, fonte `eBible.org/ScriptureEarth` `grcbrent`, licença documentada em `docs/licenses/LXX-BRENTON.md`). Ingeridos **22.942 versículos** nos 39 livros do AT canônico protestante (com `0` livros de menos de 20 versículos e `0` ocorrências de lemas concatenados como `ἐκὁμολογέω`). Sl 9:2 (Rahlfs = Sl 9:1 KJV) exibe `"Ἐξομολογήσομαί σοι Κύριε ἐν ὅλῃ καρδίᾳ μου..."`.
+2. **Tarefa B — Cobertura de embeddings em `BibleVerse` (branch `feat/embeddings-completos`):**
+   Guarda de espaço vetorial (`assertPersistedBatchEmbeddings`) adicionado a `createBatchEmbeddings` e `povoar-embeddings-livres.ts`. Gerados **110.775 embeddings** (`gemini:gemini-embedding-001:768`), totalizando **176.571 / 176.571** versículos com embedding nas 7 traduções de busca (`BLIVRE`, `NVA`, `KJV`, `WEB`, `LXX`, `WLC`, `TR`; `faltam = 0`). `hnsw.iterative_scan = 'relaxed_order'` configurado no banco para varredura HNSW filtrada por tradução.
+3. **Tarefa C / T1.1 / T1.5 — SBLGNT, morfologia e árvores sintáticas MACULA (branch `feat/t1.5-macula-lowfat`):**
+   Ingeridos **7.958 versículos** da `SBLGNT` em `BibleVerse` (CC BY 4.0) e **137.741 palavras** morfológicas em `InterlinearWord` a partir do treebank MACULA Greek Lowfat XML (`Clear-Bible/macula-greek`, CC BY 4.0, commit `8423afe47b9e8f24b7772e808af45c7159a6fe7e`, `docs/licenses/MACULA-GREEK.md`). `SyntaxDiagramService` serve **7.943 versículos canônicos do NT** (**99,82%** dos 7.957 versículos de TR) com `method: 'macula-lowfat'`, `isAnnotatedTree: true` e IDs de palavra no formato MACULA `nBBCCCVVVWWW`. Os 14 versículos ausentes na edição crítica SBLGNT/Nestle 1904 (variantes textuais bizantinas como Mt 17:21, At 8:37) caem para `heuristic-clause-split` com `isAnnotatedTree: false`.
+4. **T1.2 — Versificação:** KJV ↔ MT ↔ LXX. A LXX do banco segue numeração Rahlfs/Brenton (título = v.1 nos Salmos, capitulação dos Salmos 9–147 deslocada, capitulação do MT fora dos Salmos). KJV→LXX passa pelo MT em `VersificationService`.
+5. **Tarefa D / T1.3 / T1.4 — Referência numérica `BBCCCVVV` e Índice de Recursos (branch `feat/t1.4-indice-referencias`):**
+   - `CrossReference`: backfill concluído em **262 / 262** linhas (`sourceNumRef` e `targetNumRef`, `0` não parseáveis).
+   - `ResourceReference`: migração aditiva com `startRef`, `endRef`, `kind` (`'heading' | 'inline'`) e índice composto `@@index([startRef, endRef])`.
+   - Extrator estrutural PT+EN+romanos (`backend/src/resources/reference-extractor.ts`): mapeia `Jn` → João (`43`), rejeita palavras comuns (`is`, `at`, `am`, `ex`, `ne`, `os`, `ed`, `et`, `na`, `ag`, `cl`) como abreviação isolada, propaga contexto de cabeçalho de perícope para resolver `"v. 16"` / `"Verses 16-18"`.
+   - Migração de `UserEmbedding` → `Resource` (**89 entradas / 88 obras distintas**), `ResourceChunk` (**45.092 chunks** com vetores 768d copiados em SQL, `diff = 0`, 0 chamadas de API) e `ResourceReference` (**140.286 referências**: `31.912` `heading` + `108.374` `inline`).
+   - Auditoria de 50 trechos (`seed = 20261108`): **193 / 195** verdadeiros positivos (**precisão de 98,97%**, **recall de 93,69%**). `EXPLAIN (ANALYZE, BUFFERS)` para `43003016` (Jo 3:16): **11,33 ms** via `BitmapOr` (`ResourceReference_canonicalRef_idx` + `ResourceReference_startRef_endRef_idx`).
 
 ### Fase 0 — Bloqueadores (Concluída em 2026-11-05)
 
@@ -227,15 +231,15 @@ Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do prove
 
 ### 🟢 Traduções Canônicas e Normalização Case-Insensitive
 
-A tabela `BibleVerse` contém 7 traduções integrais e canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), WLC (22.550), LXX (22.942, Brenton)**.
+A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), SBLGNT (7.958, CC BY 4.0), WLC (22.550), LXX (22.942, Brenton)**.
 
 - A camada de busca (`SearchService`) normaliza qualquer entrada para uppercase trimmed (`translation?.toUpperCase().trim()`), eliminando divergências case-sensitive.
-- A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia todas as 7 edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
+- A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia as edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
 
-### ⚪ Acervo Clássico e Biblioteca Teológica
+### 🟢 Acervo Clássico, Biblioteca Teológica e Índice de Referências (`Resource`)
 
-- **Léxico** integrado com concordância Strong e léxico TAGNT grego/hebraico.
-- **Acervo de Domínio Público Medido no PostgreSQL (2026-11-05):** **45.114 chunks ativos** indexados no `UserEmbedding` com embeddings vetoriais, distribuídos em 88 obras com trechos indexados (Agostinho, Calvino, Lutero, Spurgeon, Edwards, Matthew Henry, Aquino, Bunyan, Flávio Josefo, Foxe, etc.). O Copilot IA cita diretamente as obras nos debates e exegeses.
+- **Léxico e Morfologia:** integrado com concordância Strong, léxico TAGNT grego/hebraico, **137.741 palavras** em `InterlinearWord` (`SBLGNT` via MACULA Greek) e **7.943 árvores sintáticas anotadas** (`macula-lowfat`).
+- **Acervo de Domínio Público Medido no PostgreSQL (2026-11-08):** **45.092 chunks de livros** migrados para `ResourceChunk` (em **89 entradas de catálogo / 88 obras distintas** em `Resource`) com embeddings vetoriais `gemini:gemini-embedding-001:768` e **140.286 referências bíblicas** em `ResourceReference` (`31.912` `heading` + `108.374` `inline`), além de `UserEmbedding` preservado (45.092 `book_chunk` + 24 `note`/`highlight`). O Copilot IA e o endpoint `/api/v1/resources/references` consultam diretamente as obras e comentários por versículo (`BBCCCVVV`) e intervalo (`startRef..endRef`).
 - **Catálogo Canônico Estruturado:** **108 obras** cadastradas em `backend/src/bible/classic-catalog.ts`, sincronizadas automaticamente com `frontend-v2/src/data/classicCatalog.ts` via `node scripts/sync-catalog.mjs`.
 - Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `backend/scratch/medir-tamanho-banco.js` ou `backend/scratch/diagnostico-espacos-vetoriais.js` para medir o acervo persistente no PostgreSQL.
 
