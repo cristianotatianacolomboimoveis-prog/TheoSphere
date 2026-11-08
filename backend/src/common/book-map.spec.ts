@@ -41,6 +41,13 @@ describe('resolveBookId', () => {
   it('retorna null para desconhecidos (caller degrada)', () => {
     expect(resolveBookId('Enoque')).toBeNull();
     expect(resolveBookId('')).toBeNull();
+    expect(resolveBookId('jn_nt')).toBeNull();
+  });
+
+  it('mapeia "Jn" em inglês para João (43), não Jonas (32)', () => {
+    expect(resolveBookId('Jn')).toBe(43);
+    expect(resolveBookId('Jon')).toBe(32);
+    expect(resolveBookId('Jonah')).toBe(32);
   });
 
   it('todos os 66 livros canônicos têm pelo menos um nome mapeado', () => {

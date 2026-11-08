@@ -519,12 +519,16 @@ model ResourceReference {
   id           String        @id @default(uuid())
   chunkId      String
   canonicalRef Int
+  startRef     Int?
+  endRef       Int?
+  kind         String        @default("inline") // 'heading' | 'inline'
   confidence   Float         @default(1.0)
   createdAt    DateTime      @default(now())
 
   chunk        ResourceChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
 
   @@index([canonicalRef])
+  @@index([startRef, endRef])
   @@index([chunkId])
 }
 
