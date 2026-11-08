@@ -15,6 +15,7 @@ export type ClauseType =
   | "vocative_apposition";
 
 export interface SyntaxWordItem {
+  id?: string;
   word: string;
   translit?: string;
   lemma?: string;
@@ -22,6 +23,7 @@ export interface SyntaxWordItem {
   gloss?: string;
   strongId?: string;
   role?: "S" | "P" | "C" | "A" | "Conj";
+  maculaRole?: string;
 }
 
 export interface ClauseNode {
