@@ -26,13 +26,16 @@ describe('ResourcesService (T1.4)', () => {
   });
 
   describe('findReferences', () => {
-    it('deve buscar citações diretas por referência canônica numérica BBCCCVVV', async () => {
+    it('deve buscar citações diretas e intervalos [startRef, endRef] por referência canônica BBCCCVVV', async () => {
       // 45008028 = Romans 8:28
       prisma.resourceReference.findMany.mockResolvedValue([
         {
           id: 'ref-1',
           chunkId: 'chunk-1',
           canonicalRef: 45008028,
+          startRef: 45008028,
+          endRef: 45008028,
+          kind: 'inline',
           confidence: 1.0,
           chunk: {
             id: 'chunk-1',
@@ -52,7 +55,15 @@ describe('ResourcesService (T1.4)', () => {
       const results = await service.findReferences(45008028, 10);
 
       expect(prisma.resourceReference.findMany).toHaveBeenCalledWith({
-        where: { canonicalRef: 45008028 },
+        where: {
+          OR: [
+            { canonicalRef: 45008028 },
+            {
+              startRef: { gte: 45000000, lte: 45008028 },
+              endRef: { gte: 45008028, lte: 45999999 },
+            },
+          ],
+        },
         include: {
           chunk: {
             include: {
@@ -61,7 +72,7 @@ describe('ResourcesService (T1.4)', () => {
           },
         },
         orderBy: [{ confidence: 'desc' }, { createdAt: 'asc' }],
-        take: 10,
+        take: 60,
       });
 
       expect(results).toHaveLength(1);
@@ -74,8 +85,47 @@ describe('ResourcesService (T1.4)', () => {
         text: 'All things work together for good to them that love God.',
         chunkIndex: 12,
         canonicalRef: 45008028,
+        startRef: 45008028,
+        endRef: 45008028,
+        kind: 'inline',
         confidence: 1.0,
         matchType: 'explicit_reference',
+      });
+    });
+
+    it('deve encontrar referência quando o versículo pedido estiver dentro do intervalo [startRef, endRef] (ex: Jo 3:16 em 43003014..43003018)', async () => {
+      prisma.resourceReference.findMany.mockResolvedValue([
+        {
+          id: 'ref-range-1',
+          chunkId: 'chunk-henry-1846',
+          canonicalRef: 43003014,
+          startRef: 43003014,
+          endRef: 43003018,
+          kind: 'heading',
+          confidence: 0.95,
+          chunk: {
+            id: 'chunk-henry-1846',
+            chunkIndex: 1846,
+            text: 'Christ here discourses of the great design of his own coming into the world, v. 14-18.',
+            resource: {
+              title: 'Commentary on the Whole Bible Vol 5',
+              author: 'Matthew Henry',
+              slug: 'classic-90005',
+              year: 1710,
+            },
+          },
+        },
+      ]);
+      prisma.resourceChunk.findMany.mockResolvedValue([]);
+
+      const results = await service.findReferences(43003016, 10);
+      expect(results).toHaveLength(1);
+      expect(results[0]).toMatchObject({
+        resourceTitle: 'Commentary on the Whole Bible Vol 5',
+        startRef: 43003014,
+        endRef: 43003018,
+        kind: 'heading',
+        matchType: 'scoped_range',
       });
     });
 
@@ -87,12 +137,20 @@ describe('ResourcesService (T1.4)', () => {
 
       expect(prisma.resourceReference.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { canonicalRef: 45008028 },
+          where: {
+            OR: [
+              { canonicalRef: 45008028 },
+              {
+                startRef: { gte: 45000000, lte: 45008028 },
+                endRef: { gte: 45008028, lte: 45999999 },
+              },
+            ],
+          },
         }),
       );
     });
 
-    it('deve incluir trechos cujo intervalo de abrangência cubra a referência', async () => {
+    it('deve incluir trechos cujo intervalo de abrangência em ResourceChunk cubra a referência', async () => {
       prisma.resourceReference.findMany.mockResolvedValue([]);
       prisma.resourceChunk.findMany.mockResolvedValue([
         {
@@ -114,8 +172,8 @@ describe('ResourcesService (T1.4)', () => {
 
       expect(prisma.resourceChunk.findMany).toHaveBeenCalledWith({
         where: {
-          startRef: { lte: 45008028 },
-          endRef: { gte: 45008028 },
+          startRef: { gte: 45000000, lte: 45008028 },
+          endRef: { gte: 45008028, lte: 45999999 },
         },
         include: {
           resource: true,
@@ -126,6 +184,8 @@ describe('ResourcesService (T1.4)', () => {
       expect(results).toHaveLength(1);
       expect(results[0].author).toBe('Matthew Henry');
       expect(results[0].matchType).toBe('scoped_range');
+      expect(results[0].startRef).toBe(45008001);
+      expect(results[0].endRef).toBe(45008039);
     });
 
     it('deve retornar array vazio se string de referência for inválida', async () => {

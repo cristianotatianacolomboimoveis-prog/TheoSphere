@@ -14,7 +14,7 @@ import { parseRefToCanonical } from '../src/common/canonical-ref';
  */
 
 const connectionString =
-  process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
+  process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '';
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -29,16 +29,42 @@ async function run() {
 
   try {
     const totalCount = await prisma.crossReference.count();
-    const pendingCount = await prisma.crossReference.count({
+    const pendingRows = await prisma.crossReference.findMany({
       where: {
         OR: [{ sourceNumRef: null }, { targetNumRef: null }],
       },
+      select: { id: true, sourceRef: true, targetRef: true },
     });
 
     console.log(`📊 Total de CrossReferences: ${totalCount}`);
-    console.log(`⏳ Pendentes de migração numérica: ${pendingCount}`);
+    console.log(`⏳ Pendentes de migração numérica: ${pendingRows.length}`);
 
-    if (pendingCount === 0) {
+    const unparseable = new Set<string>();
+    const updates: Array<{
+      id: string;
+      sourceNum: number | null;
+      targetNum: number | null;
+    }> = [];
+
+    for (const item of pendingRows) {
+      const sourceNum = parseRefToCanonical(item.sourceRef);
+      const targetNum = parseRefToCanonical(item.targetRef);
+      if (!sourceNum) unparseable.add(`sourceRef="${item.sourceRef}"`);
+      if (!targetNum) unparseable.add(`targetRef="${item.targetRef}"`);
+      if (sourceNum || targetNum) {
+        updates.push({ id: item.id, sourceNum, targetNum });
+      }
+    }
+
+    if (unparseable.size > 0) {
+      console.log(
+        `⚠️ Referências não interpretadas (${unparseable.size}): ${Array.from(unparseable).slice(0, 20).join(', ')}`,
+      );
+    } else {
+      console.log(`✅ 0 referências não interpretadas.`);
+    }
+
+    if (pendingRows.length === 0) {
       console.log(
         '✅ Todas as referências cruzadas já possuem colunas numéricas populadas.',
       );
@@ -47,46 +73,47 @@ async function run() {
 
     if (isDryRun) {
       console.log(
-        '✅ [DRY-RUN] Auditoria finalizada. Nenhuma alteração aplicada.',
+        `✅ [DRY-RUN] Auditoria finalizada. Preenchíveis: ${updates.length}/${pendingRows.length}. Nenhuma alteração aplicada.`,
       );
       return;
     }
 
-    console.log('🚀 Processando em lotes de 1.000...');
+    console.log(`🚀 Atualizando ${updates.length} linhas em lotes de ${BATCH_SIZE}...`);
     let processed = 0;
 
-    while (true) {
-      const batch = await prisma.crossReference.findMany({
-        where: {
-          OR: [{ sourceNumRef: null }, { targetNumRef: null }],
-        },
-        take: BATCH_SIZE,
-        select: { id: true, sourceRef: true, targetRef: true },
-      });
+    for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+      const slice = updates.slice(i, i + BATCH_SIZE);
+      const valuesSql: string[] = [];
+      const params: any[] = [];
+      let pIdx = 1;
 
-      if (batch.length === 0) break;
-
-      for (const item of batch) {
-        const sourceNum = parseRefToCanonical(item.sourceRef);
-        const targetNum = parseRefToCanonical(item.targetRef);
-
-        if (sourceNum || targetNum) {
-          await prisma.crossReference.update({
-            where: { id: item.id },
-            data: {
-              sourceNumRef: sourceNum || undefined,
-              targetNumRef: targetNum || undefined,
-            },
-          });
-        }
+      for (const u of slice) {
+        valuesSql.push(`($${pIdx++}::text, $${pIdx++}::int, $${pIdx++}::int)`);
+        params.push(u.id, u.sourceNum, u.targetNum);
       }
 
-      processed += batch.length;
-      process.stdout.write(`\r💾 Progresso: ${processed}/${pendingCount}...`);
+      await (prisma as any).$executeRawUnsafe(
+        `UPDATE "CrossReference" AS cr
+            SET "sourceNumRef" = COALESCE(v.src_num, cr."sourceNumRef"),
+                "targetNumRef" = COALESCE(v.tgt_num, cr."targetNumRef")
+           FROM (VALUES ${valuesSql.join(', ')}) AS v(id, src_num, tgt_num)
+          WHERE cr.id = v.id;`,
+        ...params,
+      );
+
+      processed += slice.length;
+      process.stdout.write(`\r💾 Progresso: ${processed}/${updates.length}...`);
     }
 
+    const finalFilled = await prisma.crossReference.count({
+      where: {
+        sourceNumRef: { not: null },
+        targetNumRef: { not: null },
+      },
+    });
+
     console.log(
-      `\n🎉 Migração concluída com sucesso! Processados: ${processed}`,
+      `\n🎉 Migração concluída! Preenchidas: ${finalFilled} / ${totalCount} (Não interpretadas: ${unparseable.size})`,
     );
   } catch (err: any) {
     if (
@@ -107,4 +134,7 @@ run()
     console.error('❌ Erro:', err);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });
