@@ -1,0 +1,58 @@
+name: Ingestão diária de embeddings
+
+# Gera embeddings em pequenas doses para não esgotar o Disk IO Budget do
+# Supabase (incidente de 2026-11-08). O script decide sozinho se roda ou adia;
+# ver backend/scripts/ingestao-diaria-embeddings.ts.
+
+on:
+  schedule:
+    # 06:00 UTC = 03:00 BRT, horário de menor uso
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      translations:
+        description: 'Traduções, separadas por vírgula'
+        default: 'KJV'
+      limit:
+        description: 'Máximo de versículos nesta rodada'
+        default: '2000'
+      dry_run:
+        description: 'Só sondar, sem gerar nem gravar'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ingestao-diaria-embeddings
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  embeddings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - name: Rodada do dia
+        env:
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IN_TRANSLATIONS: ${{ inputs.translations || 'KJV' }}
+          IN_LIMIT: ${{ inputs.limit || '2000' }}
+          IN_DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: npx tsx scripts/ingestao-diaria-embeddings.ts "$IN_TRANSLATIONS" "$IN_LIMIT" $IN_DRY_RUN
