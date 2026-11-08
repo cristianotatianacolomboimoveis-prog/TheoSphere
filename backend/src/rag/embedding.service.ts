@@ -39,6 +39,71 @@ export class EmbeddingResult {
   }
 }
 
+export interface PersistedBatchEmbeddings extends Array<number[]> {
+  readonly provider: 'gemini';
+  readonly model: string;
+  readonly dimensions: number;
+}
+
+export function attachBatchEmbeddingMetadata(
+  vectors: number[][],
+  provider: 'gemini' | 'openai' | 'local-hash',
+  model: string,
+  dimensions: number,
+): PersistedBatchEmbeddings {
+  Object.defineProperties(vectors, {
+    provider: { value: provider, enumerable: false, configurable: true },
+    model: { value: model, enumerable: false, configurable: true },
+    dimensions: { value: dimensions, enumerable: false, configurable: true },
+  });
+  return vectors as PersistedBatchEmbeddings;
+}
+
+/**
+ * Guarda de espaço vetorial (T0.2 / B1):
+ * Garante que lotes de embeddings destinados ao índice HNSW persistido
+ * provêm exclusivamente de gemini:gemini-embedding-001 com 768 dimensões.
+ */
+export function assertPersistedBatchEmbeddings(
+  batch: unknown,
+  expectedCount?: number,
+): asserts batch is PersistedBatchEmbeddings {
+  if (!Array.isArray(batch)) {
+    throw new EmbeddingUnavailableError(
+      'Guarda de espaço vetorial: lote de embeddings inválido (não é array).',
+    );
+  }
+  const meta = batch as Partial<PersistedBatchEmbeddings>;
+  if (meta.provider !== 'gemini') {
+    throw new EmbeddingUnavailableError(
+      `Guarda de espaço vetorial: provedor '${String(meta.provider)}' inválido. Somente 'gemini' é permitido no índice persistido.`,
+    );
+  }
+  if (meta.model !== 'gemini-embedding-001') {
+    throw new EmbeddingUnavailableError(
+      `Guarda de espaço vetorial: modelo '${String(meta.model)}' inválido. Somente 'gemini-embedding-001' é permitido no índice persistido.`,
+    );
+  }
+  if (meta.dimensions !== 768) {
+    throw new EmbeddingUnavailableError(
+      `Guarda de espaço vetorial: dimensão declarada '${String(meta.dimensions)}' inválida (esperado 768).`,
+    );
+  }
+  if (expectedCount !== undefined && batch.length !== expectedCount) {
+    throw new EmbeddingUnavailableError(
+      `Guarda de espaço vetorial: contagem do lote (${batch.length}) diverge do esperado (${expectedCount}).`,
+    );
+  }
+  for (let i = 0; i < batch.length; i++) {
+    const vec = batch[i];
+    if (!Array.isArray(vec) || vec.length !== 768) {
+      throw new EmbeddingUnavailableError(
+        `Guarda de espaço vetorial: vetor no índice ${i} tem dimensão ${Array.isArray(vec) ? vec.length : 'inválida'} (esperado 768).`,
+      );
+    }
+  }
+}
+
 /**
  * EmbeddingService — Gerencia a criação de embeddings vetoriais via Google Gemini (Exclusivo para índices persistidos).
  *
@@ -337,10 +402,14 @@ export class EmbeddingService implements OnModuleDestroy {
   }
 
   /**
-   * Cria embeddings em batch via Gemini.
+   * Cria embeddings em batch via Gemini (gemini-embedding-001, 768 dims).
    * Falhas propagam EmbeddingUnavailableError em vez de injetar hashes no banco.
+   * O array retornado carrega metadados não-enumeráveis { provider, model, dimensions }
+   * verificáveis por assertPersistedBatchEmbeddings.
    */
-  async createBatchEmbeddings(texts: string[]): Promise<number[][]> {
+  async createBatchEmbeddings(
+    texts: string[],
+  ): Promise<PersistedBatchEmbeddings> {
     if (!this.genAI) {
       throw new EmbeddingUnavailableError(
         'Provedor primário Gemini não configurado para batch.',
@@ -356,41 +425,100 @@ export class EmbeddingService implements OnModuleDestroy {
       .map((r, i) => (r === null ? i : -1))
       .filter((i) => i >= 0);
 
-    if (uncachedIndices.length === 0) return results as number[][];
+    if (uncachedIndices.length === 0) {
+      const cachedBatch = attachBatchEmbeddingMetadata(
+        results as number[][],
+        this.PRIMARY_PROVIDER,
+        this.PRIMARY_MODEL,
+        this.VECTOR_DIM,
+      );
+      assertPersistedBatchEmbeddings(cachedBatch, texts.length);
+      return cachedBatch;
+    }
 
     const uncachedTexts = uncachedIndices.map((i) => normalized[i]);
-    const subBatchSize = 10;
+    const subBatchSize = 100;
 
-    for (let i = 0; i < uncachedIndices.length; i += subBatchSize) {
-      const subBatch = uncachedIndices.slice(i, i + subBatchSize);
-      await Promise.all(
-        subBatch.map(async (originalIndex, j) => {
-          const text = uncachedTexts[i + j];
-          const result = await this.genAI!.models.embedContent({
-            model: this.PRIMARY_MODEL,
-            contents: text,
-            config: {
-              taskType: 'RETRIEVAL_DOCUMENT',
-              outputDimensionality: this.VECTOR_DIM,
-            },
-          });
+    try {
+      for (let i = 0; i < uncachedIndices.length; i += subBatchSize) {
+        const subBatchIndices = uncachedIndices.slice(i, i + subBatchSize);
+        const subBatchTexts = uncachedTexts.slice(i, i + subBatchSize);
 
-          const embedding = result.embeddings?.[0]?.values;
-          if (!embedding) throw new Error('Gemini retornou embedding vazio');
-          results[originalIndex] = embedding;
+        const batchResult = await this.genAI.models.embedContent({
+          model: this.PRIMARY_MODEL,
+          contents: subBatchTexts.map((t) => t || ' '),
+          config: {
+            taskType: 'RETRIEVAL_DOCUMENT',
+            outputDimensionality: this.VECTOR_DIM,
+          },
+        });
 
-          const embResult = new EmbeddingResult(
-            embedding,
-            this.PRIMARY_PROVIDER,
-            this.PRIMARY_MODEL,
-            this.VECTOR_DIM,
-          );
-          await this.writeCache(normalized[originalIndex], embResult);
-        }),
+        const returnedEmbeddings = batchResult.embeddings ?? [];
+        if (returnedEmbeddings.length === subBatchIndices.length) {
+          for (let j = 0; j < subBatchIndices.length; j++) {
+            const originalIndex = subBatchIndices[j];
+            const embedding = returnedEmbeddings[j]?.values;
+            if (!embedding || embedding.length !== this.VECTOR_DIM) {
+              throw new Error(
+                `Gemini retornou vetor inválido no índice ${j} (esperado ${this.VECTOR_DIM} dimensões)`,
+              );
+            }
+            results[originalIndex] = embedding;
+            const embResult = new EmbeddingResult(
+              embedding,
+              this.PRIMARY_PROVIDER,
+              this.PRIMARY_MODEL,
+              this.VECTOR_DIM,
+            );
+            await this.writeCache(normalized[originalIndex], embResult);
+          }
+        } else {
+          // Fallback unitário caso mock de teste retorne 1 item por chamada
+          for (let j = 0; j < subBatchIndices.length; j++) {
+            const originalIndex = subBatchIndices[j];
+            const singleRes = await this.genAI.models.embedContent({
+              model: this.PRIMARY_MODEL,
+              contents: subBatchTexts[j] || ' ',
+              config: {
+                taskType: 'RETRIEVAL_DOCUMENT',
+                outputDimensionality: this.VECTOR_DIM,
+              },
+            });
+            const embedding = singleRes.embeddings?.[0]?.values;
+            if (!embedding || embedding.length !== this.VECTOR_DIM) {
+              throw new Error(
+                `Gemini retornou vetor inválido (esperado ${this.VECTOR_DIM} dimensões)`,
+              );
+            }
+            results[originalIndex] = embedding;
+            const embResult = new EmbeddingResult(
+              embedding,
+              this.PRIMARY_PROVIDER,
+              this.PRIMARY_MODEL,
+              this.VECTOR_DIM,
+            );
+            await this.writeCache(normalized[originalIndex], embResult);
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof EmbeddingUnavailableError) {
+        throw error;
+      }
+      throw new EmbeddingUnavailableError(
+        `Falha na geração de batch embeddings com Gemini: ${(error as Error).message}`,
+        error,
       );
     }
 
-    return results as number[][];
+    const tagged = attachBatchEmbeddingMetadata(
+      results as number[][],
+      this.PRIMARY_PROVIDER,
+      this.PRIMARY_MODEL,
+      this.VECTOR_DIM,
+    );
+    assertPersistedBatchEmbeddings(tagged, texts.length);
+    return tagged;
   }
 
   /**

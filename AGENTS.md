@@ -157,22 +157,22 @@ Não basta responder "está tudo certo" — mostre o número.
 Atualize esta seção quando resolver um item. Ela é o principal motivo deste arquivo
 existir: sem ela, o próximo agente rediagnostica tudo do zero.
 
-### 🟢 Embeddings da Bíblia em produção (Povoamento Ativo)
+### 🟢 Embeddings da Bíblia em produção (Povoamento Concluído — 2026-11-08)
 
 **Medição direta no banco PostgreSQL:**
 
-| tradução | com embedding | total  | status              |
-| -------- | ------------- | ------ | ------------------- |
-| BLIVRE   | 31.102        | 31.102 | 100% Completo       |
-| NVA      | 31.094        | 31.094 | 100% Completo       |
-| KJV      | 1.600         | 30.470 | Povoamento em lotes |
-| TR       | 1.000         | 7.957  | Grego NT Ativo      |
-| WLC      | 500           | 22.550 | Hebraico AT Ativo   |
-| LXX      | 500           | 21.899 | Grego AT Ativo      |
-| WEB      | 500           | 30.456 | Inglês WEB Ativo    |
+| tradução | com embedding | total  | faltam | status                 |
+| -------- | ------------- | ------ | ------ | ---------------------- |
+| BLIVRE   | 31.102        | 31.102 | 0      | Completo               |
+| NVA      | 31.094        | 31.094 | 0      | Completo               |
+| KJV      | 30.470        | 30.470 | 0      | Completo               |
+| WEB      | 30.456        | 30.456 | 0      | Completo               |
+| LXX      | 22.942        | 22.942 | 0      | Completo (Brenton LXX) |
+| WLC      | 22.550        | 22.550 | 0      | Completo               |
+| TR       | 7.957         | 7.957  | 0      | Completo               |
 
-Total no banco: **66.296 versículos com embeddings ativos** indexados via HNSW (`BibleVerse_embedding_hnsw_idx`).
-A busca híbrida em `/search/verses` opera com os dois braços (Full-Text + Vetorial) respondendo `meta.vectorArm: "ok"`.
+Total no banco: **176.571 versículos com embeddings ativos** (`faltam = 0`) no espaço vetorial `gemini:gemini-embedding-001:768`, indexados via HNSW (`BibleVerse_embedding_hnsw_idx`, 682 MB; banco total em 2.096 MB). `hnsw.iterative_scan = 'relaxed_order'` habilitado no banco (`pgvector 0.8.0`) para consultas filtradas por tradução.
+A busca híbrida em `/api/v1/search/verses` opera com os dois braços (Full-Text + Vetorial) respondendo `meta.vectorArm: "ok"`.
 
 Os cinco índices HNSW existem, incluindo `BibleVerse_embedding_hnsw_idx`. A
 infraestrutura está pronta e vazia — não é problema de schema nem de migração.
@@ -227,7 +227,7 @@ Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do prove
 
 ### 🟢 Traduções Canônicas e Normalização Case-Insensitive
 
-A tabela `BibleVerse` contém 7 traduções integrais e canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), WLC (22.550), LXX (21.899)**.
+A tabela `BibleVerse` contém 7 traduções integrais e canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), WLC (22.550), LXX (22.942, Brenton)**.
 
 - A camada de busca (`SearchService`) normaliza qualquer entrada para uppercase trimmed (`translation?.toUpperCase().trim()`), eliminando divergências case-sensitive.
 - A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia todas as 7 edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
