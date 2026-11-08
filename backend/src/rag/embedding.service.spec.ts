@@ -3,6 +3,8 @@ import {
   EmbeddingService,
   EmbeddingUnavailableError,
   EmbeddingResult,
+  attachBatchEmbeddingMetadata,
+  assertPersistedBatchEmbeddings,
 } from './embedding.service';
 
 describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
@@ -109,6 +111,66 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
       expect(res.provider).toBe('local-hash');
       expect(res.model).toBe('deterministic-hash-v1');
       expect(res.vector.length).toBe(768);
+    });
+  });
+
+  describe('createBatchEmbeddings e assertPersistedBatchEmbeddings (Guarda B1)', () => {
+    it('deve retornar lote com metadados não-enumeráveis { provider: gemini, model: gemini-embedding-001, dimensions: 768 }', async () => {
+      const v1 = new Array(768).fill(0.11);
+      const v2 = new Array(768).fill(0.22);
+      const mockEmbedContent = jest.fn().mockResolvedValue({
+        embeddings: [{ values: v1 }, { values: v2 }],
+      });
+      (service as any).genAI = {
+        models: {
+          embedContent: mockEmbedContent,
+        },
+      };
+
+      const batch = await service.createBatchEmbeddings(['verso 1', 'verso 2']);
+      expect(batch).toHaveLength(2);
+      expect(batch.provider).toBe('gemini');
+      expect(batch.model).toBe('gemini-embedding-001');
+      expect(batch.dimensions).toBe(768);
+      expect(Object.keys(batch)).toEqual(['0', '1']);
+      expect(() => assertPersistedBatchEmbeddings(batch, 2)).not.toThrow();
+    });
+
+    it('deve abortar (caminho de falha) se o provedor não for gemini', () => {
+      const poisoned = attachBatchEmbeddingMetadata(
+        [new Array(768).fill(0.1)],
+        'local-hash',
+        'deterministic-hash-v1',
+        768,
+      );
+      expect(() => assertPersistedBatchEmbeddings(poisoned, 1)).toThrow(
+        EmbeddingUnavailableError,
+      );
+      expect(() => assertPersistedBatchEmbeddings(poisoned, 1)).toThrow(
+        /provedor 'local-hash' inválido/,
+      );
+    });
+
+    it('deve abortar (caminho de falha) se dimensions !== 768 ou vetor tiver tamanho incorreto', () => {
+      const badDimMeta = attachBatchEmbeddingMetadata(
+        [new Array(768).fill(0.1)],
+        'gemini',
+        'gemini-embedding-001',
+        1536,
+      );
+      expect(() => assertPersistedBatchEmbeddings(badDimMeta, 1)).toThrow(
+        /dimensão declarada '1536' inválida/,
+      );
+
+      const badVecLen = attachBatchEmbeddingMetadata(
+        [new Array(512).fill(0.1)],
+        'gemini',
+        'gemini-embedding-001',
+        768,
+      );
+      expect(() => assertPersistedBatchEmbeddings(badVecLen, 1)).toThrow(
+        /vetor no índice 0 tem dimensão 512/,
+      );
     });
   });
 });
