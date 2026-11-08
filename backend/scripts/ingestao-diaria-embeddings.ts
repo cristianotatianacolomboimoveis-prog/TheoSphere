@@ -8,7 +8,7 @@ import {
 import {
   DAILY_EMBEDDING_DEFAULTS,
   DailyEmbeddingProbe,
-  planDailyEmbedding,
+  evaluateEmbeddingBudgetWithEarlyExit,
 } from '../src/rag/daily-embedding-budget';
 
 /**
@@ -65,7 +65,9 @@ async function run(): Promise<number> {
     return 1;
   }
   if (!process.env.DIRECT_URL && !process.env.DATABASE_URL) {
-    console.error('DIRECT_URL/DATABASE_URL ausente (segredo SUPABASE_DIRECT_URL no GitHub).');
+    console.error(
+      'DIRECT_URL/DATABASE_URL ausente (segredo SUPABASE_DIRECT_URL no GitHub).',
+    );
     return 1;
   }
   if (!process.env.GEMINI_API_KEY) {
@@ -118,28 +120,41 @@ async function run(): Promise<number> {
       FROM pg_class c JOIN pg_stat_user_tables s ON s.relid = c.oid
       WHERE c.oid = '"BibleVerse"'::regclass`;
 
-    const [{ pending }] = await prisma.$queryRaw<{ pending: number }[]>`
-      SELECT count(*)::int AS pending FROM "BibleVerse"
-      WHERE translation = ANY(${targets}::text[]) AND embedding IS NULL`;
-
-    const probe: DailyEmbeddingProbe = {
-      vacuumRunning: await vacuumRunning(),
+    const isVacuumRunning = await vacuumRunning();
+    const cheapProbe: Omit<DailyEmbeddingProbe, 'pending'> = {
+      vacuumRunning: isVacuumRunning,
       deadTuples: stats.dead,
       liveTuples: stats.live,
       vacuumThreshold: stats.thr,
       vacuumScaleFactor: stats.sf,
       probeLatencyMs: lat[1],
-      pending,
     };
-    const plan = planDailyEmbedding(probe, {
-      ...DAILY_EMBEDDING_DEFAULTS,
-      dailyLimit,
-    });
+
+    const countPending = async (limitPlusOne: number): Promise<number> => {
+      const [{ count }] = await prisma.$queryRaw<{ count: bigint | number }[]>`
+        SELECT count(*)::int AS count FROM (
+          SELECT 1 FROM "BibleVerse"
+          WHERE translation = ANY(${targets}::text[]) AND embedding IS NULL
+          LIMIT ${limitPlusOne}
+        ) s`;
+      return Number(count);
+    };
+
+    const evaluation = await evaluateEmbeddingBudgetWithEarlyExit(
+      cheapProbe,
+      countPending,
+      {
+        ...DAILY_EMBEDDING_DEFAULTS,
+        dailyLimit,
+      },
+    );
+
+    const { plan, pendingDisplay } = evaluation;
 
     summary([
       `## Ingestão diária de embeddings (${targets.join(', ')})`,
-      `- pendentes: ${pending}`,
-      `- vacuum em andamento: ${probe.vacuumRunning ? 'sim' : 'não'}`,
+      `- pendentes: ${pendingDisplay}`,
+      `- vacuum em andamento: ${cheapProbe.vacuumRunning ? 'sim' : 'não'}`,
       `- latência da sondagem (mediana de 3): ${lat[1]} ms`,
       `- linhas mortas: ${Math.round(stats.dead)} · folga até o gatilho: ${plan.headroom}`,
       `- decisão: ${plan.run ? `rodar ${plan.limit}` : `adiar: ${plan.reason}`}${dryRun ? ' (dry-run)' : ''}`,
@@ -205,7 +220,7 @@ async function run(): Promise<number> {
     summary([
       `- gravados: ${saved} de ${verses.length} em ${Math.round((Date.now() - started) / 1000)} s`,
       `- parada: ${stopReason}`,
-      `- restam: ${pending - saved}`,
+      `- pendentes antes da rodada: ${pendingDisplay}`,
     ]);
     return exitCode;
   } finally {

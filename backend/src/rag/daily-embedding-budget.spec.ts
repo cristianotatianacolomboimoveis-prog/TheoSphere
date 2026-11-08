@@ -1,6 +1,8 @@
 import {
   DailyEmbeddingProbe,
   autovacuumTrigger,
+  evaluateEmbeddingBudgetWithEarlyExit,
+  formatLimitedPending,
   planDailyEmbedding,
 } from './daily-embedding-budget';
 
@@ -59,5 +61,112 @@ describe('planDailyEmbedding', () => {
       run: false,
       reason: 'nada pendente',
     });
+  });
+
+  it('permite planejamento preliminar sem especificar pending', () => {
+    const { pending, ...cheapBase } = base;
+    const plan = planDailyEmbedding(cheapBase);
+    expect(plan.run).toBe(true);
+    expect(plan.limit).toBe(2000);
+  });
+});
+
+describe('formatLimitedPending', () => {
+  it('contagem limitada mostra mais de N', () => {
+    const res = formatLimitedPending(2001, 2000);
+    expect(res).toEqual({
+      count: 2000,
+      hasMore: true,
+      display: 'mais de 2000',
+    });
+  });
+
+  it('mostra número exato quando abaixo ou igual ao limite', () => {
+    const res = formatLimitedPending(350, 2000);
+    expect(res).toEqual({
+      count: 350,
+      hasMore: false,
+      display: '350',
+    });
+  });
+});
+
+describe('evaluateEmbeddingBudgetWithEarlyExit', () => {
+  const { pending, ...cheapProbe } = base;
+
+  it('checagem barata manda adiar → não conta pendentes (folga esgotada)', async () => {
+    const countPendingFn = jest.fn().mockResolvedValue(100);
+    const probeExhausted = { ...cheapProbe, deadTuples: 40_000 };
+
+    const result = await evaluateEmbeddingBudgetWithEarlyExit(
+      probeExhausted,
+      countPendingFn,
+    );
+
+    expect(countPendingFn).not.toHaveBeenCalled();
+    expect(result.pendingEvaluated).toBe(false);
+    expect(result.pendingDisplay).toMatch(/não verificado/);
+    expect(result.plan.run).toBe(false);
+    expect(result.plan.reason).toMatch(/folga/);
+  });
+
+  it('checagem barata manda adiar → não conta pendentes (vacuum em andamento)', async () => {
+    const countPendingFn = jest.fn().mockResolvedValue(100);
+    const probeVacuum = { ...cheapProbe, vacuumRunning: true };
+
+    const result = await evaluateEmbeddingBudgetWithEarlyExit(
+      probeVacuum,
+      countPendingFn,
+    );
+
+    expect(countPendingFn).not.toHaveBeenCalled();
+    expect(result.pendingEvaluated).toBe(false);
+    expect(result.plan.run).toBe(false);
+    expect(result.plan.reason).toMatch(/vacuum/);
+  });
+
+  it('checagem barata manda adiar → não conta pendentes (banco lento)', async () => {
+    const countPendingFn = jest.fn().mockResolvedValue(100);
+    const probeSlow = { ...cheapProbe, probeLatencyMs: 3500 };
+
+    const result = await evaluateEmbeddingBudgetWithEarlyExit(
+      probeSlow,
+      countPendingFn,
+    );
+
+    expect(countPendingFn).not.toHaveBeenCalled();
+    expect(result.pendingEvaluated).toBe(false);
+    expect(result.plan.run).toBe(false);
+    expect(result.plan.reason).toMatch(/lento/);
+  });
+
+  it('checagem barata aprova e contagem limitada mostra mais de N', async () => {
+    const countPendingFn = jest.fn().mockResolvedValue(2001);
+
+    const result = await evaluateEmbeddingBudgetWithEarlyExit(
+      cheapProbe,
+      countPendingFn,
+    );
+
+    expect(countPendingFn).toHaveBeenCalledWith(2001);
+    expect(result.pendingEvaluated).toBe(true);
+    expect(result.pendingDisplay).toBe('mais de 2000');
+    expect(result.plan.run).toBe(true);
+    expect(result.plan.limit).toBe(2000);
+  });
+
+  it('checagem barata aprova mas contagem retorna 0 (nada pendente)', async () => {
+    const countPendingFn = jest.fn().mockResolvedValue(0);
+
+    const result = await evaluateEmbeddingBudgetWithEarlyExit(
+      cheapProbe,
+      countPendingFn,
+    );
+
+    expect(countPendingFn).toHaveBeenCalledWith(2001);
+    expect(result.pendingEvaluated).toBe(true);
+    expect(result.pendingDisplay).toBe('0');
+    expect(result.plan.run).toBe(false);
+    expect(result.plan.reason).toBe('nada pendente');
   });
 });

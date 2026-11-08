@@ -10,6 +10,12 @@
  * rodada do dia para que as linhas mortas fiquem abaixo do gatilho do
  * autovacuum (threshold + scale_factor × linhas vivas), com uma margem.
  * Também não roda com vacuum em andamento nem com o banco lento.
+ *
+ * Arquitetura Supabase Nano (512 MB RAM):
+ * Checagens baratas (catálogo e metadados) são executadas antes de qualquer
+ * contagem de versículos pendentes. Se uma checagem barata adiar a rodada,
+ * a contagem sequencial na tabela não é executada. A contagem, quando necessária,
+ * é limitada a (limite + 1).
  */
 
 export interface DailyEmbeddingProbe {
@@ -25,8 +31,8 @@ export interface DailyEmbeddingProbe {
   vacuumScaleFactor: number;
   /** Tempo de uma consulta pequena por índice, medido agora. */
   probeLatencyMs: number;
-  /** Versículos ainda sem embedding nas traduções pedidas. */
-  pending: number;
+  /** Versículos ainda sem embedding nas traduções pedidas (opcional na checagem barata). */
+  pending?: number;
 }
 
 export interface DailyEmbeddingOptions {
@@ -44,14 +50,44 @@ export interface DailyEmbeddingPlan {
   headroom: number;
 }
 
+export interface LimitedPendingCount {
+  count: number;
+  hasMore: boolean;
+  display: string;
+}
+
+export interface BudgetEvaluationResult {
+  plan: DailyEmbeddingPlan;
+  pendingEvaluated: boolean;
+  pendingDisplay: string;
+}
+
 export const DAILY_EMBEDDING_DEFAULTS: DailyEmbeddingOptions = {
   dailyLimit: 2000,
   maxProbeLatencyMs: 2000,
   safetyMargin: 0.1,
 };
 
-export function autovacuumTrigger(p: DailyEmbeddingProbe): number {
+export function autovacuumTrigger(
+  p: Pick<
+    DailyEmbeddingProbe,
+    'vacuumThreshold' | 'vacuumScaleFactor' | 'liveTuples'
+  >,
+): number {
   return p.vacuumThreshold + p.vacuumScaleFactor * p.liveTuples;
+}
+
+export function formatLimitedPending(
+  rawCount: number,
+  limit: number,
+): LimitedPendingCount {
+  const hasMore = rawCount > limit;
+  const count = hasMore ? limit : rawCount;
+  return {
+    count,
+    hasMore,
+    display: hasMore ? `mais de ${limit}` : `${count}`,
+  };
 }
 
 export function planDailyEmbedding(
@@ -69,7 +105,7 @@ export function planDailyEmbedding(
     headroom,
   });
 
-  if (p.pending <= 0) return skip('nada pendente');
+  // 1. Checagens baratas prioritárias (catálogo e sondagem de latência)
   if (p.vacuumRunning) return skip('vacuum em andamento em BibleVerse');
   if (p.probeLatencyMs > opts.maxProbeLatencyMs)
     return skip(
@@ -81,6 +117,47 @@ export function planDailyEmbedding(
         'é preciso um VACUUM numa janela sem usuários',
     );
 
-  const limit = Math.min(opts.dailyLimit, headroom, p.pending);
+  // 2. Checagem de versículos pendentes (apenas se avaliada)
+  if (p.pending !== undefined && p.pending <= 0) return skip('nada pendente');
+
+  const limit = Math.min(
+    opts.dailyLimit,
+    headroom,
+    p.pending !== undefined ? p.pending : Infinity,
+  );
   return { run: true, limit, reason: 'ok', headroom };
+}
+
+/**
+ * Avalia o orçamento da rodada garantindo early-exit nas checagens baratas.
+ * `countPendingFn` NUNCA é chamado se vacuum estiver rodando, o banco estiver
+ * lento ou a folga de linhas mortas estiver esgotada.
+ */
+export async function evaluateEmbeddingBudgetWithEarlyExit(
+  probe: Omit<DailyEmbeddingProbe, 'pending'>,
+  countPendingFn: (limitPlusOne: number) => Promise<number>,
+  opts: DailyEmbeddingOptions = DAILY_EMBEDDING_DEFAULTS,
+): Promise<BudgetEvaluationResult> {
+  const prePlan = planDailyEmbedding(probe, opts);
+  if (!prePlan.run) {
+    return {
+      plan: prePlan,
+      pendingEvaluated: false,
+      pendingDisplay: 'não verificado (adiado na checagem preliminar)',
+    };
+  }
+
+  const limitToTest = prePlan.limit;
+  const rawCount = await countPendingFn(limitToTest + 1);
+  const limited = formatLimitedPending(rawCount, limitToTest);
+  const finalPlan = planDailyEmbedding(
+    { ...probe, pending: limited.count },
+    opts,
+  );
+
+  return {
+    plan: finalPlan,
+    pendingEvaluated: true,
+    pendingDisplay: limited.display,
+  };
 }
