@@ -116,6 +116,42 @@ repo Git conectado); banco em Supabase.
 - **Nunca desabilite um teste ou uma regra de lint para "resolver" um erro.**
   Se não der para corrigir, documente como pendência.
 
+### 3.1 Restrição de compute: Supabase Nano (decisão do dono, 2026-11-08)
+
+Tudo o que for escrito precisa funcionar no compute **Nano** do Supabase. Isso vale para código, scripts, migrações, SQL e prompts. **Aumentar o compute não é solução aceita.**
+
+Os limites medidos:
+
+- **512 MB de RAM**;
+- **`shared_buffers` = 224 MB**;
+- **`maintenance_work_mem` = 32 MB**;
+- disco limitado a **5 MB/s** quando o *Disk IO Budget* acaba.
+
+Motivo: em 2026-11-08, o índice HNSW de precisão total da `BibleVerse` (753 MB, maior que a RAM) mais cerca de 17 mil UPDATEs de embedding numa tarde dispararam um autovacuum de mais de 6 horas. Ele esgotou o *Disk IO Budget* e deixou a busca em produção acima de 60 s.
+
+Regras:
+
+1. **Índices vetoriais precisam caber na memória.**
+   - Não crie HNSW de precisão total (`vector(768)`) em tabela com mais de cerca de 20 mil linhas.
+   - Use índice compacto (`binary_quantize(...)::bit(768)` ou `halfvec`) e reordene os candidatos com o vetor completo.
+   - A soma de todos os índices vetoriais fica abaixo de **150 MB**. Confira com `pg_relation_size` antes e depois.
+2. **Escrita em massa só pela ingestão diária** (`backend/scripts/ingestao-diaria-embeddings.ts`, com o orçamento de `backend/src/rag/daily-embedding-budget.ts`).
+   - Cada rodada fica abaixo do gatilho do autovacuum, não roda com vacuum em andamento e para no primeiro erro ou na primeira gravação lenta.
+   - Nunca rode UPDATE em milhares de linhas de uma tabela com índice vetorial numa só rodada.
+   - Para dado novo, prefira `INSERT` já com o embedding. Linha inserida não deixa linha morta.
+3. **Toda consulta nova em caminho de requisição:**
+   - usa índice;
+   - tem `LIMIT`;
+   - não faz `count(*)` sobre tabela grande;
+   - vem com `EXPLAIN (ANALYZE, BUFFERS)` registrado na entrega. Leitura de disco (`read=`) alta numa consulta frequente é defeito.
+4. **DDL em tabela grande:**
+   - índice só com `CREATE INDEX CONCURRENTLY`, à noite;
+   - nada de `ALTER COLUMN TYPE` ou outra operação que reescreva a tabela sem plano aprovado pelo dono;
+   - `VACUUM` manual em tabela com HNSW grande só depois que o índice for compactado.
+5. **Antes de qualquer escrita ou DDL no banco**, confira `pg_stat_progress_vacuum`. Se houver vacuum na tabela, não comece.
+6. **Conexões:** o pool do Prisma usa `max: 20` em produção (`prisma.service.ts`). Não abra pools paralelos em scripts. Use uma conexão por script.
+7. **Medição:** toda entrega que mexe no banco informa o tamanho do banco, dos índices vetoriais e o tempo da busca em produção, antes e depois.
+
 ## 4. Verificação — obrigatória a cada incremento
 
 O dono do projeto exige evidência numérica a cada fragmento entregue, não só no fim.
