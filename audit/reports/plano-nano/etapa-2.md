@@ -12,12 +12,14 @@ Branch: `etapa-2/medicao-quantizacao-binaria` (baseada na `main` em `c4ddf47`)
 
 - **Janela Noturna Cumprida:** A execução iniciou exatamente às `00:01 BRT` (09/11/2026), respeitando estritamente a janela de 00:00 às 06:00 BRT estabelecida na Seção 3.1 do `AGENTS.md`.
 - **Conferência Prévia de Vacuum:**
+
   ```sql
   SELECT p.phase, now() - a.query_start AS duracao
   FROM pg_stat_progress_vacuum p JOIN pg_stat_activity a USING (pid);
   ```
 
   - **Resultado:** 0 linhas (nenhum autovacuum ativo no banco).
+
 - **Criptografia na Conexão (`pg_stat_ssl`):**
   - Cliente configurado com `ssl: { rejectUnauthorized: false }`.
   - Verificação executada:
@@ -113,39 +115,37 @@ A média global é extremamente próxima de zero em ambas as traduções (`-0.00
 
 ## 5. Medição Determinística de `recall@10`
 
-- **Semente do PRNG (Mulberry32):** `seed = 20261109`
+- **Sementes do PRNG (Mulberry32):**
+  - Semente 1 (Principal): `seed = 20261109`
+  - Semente 2 (Confirmação Independente): `seed = 777`
 - **Tamanho da Amostra:** 300 versículos sorteados deterministicamente de cada tradução como consultas contra todo o corpus (auto-casamento excluído).
 - **Referência:** Top-10 por similaridade de cosseno exata (vetor float 768d completo).
 - **Candidatos Binarizados:** Top-P por menor distância de Hamming (768 bits), seguido de rerank dos P candidatos por cosseno exato, retendo os 10 primeiros.
 
-### Tabela de Recall@10 × P
+### 5.1 Tabela de Recall@10 × P (Semente 20261109)
 
-| Candidatos (P) | BLIVRE (Português) | WEB (Inglês) | Portão Exigido ($\ge 95\%$) |
-| :------------: | :----------------: | :----------: | :-------------------------: |
-|   **P = 40**   |       84,47%       |    91,40%    |              —              |
-|  **P = 100**   |     **92,37%**     |  **97,23%**  |         $\ge 95\%$          |
-|  **P = 200**   |     **95,97%**     |  **98,90%**  |              —              |
+| Candidatos (P) | BLIVRE (Português) | WEB (Inglês) | Portão Original ($\ge 95\%$ com $P \le 100$) | Portão Aprovado ($\ge 95\%$ com $P \le 200$) |
+| :------------: | :----------------: | :----------: | :------------------------------------------: | :------------------------------------------: |
+|   **P = 40**   |       84,47%       |    91,40%    |                      —                       |                      —                       |
+|  **P = 100**   |       92,37%       |    97,23%    |                   Reprovou                   |                      —                       |
+|  **P = 200**   |     **95,97%**     |  **98,90%**  |                      —                       |                 **Aprovado**                 |
+
+### 5.2 Tabela de Recall@10 × P (Semente 777 — Auditoria Independente Claude Code)
+
+| Candidatos (P) | BLIVRE (Português) | WEB (Inglês) | Portão Aprovado ($\ge 95\%$ com $P \le 200$) |
+| :------------: | :----------------: | :----------: | :------------------------------------------: |
+|   **P = 40**   |       87,47%       |    91,70%    |                      —                       |
+|  **P = 100**   |       94,47%       |    97,43%    |                      —                       |
+|  **P = 200**   |     **96,73%**     |  **99,17%**  |                 **Aprovado**                 |
 
 ---
 
-## 6. Resultado do Portão de Aprovação
+## 6. Auditoria Independente e Decisão do Portão de Aprovação
 
-- **Critério Formal:** `recall@10 ≥ 0,95` com `P ≤ 100` nas duas traduções.
-- **Resultado Medido com P = 100:**
-  - WEB: `97,23%` (Aprovado isoladamente)
-  - BLIVRE: `92,37%` (**Abaixo de 95%**)
-- **Veredito do Portão:** **REPROVADO**
-
-> [!IMPORTANT]
-> Conforme determinado nas instruções da Etapa 2 ("Se a decisão for REPROVADO, não siga para a Etapa 3. Pare e grave o relatório do mesmo jeito. O dono e o Claude Code decidem o caminho"), **a execução foi interrompida**. A Etapa 3 **não** foi iniciada.
-
-### Observação Relevante para Tomada de Decisão:
-
-Com $P = 200$ (avaliar 200 candidatos binários antes do rerank de 10):
-
-- BLIVRE atinge **95,97%** ($> 95\%$).
-- WEB atinge **98,90%** ($> 95\%$).
-  No PostgreSQL com `pgvector`, buscar `LIMIT 200` via índice binário HNSW e reordenar 200 vetores float leva menos de 5 ms. O dono e o Claude Code poderão decidir se elevam $P$ para 200 ou adotam outra estratégia.
+- **Auditoria Claude Code:** Os números foram reproduzidos de forma independente tanto para a semente `20261109` (BLIVRE P=200: 95,93% e WEB: 98,90%) quanto para a semente `777` (BLIVRE P=200: 96,73% e WEB: 99,17%).
+- **Decisão do Dono do Projeto:** O dono aprovou formalmente a alteração do portão de aprovação para `recall@10 ≥ 0,95` com `P ≤ 200`, mantendo a quantização padrão do pgvector (`binary_quantize`, sem centralização de vetores).
+- **Veredito Final do Portão:** **APROVADO COM P=200**
+- **Autorização para Etapa 3:** Liberado o avanço para a Etapa 3 (criação do modo binário de busca em duas fases com `VECTOR_RERANK_CANDIDATES=200`).
 
 ---
 
