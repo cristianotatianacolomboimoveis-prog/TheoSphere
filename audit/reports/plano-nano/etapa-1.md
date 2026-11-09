@@ -62,6 +62,7 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
 
 - **Solução Implementada:**
   Quando as checagens baratas aprovam a execução, a contagem de versículos pendentes é limitada ao teto da rodada planejado mais um:
+
   ```sql
   SELECT count(*)::int AS count FROM (
     SELECT 1 FROM "BibleVerse"
@@ -120,6 +121,7 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
 
 - **Autorização do Usuário:** Autorização expressa concedida via diálogo para execução após confirmação de banco ocioso (`pg_stat_progress_vacuum = 0`).
 - **Verificação Pré-DDL de Vacuum:**
+
   ```sql
   SELECT p.phase, now() - a.query_start AS duracao
   FROM pg_stat_progress_vacuum p JOIN pg_stat_activity a USING (pid);
@@ -144,6 +146,7 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
   WHERE indexrelid = '"BibleVerse_embedding_pending_idx"'::regclass;
   ```
 - **Resultado:**
+
   ```text
   ┌─────────┬────────────┬────────────┐
   │ (index) │ indisvalid │ index_size │
@@ -182,9 +185,37 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
 
 ---
 
-## 5. Resumo e Status
+## 5. Publicação e Conferência dos Deploys
 
-- Código da Etapa 1 validado e aprovado com 548 testes Jest.
-- Índice parcial `BibleVerse_embedding_pending_idx` criado com sucesso (`indisvalid = true`, `768 kB`).
-- Dry-run de ponta a ponta finalizado com exit code `0`.
-- Preparado para merge na `main` e publicação.
+- **Merge e Push na `main`:**
+  - Branch `etapa-1/sondagem-ingestao-barata` incorporada na `main` via fast-forward (`f41aee6..e56cd11`).
+  - Push realizado com sucesso em `2026-11-08 21:27 BRT`:
+    ```bash
+    git push origin main
+    # f41aee6..e56cd11  main -> main
+    ```
+- **Conferência dos Deploys em Produção:**
+  - **Render Backend (`/api/v1/health/live`):**
+    ```bash
+    curl -s -w "\nHTTP %{http_code} time: %{time_total}s\n" https://theosphere.onrender.com/api/v1/health/live
+    ```
+
+    - Resposta: `{"status":"ok","info":{},"error":{},"details":{}}`
+    - Status: `HTTP 200` em `0.459s`.
+  - **Vercel Frontend (`https://frontend-v2-lake.vercel.app`):**
+    ```bash
+    curl -s -I -o /dev/null -w "HTTP %{http_code} time: %{time_total}s\n" https://frontend-v2-lake.vercel.app
+    ```
+
+    - Status: `HTTP 200` em `1.014s`.
+
+---
+
+## 6. Resumo e Status Final da Etapa 1
+
+- **Código:** Early-exit e contagem limitada implementados e cobertos por 15 testes em `daily-embedding-budget.spec.ts` (548 testes Jest no backend).
+- **Índice Parcial:** `"BibleVerse_embedding_pending_idx"` criado concorrentemente com sucesso no Supabase Nano (`indisvalid = true`, `768 kB`).
+- **Dry-run de Ingestão Diária:** Executado com sucesso contra produção, postergando com segurança sem sequential scan pesado (tempo: ~16s, `exit code: 0`).
+- **Publicação:** Concluída na `main` (`e56cd11`), com deploys de Render e Vercel saudáveis.
+
+**Etapa 1 concluída.** Aguardando conferência e aprovação independente do Claude Code antes de prosseguir para a Etapa 2.
