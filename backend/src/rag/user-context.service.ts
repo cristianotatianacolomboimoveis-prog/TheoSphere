@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
+import { LibraryService } from './library.service';
 import Redis from 'ioredis';
 
 /**
@@ -51,6 +52,7 @@ export class UserContextService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private embeddingService: EmbeddingService,
+    @Optional() private libraryService?: LibraryService,
   ) {
     const redisUrl = process.env.REDIS_URL;
     if (redisUrl) {
@@ -166,7 +168,7 @@ export class UserContextService implements OnModuleInit {
         SELECT id, type, content, metadata, "createdAt",
                1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
         FROM "UserEmbedding"
-        WHERE "userId" = ${userId} AND type != 'library_book'
+        WHERE "userId" = ${userId} AND type IN ('note', 'highlight')
         ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
         LIMIT ${maxResults};
       `;
@@ -260,16 +262,17 @@ export class UserContextService implements OnModuleInit {
 
       let libraryDocs: any[];
       if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
-        libraryDocs = await this.prisma.$queryRaw<any[]>`
-          SELECT rc.text AS content,
-                 json_build_object('fileName', res.title, 'author', res.author, 'slug', res.slug) AS metadata,
-                 1 - (rc.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
-          FROM "ResourceChunk" rc
-          JOIN "Resource" res ON res.id = rc."resourceId"
-          WHERE rc.embedding IS NOT NULL
-          ORDER BY rc.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-          LIMIT 3;
-        `;
+        const hits = this.libraryService
+          ? await this.libraryService.searchResourceChunksVector(
+              queryEmbedding,
+              3,
+            )
+          : [];
+        libraryDocs = hits.map((h) => ({
+          content: h.text,
+          metadata: { fileName: h.title, author: h.author, slug: h.slug },
+          similarity: 1 - Number(h.distance),
+        }));
       } else {
         libraryDocs = await this.prisma.$queryRaw<any[]>`
           SELECT content, metadata, 
@@ -331,6 +334,24 @@ export class UserContextService implements OnModuleInit {
     try {
       const embResult = await this.embeddingService.createEmbedding(query);
       const queryEmbedding = (embResult as any).vector || embResult;
+
+      if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
+        const hits = this.libraryService
+          ? await this.libraryService.searchResourceChunksVector(
+              queryEmbedding,
+              maxResults * 2,
+            )
+          : [];
+        return hits
+          .filter((h) => 1 - Number(h.distance) > 0.3)
+          .map((h) => ({
+            title: h.title,
+            content: h.text,
+            similarity: 1 - Number(h.distance),
+            fileName: h.title,
+          }));
+      }
+
       const owner = userId || 'public-guest';
 
       const rows = await this.prisma.$queryRaw<any[]>`

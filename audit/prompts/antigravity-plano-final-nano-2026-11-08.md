@@ -33,13 +33,13 @@ O dono decidiu: **o TheoSphere funciona no compute Nano do Supabase**. Aumentar 
 
 **Índices vetoriais hoje (2026-11-08, 20:25 BRT, medidos pelo Claude Code):**
 
-| Índice                                  | Tamanho    | Problema                                                                                   |
-| --------------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
-| `BibleVerse_embedding_hnsw_idx`         | **753 MB** | Maior que a RAM. É a causa do incidente                                                    |
-| `UserEmbedding_embedding_hnsw_idx`      | 176 MB     | Indexa 45.092 trechos de livros (`type = 'library_book'`) que **duplicam** `ResourceChunk` |
-| `SemanticCacheEntry_embedding_hnsw_idx` | 344 kB     | ok                                                                                         |
-| `TheologyEmbedding_embedding_hnsw_idx`  | 16 kB      | ok                                                                                         |
-| `UserEmbedding_validated_qa_hnsw_idx`   | 16 kB      | ok                                                                                         |
+| Índice                                  | Tamanho    | Problema                                                                                 |
+| --------------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
+| `BibleVerse_embedding_hnsw_idx`         | **753 MB** | Maior que a RAM. É a causa do incidente                                                  |
+| `UserEmbedding_embedding_hnsw_idx`      | 176 MB     | Indexa 45.092 trechos de livros (`type = 'book_chunk'`) que **duplicam** `ResourceChunk` |
+| `SemanticCacheEntry_embedding_hnsw_idx` | 344 kB     | ok                                                                                       |
+| `TheologyEmbedding_embedding_hnsw_idx`  | 16 kB      | ok                                                                                       |
+| `UserEmbedding_validated_qa_hnsw_idx`   | 16 kB      | ok                                                                                       |
 
 **Situação da tabela `BibleVerse` agora:**
 
@@ -125,6 +125,7 @@ Problema: `backend/scripts/ingestao-diaria-embeddings.ts` começa contando os pe
    ```
    Quando passar do limite, o resumo deve mostrar "mais de N".
 3. **Índice parcial para os pendentes**, à noite, via `psql` com `DIRECT_URL` e uma instrução por vez:
+
    ```sql
    SET statement_timeout = 0;
    CREATE INDEX CONCURRENTLY IF NOT EXISTS "BibleVerse_embedding_pending_idx"
@@ -136,6 +137,7 @@ Problema: `backend/scripts/ingestao-diaria-embeddings.ts` começa contando os pe
    - **Não** o ponha em `prisma/migrations/`, porque `CONCURRENTLY` não roda dentro de transação.
    - Veja como o `BibleVerse_embedding_hnsw_idx` atual foi declarado (migração ou SQL avulso) e siga o mesmo padrão de documentação.
    - Mostre `EXPLAIN (ANALYZE, BUFFERS)` da contagem limitada e da seleção do lote usando o índice novo.
+
 4. **Testes** no `daily-embedding-budget.spec.ts` ou num spec novo, para:
    - "checagem barata manda adiar → não conta pendentes";
    - "contagem limitada mostra mais de N".
@@ -165,6 +167,7 @@ Objetivo: decidir, com número, se um índice HNSW sobre `binary_quantize(embedd
 Só com a Etapa 2 aprovada.
 
 1. **`backend/src/search/search.service.ts`** (consulta vetorial perto das linhas 395–410, `FROM "BibleVerse"`): crie o modo `VECTOR_INDEX_MODE=binary`.
+
    ```sql
    -- dentro de prisma.$transaction, para o SET LOCAL valer
    SET LOCAL hnsw.ef_search = <P>;   -- P aprovado na Etapa 2
@@ -181,6 +184,7 @@ Só com a Etapa 2 aprovada.
    - A expressão no `ORDER BY` precisa ser **idêntica** à do índice, senão o índice não é usado.
    - O padrão do código continua sendo `full`, o comportamento atual. O modo é lido do ambiente.
    - Se a consulta binária falhar, o código registra `warn` e cai para `full`. **Nunca** devolva `[]` em silêncio. Mantenha `meta.vectorArm` coerente (`ok`, `empty` ou `failed`).
+
 2. **Biblioteca.** `rag/library.service.ts` (perto da linha 115) e `rag/user-context.service.ts` (linhas perto de 250 e 315) buscam os livros em `"UserEmbedding" WHERE type = 'library_book'`.
    - Crie a leitura equivalente em `"ResourceChunk"`, com o mesmo modo binário, atrás de `LIBRARY_VECTOR_SOURCE=resource_chunk` (padrão `user_embedding`).
    - **Antes, prove a paridade** com uma consulta somente leitura: a mesma quantidade de trechos e os mesmos textos, por amostra de 200 ids sorteados. Registre o comando e a saída.
@@ -199,6 +203,7 @@ Só com a Etapa 2 aprovada.
 Só com a Etapa 3 em produção.
 
 1. **Criar o índice compacto**, via `psql`, uma instrução por vez:
+
    ```sql
    SET statement_timeout = 0;
    SET maintenance_work_mem = '64MB';
@@ -211,6 +216,7 @@ Só com a Etapa 3 em produção.
    - Registre o tempo e `pg_relation_size`.
    - Se o tamanho passar de **60 MB**, pare e registre.
    - Grave o SQL em `docs/architecture/sql/`.
+
 2. **Ligar no Render:** `VECTOR_INDEX_MODE=binary` (painel do Render → Environment) e aguarde o redeploy.
 3. **Validar em produção:**
    - `EXPLAIN (ANALYZE, BUFFERS)` da consulta mostrando `BibleVerse_embedding_bq_hnsw_idx`;
@@ -242,7 +248,7 @@ Só com a Etapa 3 em produção.
 
 ## ETAPA 5: remover a duplicata dos livros (produção, à noite)
 
-Só com a Etapa 4 aprovada.
+Só com a Etapa 4 aprovada e **apenas depois de a paridade da Etapa 3a atingir 200 de 200 por md5**.
 
 1. **Ligar a biblioteca em `ResourceChunk`:**
    - crie o índice compacto em `"ResourceChunk"`, igual ao do passo 4.1 (`CONCURRENTLY`, limite de 30 MB);
@@ -251,15 +257,15 @@ Só com a Etapa 4 aprovada.
    - fique de olho no consumo de cota do Gemini (cerca de 10 chamadas).
 2. **Backup:**
    - confirme no painel do Supabase (Database → Backups) que existe backup de hoje;
-   - sem acesso, exporte `id, "userId", type, metadata` das linhas `library_book` para `backend/scratch/` e registre a contagem.
+   - sem acesso, exporte `id, "userId", type, metadata` das linhas `book_chunk` para `backend/scratch/` e registre a contagem.
 3. **Apagar:**
    ```sql
    DROP INDEX CONCURRENTLY "UserEmbedding_embedding_hnsw_idx";
    ```
-   Depois apague as linhas `type = 'library_book'` em lotes de **5.000 por execução**, com pausa de 1 minuto entre lotes e checagem de `pg_stat_progress_vacuum` antes de cada lote. Registre a contagem antes, a de cada lote e a de depois.
+   Depois apague as linhas `type = 'book_chunk'` (preservando estritamente `note` e `highlight`) em lotes de **5.000 por execução**, com pausa de 1 minuto entre lotes e checagem de `pg_stat_progress_vacuum` antes de cada lote. Registre a contagem antes, a de cada lote e a de depois.
 4. **Limpar e conferir:**
    - `VACUUM (VERBOSE, ANALYZE) public."UserEmbedding";`
-   - as notas e marcações dos usuários (`type` diferente de `library_book`, 24 linhas em 2026-11-08) continuam lá, com a mesma contagem. **Não** recrie índice vetorial para elas: são poucas, e a leitura sequencial é barata.
+   - as notas e marcações dos usuários (`type IN ('note', 'highlight')`, preservando anotações) continuam lá, com a mesma contagem. **Não** recrie índice vetorial para elas: são poucas, e a leitura sequencial é barata.
 5. **Medir:** tamanho do banco (meta: cerca de 2,0 GB ou menos), soma dos índices vetoriais (meta: menos de 150 MB) e a busca.
 6. **Pare e grave o relatório.**
 

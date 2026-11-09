@@ -539,9 +539,44 @@ describe('SearchService', () => {
         const queryText = (
           vectorQueryCall[0].strings || vectorQueryCall[0]
         ).join(' ');
-        expect(queryText).toContain('binary_quantize');
+        expect(queryText).toContain(
+          'binary_quantize(embedding)::bit(768) <~> binary_quantize(',
+        );
         expect(queryText).toContain('<~>');
         expect(results).toHaveLength(1);
+      });
+
+      it('ajusta P para ser no mínimo o poolSize pedido quando VECTOR_RERANK_CANDIDATES for menor', async () => {
+        process.env.VECTOR_INDEX_MODE = 'binary';
+        process.env.VECTOR_RERANK_CANDIDATES = '50';
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$queryRaw
+          .mockResolvedValueOnce([]) // vector search
+          .mockResolvedValueOnce([]); // keyword search
+
+        // poolSize 100 maior que baseP 50
+        await service.hybridSearchVerses('salvação eterna', { poolSize: 100 });
+
+        expect(prisma.$transaction).toHaveBeenCalled();
+        // Como poolSize é 100 e P base era 50, P e ef_search sobem para 100
+        expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+          expect.stringContaining('SET LOCAL hnsw.ef_search = 100'),
+        );
+        const vectorQueryCall = prisma.$queryRaw.mock.calls.find(
+          (call: any) => {
+            const text = (call[0].strings || call[0]).join(' ');
+            return text.includes('embedding');
+          },
+        );
+        expect(vectorQueryCall).toBeDefined();
+        const queryText = (
+          vectorQueryCall[0].strings || vectorQueryCall[0]
+        ).join(' ');
+        expect(queryText).toContain(
+          'binary_quantize(embedding)::bit(768) <~> binary_quantize(',
+        );
+        expect(vectorQueryCall.slice(1)).toContain(100);
       });
 
       it('no modo binary, se a busca binária falhar, registra warn e cai para o modo full', async () => {

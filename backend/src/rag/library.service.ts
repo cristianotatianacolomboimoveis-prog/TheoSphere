@@ -47,6 +47,15 @@ export interface LibraryExcerpt {
  * sozinho perde isso porque o resto do verbete é definição em outras línguas.
  * Full-text sozinho perde paráfrases. Hybrid resolve.
  */
+export interface ResourceChunkHit {
+  text: string;
+  title: string;
+  author: string;
+  slug: string;
+  chunkIndex: number;
+  distance: number;
+}
+
 @Injectable()
 export class LibraryService {
   private readonly logger = new Logger(LibraryService.name);
@@ -55,6 +64,79 @@ export class LibraryService {
     private readonly prisma: PrismaService,
     private readonly embeddingService: EmbeddingService,
   ) {}
+
+  /**
+   * Busca vetorial em ResourceChunk (compartilhada entre LibraryService e UserContextService).
+   * Acervo comum a todos os usuários (sem filtro de userId).
+   * Suporta busca em duas fases (modo binary) e modo full direto com re-ranking.
+   */
+  async searchResourceChunksVector(
+    queryEmbeddingOrLiteral: string | number[],
+    limit: number,
+  ): Promise<ResourceChunkHit[]> {
+    let literal: string;
+    if (typeof queryEmbeddingOrLiteral === 'string') {
+      if (queryEmbeddingOrLiteral.startsWith('[')) {
+        literal = queryEmbeddingOrLiteral;
+      } else {
+        const emb = await this.embeddingService.createEmbedding(
+          queryEmbeddingOrLiteral,
+        );
+        literal = this.toVectorLiteral((emb as any).vector || emb);
+      }
+    } else {
+      literal = this.toVectorLiteral(queryEmbeddingOrLiteral);
+    }
+
+    const mode = process.env.VECTOR_INDEX_MODE || 'full';
+    if (mode === 'binary') {
+      const pEnv = parseInt(process.env.VECTOR_RERANK_CANDIDATES || '200', 10);
+      const baseP = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
+      // Se P for menor que o número de resultados pedidos (limit), usa o maior dos dois
+      const P = Math.max(baseP, limit);
+      const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
+
+      try {
+        const rows = await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${efSearch};`);
+          return tx.$queryRaw<Array<ResourceChunkHit>>`
+            WITH candidatos AS (
+              SELECT rc.id, rc.text, rc."chunkIndex", res.slug, res.title, res.author, rc.embedding
+              FROM "ResourceChunk" rc
+              JOIN "Resource" res ON res.id = rc."resourceId"
+              WHERE rc.embedding IS NOT NULL
+              ORDER BY binary_quantize(rc.embedding)::bit(768) <~> binary_quantize(${Prisma.raw(`'${literal}'::vector`)})::bit(768)
+              LIMIT ${P}
+            )
+            SELECT text, title, author, slug, "chunkIndex",
+                   (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
+            FROM candidatos
+            ORDER BY distance
+            LIMIT ${limit};
+          `;
+        });
+
+        return rows;
+      } catch (err) {
+        this.logger.warn(
+          `ResourceChunk binary search failed, falling back to full mode: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    // Modo full para ResourceChunk (acervo comum a todos os usuários)
+    const rows = await this.prisma.$queryRaw<Array<ResourceChunkHit>>`
+      SELECT rc.text, res.title, res.author, res.slug, rc."chunkIndex",
+             (rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
+      FROM "ResourceChunk" rc
+      JOIN "Resource" res ON res.id = rc."resourceId"
+      WHERE rc.embedding IS NOT NULL
+      ORDER BY rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}
+      LIMIT ${limit};
+    `;
+
+    return rows;
+  }
 
   /**
    * Busca trechos da biblioteca do usuário relacionados ao termo.
@@ -113,81 +195,7 @@ export class LibraryService {
 
     // Fonte de recursos teológicos (Etapa 3 / T1.4): permite migrar de UserEmbedding para ResourceChunk
     if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
-      const mode = process.env.VECTOR_INDEX_MODE || 'full';
-      if (mode === 'binary') {
-        const pEnv = parseInt(
-          process.env.VECTOR_RERANK_CANDIDATES || '200',
-          10,
-        );
-        const P = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
-        const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
-
-        try {
-          const rows = await this.prisma.$transaction(async (tx) => {
-            await tx.$executeRawUnsafe(
-              `SET LOCAL hnsw.ef_search = ${efSearch};`,
-            );
-            return tx.$queryRaw<
-              Array<{
-                text: string;
-                title: string;
-                author: string;
-                slug: string;
-                chunkIndex: number;
-                distance: number;
-              }>
-            >`
-              WITH candidatos AS (
-                SELECT rc.id, rc.text, rc."chunkIndex", res.slug, res.title, res.author, rc.embedding
-                FROM "ResourceChunk" rc
-                JOIN "Resource" res ON res.id = rc."resourceId"
-                WHERE rc.embedding IS NOT NULL
-                ORDER BY binary_quantize(rc.embedding)::bit(768) <~> binary_quantize(${Prisma.raw(`'${literal}'::vector`)})::bit(768)
-                LIMIT ${P}
-              )
-              SELECT text, title, author, slug, "chunkIndex",
-                     (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
-              FROM candidatos
-              ORDER BY distance
-              LIMIT ${limit};
-            `;
-          });
-
-          return rows.map((r) => ({
-            content: r.text,
-            fileName: r.title,
-            fileId: r.slug,
-            chunkIndex: r.chunkIndex,
-            similarity: 1 - Number(r.distance),
-            source: 'vector',
-          }));
-        } catch (err) {
-          this.logger.warn(
-            `ResourceChunk binary search failed, falling back to full mode: ${(err as Error).message}`,
-          );
-        }
-      }
-
-      // Modo full para ResourceChunk
-      const rows = await this.prisma.$queryRaw<
-        Array<{
-          text: string;
-          title: string;
-          author: string;
-          slug: string;
-          chunkIndex: number;
-          distance: number;
-        }>
-      >`
-        SELECT rc.text, res.title, res.author, res.slug, rc."chunkIndex",
-               (rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
-        FROM "ResourceChunk" rc
-        JOIN "Resource" res ON res.id = rc."resourceId"
-        WHERE rc.embedding IS NOT NULL
-        ORDER BY rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}
-        LIMIT ${limit};
-      `;
-
+      const rows = await this.searchResourceChunksVector(literal, limit);
       return rows.map((r) => ({
         content: r.text,
         fileName: r.title,
@@ -236,30 +244,10 @@ export class LibraryService {
     strongId?: string,
   ): Promise<LibraryExcerpt[]> {
     if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
-      const pattern = `%${term}%`;
-      const rows = await this.prisma.$queryRaw<
-        Array<{
-          text: string;
-          title: string;
-          author: string;
-          slug: string;
-          chunkIndex: number;
-        }>
-      >`
-        SELECT rc.text, res.title, res.author, res.slug, rc."chunkIndex"
-        FROM "ResourceChunk" rc
-        JOIN "Resource" res ON res.id = rc."resourceId"
-        WHERE rc.text ILIKE ${pattern}
-        LIMIT ${limit};
-      `;
-
-      return rows.map((r) => ({
-        content: r.text,
-        fileName: r.title,
-        fileId: r.slug,
-        chunkIndex: r.chunkIndex,
-        source: 'fulltext',
-      }));
+      // Regra 3 do Supabase Nano: ResourceChunk não possui índice textual GIN/trigram na coluna text.
+      // Executar ILIKE '%termo%' causaria Seq Scan de 140MB na tabela e violação de statement_timeout.
+      // A busca semântica na biblioteca é provida integralmente pelo braço vetorial indexado.
+      return [];
     }
 
     const strongFilter = strongId

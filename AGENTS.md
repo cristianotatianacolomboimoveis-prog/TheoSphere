@@ -125,9 +125,9 @@ Os limites medidos:
 - **512 MB de RAM**;
 - **`shared_buffers` = 224 MB**;
 - **`maintenance_work_mem` = 32 MB**;
-- disco limitado a **5 MB/s** quando o *Disk IO Budget* acaba.
+- disco limitado a **5 MB/s** quando o _Disk IO Budget_ acaba.
 
-Motivo: em 2026-11-08, o índice HNSW de precisão total da `BibleVerse` (753 MB, maior que a RAM) mais cerca de 17 mil UPDATEs de embedding numa tarde dispararam um autovacuum de mais de 6 horas. Ele esgotou o *Disk IO Budget* e deixou a busca em produção acima de 60 s.
+Motivo: em 2026-11-08, o índice HNSW de precisão total da `BibleVerse` (753 MB, maior que a RAM) mais cerca de 17 mil UPDATEs de embedding numa tarde dispararam um autovacuum de mais de 6 horas. Ele esgotou o _Disk IO Budget_ e deixou a busca em produção acima de 60 s.
 
 Regras:
 
@@ -151,6 +151,7 @@ Regras:
 5. **Antes de qualquer escrita ou DDL no banco**, confira `pg_stat_progress_vacuum`. Se houver vacuum na tabela, não comece.
 6. **Conexões:** o pool do Prisma usa `max: 20` em produção (`prisma.service.ts`). Não abra pools paralelos em scripts. Use uma conexão por script.
 7. **Medição:** toda entrega que mexe no banco informa o tamanho do banco, dos índices vetoriais e o tempo da busca em produção, antes e depois.
+8. **Statement timeout obrigatório em scripts:** todo script que conecta ao banco define `statement_timeout` de no máximo 15 s durante o dia, para o próprio servidor abortar a consulta. Matar o processo local não cancela a consulta no Postgres. Consulta pesada só à noite.
 
 ## 4. Verificação — obrigatória a cada incremento
 

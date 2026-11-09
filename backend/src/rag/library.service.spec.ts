@@ -153,8 +153,55 @@ describe('LibraryService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       expect(vectorCall).toBeDefined();
       const vectorSql = (vectorCall[0].strings || vectorCall[0]).join(' ');
       expect(vectorSql).toContain('"ResourceChunk"');
+      expect(vectorSql).toContain(
+        'binary_quantize(rc.embedding)::bit(768) <~> binary_quantize(',
+      );
       expect(vectorSql).toContain('<~>');
       expect(hits).toHaveLength(1);
+    });
+
+    it('ajusta P para ser no mínimo o limit pedido quando VECTOR_RERANK_CANDIDATES for menor', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+      process.env.VECTOR_INDEX_MODE = 'binary';
+      process.env.VECTOR_RERANK_CANDIDATES = '10';
+
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      // limit 25 é maior que baseP 10
+      await service.lookup('user-123', 'termo qualquer', { limit: 25 });
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining('SET LOCAL hnsw.ef_search = 25'),
+      );
+      const vectorCall = prisma.$queryRaw.mock.calls.find((call: any) => {
+        const sql = (call[0].strings || call[0]).join(' ');
+        return sql.includes('binary_quantize');
+      });
+      expect(vectorCall).toBeDefined();
+      const sql = (vectorCall[0].strings || vectorCall[0]).join(' ');
+      expect(sql).toContain(
+        'binary_quantize(rc.embedding)::bit(768) <~> binary_quantize(',
+      );
+      expect(vectorCall.slice(1)).toContain(25);
+    });
+
+    it('não executa ILIKE sem índice em ResourceChunk quando LIBRARY_VECTOR_SOURCE = resource_chunk', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+      delete process.env.VECTOR_INDEX_MODE;
+
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.lookup('user-123', 'termo sem índice', { limit: 10 });
+
+      const allQueries = prisma.$queryRaw.mock.calls.map((call: any) =>
+        (call[0].strings || call[0]).join(' '),
+      );
+      // Nenhuma query deve conter 'ILIKE' sobre ResourceChunk
+      const ilikeQuery = allQueries.find(
+        (q) => q.includes('"ResourceChunk"') && q.includes('ILIKE'),
+      );
+      expect(ilikeQuery).toBeUndefined();
     });
 
     it('no modo binary, cai para o modo full se a busca binária em ResourceChunk lançar erro', async () => {
@@ -189,47 +236,6 @@ describe('LibraryService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       expect(prisma.$queryRaw).toHaveBeenCalled();
       expect(hits).toHaveLength(1);
       expect(hits[0].content).toBe('Fallback do ResourceChunk...');
-    });
-
-    it('executa fulltextSearch em ResourceChunk com ILIKE em rc.text', async () => {
-      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
-
-      prisma.$queryRaw.mockImplementation(async (queryParam: any) => {
-        const sql = (queryParam.strings || queryParam).join(' ');
-        if (sql.includes('ILIKE')) {
-          return [
-            {
-              text: 'Trecho literal de Agostinho...',
-              title: 'Confissões',
-              author: 'Santo Agostinho',
-              slug: 'confissoes',
-              chunkIndex: 1,
-            },
-          ];
-        }
-        return [];
-      });
-
-      const hits = await service.lookup(
-        'user-123',
-        'inquieto está o nosso coração',
-        { limit: 10 },
-      );
-
-      expect(hits).toHaveLength(1);
-      expect(hits[0].fileName).toBe('Confissões');
-      expect(hits[0].source).toBe('fulltext');
-
-      const fulltextCall = prisma.$queryRaw.mock.calls.find((call: any) => {
-        const sql = (call[0].strings || call[0]).join(' ');
-        return sql.includes('ILIKE');
-      });
-      expect(fulltextCall).toBeDefined();
-      const fulltextSql = (fulltextCall[0].strings || fulltextCall[0]).join(
-        ' ',
-      );
-      expect(fulltextSql).toContain('"ResourceChunk"');
-      expect(fulltextSql).toContain('rc.text ILIKE');
     });
   });
 });

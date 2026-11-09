@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserContextService } from './user-context.service';
 import { EmbeddingService } from './embedding.service';
+import { LibraryService } from './library.service';
 import { PrismaService } from '../prisma.service';
 
-describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
+describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE e Whitelist de Tipos)', () => {
   let service: UserContextService;
   let prisma: {
     $queryRaw: jest.Mock;
@@ -12,6 +13,9 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
   let embeddings: {
     createEmbedding: jest.Mock;
     cosineSimilarity: jest.Mock;
+  };
+  let libraryService: {
+    searchResourceChunksVector: jest.Mock;
   };
   const originalEnv = process.env;
 
@@ -26,12 +30,25 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       createEmbedding: jest.fn().mockResolvedValue(new Array(768).fill(0.05)),
       cosineSimilarity: jest.fn().mockReturnValue(0.9),
     };
+    libraryService = {
+      searchResourceChunksVector: jest.fn().mockResolvedValue([
+        {
+          text: 'Trecho canônico de Calvino...',
+          title: 'Institutas da Religião Cristã',
+          author: 'João Calvino',
+          slug: 'institutas-calvino',
+          chunkIndex: 1,
+          distance: 0.15,
+        },
+      ]),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserContextService,
         { provide: PrismaService, useValue: prisma },
         { provide: EmbeddingService, useValue: embeddings },
+        { provide: LibraryService, useValue: libraryService },
       ],
     }).compile();
 
@@ -42,8 +59,8 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
     process.env = originalEnv;
   });
 
-  describe('preservação de anotações do usuário (Regra 3)', () => {
-    it('searchUserContext consulta sempre UserEmbedding com type != library_book', async () => {
+  describe('preservação de anotações do usuário (Regra 3 & Item 3g)', () => {
+    it('searchUserContext consulta UserEmbedding usando lista permitida type IN ("note", "highlight") e nunca !=', async () => {
       prisma.$queryRaw.mockResolvedValueOnce([
         {
           id: 'note-1',
@@ -67,7 +84,8 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
         prisma.$queryRaw.mock.calls[0][0]
       ).join(' ');
       expect(sql).toContain('"UserEmbedding"');
-      expect(sql).toContain(`type != 'library_book'`);
+      expect(sql).toContain(`type IN ('note', 'highlight')`);
+      expect(sql).not.toContain(`type != 'library_book'`);
     });
   });
 
@@ -101,30 +119,22 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       const sql = (libraryCall[0].strings || libraryCall[0]).join(' ');
       expect(sql).toContain('"UserEmbedding"');
       expect(sql).toContain(`type = 'library_book'`);
-      expect(sql).not.toContain('"ResourceChunk"');
+      expect(libraryService.searchResourceChunksVector).not.toHaveBeenCalled();
     });
 
-    it('usa ResourceChunk quando LIBRARY_VECTOR_SOURCE = resource_chunk', async () => {
+    it('reaproveita searchResourceChunksVector de LibraryService quando LIBRARY_VECTOR_SOURCE = resource_chunk sem filtro por userId', async () => {
       process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
 
-      prisma.$queryRaw
-        .mockResolvedValueOnce([
-          {
-            id: 'note-1',
-            type: 'note',
-            content: 'Nota ativa',
-            metadata: {},
-            createdAt: new Date(),
-            similarity: 0.8,
-          },
-        ]) // searchUserContext (tier 2 notes)
-        .mockResolvedValueOnce([
-          {
-            content: 'Trecho canônico de Calvino...',
-            metadata: { fileName: 'Institutas da Religião Cristã' },
-            similarity: 0.85,
-          },
-        ]);
+      prisma.$queryRaw.mockResolvedValueOnce([
+        {
+          id: 'note-1',
+          type: 'note',
+          content: 'Nota ativa',
+          metadata: {},
+          createdAt: new Date(),
+          similarity: 0.8,
+        },
+      ]); // searchUserContext
 
       const context = await service.buildUserContext(
         'user-1',
@@ -134,11 +144,32 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       expect(context).toContain(
         'Biblioteca Pessoal: Institutas da Religião Cristã',
       );
-      const libraryCall = prisma.$queryRaw.mock.calls[1];
-      const sql = (libraryCall[0].strings || libraryCall[0]).join(' ');
-      expect(sql).toContain('"ResourceChunk"');
-      expect(sql).toContain('"Resource"');
-      expect(sql).not.toContain('"UserEmbedding"');
+      // Confere reaproveitamento da função de LibraryService
+      expect(libraryService.searchResourceChunksVector).toHaveBeenCalledTimes(
+        1,
+      );
+      // Acervo comum: não recebe userId
+      expect(libraryService.searchResourceChunksVector).toHaveBeenCalledWith(
+        expect.any(Array),
+        3,
+      );
+    });
+
+    it('searchDriveLibrary também reaproveita searchResourceChunksVector quando LIBRARY_VECTOR_SOURCE = resource_chunk', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+
+      const results = await service.searchDriveLibrary(
+        'graça irresistível',
+        'user-1',
+        5,
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('Institutas da Religião Cristã');
+      expect(libraryService.searchResourceChunksVector).toHaveBeenCalledWith(
+        expect.any(Array),
+        10,
+      );
     });
   });
 });

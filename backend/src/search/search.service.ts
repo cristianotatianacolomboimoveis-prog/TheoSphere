@@ -434,7 +434,9 @@ export class SearchService {
     translation?: string,
   ): Promise<VectorRow[]> {
     const pEnv = parseInt(process.env.VECTOR_RERANK_CANDIDATES || '200', 10);
-    const P = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
+    const baseP = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
+    // Se P for menor que o poolSize pedido, usa o maior dos dois para evitar truncamento
+    const P = Math.max(baseP, poolSize);
     const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
 
     return this.prisma.$transaction(async (tx) => {
