@@ -351,6 +351,7 @@ export async function runEtapa2() {
     const client = new Client({
       connectionString: process.env.DIRECT_URL,
       ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 30000,
     });
     await client.connect();
 

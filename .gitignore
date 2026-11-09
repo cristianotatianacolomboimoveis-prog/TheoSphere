@@ -48,6 +48,7 @@ acervo-traduzido/*.pdf
 # Scratch/diagnóstico do backend — scripts one-shot que exercitam o banco
 # de produção ou geram artefatos temporários. Não são código do produto.
 backend/scratch/*.json
+backend/scratch/*.jsonl
 backend/scratch/ingestion-checkpoint.json
 .env*
 *.env
