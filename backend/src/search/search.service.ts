@@ -33,6 +33,22 @@ export interface HybridHit {
   keywordRank: number | null;
 }
 
+/**
+ * Garante que hnsw.ef_search seja sempre >= P (número de candidatos de reranking).
+ * Caso customEfSearch seja passado via ambiente (HNSW_EF_SEARCH), valida que ef >= P.
+ * Se ef < P, lança erro para evitar truncamento silencioso de candidatos pelo grafo HNSW.
+ */
+export function computeEfSearch(p: number, envEfSearch?: string): number {
+  const parsed = parseInt(envEfSearch || '0', 10);
+  const ef = Number.isFinite(parsed) && parsed > 0 ? parsed : p;
+  if (ef < p) {
+    throw new Error(
+      `hnsw.ef_search (${ef}) must be greater than or equal to candidates P (${p})`,
+    );
+  }
+  return ef;
+}
+
 interface VectorRow {
   id: string;
   bookId: number;
@@ -397,6 +413,56 @@ export class SearchService {
       .map((n: number) => (Number.isFinite(n) ? n : 0))
       .join(',')}]`;
 
+    const mode = process.env.VECTOR_INDEX_MODE || 'full';
+    if (mode === 'binary') {
+      try {
+        return await this.binaryVectorSearch(literal, poolSize, translation);
+      } catch (err) {
+        this.logger.warn(
+          `binary vector search failed, falling back to full mode: ${(err as Error).message}`,
+        );
+        return await this.fullVectorSearch(literal, poolSize, translation);
+      }
+    }
+
+    return this.fullVectorSearch(literal, poolSize, translation);
+  }
+
+  private async binaryVectorSearch(
+    literal: string,
+    poolSize: number,
+    translation?: string,
+  ): Promise<VectorRow[]> {
+    const pEnv = parseInt(process.env.VECTOR_RERANK_CANDIDATES || '200', 10);
+    const P = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
+    const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${efSearch};`);
+
+      return tx.$queryRaw<VectorRow[]>`
+        WITH candidatos AS (
+          SELECT id, "bookId", chapter, verse, translation, text, embedding
+          FROM "BibleVerse"
+          WHERE embedding IS NOT NULL
+            AND (${translation ?? null}::text IS NULL OR translation = ${translation ?? null})
+          ORDER BY binary_quantize(embedding)::bit(768) <~> binary_quantize(${Prisma.raw(`'${literal}'::vector`)})::bit(768)
+          LIMIT ${P}
+        )
+        SELECT id, "bookId", chapter, verse, translation, text,
+               (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
+        FROM candidatos
+        ORDER BY distance
+        LIMIT ${poolSize};
+      `;
+    });
+  }
+
+  private async fullVectorSearch(
+    literal: string,
+    poolSize: number,
+    translation?: string,
+  ): Promise<VectorRow[]> {
     return this.prisma.$queryRaw<VectorRow[]>`
       SELECT id, "bookId", chapter, verse, translation, text,
              (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance

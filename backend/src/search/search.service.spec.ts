@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SearchService } from './search.service';
+import { SearchService, computeEfSearch } from './search.service';
 import {
   EmbeddingService,
   EmbeddingUnavailableError,
@@ -24,6 +24,8 @@ describe('SearchService', () => {
   let service: SearchService;
   let prisma: {
     $queryRaw: jest.Mock;
+    $transaction: jest.Mock;
+    $executeRawUnsafe: jest.Mock;
     bibleVerse: { findMany: jest.Mock };
   };
   let embeddings: { createEmbedding: jest.Mock };
@@ -31,6 +33,8 @@ describe('SearchService', () => {
   beforeEach(async () => {
     prisma = {
       $queryRaw: jest.fn(),
+      $transaction: jest.fn().mockImplementation(async (fn: any) => fn(prisma)),
+      $executeRawUnsafe: jest.fn().mockResolvedValue(1),
       bibleVerse: { findMany: jest.fn().mockResolvedValue([]) },
     };
     embeddings = { createEmbedding: jest.fn() };
@@ -462,6 +466,151 @@ describe('SearchService', () => {
       const stats = service.getCacheStats().hybridQueries;
       expect(stats.hits).toBe(1);
       expect(stats.size).toBe(1);
+    });
+  });
+
+  describe('Etapa 3: busca em duas fases (binary vector search & computeEfSearch)', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    describe('computeEfSearch', () => {
+      it('usa P quando customEfSearch é omitido ou inválido', () => {
+        expect(computeEfSearch(200)).toBe(200);
+        expect(computeEfSearch(200, '')).toBe(200);
+        expect(computeEfSearch(200, '0')).toBe(200);
+        expect(computeEfSearch(150, undefined)).toBe(150);
+      });
+
+      it('aceita customEfSearch quando for maior ou igual a P', () => {
+        expect(computeEfSearch(200, '200')).toBe(200);
+        expect(computeEfSearch(200, '400')).toBe(400);
+      });
+
+      it('lança erro se ef_search for menor que P para evitar truncamento silencioso', () => {
+        expect(() => computeEfSearch(200, '40')).toThrow(
+          /hnsw\.ef_search \(40\) must be greater than or equal to candidates P \(200\)/,
+        );
+        expect(() => computeEfSearch(100, '50')).toThrow(
+          /hnsw\.ef_search \(50\) must be greater than or equal to candidates P \(100\)/,
+        );
+      });
+    });
+
+    describe('vectorSearch modes and fallback', () => {
+      it('no modo binary, executa transação com SET LOCAL hnsw.ef_search e binary_quantize', async () => {
+        process.env.VECTOR_INDEX_MODE = 'binary';
+        process.env.VECTOR_RERANK_CANDIDATES = '200';
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$queryRaw
+          .mockResolvedValueOnce([
+            {
+              id: 'v1',
+              bookId: 1,
+              chapter: 1,
+              verse: 1,
+              translation: 'BLIVRE',
+              text: 'No princípio...',
+              distance: 0.05,
+            },
+          ])
+          .mockResolvedValueOnce([]); // keyword search
+
+        const results = await service.hybridSearchVerses('criação dos céus');
+
+        expect(prisma.$transaction).toHaveBeenCalled();
+        expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+          expect.stringContaining('SET LOCAL hnsw.ef_search = 200'),
+        );
+        const vectorQueryCall = prisma.$queryRaw.mock.calls.find(
+          (call: any) => {
+            const text = (call[0].strings || call[0]).join(' ');
+            return text.includes('embedding');
+          },
+        );
+        expect(vectorQueryCall).toBeDefined();
+        const queryText = (
+          vectorQueryCall[0].strings || vectorQueryCall[0]
+        ).join(' ');
+        expect(queryText).toContain('binary_quantize');
+        expect(queryText).toContain('<~>');
+        expect(results).toHaveLength(1);
+      });
+
+      it('no modo binary, se a busca binária falhar, registra warn e cai para o modo full', async () => {
+        process.env.VECTOR_INDEX_MODE = 'binary';
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        // Transação binária falha (ex: extensão ausente ou erro de SQL)
+        prisma.$transaction.mockRejectedValueOnce(
+          new Error('relation or operator <~> does not exist'),
+        );
+        // Fallback para fullVectorSearch tem sucesso
+        prisma.$queryRaw
+          .mockResolvedValueOnce([
+            {
+              id: 'v2',
+              bookId: 43,
+              chapter: 1,
+              verse: 1,
+              translation: 'BLIVRE',
+              text: 'No princípio era o Verbo...',
+              distance: 0.1,
+            },
+          ])
+          .mockResolvedValueOnce([]); // keyword search
+
+        const results = await service.hybridSearchVerses('verbo divino');
+
+        expect(prisma.$transaction).toHaveBeenCalled();
+        // Chamou o fallback fullVectorSearch
+        expect(prisma.$queryRaw).toHaveBeenCalled();
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe('v2');
+      });
+
+      it('no modo full (padrão), executa diretamente a query de cosseno sem transação nem binary_quantize', async () => {
+        delete process.env.VECTOR_INDEX_MODE; // padrão 'full'
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$queryRaw
+          .mockResolvedValueOnce([
+            {
+              id: 'v3',
+              bookId: 19,
+              chapter: 23,
+              verse: 1,
+              translation: 'BLIVRE',
+              text: 'O Senhor é o meu pastor...',
+              distance: 0.15,
+            },
+          ])
+          .mockResolvedValueOnce([]); // keyword search
+
+        const results = await service.hybridSearchVerses('pastor e nada');
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        const vectorQueryCall = prisma.$queryRaw.mock.calls.find(
+          (call: any) => {
+            const text = (call[0].strings || call[0]).join(' ');
+            return text.includes('embedding');
+          },
+        );
+        expect(vectorQueryCall).toBeDefined();
+        const queryText = (
+          vectorQueryCall[0].strings || vectorQueryCall[0]
+        ).join(' ');
+        expect(queryText).not.toContain('binary_quantize');
+        expect(queryText).toContain('<=>');
+        expect(results).toHaveLength(1);
+      });
     });
   });
 });

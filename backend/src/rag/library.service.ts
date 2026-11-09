@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
+import { computeEfSearch } from '../search/search.service';
 
 export interface LibraryExcerpt {
   /** Trecho de texto encontrado no livro do usuário */
@@ -110,6 +111,93 @@ export class LibraryService {
       (embResult as any).vector || embResult,
     );
 
+    // Fonte de recursos teológicos (Etapa 3 / T1.4): permite migrar de UserEmbedding para ResourceChunk
+    if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
+      const mode = process.env.VECTOR_INDEX_MODE || 'full';
+      if (mode === 'binary') {
+        const pEnv = parseInt(
+          process.env.VECTOR_RERANK_CANDIDATES || '200',
+          10,
+        );
+        const P = Number.isFinite(pEnv) && pEnv > 0 ? pEnv : 200;
+        const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
+
+        try {
+          const rows = await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRawUnsafe(
+              `SET LOCAL hnsw.ef_search = ${efSearch};`,
+            );
+            return tx.$queryRaw<
+              Array<{
+                text: string;
+                title: string;
+                author: string;
+                slug: string;
+                chunkIndex: number;
+                distance: number;
+              }>
+            >`
+              WITH candidatos AS (
+                SELECT rc.id, rc.text, rc."chunkIndex", res.slug, res.title, res.author, rc.embedding
+                FROM "ResourceChunk" rc
+                JOIN "Resource" res ON res.id = rc."resourceId"
+                WHERE rc.embedding IS NOT NULL
+                ORDER BY binary_quantize(rc.embedding)::bit(768) <~> binary_quantize(${Prisma.raw(`'${literal}'::vector`)})::bit(768)
+                LIMIT ${P}
+              )
+              SELECT text, title, author, slug, "chunkIndex",
+                     (embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
+              FROM candidatos
+              ORDER BY distance
+              LIMIT ${limit};
+            `;
+          });
+
+          return rows.map((r) => ({
+            content: r.text,
+            fileName: r.title,
+            fileId: r.slug,
+            chunkIndex: r.chunkIndex,
+            similarity: 1 - Number(r.distance),
+            source: 'vector',
+          }));
+        } catch (err) {
+          this.logger.warn(
+            `ResourceChunk binary search failed, falling back to full mode: ${(err as Error).message}`,
+          );
+        }
+      }
+
+      // Modo full para ResourceChunk
+      const rows = await this.prisma.$queryRaw<
+        Array<{
+          text: string;
+          title: string;
+          author: string;
+          slug: string;
+          chunkIndex: number;
+          distance: number;
+        }>
+      >`
+        SELECT rc.text, res.title, res.author, res.slug, rc."chunkIndex",
+               (rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}) AS distance
+        FROM "ResourceChunk" rc
+        JOIN "Resource" res ON res.id = rc."resourceId"
+        WHERE rc.embedding IS NOT NULL
+        ORDER BY rc.embedding <=> ${Prisma.raw(`'${literal}'::vector`)}
+        LIMIT ${limit};
+      `;
+
+      return rows.map((r) => ({
+        content: r.text,
+        fileName: r.title,
+        fileId: r.slug,
+        chunkIndex: r.chunkIndex,
+        similarity: 1 - Number(r.distance),
+        source: 'vector',
+      }));
+    }
+
     // Strong's filter via JSONB key — only kicks in if metadata.strongId
     // was actually populated during ingestion. Falls open otherwise.
     const strongFilter = strongId
@@ -147,6 +235,33 @@ export class LibraryService {
     limit: number,
     strongId?: string,
   ): Promise<LibraryExcerpt[]> {
+    if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
+      const pattern = `%${term}%`;
+      const rows = await this.prisma.$queryRaw<
+        Array<{
+          text: string;
+          title: string;
+          author: string;
+          slug: string;
+          chunkIndex: number;
+        }>
+      >`
+        SELECT rc.text, res.title, res.author, res.slug, rc."chunkIndex"
+        FROM "ResourceChunk" rc
+        JOIN "Resource" res ON res.id = rc."resourceId"
+        WHERE rc.text ILIKE ${pattern}
+        LIMIT ${limit};
+      `;
+
+      return rows.map((r) => ({
+        content: r.text,
+        fileName: r.title,
+        fileId: r.slug,
+        chunkIndex: r.chunkIndex,
+        source: 'fulltext',
+      }));
+    }
+
     const strongFilter = strongId
       ? Prisma.sql`AND (metadata->>'strongId' = ${strongId} OR metadata->>'strongId' IS NULL)`
       : Prisma.empty;

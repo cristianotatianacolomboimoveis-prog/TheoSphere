@@ -252,19 +252,34 @@ export class UserContextService implements OnModuleInit {
       return `--- ${header} ${similarity} ---\n${meta}${docContent}`;
     });
 
-    // 2. Busca na Biblioteca do Google Drive do Usuário (via pgvector)
+    // 2. Busca na Biblioteca Teológica / Drive do Usuário (via pgvector)
     let libraryContextParts: string[] = [];
     try {
       const embResult = await this.embeddingService.createEmbedding(query);
       const queryEmbedding = (embResult as any).vector || embResult;
-      const libraryDocs = await this.prisma.$queryRaw<any[]>`
-        SELECT content, metadata, 
-               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
-        FROM "UserEmbedding"
-        WHERE "userId" = ${userId} AND type = 'library_book'
-        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-        LIMIT 3;
-      `;
+
+      let libraryDocs: any[];
+      if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
+        libraryDocs = await this.prisma.$queryRaw<any[]>`
+          SELECT rc.text AS content,
+                 json_build_object('fileName', res.title, 'author', res.author, 'slug', res.slug) AS metadata,
+                 1 - (rc.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+          FROM "ResourceChunk" rc
+          JOIN "Resource" res ON res.id = rc."resourceId"
+          WHERE rc.embedding IS NOT NULL
+          ORDER BY rc.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+          LIMIT 3;
+        `;
+      } else {
+        libraryDocs = await this.prisma.$queryRaw<any[]>`
+          SELECT content, metadata, 
+                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+          FROM "UserEmbedding"
+          WHERE "userId" = ${userId} AND type = 'library_book'
+          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+          LIMIT 3;
+        `;
+      }
 
       libraryContextParts = libraryDocs
         .filter((d) => d.similarity > 0.3)
