@@ -6,7 +6,9 @@
  *      com 2s de pausa, ordenadas por chave, para backend/scratch/.
  *   2. Calcular estatísticas de centralização dos vetores (média global e fração de dimensões > 0).
  *   3. Medir recall@10 para P = 40, 100 e 200 usando 300 consultas sorteadas com semente fixa determinística.
- *   4. Estimar tamanho do índice HNSW binário no formato pgvector.
+ *   4. Gravar amostra de 30 consultas por tradução com Top-10 exato em backend/scratch/validation_sample_30.json
+ *      para validação do grafo HNSW na Etapa 4 sem varredura completa.
+ *   5. Estimar tamanho do índice HNSW binário no formato pgvector (limite atualizado para 90 MB).
  *
  * Restrições da Seção 3.1:
  *   - Exportação contra o banco só pode rodar na janela noturna (00:00 às 06:00 BRT).
@@ -16,10 +18,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Client } from 'pg';
 import * as dotenv from 'dotenv';
+import {
+  mulberry32,
+  popcount32,
+  hammingDistance768,
+  cosineSimilarity768,
+  quantizeBinary,
+} from '../src/rag/binary-quantization';
 
 dotenv.config();
 
-interface VerseVector {
+export interface VerseVector {
   id: string;
   bookId: number;
   chapter: number;
@@ -28,81 +37,20 @@ interface VerseVector {
   binary: Uint32Array; // 768 bits = 24 words de 32 bits
 }
 
-// PRNG determinístico Mulberry32
-function mulberry32(seed: number) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Popcount de 32 bits
-function popcount32(x: number): number {
-  x -= (x >>> 1) & 0x55555555;
-  x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
-  x = (x + (x >>> 4)) & 0x0f0f0f0f;
-  x += x >>> 8;
-  x += x >>> 16;
-  return x & 0x3f;
-}
-
-// Distância de Hamming para 24 words de 32 bits (768 bits)
-function hammingDistance768(a: Uint32Array, b: Uint32Array): number {
-  let dist = 0;
-  for (let i = 0; i < 24; i++) {
-    dist += popcount32(a[i] ^ b[i]);
-  }
-  return dist;
-}
-
-// Similaridade de Cosseno entre dois Float32Array de 768 dims
-function cosineSimilarity768(a: Float32Array, b: Float32Array): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < 768; i++) {
-    const ai = a[i];
-    const bi = b[i];
-    dot += ai * bi;
-    normA += ai * ai;
-    normB += bi * bi;
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-// Binariza Float32Array para Uint32Array(24) usando o sinal (> 0 => 1)
-function quantizeBinary(vec: Float32Array): Uint32Array {
-  const binary = new Uint32Array(24);
-  for (let i = 0; i < 768; i++) {
-    if (vec[i] > 0) {
-      const wordIdx = Math.floor(i / 32);
-      const bitIdx = i % 32;
-      binary[wordIdx] |= 1 << bitIdx;
-    }
-  }
-  return binary;
-}
-
 // Pausa assíncrona
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Verifica janela noturna (00:00 - 06:00 BRT)
-function checkNightWindow(bypass = false): {
-  allowed: boolean;
-  brtTime: string;
-} {
+// Verifica janela noturna estrita (00:00 - 06:00 BRT)
+function checkNightWindow(): { allowed: boolean; brtTime: string } {
   const now = new Date();
   const utcHours = now.getUTCHours();
   const utcMinutes = now.getUTCMinutes();
   // BRT é UTC-3
   const brtHours = (utcHours - 3 + 24) % 24;
   const brtTime = `${String(brtHours).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')} BRT`;
-  const allowed = bypass || (brtHours >= 0 && brtHours < 6);
+  const allowed = brtHours >= 0 && brtHours < 6;
   return { allowed, brtTime };
 }
 
@@ -174,7 +122,6 @@ async function loadVectorsFromFile(filePath: string): Promise<VerseVector[]> {
 
   for (const line of lines) {
     const item = JSON.parse(line);
-    // Parse "[0.012, -0.045, ...]"
     const rawNumbers = JSON.parse(item.embedding);
     const vec = new Float32Array(rawNumbers);
     const binary = quantizeBinary(vec);
@@ -191,7 +138,7 @@ async function loadVectorsFromFile(filePath: string): Promise<VerseVector[]> {
   return result;
 }
 
-function calculateVectorStats(vectors: VerseVector[]): {
+export function calculateVectorStats(vectors: VerseVector[]): {
   meanGlobal: number;
   dimPositiveFractionMean: number;
   dimPositiveFractionMin: number;
@@ -232,16 +179,36 @@ function calculateVectorStats(vectors: VerseVector[]): {
   };
 }
 
-function evaluateRecallAtK(
+export interface ValidationSampleItem {
+  translation: string;
+  queryId: string;
+  bookId: number;
+  chapter: number;
+  verse: number;
+  queryVector: number[];
+  top10Exact: {
+    id: string;
+    bookId: number;
+    chapter: number;
+    verse: number;
+    sim: number;
+  }[];
+}
+
+export function evaluateRecallAtK(
   vectors: VerseVector[],
+  translationName: string,
   seed = 20261109,
   sampleSize = 300,
   P_values = [40, 100, 200],
-) {
+  validationSampleSize = 30,
+): {
+  recallResults: Record<number, number>;
+  validationSample: ValidationSampleItem[];
+} {
   const N = vectors.length;
   const rng = mulberry32(seed);
 
-  // Sorteia 300 consultas determinísticas
   const queryIndices: number[] = [];
   const chosenSet = new Set<number>();
   while (queryIndices.length < sampleSize) {
@@ -253,6 +220,7 @@ function evaluateRecallAtK(
   }
 
   const recallResults: Record<number, number> = { 40: 0, 100: 0, 200: 0 };
+  const validationSample: ValidationSampleItem[] = [];
 
   console.log(
     `\nAvaliando recall@10 em ${sampleSize} consultas (seed: ${seed})...`,
@@ -262,41 +230,61 @@ function evaluateRecallAtK(
     const qIdx = queryIndices[q];
     const query = vectors[qIdx];
 
-    // 1. Calcula cosseno com todos os outros
     const cosineScores: { idx: number; sim: number }[] = [];
     const hammingScores: { idx: number; dist: number }[] = [];
 
     for (let i = 0; i < N; i++) {
-      if (i === qIdx) continue; // Exclui o próprio versículo
+      if (i === qIdx) continue;
       const sim = cosineSimilarity768(query.vector, vectors[i].vector);
       cosineScores.push({ idx: i, sim });
       const dist = hammingDistance768(query.binary, vectors[i].binary);
       hammingScores.push({ idx: i, dist });
     }
 
-    // Ordena cosseno exato (decrescente) -> pega Top-10
     cosineScores.sort((a, b) => b.sim - a.sim);
     const top10ExactSet = new Set<number>();
+    const top10ExactList: {
+      id: string;
+      bookId: number;
+      chapter: number;
+      verse: number;
+      sim: number;
+    }[] = [];
     for (let k = 0; k < 10; k++) {
-      top10ExactSet.add(cosineScores[k].idx);
+      const topIdx = cosineScores[k].idx;
+      top10ExactSet.add(topIdx);
+      top10ExactList.push({
+        id: vectors[topIdx].id,
+        bookId: vectors[topIdx].bookId,
+        chapter: vectors[topIdx].chapter,
+        verse: vectors[topIdx].verse,
+        sim: cosineScores[k].sim,
+      });
     }
 
-    // Ordena Hamming (crescente de distância)
+    if (q < validationSampleSize) {
+      validationSample.push({
+        translation: translationName,
+        queryId: query.id,
+        bookId: query.bookId,
+        chapter: query.chapter,
+        verse: query.verse,
+        queryVector: Array.from(query.vector),
+        top10Exact: top10ExactList,
+      });
+    }
+
     hammingScores.sort((a, b) => a.dist - b.dist);
 
-    // Para cada P:
     for (const P of P_values) {
-      // Pega os P primeiros por Hamming
       const candidates = hammingScores.slice(0, P).map((c) => ({
         idx: c.idx,
         sim: cosineSimilarity768(query.vector, vectors[c.idx].vector),
       }));
 
-      // Rerank por cosseno exato
       candidates.sort((a, b) => b.sim - a.sim);
       const top10Rerank = candidates.slice(0, 10);
 
-      // Calcula interseção
       let hitCount = 0;
       for (const item of top10Rerank) {
         if (top10ExactSet.has(item.idx)) {
@@ -319,11 +307,11 @@ function evaluateRecallAtK(
     recallResults[P] /= sampleSize;
   }
 
-  return recallResults;
+  return { recallResults, validationSample };
 }
 
-export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
-  const { allowed, brtTime } = checkNightWindow(options.bypassNightCheck);
+export async function runEtapa2() {
+  const { allowed, brtTime } = checkNightWindow();
   console.log(`=======================================================`);
   console.log(`Plano Nano - Etapa 2: Medição de Quantização Binária`);
   console.log(`Horário verificado: ${brtTime}`);
@@ -336,6 +324,10 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
 
   const blivrePath = path.join(scratchDir, 'vectors_BLIVRE.jsonl');
   const webPath = path.join(scratchDir, 'vectors_WEB.jsonl');
+  const validationSamplePath = path.join(
+    scratchDir,
+    'validation_sample_30.json',
+  );
 
   const blivreExists =
     fs.existsSync(blivrePath) && fs.statSync(blivrePath).size > 10_000_000;
@@ -353,9 +345,22 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
       process.exit(1);
     }
 
-    console.log(`\nIniciando conexão direta para exportação paginada...`);
-    const client = new Client({ connectionString: process.env.DIRECT_URL });
+    console.log(
+      `\nIniciando conexão direta com SSL para exportação paginada...`,
+    );
+    const client = new Client({
+      connectionString: process.env.DIRECT_URL,
+      ssl: { rejectUnauthorized: false },
+    });
     await client.connect();
+
+    // Conferência de criptografia na conexão
+    const sslCheck = await client.query(
+      'SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid();',
+    );
+    const isSslActive = sslCheck.rows[0]?.ssl;
+    console.log(`[Criptografia na Conexão]: SSL ativo = ${isSslActive}`);
+
     await client.query('SET statement_timeout = 0;');
 
     if (!blivreExists) {
@@ -392,12 +397,15 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
     `  - Fração de valores > 0 (min..max): ${(blivreStats.dimPositiveFractionMin * 100).toFixed(2)}% .. ${(blivreStats.dimPositiveFractionMax * 100).toFixed(2)}%`,
   );
 
-  const blivreRecall = evaluateRecallAtK(
-    blivreVectors,
-    20261109,
-    300,
-    [40, 100, 200],
-  );
+  const { recallResults: blivreRecall, validationSample: blivreValidation } =
+    evaluateRecallAtK(
+      blivreVectors,
+      'BLIVRE',
+      20261109,
+      300,
+      [40, 100, 200],
+      30,
+    );
   console.log(`Recall@10 BLIVRE:`);
   console.log(`  - P = 40:  ${(blivreRecall[40] * 100).toFixed(2)}%`);
   console.log(`  - P = 100: ${(blivreRecall[100] * 100).toFixed(2)}%`);
@@ -419,18 +427,25 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
     `  - Fração de valores > 0 (min..max): ${(webStats.dimPositiveFractionMin * 100).toFixed(2)}% .. ${(webStats.dimPositiveFractionMax * 100).toFixed(2)}%`,
   );
 
-  const webRecall = evaluateRecallAtK(
-    webVectors,
-    20261109,
-    300,
-    [40, 100, 200],
-  );
+  const { recallResults: webRecall, validationSample: webValidation } =
+    evaluateRecallAtK(webVectors, 'WEB', 20261109, 300, [40, 100, 200], 30);
   console.log(`Recall@10 WEB:`);
   console.log(`  - P = 40:  ${(webRecall[40] * 100).toFixed(2)}%`);
   console.log(`  - P = 100: ${(webRecall[100] * 100).toFixed(2)}%`);
   console.log(`  - P = 200: ${(webRecall[200] * 100).toFixed(2)}%`);
 
-  // 3. Portão de aprovação
+  // 3. Gravação da amostra de validação para a Etapa 4 (30 BLIVRE + 30 WEB)
+  const combinedValidation = [...blivreValidation, ...webValidation];
+  fs.writeFileSync(
+    validationSamplePath,
+    JSON.stringify(combinedValidation, null, 2),
+    'utf-8',
+  );
+  console.log(
+    `\n[Validação Etapa 4]: Salvas ${combinedValidation.length} consultas com Top-10 exato em ${validationSamplePath}`,
+  );
+
+  // 4. Portão de aprovação
   const approved = blivreRecall[100] >= 0.95 && webRecall[100] >= 0.95;
   console.log(`\n=======================================================`);
   console.log(`RESULTADO DO PORTÃO (recall@10 >= 0.95 com P <= 100):`);
@@ -439,7 +454,7 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
   console.log(`  STATUS: ${approved ? 'APROVADO' : 'REPROVADO'}`);
   console.log(`=======================================================`);
 
-  // 4. Estimativa de tamanho de índice no pgvector
+  // 5. Estimativa de tamanho de índice no pgvector (Etapa 4)
   console.log(`\n--- Estimativa de Tamanho do Índice HNSW Binário ---`);
   console.log(`pgvector bit_hamming_ops (768 bits = 96 bytes por vetor):`);
   console.log(`  - Vetor original vector(768): 768 * 4 = 3.072 bytes/vetor.`);
@@ -449,12 +464,15 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
   console.log(
     `  - Grafo HNSW (m=16, efConstruction=64): ~256 bytes por nó de overhead de lista de adjacências.`,
   );
-  console.log(`  - Total por elemento indexado: ~350 - 400 bytes.`);
+  console.log(`  - Total estimado por elemento indexado: ~350 - 400 bytes.`);
   console.log(
     `  - Para 186.000 versículos da Bíblia: 186.000 * 380 bytes ≈ 70 MB.`,
   );
   console.log(
-    `  - Com partial index (WHERE embedding IS NOT NULL): cabe inteiramente na memória RAM (512 MB).`,
+    `  - Limite estabelecido para a Etapa 4: 90 MB para o índice de versículos.`,
+  );
+  console.log(
+    `  - Soma de todos os índices vetoriais permanece rigorosamente abaixo de 150 MB.`,
   );
 
   return {
@@ -467,9 +485,7 @@ export async function runEtapa2(options: { bypassNightCheck?: boolean } = {}) {
 }
 
 if (require.main === module) {
-  runEtapa2({
-    bypassNightCheck: process.argv.includes('--bypass-night-check'),
-  }).catch((err) => {
+  runEtapa2().catch((err) => {
     console.error('Erro na execução da Etapa 2:', err);
     process.exit(1);
   });
