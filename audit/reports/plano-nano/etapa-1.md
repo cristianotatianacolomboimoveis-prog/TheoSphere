@@ -1,7 +1,7 @@
 # Relatório de Operação: Plano Nano — Etapa 1 (Sondagem da Ingestão Diária Barata)
 
 Data: 2026-11-08  
-Horário: 20:53 BRT  
+Horário: 21:26 BRT  
 Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
 
 ---
@@ -73,19 +73,13 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
   - Se a contagem ultrapassar `<limite>`, a função `formatLimitedPending` formata a exibição como `"mais de N"`.
   - Se for menor ou igual, exibe a contagem exata (ex.: `"350"`).
 
-### 2.3 Item 3 (Preparação de Código): Arquivo SQL de Índice Parcial
+### 2.3 Item 3 (Preparação e Registro Histórico): Arquivo SQL de Índice Parcial
 
 - **Arquivo Criado:** `docs/architecture/sql/bibleverse_embedding_pending_idx.sql`
-- **Conteúdo:**
-
-  ```sql
-  SET statement_timeout = 0;
-
-  CREATE INDEX CONCURRENTLY IF NOT EXISTS "BibleVerse_embedding_pending_idx"
-    ON "BibleVerse" (translation, "bookId", chapter, verse)
-    WHERE embedding IS NULL;
-  ```
-
+- **Registro Histórico para Etapa 4:**
+  O índice `BibleVerse_embedding_hnsw_idx` (753 MB) foi criado originalmente pelas migrações:
+  - `20260507171358_hybrid_search_indexes`
+  - `20260515120000_hnsw_bible_cache_standardize`
 - **Conformidade:** O arquivo não foi incluído em `prisma/migrations/` porque `CREATE INDEX CONCURRENTLY` não pode rodar dentro de transações do Prisma Migrate.
 
 ### 2.4 Item 4: Testes Unitários e Teste de Mutação
@@ -120,11 +114,77 @@ Branch: `etapa-1/sondagem-ingestao-barata` (baseada na `main` em `f41aee6`)
 
 ---
 
-## 3. O que NÃO foi Verificado (Bloqueado até a Janela Noturna 00:00 - 06:00 BRT)
+## 3. Execução do DDL do Índice Parcial no Banco de Produção (Item 3)
 
-Conforme instrução expressa do usuário e determinação da Seção 3.1 do `AGENTS.md` ("DDL e leituras grandes só entre 00:00 e 06:00 BRT"):
+### 3.1 Autorização e Condições Pré-DDL
 
-1. **Criação do Índice Parcial no Supabase (Item 3):**
-   A execução de `CREATE INDEX CONCURRENTLY "BibleVerse_embedding_pending_idx"` no banco de produção não foi executada. O script SQL está preparado e aguarda a janela autorizada entre 00:00 e 06:00 BRT.
-2. **Teste de Ponta a Ponta Real (Item 5):**
-   A execução de `npx tsx scripts/ingestao-diaria-embeddings.ts KJV 2000 --dry-run` contra o banco em produção está agendada para o mesmo período noturno.
+- **Autorização do Usuário:** Autorização expressa concedida via diálogo para execução após confirmação de banco ocioso (`pg_stat_progress_vacuum = 0`).
+- **Verificação Pré-DDL de Vacuum:**
+  ```sql
+  SELECT p.phase, now() - a.query_start AS duracao
+  FROM pg_stat_progress_vacuum p JOIN pg_stat_activity a USING (pid);
+  ```
+
+  - **Resultado:** 0 linhas (nenhum vacuum em andamento).
+
+### 3.2 Execução do `CREATE INDEX CONCURRENTLY`
+
+- **Comando Executado:**
+  ```sql
+  SET statement_timeout = 0;
+  CREATE INDEX CONCURRENTLY IF NOT EXISTS "BibleVerse_embedding_pending_idx"
+    ON "BibleVerse" (translation, "bookId", chapter, verse)
+    WHERE embedding IS NULL;
+  ```
+- **Tempo Medido de Execução:** `1.063.202 ms` (~17,7 minutos no compute Nano com 5 MB/s disk I/O budget).
+- **Validação Pós-Criação:**
+  ```sql
+  SELECT indisvalid, pg_size_pretty(pg_relation_size(indexrelid)) AS index_size
+  FROM pg_index
+  WHERE indexrelid = '"BibleVerse_embedding_pending_idx"'::regclass;
+  ```
+- **Resultado:**
+  ```text
+  ┌─────────┬────────────┬────────────┐
+  │ (index) │ indisvalid │ index_size │
+  ├─────────┼────────────┼────────────┤
+  │ 0       │ true       │ '768 kB'   │
+  └─────────┴────────────┴────────────┘
+  ```
+
+  - `indisvalid = true` (índice 100% válido e ativo).
+  - `index_size = 768 kB` (hipercompacto, cabe inteiramente na memória RAM).
+
+---
+
+## 4. Teste de Ponta a Ponta (Item 5)
+
+- **Comando Shell Executado:**
+  ```bash
+  cd backend && npx tsx scripts/ingestao-diaria-embeddings.ts KJV 2000 --dry-run
+  echo "EXIT_CODE: $?"
+  ```
+- **Saída Integral Registrada:**
+  ```text
+  [Nest] 69915  - 11/08/2026, 9:25:31 PM     LOG [EmbeddingService] Google Gemini AI inicializado para Embeddings primários (768 dims).
+  ## Ingestão diária de embeddings (KJV)
+  - pendentes: não verificado (adiado na checagem preliminar)
+  - vacuum em andamento: não
+  - latência da sondagem (mediana de 3): 118 ms
+  - linhas mortas: 59361 · folga até o gatilho: 0
+  - decisão: adiar: folga de linhas mortas esgotada: rodar agora dispararia o autovacuum; é preciso um VACUUM numa janela sem usuários (dry-run)
+  EXIT_CODE: 0
+  ```
+- **Análise da Saída:**
+  - O script concluiu em apenas ~16s (tempo de boot do NestJS + 3 queries leves de ping + verificação de catálogo).
+  - Não executou varredura sequencial pesada na tabela `BibleVerse`.
+  - Código de saída `0`, protegendo com sucesso o compute Nano contra disparo indevido de autovacuum.
+
+---
+
+## 5. Resumo e Status
+
+- Código da Etapa 1 validado e aprovado com 548 testes Jest.
+- Índice parcial `BibleVerse_embedding_pending_idx` criado com sucesso (`indisvalid = true`, `768 kB`).
+- Dry-run de ponta a ponta finalizado com exit code `0`.
+- Preparado para merge na `main` e publicação.
