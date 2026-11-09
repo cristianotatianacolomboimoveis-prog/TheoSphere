@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EmbeddingService } from './embedding.service';
 import { LibraryService } from './library.service';
@@ -52,7 +52,7 @@ export class UserContextService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private embeddingService: EmbeddingService,
-    @Optional() private libraryService?: LibraryService,
+    private libraryService: LibraryService,
   ) {
     const redisUrl = process.env.REDIS_URL;
     if (redisUrl) {
@@ -262,12 +262,10 @@ export class UserContextService implements OnModuleInit {
 
       let libraryDocs: any[];
       if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
-        const hits = this.libraryService
-          ? await this.libraryService.searchResourceChunksVector(
-              queryEmbedding,
-              3,
-            )
-          : [];
+        const hits = await this.libraryService.searchResourceChunksVector(
+          queryEmbedding,
+          3,
+        );
         libraryDocs = hits.map((h) => ({
           content: h.text,
           metadata: { fileName: h.title, author: h.author, slug: h.slug },
@@ -336,12 +334,10 @@ export class UserContextService implements OnModuleInit {
       const queryEmbedding = (embResult as any).vector || embResult;
 
       if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
-        const hits = this.libraryService
-          ? await this.libraryService.searchResourceChunksVector(
-              queryEmbedding,
-              maxResults * 2,
-            )
-          : [];
+        const hits = await this.libraryService.searchResourceChunksVector(
+          queryEmbedding,
+          maxResults * 2,
+        );
         return hits
           .filter((h) => 1 - Number(h.distance) > 0.3)
           .map((h) => ({

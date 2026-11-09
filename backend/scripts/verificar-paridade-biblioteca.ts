@@ -3,197 +3,191 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * PRNG Mulberry32 determinístico para semente reprodutível
- */
-function mulberry32(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 async function run() {
-  const isNightArg = process.argv.includes('--night');
   const now = new Date();
-  // Horário em Brasília (UTC-3)
   const brtHours = (now.getUTCHours() - 3 + 24) % 24;
-  const isNightWindow = brtHours >= 0 && brtHours < 6;
-  const timeoutMs = isNightArg || isNightWindow ? 60000 : 15000;
 
-  console.log(
-    `[Paridade Biblioteca] Iniciando verificação. Horário BRT: ${brtHours}h. statement_timeout: ${timeoutMs}ms`,
-  );
-
-  const directHost = 'db.chjywahtwktqqxqlthvc.supabase.co';
-  const url = new URL(process.env.DATABASE_URL || '');
-  if (!url.host) {
-    console.error('DATABASE_URL ausente.');
+  // Restrição da Seção 3.1 do AGENTS.md: execução pesada estritamente entre 00:00 e 06:00 BRT
+  if (brtHours < 0 || brtHours >= 6) {
+    console.error(
+      `[BLOQUEIO SEÇÃO 3.1] Este script de paridade integral só pode ser executado na janela noturna (00:00 às 06:00 BRT). Horário atual: ${brtHours}h BRT.`,
+    );
     process.exit(1);
   }
-  // Usar porta e host direto para evitar contenção de poolers
-  url.host = directHost;
-  url.port = '5432';
-  url.username = 'postgres';
-  url.searchParams.delete('pgbouncer');
+
+  const connectionString =
+    process.env.DIRECT_DB_URL ||
+    process.env.DIRECT_URL ||
+    process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    console.error('Variável DIRECT_DB_URL ausente no .env.');
+    process.exit(1);
+  }
 
   const client = new Client({
-    connectionString: url.toString(),
+    connectionString,
     ssl: { rejectUnauthorized: false },
-    statement_timeout: timeoutMs,
-    connectionTimeoutMillis: 10000,
+    statement_timeout: 15 * 60 * 1000, // 15 minutos
+    connectionTimeoutMillis: 15000,
   });
 
+  console.log(
+    `[Paridade Biblioteca] Conectando ao banco... Horário BRT: ${brtHours}h. statement_timeout: 15min`,
+  );
   await client.connect();
 
   try {
+    // 1. Contagem exata por tipo em UserEmbedding
     console.log('\n=== 1. Contagem Exata por Tipo em UserEmbedding ===');
-    const qUeTypes = await client.query(`
+    const qTypes = await client.query(`
       SELECT type, count(*)::bigint AS total
       FROM "UserEmbedding"
       GROUP BY type
       ORDER BY type;
     `);
-    console.table(qUeTypes.rows);
+    console.table(qTypes.rows);
 
-    console.log('\n=== 2. Contagem Exata em ResourceChunk ===');
-    const qRcCount = await client.query(`
-      SELECT count(*)::bigint AS total FROM "ResourceChunk";
+    // 2. Consulta única em UserEmbedding (sem coluna de embedding, somente metadados e hash MD5)
+    console.log('\n=== 2. Exportando Chaves e Hashes de UserEmbedding ===');
+    const t0Ue = Date.now();
+    const qUe = await client.query(`
+      SELECT metadata->>'gutenbergId' AS gid,
+             metadata->>'title' AS title,
+             row_number() OVER (
+               PARTITION BY metadata->>'gutenbergId', metadata->>'title'
+               ORDER BY (metadata->>'chunkIndex')::int NULLS LAST, "createdAt", id
+             ) - 1 AS idx,
+             md5(content) AS h
+      FROM "UserEmbedding"
+      WHERE type = 'book_chunk';
     `);
-    const totalRc = Number(qRcCount.rows[0].total);
-    console.log(`Total ResourceChunk: ${totalRc}`);
-
     console.log(
-      '\n=== 3. Comparação de MD5 em Amostra Sorteada de 200 Trechos ===',
+      `UserEmbedding lido em ${Date.now() - t0Ue}ms (${qUe.rows.length} trechos)`,
     );
-    const SEED = 20261109;
-    const rng = mulberry32(SEED);
-    console.log(`Semente determinística: ${SEED}`);
 
-    // Obter todas as obras com gid para sortear trechos entre todas elas
-    const qWorks = await client.query(`
-      SELECT res.id, res.slug, res.title, res.metadata->>'gid' as gid, count(rc.id)::int as chunk_count
-      FROM "Resource" res
-      JOIN "ResourceChunk" rc ON rc."resourceId" = res.id
-      WHERE res.metadata->>'gid' IS NOT NULL
-      GROUP BY res.id, res.slug, res.title, res.metadata->>'gid'
-      HAVING count(rc.id) > 0
-      ORDER BY res.slug;
+    // 3. Consulta única em ResourceChunk + Resource (sem coluna de embedding, somente metadados e hash MD5)
+    console.log(
+      '\n=== 3. Exportando Chaves e Hashes de ResourceChunk + Resource ===',
+    );
+    const t0Rc = Date.now();
+    const qRc = await client.query(`
+      SELECT res.metadata->>'gid' AS gid,
+             res.title AS title,
+             rc."chunkIndex" AS idx,
+             md5(rc.text) AS h
+      FROM "ResourceChunk" rc
+      JOIN "Resource" res ON res.id = rc."resourceId";
     `);
+    console.log(
+      `ResourceChunk lido em ${Date.now() - t0Rc}ms (${qRc.rows.length} trechos)`,
+    );
 
-    const works = qWorks.rows;
-    if (works.length === 0) {
-      throw new Error('Nenhuma obra com gid encontrada em Resource.');
+    // 4. Comparação em memória no Mac
+    console.log('\n=== 4. Comparando Todos os Trechos em Memória ===');
+    const totalUe = qUe.rows.length;
+    const totalRc = qRc.rows.length;
+
+    const keyOf = (
+      gid: string | null,
+      title: string | null,
+      idx: number | string,
+    ) => `${gid ?? 'null'}::${title ?? 'null'}::${idx}`;
+
+    const ueMap = new Map<string, string>();
+    for (const r of qUe.rows) {
+      const k = keyOf(r.gid, r.title, r.idx);
+      ueMap.set(k, r.h);
     }
 
-    const TARGET_SAMPLES = 200;
-    const samples: Array<{
-      resourceId: string;
-      slug: string;
-      title: string;
-      gid: string;
-      chunkIndex: number;
-    }> = [];
-
-    // Sorteia 200 trechos de forma balanceada entre as obras
-    for (let i = 0; i < TARGET_SAMPLES; i++) {
-      const workIdx = Math.floor(rng() * works.length);
-      const work = works[workIdx];
-      const chunkIdx = Math.floor(rng() * work.chunk_count);
-      samples.push({
-        resourceId: work.resourceId,
-        slug: work.slug,
-        title: work.title,
-        gid: work.gid,
-        chunkIndex: chunkIdx,
-      });
+    const rcMap = new Map<string, string>();
+    for (const r of qRc.rows) {
+      const k = keyOf(r.gid, r.title, r.idx);
+      rcMap.set(k, r.h);
     }
 
-    let matches = 0;
-    let mismatches = 0;
-    let missing = 0;
-    const sampleResults: Array<{
-      slug: string;
-      chunk: number;
-      rc_md5: string;
-      ue_md5: string;
-      match: boolean;
+    let coincidentes = 0;
+    let divergentes = 0;
+    const exemplosDivergencias: Array<{
+      chave: string;
+      hashUe: string;
+      hashRc: string;
     }> = [];
 
-    for (let i = 0; i < samples.length; i++) {
-      const s = samples[i];
-      // 1. MD5 do ResourceChunk (usa índice ("resourceId", "chunkIndex"))
-      const qRc = await client.query(
-        `SELECT md5(text) as md5_rc FROM "ResourceChunk" WHERE "resourceId" = $1 AND "chunkIndex" = $2;`,
-        [s.resourceId, s.chunkIndex],
-      );
-
-      // 2. MD5 do UserEmbedding correspondente pela ordem canônica de migração
-      const qUe = await client.query(
-        `SELECT md5(content) as md5_ue
-         FROM "UserEmbedding"
-         WHERE type = 'book_chunk'
-           AND metadata->>'gutenbergId' = $1
-           AND metadata->>'title' = $2
-         ORDER BY (metadata->>'chunkIndex')::int NULLS LAST, "createdAt" ASC, id ASC
-         OFFSET $3 LIMIT 1;`,
-        [s.gid, s.title, s.chunkIndex],
-      );
-
-      const md5Rc = qRc.rows[0]?.md5_rc;
-      const md5Ue = qUe.rows[0]?.md5_ue;
-
-      if (!md5Rc || !md5Ue) {
-        missing++;
-        sampleResults.push({
-          slug: s.slug,
-          chunk: s.chunkIndex,
-          rc_md5: md5Rc || 'MISSING',
-          ue_md5: md5Ue || 'MISSING',
-          match: false,
-        });
-      } else if (md5Rc === md5Ue) {
-        matches++;
-        if (i < 5 || i === samples.length - 1) {
-          sampleResults.push({
-            slug: s.slug,
-            chunk: s.chunkIndex,
-            rc_md5: md5Rc,
-            ue_md5: md5Ue,
-            match: true,
-          });
+    // Checa todos de UserEmbedding contra ResourceChunk
+    for (const [k, hashUe] of ueMap.entries()) {
+      const hashRc = rcMap.get(k);
+      if (hashRc !== undefined) {
+        if (hashRc === hashUe) {
+          coincidentes++;
+        } else {
+          divergentes++;
+          if (exemplosDivergencias.length < 10) {
+            exemplosDivergencias.push({ chave: k, hashUe, hashRc });
+          }
         }
-      } else {
-        mismatches++;
-        sampleResults.push({
-          slug: s.slug,
-          chunk: s.chunkIndex,
-          rc_md5: md5Rc,
-          ue_md5: md5Ue,
-          match: false,
-        });
       }
     }
 
-    console.log('Exemplos de trechos auditados:');
-    console.table(sampleResults.slice(0, 10));
+    // Trechos faltando em cada lado
+    const faltandoNoRc: string[] = [];
+    for (const k of ueMap.keys()) {
+      if (!rcMap.has(k)) {
+        if (faltandoNoRc.length < 10) faltandoNoRc.push(k);
+      }
+    }
+    const totalFaltandoNoRc = Array.from(ueMap.keys()).filter(
+      (k) => !rcMap.has(k),
+    ).length;
 
-    console.log(`\nResumo da Comparação:`);
-    console.log(`Total comparados: ${samples.length}`);
-    console.log(`Matches exatos: ${matches}`);
-    console.log(`Mismatches: ${mismatches}`);
-    console.log(`Ausentes em um dos lados: ${missing}`);
+    const faltandoNoUe: string[] = [];
+    for (const k of rcMap.keys()) {
+      if (!ueMap.has(k)) {
+        if (faltandoNoUe.length < 10) faltandoNoUe.push(k);
+      }
+    }
+    const totalFaltandoNoUe = Array.from(rcMap.keys()).filter(
+      (k) => !ueMap.has(k),
+    ).length;
 
-    if (matches === TARGET_SAMPLES && mismatches === 0 && missing === 0) {
+    console.log(`\n=== 5. Resultado da Paridade ===`);
+    console.log(`Total UserEmbedding (book_chunk): ${totalUe}`);
+    console.log(`Total ResourceChunk:              ${totalRc}`);
+    console.log(`Coincidentes (mesmo MD5):         ${coincidentes}`);
+    console.log(`Divergentes (MD5 diferente):      ${divergentes}`);
+    console.log(`Faltando no ResourceChunk:        ${totalFaltandoNoRc}`);
+    console.log(`Faltando no UserEmbedding:        ${totalFaltandoNoUe}`);
+
+    if (exemplosDivergencias.length > 0) {
+      console.log('\nExemplos de Divergências (até 10):');
+      console.table(exemplosDivergencias);
+    }
+    if (faltandoNoRc.length > 0) {
       console.log(
-        `\nSTATUS: APROVADO: ${matches}/${TARGET_SAMPLES} trechos com md5 idêntico.`,
+        '\nExemplos de Chaves Faltando no ResourceChunk (até 10):',
+        faltandoNoRc,
+      );
+    }
+    if (faltandoNoUe.length > 0) {
+      console.log(
+        '\nExemplos de Chaves Faltando no UserEmbedding (até 10):',
+        faltandoNoUe,
+      );
+    }
+
+    // Aprovação só com 0 divergências e 0 faltando
+    if (
+      divergentes === 0 &&
+      totalFaltandoNoRc === 0 &&
+      totalFaltandoNoUe === 0 &&
+      coincidentes === totalUe
+    ) {
+      console.log(
+        `\nSTATUS: APROVADO: ${coincidentes}/${totalUe} trechos idênticos (0 divergências, 0 faltando).`,
       );
     } else {
       console.error(
-        `\nSTATUS: REPROVADO: divergências encontradas (${mismatches} divergências, ${missing} ausentes).`,
+        `\nSTATUS: REPROVADO: paridade não atingiu 100% (${divergentes} divergências, ${totalFaltandoNoRc} faltando no RC, ${totalFaltandoNoUe} faltando no UE).`,
       );
       process.exit(1);
     }
