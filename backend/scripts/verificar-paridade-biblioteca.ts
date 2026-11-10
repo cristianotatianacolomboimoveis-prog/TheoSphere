@@ -3,16 +3,40 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+export function checarJanelaHorarioParidade(
+  brtHours: number,
+  permitirDiurno: string | undefined = process.env.PARIDADE_PERMITIR_DIURNO,
+): { permitido: boolean; aviso?: string; motivo?: string } {
+  const isJanelaNoturna = brtHours >= 0 && brtHours < 6;
+  if (isJanelaNoturna) {
+    return { permitido: true };
+  }
+
+  if (permitirDiurno === 'autorizado-pelo-dono') {
+    return {
+      permitido: true,
+      aviso: `[AVISO] Execução diurna liberada excepcionalmente via PARIDADE_PERMITIR_DIURNO=autorizado-pelo-dono (Horário atual: ${brtHours}h BRT).`,
+    };
+  }
+
+  return {
+    permitido: false,
+    motivo: `[BLOQUEIO SEÇÃO 3.1] Este script de paridade integral só pode ser executado na janela noturna (00:00 às 06:00 BRT). Horário atual: ${brtHours}h BRT.`,
+  };
+}
+
 async function run() {
   const now = new Date();
   const brtHours = (now.getUTCHours() - 3 + 24) % 24;
 
-  // Restrição da Seção 3.1 do AGENTS.md: execução pesada estritamente entre 00:00 e 06:00 BRT
-  if (brtHours < 0 || brtHours >= 6) {
-    console.error(
-      `[BLOQUEIO SEÇÃO 3.1] Este script de paridade integral só pode ser executado na janela noturna (00:00 às 06:00 BRT). Horário atual: ${brtHours}h BRT.`,
-    );
+  const checagem = checarJanelaHorarioParidade(brtHours);
+  if (!checagem.permitido) {
+    console.error(checagem.motivo);
     process.exit(1);
+  }
+
+  if (checagem.aviso) {
+    console.warn(checagem.aviso);
   }
 
   const connectionString =
@@ -196,7 +220,9 @@ async function run() {
   }
 }
 
-run().catch((err) => {
-  console.error('[ERRO FATAL]', err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((err) => {
+    console.error('[ERRO FATAL]', err.message);
+    process.exit(1);
+  });
+}
