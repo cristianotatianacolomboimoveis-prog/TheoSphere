@@ -14,12 +14,14 @@
 - **Exceção Concedida pelo Mantenedor:** O dono do projeto autorizou expressamente uma exceção pontual ao horário da Seção 3.1 do `AGENTS.md` exclusivamente para a execução da Etapa 4 hoje, com base no fato de não haver usuários simultâneos no sistema e do estado de saúde estável do banco de dados.
 - **Janela Noturna Preservada para Manutenção Pesada:** Em estrito cumprimento à determinação do dono, o `VACUUM (VERBOSE, ANALYZE)` manual e o `RESET` dos parâmetros de autovacuum **não** foram executados nesta sessão diurna e permanecem agendados para a janela noturna (00:00 às 06:00 BRT).
 - **Verificação de Vacuum Prévia:**
+
   ```sql
   SELECT p.phase, now() - a.query_start AS duracao
   FROM pg_stat_progress_vacuum p JOIN pg_stat_activity a USING (pid);
   ```
 
   - **Resultado:** 0 linhas (nenhum autovacuum ativo).
+
 - **Verificação do Supabase Dashboard (Reports → Disk IO / Health / Observability):**
   - **Status:** Healthy
   - **Disk Usage (uso de armazenamento):** 44%
@@ -197,10 +199,90 @@ WHERE a.amname IN ('hnsw', 'ivfflat');
 
 ---
 
-## 8. Próximos Passos Agendados
+## 8. Fechamento (diurno, autorizado)
 
-1. **Janela Noturna (hoje, a partir das 00:00 BRT):**
-   - Execução do `VACUUM (VERBOSE, ANALYZE) public."BibleVerse"` manual sem concorrência de escritas;
-   - `RESET` das opções de autovacuum da tabela `BibleVerse`.
-2. **Noite Seguinte:**
-   - Execução do script de paridade de conteúdo `backend/scripts/verificar-paridade-biblioteca.ts` (Etapa 3a / 5) para liberação da remoção de `book_chunk` em `UserEmbedding`.
+Em 2026-11-10 às 16:53 BRT (19:53 UTC), o dono autorizou expressamente uma exceção diurna para o fechamento definitivo da Etapa 4, com base na ausência de usuários simultâneos no sistema e em uma única conexão direta.
+
+### 8.1 Pré-checagens Obrigatórias
+
+- **`pg_stat_progress_vacuum`:** **0 linhas** (nenhum vacuum ou autovacuum concorrente em andamento).
+- **Disk IO balance:** **99%** (verificado diretamente no painel de Observabilidade do Supabase, muito acima do limiar de 50%).
+- **Disk usage (armazenamento ocupado):** **36%** (confirmando a redução de disco obtida com o DROP do índice antigo).
+
+### 8.2 Métricas Antes do Fechamento
+
+- **Tuplas (`BibleVerse`):**
+  - `n_live_tup`: **186.476**
+  - `n_dead_tup`: **59.361**
+- **`reloptions` da `BibleVerse`:**
+  - `autovacuum_enabled=false`
+  - `autovacuum_vacuum_threshold=10000`
+  - `autovacuum_vacuum_scale_factor=0.1`
+  - `autovacuum_vacuum_cost_delay=40`
+  - `autovacuum_vacuum_cost_limit=100`
+- **Tamanhos físicos da tabela e índices:**
+  - Tabela `BibleVerse`: **72 MB** (75.505.664 bytes)
+  - `BibleVerse_embedding_bq_hnsw_idx`: **62 MB** (64.626.688 bytes)
+  - `BibleVerse_text_fts_idx`: **37 MB** (38.477.824 bytes)
+  - `BibleVerse_pkey`: **12 MB** (12.615.680 bytes)
+  - `BibleVerse_translation_bookId_chapter_verse_key`: **11 MB** (11.288.576 bytes)
+  - `BibleVerse_translation_idx`: **3.320 kB** (3.399.680 bytes)
+  - `BibleVerse_bookId_chapter_idx`: **2.056 kB** (2.105.344 bytes)
+  - `BibleVerse_embedding_pending_idx`: **768 kB** (786.432 bytes)
+- **Tamanho total do banco de dados:** **1.929 MB** (2.022.935.699 bytes)
+
+### 8.3 Execução do VACUUM e Reset do Autovacuum
+
+1. **Configuração de Sessão:** `SET statement_timeout = '60min';` (exceção à regra 8 autorizada pelo dono para manutenção).
+2. **Execução:**
+   ```sql
+   VACUUM (VERBOSE, ANALYZE) "BibleVerse";
+   ```
+
+   - **Duração:** **53,88 segundos (53.880 ms)**.
+   - **Resumo do log VERBOSE emitido pelo PostgreSQL:**
+     - `index scan needed: 3323 pages from table (36.05% of total) had 59361 dead item identifiers removed`
+     - `pg_toast_141925`: `5876 pages had 23442 dead item identifiers removed`
+     - `scanned 9217 of 9217 pages, containing 186476 live rows and 0 dead rows; 30000 rows in sample, 186476 estimated total rows`
+3. **Reset das opções de autovacuum:**
+   ```sql
+   ALTER TABLE "BibleVerse" RESET (
+     autovacuum_enabled,
+     autovacuum_vacuum_threshold,
+     autovacuum_vacuum_scale_factor,
+     autovacuum_vacuum_cost_delay,
+     autovacuum_vacuum_cost_limit
+   );
+   ```
+
+### 8.4 Métricas Depois do Fechamento
+
+- **Tuplas (`BibleVerse`):**
+  - `n_live_tup`: **186.476**
+  - `n_dead_tup`: **0** (eliminação completa das 59.361 linhas mortas)
+  - `last_vacuum`: `2026-11-10T19:53:14.424Z`
+- **`reloptions`:** **`null`** (tabela restaurada integralmente para as regras de autovacuum nativas do PostgreSQL).
+- **Tamanhos físicos da tabela e índices:**
+  - Tabela `BibleVerse`: **72 MB** (75.505.664 bytes)
+  - `BibleVerse_embedding_bq_hnsw_idx`: **62 MB** (64.626.688 bytes)
+  - Demais índices inalterados.
+- **Tamanho total do banco de dados:** **1.929 MB** (2.022.960.275 bytes).
+
+### 8.5 Duas Buscas de Produção com Palavras Novas
+
+Executadas via HTTP contra o servidor de produção do Render (`https://theosphere.onrender.com/api/v1/search/verses`):
+
+|  #  | Consulta                     | Tradução  | Tempo Total (s) | `vectorMs` (ms) | `keywordMs` (ms) | `vectorArm` | Qtd Resultados |
+| :-: | :--------------------------- | :-------: | :-------------: | :-------------: | :--------------: | :---------: | :------------: |
+|  1  | `estrela da manha reluzente` | _(geral)_ |     6,77 s      |  **6.277 ms**   |     1.428 ms     |    `ok`     |       5        |
+|  2  | `aguas vivas do santuario`   | `BLIVRE`  |     3,79 s      |  **3.336 ms**   |      148 ms      |    `ok`     |       5        |
+
+Ambas as buscas completaram com sucesso, `vectorArm: ok`, tempos vetoriais abaixo do teto de 8 s e sem qualquer recaída em timeout.
+
+---
+
+## 9. Próximos Passos Agendados
+
+1. **Etapa 4 Concluída:** A limpeza de tabela, restauração de autovacuum e validação vetorial da `BibleVerse` estão 100% finalizadas e fechadas.
+2. **Noite Seguinte (Janela Noturna, 00:00 às 06:00 BRT):**
+   - Execução do script `backend/scripts/verificar-paridade-biblioteca.ts` (Etapa 3a / 5) para validação do acervo e posterior liberação da remoção de `book_chunk` em `UserEmbedding`.
