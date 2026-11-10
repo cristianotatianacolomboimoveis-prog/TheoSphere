@@ -329,73 +329,91 @@ export class UserContextService implements OnModuleInit {
   ): Promise<
     { title: string; content: string; similarity: number; fileName: string }[]
   > {
+    const source =
+      process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk'
+        ? 'resource_chunk'
+        : 'user_embedding';
+
     try {
       const embResult = await this.embeddingService.createEmbedding(query);
       const queryEmbedding = (embResult as any).vector || embResult;
 
-      if (process.env.LIBRARY_VECTOR_SOURCE === 'resource_chunk') {
+      let results: {
+        title: string;
+        content: string;
+        similarity: number;
+        fileName: string;
+      }[] = [];
+      let totalHitsBeforeFilter = 0;
+      let bestSimilarity = 0;
+
+      if (source === 'resource_chunk') {
         const hits = await this.libraryService.searchResourceChunksVector(
           queryEmbedding,
           maxResults * 2,
         );
-        return hits
+        totalHitsBeforeFilter = hits.length;
+        if (hits.length > 0) {
+          bestSimilarity = 1 - Number(hits[0].distance);
+        }
+
+        results = hits
           .filter((h) => 1 - Number(h.distance) > 0.3)
           .map((h) => ({
             title: h.title,
             content: h.text,
             similarity: 1 - Number(h.distance),
             fileName: h.title,
-          }));
+          }))
+          .slice(0, maxResults);
+      } else {
+        const owner = userId || 'public-guest';
+
+        const rows = await this.prisma.$queryRaw<any[]>`
+          SELECT content, metadata,
+                 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+          FROM "UserEmbedding"
+          WHERE type = 'library_book'
+            AND ("userId" = ${owner} OR "userId" = 'public-guest')
+          ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+          LIMIT ${maxResults * 2};
+        `;
+
+        totalHitsBeforeFilter = rows.length;
+        if (rows.length > 0 && typeof rows[0].similarity === 'number') {
+          bestSimilarity = rows[0].similarity;
+        }
+
+        // Dedup por parentText (vários child chunks podem apontar pro mesmo pai)
+        const seen = new Set<string>();
+
+        for (const r of rows) {
+          if (r.similarity <= 0.3) continue;
+          const meta =
+            typeof r.metadata === 'string'
+              ? JSON.parse(r.metadata)
+              : r.metadata || {};
+          const content: string = meta.parentText || r.content;
+          const key = content.slice(0, 120);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          results.push({
+            title: meta.title || meta.fileName || 'Obra da Biblioteca',
+            fileName: meta.fileName || 'desconhecido',
+            content,
+            similarity: r.similarity,
+          });
+          if (results.length >= maxResults) break;
+        }
       }
 
-      const owner = userId || 'public-guest';
+      this.logger.log(
+        `[Drive Library] Fonte: ${source} | Hits antes do filtro: ${totalHitsBeforeFilter} | Hits após filtro: ${results.length} | Melhor similaridade: ${bestSimilarity.toFixed(3)}`,
+      );
 
-      const rows = await this.prisma.$queryRaw<any[]>`
-        SELECT content, metadata,
-               1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
-        FROM "UserEmbedding"
-        WHERE type = 'library_book'
-          AND ("userId" = ${owner} OR "userId" = 'public-guest')
-        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
-        LIMIT ${maxResults * 2};
-      `;
-
-      // Dedup por parentText (vários child chunks podem apontar pro mesmo pai)
-      const seen = new Set<string>();
-      const results: {
-        title: string;
-        content: string;
-        similarity: number;
-        fileName: string;
-      }[] = [];
-
-      for (const r of rows) {
-        if (r.similarity <= 0.3) continue;
-        const meta =
-          typeof r.metadata === 'string'
-            ? JSON.parse(r.metadata)
-            : r.metadata || {};
-        const content: string = meta.parentText || r.content;
-        const key = content.slice(0, 120);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        results.push({
-          title: meta.title || meta.fileName || 'Obra da Biblioteca',
-          fileName: meta.fileName || 'desconhecido',
-          content,
-          similarity: r.similarity,
-        });
-        if (results.length >= maxResults) break;
-      }
-
-      if (results.length > 0) {
-        this.logger.log(
-          `[Drive Library] ${results.length} hits | Best: ${results[0].similarity.toFixed(3)}`,
-        );
-      }
       return results;
     } catch (err) {
-      this.logger.debug(
+      this.logger.warn(
         `[Drive Library] Busca falhou: ${(err as Error).message}`,
       );
       return [];

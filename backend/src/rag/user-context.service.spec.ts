@@ -158,6 +158,8 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE e Whitelist de Tip
     it('searchDriveLibrary também reaproveita searchResourceChunksVector quando LIBRARY_VECTOR_SOURCE = resource_chunk', async () => {
       process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
 
+      const logSpy = jest.spyOn((service as any).logger, 'log');
+
       const results = await service.searchDriveLibrary(
         'graça irresistível',
         'user-1',
@@ -170,6 +172,32 @@ describe('UserContextService (Etapa 3 - LIBRARY_VECTOR_SOURCE e Whitelist de Tip
         expect.any(Array),
         10,
       );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\[Drive Library\] Fonte: resource_chunk \| Hits antes do filtro: 1 \| Hits após filtro: 1 \| Melhor similaridade: 0\.850/,
+        ),
+      );
+    });
+
+    it('erro na busca em searchDriveLibrary registra warn com a mensagem e não engole com debug', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+      embeddings.createEmbedding.mockRejectedValueOnce(
+        new Error('Conexão encerrada no pool'),
+      );
+
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+      const debugSpy = jest.spyOn((service as any).logger, 'debug');
+
+      const results = await service.searchDriveLibrary('query com erro');
+
+      expect(results).toEqual([]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[Drive Library] Busca falhou: Conexão encerrada no pool',
+        ),
+      );
+      expect(debugSpy).not.toHaveBeenCalled();
     });
   });
 });
