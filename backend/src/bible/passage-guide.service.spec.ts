@@ -130,11 +130,42 @@ describe('PassageGuideService', () => {
     expect(canonicalRef).toBe(45008001);
     expect(bookMin).toBe(45000000);
     expect(bookMax).toBe(45999999);
+    expect(sql).toContain('ref."startRef" BETWEEN $2 AND $1');
+    expect(sql).toContain('ref."endRef" BETWEEN $1 AND $3');
+    expect(sql).not.toMatch(/OR\s+TRUE/i);
 
     expect(g.commentaries).toHaveLength(1);
     expect(g.commentaries[0].author).toBe('John Calvin');
     expect(g.commentaries[0].source).toBe('Commentary on Romans');
     expect(g.commentaries[0].tags).toContain('clássico');
+  });
+
+  it('exige no SQL o filtro estrito de intervalo ("startRef" BETWEEN e "endRef" BETWEEN) sem cláusulas permissivas', async () => {
+    (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
+      {
+        title: 'Commentary on the Whole Bible',
+        author: 'Matthew Henry',
+        content:
+          'Here is the great Gospel truth, that God so loved the world that He gave His only begotten Son...',
+      },
+    ]);
+
+    await service.getGuide('BLIVRE', 43, 3, 16);
+
+    expect((prisma as any).$queryRawUnsafe).toHaveBeenCalledTimes(1);
+    const [sql, canonicalRef, bookMin, bookMax] = (prisma as any)
+      .$queryRawUnsafe.mock.calls[0];
+
+    expect(sql).not.toContain('UserEmbedding');
+    expect(canonicalRef).toBe(43003016);
+    expect(bookMin).toBe(43000000);
+    expect(bookMax).toBe(43999999);
+    expect(sql).toMatch(
+      /WHERE\s+ref\."canonicalRef"\s*=\s*\$1\s+OR\s+\(ref\."startRef"\s+BETWEEN\s+\$2\s+AND\s+\$1\s+AND\s+ref\."endRef"\s+BETWEEN\s+\$1\s+AND\s+\$3\)/,
+    );
+    expect(sql).toContain('ref."startRef" BETWEEN $2 AND $1');
+    expect(sql).toContain('ref."endRef" BETWEEN $1 AND $3');
+    expect(sql).not.toMatch(/OR\s+TRUE/i);
   });
 
   it('o intervalo de referência na consulta cobre o versículo pedido e os limites do livro (ex: Jo 3:16)', async () => {
