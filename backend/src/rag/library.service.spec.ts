@@ -160,6 +160,35 @@ describe('LibraryService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       expect(hits).toHaveLength(1);
     });
 
+    it('no modo binary, o SQL de ResourceChunk inclui rc.embedding IS NOT NULL para casar com o índice parcial', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+      process.env.VECTOR_INDEX_MODE = 'binary';
+      process.env.VECTOR_RERANK_CANDIDATES = '200';
+
+      prisma.$queryRaw.mockResolvedValue([
+        {
+          text: 'Comentário clássico sobre justificação',
+          title: 'Institutas',
+          author: 'João Calvino',
+          slug: 'calvino-institutas',
+          chunkIndex: 1,
+          distance: 0.1,
+        },
+      ]);
+
+      await service.lookup('user-123', 'filtro indice parcial', {
+        limit: 10,
+      });
+
+      const vectorCall = prisma.$queryRaw.mock.calls.find((call: any[]) => {
+        const sql = (call[0]?.strings || call[0] || []).join(' ');
+        return sql.includes('binary_quantize');
+      });
+      expect(vectorCall).toBeDefined();
+      const vectorSql = (vectorCall[0].strings || vectorCall[0]).join(' ');
+      expect(vectorSql).toContain('rc.embedding IS NOT NULL');
+    });
+
     it('no modo binary, passa { timeout: 15000, maxWait: 5000 } ao $transaction (padrão do Prisma é 5 s)', async () => {
       process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
       process.env.VECTOR_INDEX_MODE = 'binary';

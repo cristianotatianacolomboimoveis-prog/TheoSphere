@@ -104,7 +104,7 @@ describe('PassageGuideService', () => {
     expect(g.crossReferences).toMatchObject({ mode: 'list', list: [] });
   });
 
-  it('agrega comentários clássicos canônicos quando disponíveis no UserEmbedding', async () => {
+  it('agrega comentários clássicos consultando ResourceReference sem ler UserEmbedding (Etapa 5)', async () => {
     (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
       {
         title: 'Commentary on Romans',
@@ -116,10 +116,50 @@ describe('PassageGuideService', () => {
 
     const g = await service.getGuide('BLIVRE', 45, 8, 1);
 
+    expect((prisma as any).$queryRawUnsafe).toHaveBeenCalledTimes(1);
+    const [sql, canonicalRef, bookMin, bookMax] = (prisma as any)
+      .$queryRawUnsafe.mock.calls[0];
+
+    // Exige que a consulta NÃO leia UserEmbedding e consulte ResourceReference -> ResourceChunk -> Resource
+    expect(sql).not.toContain('UserEmbedding');
+    expect(sql).toContain('"ResourceReference"');
+    expect(sql).toContain('"ResourceChunk"');
+    expect(sql).toContain('"Resource"');
+
+    // Valida os parâmetros de referência canônica e limites do livro
+    expect(canonicalRef).toBe(45008001);
+    expect(bookMin).toBe(45000000);
+    expect(bookMax).toBe(45999999);
+
     expect(g.commentaries).toHaveLength(1);
     expect(g.commentaries[0].author).toBe('John Calvin');
     expect(g.commentaries[0].source).toBe('Commentary on Romans');
     expect(g.commentaries[0].tags).toContain('clássico');
+  });
+
+  it('o intervalo de referência na consulta cobre o versículo pedido e os limites do livro (ex: Jo 3:16)', async () => {
+    (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
+      {
+        title: 'Commentary on the Whole Bible',
+        author: 'Matthew Henry',
+        content:
+          'Here is the great Gospel truth, that God so loved the world that He gave His only begotten Son...',
+      },
+    ]);
+
+    await service.getGuide('BLIVRE', 43, 3, 16);
+
+    expect((prisma as any).$queryRawUnsafe).toHaveBeenCalledTimes(1);
+    const [sql, canonicalRef, bookMin, bookMax] = (prisma as any)
+      .$queryRawUnsafe.mock.calls[0];
+
+    expect(sql).not.toContain('UserEmbedding');
+    expect(canonicalRef).toBe(43003016);
+    expect(bookMin).toBe(43000000);
+    expect(bookMax).toBe(43999999);
+    expect(sql).toContain(
+      'ref."startRef" BETWEEN $2 AND $1 AND ref."endRef" BETWEEN $1 AND $3',
+    );
   });
 
   it('agrega comentários clássicos de ResourceReference quando disponíveis sem precisar de scan no UserEmbedding (T1.4)', async () => {

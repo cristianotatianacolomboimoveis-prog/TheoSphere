@@ -546,6 +546,40 @@ describe('SearchService', () => {
         expect(results).toHaveLength(1);
       });
 
+      it('no modo binary, o SQL inclui WHERE embedding IS NOT NULL para casar com o índice parcial', async () => {
+        process.env.VECTOR_INDEX_MODE = 'binary';
+        process.env.VECTOR_RERANK_CANDIDATES = '200';
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$queryRaw
+          .mockResolvedValueOnce([
+            {
+              id: 'v1',
+              bookId: 43,
+              chapter: 3,
+              verse: 16,
+              translation: 'BLIVRE',
+              text: 'Porque Deus amou o mundo...',
+              distance: 0.1,
+            },
+          ])
+          .mockResolvedValueOnce([]); // keyword search
+
+        await service.hybridSearchVerses('teste indice parcial');
+
+        const vectorQueryCall = prisma.$queryRaw.mock.calls.find(
+          (call: any[]) => {
+            const text = (call[0].strings || call[0]).join(' ');
+            return text.includes('binary_quantize');
+          },
+        );
+        expect(vectorQueryCall).toBeDefined();
+        const queryText = (
+          vectorQueryCall[0].strings || vectorQueryCall[0]
+        ).join(' ');
+        expect(queryText).toContain('WHERE embedding IS NOT NULL');
+      });
+
       it('no modo binary, passa { timeout: 15000, maxWait: 5000 } ao $transaction (padrão do Prisma é 5 s)', async () => {
         process.env.VECTOR_INDEX_MODE = 'binary';
         process.env.VECTOR_RERANK_CANDIDATES = '200';

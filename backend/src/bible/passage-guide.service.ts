@@ -166,76 +166,6 @@ const PT_ABBREV: Record<number, string> = {
 
 const MAX_LEXICON_ENTRIES = 25;
 
-/** Mapeamento dos 66 livros da Bíblia para os IDs do acervo de comentários clássicos */
-const COMMENTARY_BOOK_MAP: Record<number, string[]> = {
-  1: ['90001', '91001', '91002'], // Gn (Henry + Calvino)
-  2: ['90001', '91003', '91004'], // Êx (Henry + Calvino)
-  3: ['90001', '91005'], // Lv (Henry + Calvino)
-  4: ['90001', '91005', '91006'], // Nm (Henry + Calvino)
-  5: ['90001', '91006'], // Dt (Henry + Calvino)
-  6: ['90002', '91007'], // Js (Henry + Calvino)
-  7: ['90002'],
-  8: ['90002'],
-  9: ['90002'],
-  10: ['90002'],
-  11: ['90002'],
-  12: ['90002'],
-  13: ['90002'],
-  14: ['90002'],
-  15: ['90002'],
-  16: ['90002'],
-  17: ['90002'],
-  18: ['90003'],
-  19: ['90003', '91008', '91009', '91010', '91011', '91012'], // Sl (Henry + Calvino)
-  20: ['90003'],
-  21: ['90003'],
-  22: ['90003'],
-  23: ['90004', '91013', '91014', '91015', '91016'], // Is (Henry + Calvino)
-  24: ['90004', '91017', '91018', '91019', '91020', '91021'], // Jr (Henry + Calvino)
-  25: ['90004', '91021'], // Lm (Henry + Calvino)
-  26: ['90004', '91022', '91023'], // Ez (Henry + Calvino)
-  27: ['90004', '91024', '91025'], // Dn (Henry + Calvino)
-  28: ['90004', '91026'], // Os (Henry + Calvino)
-  29: ['90004', '91027'], // Jl (Henry + Calvino)
-  30: ['90004', '91027'], // Am (Henry + Calvino)
-  31: ['90004', '91027'], // Ob (Henry + Calvino)
-  32: ['90004', '91028'], // Jn (Henry + Calvino)
-  33: ['90004', '91028'], // Mq (Henry + Calvino)
-  34: ['90004', '91028'], // Na (Henry + Calvino)
-  35: ['90004', '91029'], // Hc (Henry + Calvino)
-  36: ['90004', '91029'], // Sf (Henry + Calvino)
-  37: ['90004', '91029'], // Ag (Henry + Calvino)
-  38: ['90004', '91030'], // Zc (Henry + Calvino)
-  39: ['90004', '91030'], // Ml (Henry + Calvino)
-  40: ['90005', '91031', '91032', '91033'], // Mt (Henry + Calvino)
-  41: ['90005', '91031', '91032', '91033'], // Mc (Henry + Calvino)
-  42: ['90005', '91031', '91032', '91033'], // Lc (Henry + Calvino)
-  43: ['90005', '91034', '91035'], // Jo (Henry + Calvino)
-  44: ['90006', '91036', '91037'], // At (Henry + Calvino)
-  45: ['90006', '91038'], // Rm (Henry + Calvino)
-  46: ['90006', '91039'], // 1Co (Henry + Calvino)
-  47: ['90006', '91040'], // 2Co (Henry + Calvino)
-  48: ['90006', '91041', '3390'], // Gl (Henry + Calvino + Lutero)
-  49: ['90006', '91041'], // Ef (Henry + Calvino)
-  50: ['90006', '91042'], // Fp (Henry + Calvino)
-  51: ['90006', '91042'], // Cl (Henry + Calvino)
-  52: ['90006', '91042'], // 1Ts (Henry + Calvino)
-  53: ['90006', '91042'], // 2Ts (Henry + Calvino)
-  54: ['90006', '91043'], // 1Tm (Henry + Calvino)
-  55: ['90006', '91043'], // 2Tm (Henry + Calvino)
-  56: ['90006', '91043'], // Tt (Henry + Calvino)
-  57: ['90006', '91043'], // Fm (Henry + Calvino)
-  58: ['90006', '91044'], // Hb (Henry + Calvino)
-  59: ['90006', '91045'], // Tg (Henry + Calvino)
-  60: ['90006', '91045'], // 1Pe (Henry + Calvino)
-  61: ['90006', '91045'], // 2Pe (Henry + Calvino)
-  62: ['90006', '91045'], // 1Jo (Henry + Calvino)
-  63: ['90006', '91045'], // 2Jo (Henry + Calvino)
-  64: ['90006', '91045'], // 3Jo (Henry + Calvino)
-  65: ['90006', '91045'], // Jd (Henry + Calvino)
-  66: ['90006'], // Ap (Henry)
-};
-
 @Injectable()
 export class PassageGuideService {
   private readonly logger = new Logger(PassageGuideService.name);
@@ -250,8 +180,8 @@ export class PassageGuideService {
 
   /**
    * Extrai trechos exegéticos relevantes de Calvino, Matthew Henry e Lutero.
-   * T1.4: Consulta primeiramente o índice relacional de ResourceReference/ResourceChunk.
-   * Se vazio, recorre ao scan histórico de UserEmbedding como fallback retrocompatível.
+   * T1.4 / Etapa 5: Consulta o índice relacional de ResourceReference -> ResourceChunk -> Resource.
+   * Não consulta UserEmbedding.
    */
   private async getClassicCommentaries(
     bookId: number,
@@ -266,10 +196,12 @@ export class PassageGuideService {
       tags: string[];
     }>
   > {
-    // 1. Tenta consulta ao índice canônico rápido e desacoplado de recursos
+    const canonicalRef = toCanonicalRef(bookId, chapter, verse ?? 1);
+    if (!canonicalRef) return [];
+
+    // 1. Tenta consulta ao índice canônico via ResourcesService se injetado
     if (this.resourcesService) {
       try {
-        const canonicalRef = toCanonicalRef(bookId, chapter, verse ?? 1);
         const citations = await this.resourcesService.findReferences(
           canonicalRef,
           4,
@@ -285,57 +217,39 @@ export class PassageGuideService {
           }));
         }
       } catch (err: any) {
-        // warn, não debug: se o índice novo falhar, o guia cai para o ILIKE
-        // legado e isso precisa aparecer no log de produção.
         this.logger.warn(
-          `Índice ResourceReference indisponível; usando busca legada (ILIKE): ${err.message}`,
+          `Índice ResourceReference indisponível no ResourcesService; usando consulta direta: ${err.message}`,
         );
       }
     }
 
-    const gids = COMMENTARY_BOOK_MAP[bookId];
-    if (!gids || gids.length === 0) return [];
-
+    // 2. Consulta direta indexada em ResourceReference -> ResourceChunk -> Resource
     try {
-      const enBook = EN_NAME[bookId];
-      const searchTerms: string[] = [];
-      if (enBook) {
-        searchTerms.push(`%${enBook} ${chapter}%`);
-      }
-      searchTerms.push(`%CHAPTER ${chapter}%`);
-      searchTerms.push(`%Chapter ${chapter}%`);
-      if (verse) {
-        searchTerms.push(`%${chapter}:${verse}%`);
-        if (enBook) searchTerms.push(`%${enBook} ${chapter}:${verse}%`);
-      } else {
-        searchTerms.push(`%${chapter}:1%`);
-      }
-
       if (typeof (this.prisma as any).$queryRawUnsafe !== 'function') {
         return [];
       }
 
-      const orClauses = searchTerms
-        .map((_, idx) => `content ILIKE $${idx + 2}`)
-        .join(' OR ');
+      const bookMin = bookId * 1_000_000;
+      const bookMax = bookId * 1_000_000 + 999_999;
+
       const rows = (await (this.prisma as any).$queryRawUnsafe(
-        `SELECT metadata->>'title' as title, metadata->>'author' as author, content
-         FROM "UserEmbedding"
-         WHERE metadata->>'gutenbergId' = ANY($1::text[])
-           AND (${orClauses})
-         LIMIT 25;`,
-        gids,
-        ...searchTerms,
+        `SELECT res.title, res.author, rc.text AS content
+         FROM "ResourceReference" ref
+         JOIN "ResourceChunk" rc ON rc.id = ref."chunkId"
+         JOIN "Resource" res ON res.id = rc."resourceId"
+         WHERE ref."canonicalRef" = $1
+            OR (ref."startRef" BETWEEN $2 AND $1 AND ref."endRef" BETWEEN $1 AND $3)
+         ORDER BY ref.confidence DESC, ref."createdAt" ASC
+         LIMIT 10;`,
+        canonicalRef,
+        bookMin,
+        bookMax,
       )) as Array<{ title?: string; author?: string; content?: string }>;
 
       if (!Array.isArray(rows) || rows.length === 0) return [];
 
       return rows
-        .filter((r) => {
-          if (!r.content || r.content.length < 200) return false;
-          const bracketRatio = (r.content.match(/\[\d+\]/g) || []).length;
-          return bracketRatio < 5; // descarta índices remissivos puros
-        })
+        .filter((r) => r.content && r.content.length >= 100)
         .slice(0, 4)
         .map((r) => {
           let cleaned = (r.content || '')
@@ -350,7 +264,7 @@ export class PassageGuideService {
             author: r.author || 'Clássico',
             content: cleaned,
             source: r.title || 'Comentário Exegético',
-            tags: ['clássico', 'exegese', 'domínio-público'],
+            tags: ['clássico', 'exegese', 'índice-canônico', 'domínio-público'],
           };
         });
     } catch (err: any) {
