@@ -546,6 +546,24 @@ describe('SearchService', () => {
         expect(results).toHaveLength(1);
       });
 
+      it('no modo binary, passa { timeout: 15000, maxWait: 5000 } ao $transaction (padrão do Prisma é 5 s)', async () => {
+        process.env.VECTOR_INDEX_MODE = 'binary';
+        process.env.VECTOR_RERANK_CANDIDATES = '200';
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$queryRaw
+          .mockResolvedValueOnce([]) // vector search
+          .mockResolvedValueOnce([]); // keyword search
+
+        await service.hybridSearchVerses('timeout da transação binária');
+
+        expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+        const options = prisma.$transaction.mock.calls[0][1];
+        expect(options).toBeDefined();
+        expect(options.timeout).toBe(15000);
+        expect(options.maxWait).toBe(5000);
+      });
+
       it('ajusta P para ser no mínimo o poolSize pedido quando VECTOR_RERANK_CANDIDATES for menor', async () => {
         process.env.VECTOR_INDEX_MODE = 'binary';
         process.env.VECTOR_RERANK_CANDIDATES = '50';

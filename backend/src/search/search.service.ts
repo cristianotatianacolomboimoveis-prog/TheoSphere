@@ -439,10 +439,11 @@ export class SearchService {
     const P = Math.max(baseP, poolSize);
     const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
 
-    return this.prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${efSearch};`);
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${efSearch};`);
 
-      return tx.$queryRaw<VectorRow[]>`
+        return tx.$queryRaw<VectorRow[]>`
         WITH candidatos AS (
           SELECT id, "bookId", chapter, verse, translation, text, embedding
           FROM "BibleVerse"
@@ -457,7 +458,9 @@ export class SearchService {
         ORDER BY distance
         LIMIT ${poolSize};
       `;
-    });
+      },
+      { timeout: 15000, maxWait: 5000 },
+    );
   }
 
   private async fullVectorSearch(

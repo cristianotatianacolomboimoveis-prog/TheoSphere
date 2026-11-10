@@ -97,9 +97,12 @@ export class LibraryService {
       const efSearch = computeEfSearch(P, process.env.HNSW_EF_SEARCH);
 
       try {
-        const rows = await this.prisma.$transaction(async (tx) => {
-          await tx.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${efSearch};`);
-          return tx.$queryRaw<Array<ResourceChunkHit>>`
+        const rows = await this.prisma.$transaction(
+          async (tx) => {
+            await tx.$executeRawUnsafe(
+              `SET LOCAL hnsw.ef_search = ${efSearch};`,
+            );
+            return tx.$queryRaw<Array<ResourceChunkHit>>`
             WITH candidatos AS (
               SELECT rc.id, rc.text, rc."chunkIndex", res.slug, res.title, res.author, rc.embedding
               FROM "ResourceChunk" rc
@@ -114,7 +117,9 @@ export class LibraryService {
             ORDER BY distance
             LIMIT ${limit};
           `;
-        });
+          },
+          { timeout: 15000, maxWait: 5000 },
+        );
 
         return rows;
       } catch (err) {

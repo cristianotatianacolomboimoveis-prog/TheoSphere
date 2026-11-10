@@ -160,6 +160,24 @@ describe('LibraryService (Etapa 3 - LIBRARY_VECTOR_SOURCE)', () => {
       expect(hits).toHaveLength(1);
     });
 
+    it('no modo binary, passa { timeout: 15000, maxWait: 5000 } ao $transaction (padrão do Prisma é 5 s)', async () => {
+      process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
+      process.env.VECTOR_INDEX_MODE = 'binary';
+      process.env.VECTOR_RERANK_CANDIDATES = '200';
+
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.lookup('user-123', 'timeout da transação binária', {
+        limit: 10,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      const options = prisma.$transaction.mock.calls[0][1];
+      expect(options).toBeDefined();
+      expect(options.timeout).toBe(15000);
+      expect(options.maxWait).toBe(5000);
+    });
+
     it('ajusta P para ser no mínimo o limit pedido quando VECTOR_RERANK_CANDIDATES for menor', async () => {
       process.env.LIBRARY_VECTOR_SOURCE = 'resource_chunk';
       process.env.VECTOR_INDEX_MODE = 'binary';
