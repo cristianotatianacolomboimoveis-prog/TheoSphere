@@ -101,6 +101,16 @@ export function assertPersistedBatchEmbeddings(
         `Guarda de espaço vetorial: vetor no índice ${i} tem dimensão ${Array.isArray(vec) ? vec.length : 'inválida'} (esperado 768).`,
       );
     }
+    let sumSq = 0;
+    for (let d = 0; d < 768; d++) {
+      sumSq += vec[d] * vec[d];
+    }
+    const norm = Math.sqrt(sumSq);
+    if (norm < 0.2 || norm > 0.85) {
+      throw new EmbeddingUnavailableError(
+        `Guarda de espaço vetorial: vetor no índice ${i} tem norma euclidiana anômala (${norm.toFixed(4)}), fora do espaço Gemini (esperado ~0.58).`,
+      );
+    }
   }
 }
 
