@@ -23,7 +23,7 @@ import {
  */
 
 const TARGET_TRANSLATIONS = ['BLIVRE', 'NVA', 'TR'];
-const READ_BATCH_SIZE = 5000;
+const READ_BATCH_SIZE = 1000;
 const WRITE_BATCH_SIZE = 1000;
 const MAX_QUERY_TIME_MS = 10000; // Lote acima de 10s aborta
 
@@ -33,6 +33,18 @@ const maxLinhas =
   maxLinhasArgIdx !== -1 && process.argv[maxLinhasArgIdx + 1]
     ? parseInt(process.argv[maxLinhasArgIdx + 1], 10)
     : Infinity;
+
+interface VerseTuple {
+  bookId: number;
+  chapter: number;
+  verse: number;
+}
+
+interface ScanResult {
+  scanned: number;
+  anomalousIds: string[];
+  batchTimesMs: number[];
+}
 
 function summary(lines: string[]) {
   for (const l of lines) console.log(l);
@@ -89,6 +101,100 @@ async function getAutovacuumHeadroom(client: Client): Promise<{
   return { headroom, dead, live, trigger };
 }
 
+/**
+ * Realiza varredura paginada por chave única ("bookId", chapter, verse).
+ * Compartilhada entre a Fase 1 e a Conferência Final pós-anulação.
+ */
+async function scanTranslationBatches(
+  client: Client,
+  translation: string,
+  options: {
+    maxToScan: number;
+    onBatch?: (info: {
+      batchIndex: number;
+      batchSize: number;
+      elapsedMs: number;
+      cursor: VerseTuple;
+      anomalousInBatch: number;
+    }) => void;
+  },
+): Promise<ScanResult> {
+  let cursor: VerseTuple = { bookId: 0, chapter: 0, verse: 0 };
+  let scanned = 0;
+  let hasMore = true;
+  let batchIndex = 0;
+  const anomalousIds: string[] = [];
+  const batchTimesMs: number[] = [];
+
+  while (hasMore && scanned < options.maxToScan) {
+    const limit = Math.min(READ_BATCH_SIZE, options.maxToScan - scanned);
+    const t0 = Date.now();
+
+    const res = await client.query<{
+      id: string;
+      bookId: number;
+      chapter: number;
+      verse: number;
+      n: number;
+    }>(SQL_QUERIES.SCAN_BATCH, [
+      translation,
+      cursor.bookId,
+      cursor.chapter,
+      cursor.verse,
+      limit,
+    ]);
+
+    const elapsed = Date.now() - t0;
+    batchTimesMs.push(elapsed);
+    batchIndex++;
+
+    if (elapsed > MAX_QUERY_TIME_MS) {
+      throw new Error(
+        `[TIMEOUT DE SEGURANÇA] Consulta de varredura [${translation}] lote ${batchIndex} excedeu ${MAX_QUERY_TIME_MS}ms (${elapsed}ms). Abortando com código 1.`,
+      );
+    }
+
+    const rows = res.rows;
+    if (rows.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    let anomalousInBatch = 0;
+    for (const row of rows) {
+      const norm = Number(row.n);
+      if (norm < ANOMALY_NORM_BOUNDS.min || norm > ANOMALY_NORM_BOUNDS.max) {
+        anomalousIds.push(row.id);
+        anomalousInBatch++;
+      }
+    }
+
+    scanned += rows.length;
+    const lastRow = rows[rows.length - 1];
+    cursor = {
+      bookId: Number(lastRow.bookId),
+      chapter: Number(lastRow.chapter),
+      verse: Number(lastRow.verse),
+    };
+
+    if (options.onBatch) {
+      options.onBatch({
+        batchIndex,
+        batchSize: rows.length,
+        elapsedMs: elapsed,
+        cursor,
+        anomalousInBatch,
+      });
+    }
+
+    if (rows.length < limit) {
+      hasMore = false;
+    }
+  }
+
+  return { scanned, anomalousIds, batchTimesMs };
+}
+
 async function main(): Promise<number> {
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
@@ -117,73 +223,51 @@ async function main(): Promise<number> {
     // ── TRAVA 1: Checagem inicial de vacuum ──
     await assertNoVacuum(client, 'Fase 1 (Leitura)');
 
-    // ── FASE 1: Leitura em lotes de 5.000 por ID ──
+    // ── FASE 1: Leitura em lotes de 1.000 por tupla ("bookId", chapter, verse) ──
     summaryLines.push(`\n## Fase 1 — Varredura e Identificação de Anomalias`);
 
+    const phase1Start = Date.now();
     const anomalousIdsByTranslation: Record<string, string[]> = {
       BLIVRE: [],
       NVA: [],
       TR: [],
     };
     const allAnomalousIds: string[] = [];
+    const allBatchTimesMs: number[] = [];
     let totalLinesScanned = 0;
 
     for (const translation of TARGET_TRANSLATIONS) {
       if (totalLinesScanned >= maxLinhas) break;
 
-      let lastId = '';
-      let hasMore = true;
-      let translationScanned = 0;
-
-      while (hasMore && totalLinesScanned < maxLinhas) {
-        const batchLimit = Math.min(
-          READ_BATCH_SIZE,
-          maxLinhas - totalLinesScanned,
-        );
-        const t0 = Date.now();
-
-        const res = await client.query<{ id: string; n: number }>(
-          SQL_QUERIES.SCAN_BATCH,
-          [translation, lastId, batchLimit],
-        );
-        const elapsed = Date.now() - t0;
-
-        if (elapsed > MAX_QUERY_TIME_MS) {
-          throw new Error(
-            `[TIMEOUT DE SEGURANÇA] Consulta de varredura [${translation}] excedeu ${MAX_QUERY_TIME_MS}ms (${elapsed}ms). Abortando com código 1.`,
+      const remainingBudget = maxLinhas - totalLinesScanned;
+      const res = await scanTranslationBatches(client, translation, {
+        maxToScan: remainingBudget,
+        onBatch: ({
+          batchIndex,
+          batchSize,
+          elapsedMs,
+          cursor,
+          anomalousInBatch,
+        }) => {
+          summaryLines.push(
+            `- Lote ${batchIndex} (${translation}): ${batchSize} versículos lidos em ${elapsedMs} ms (cursor final: ${cursor.bookId}:${cursor.chapter}:${cursor.verse} | anômalos no lote: ${anomalousInBatch})`,
           );
-        }
+        },
+      });
 
-        const rows = res.rows;
-        if (rows.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        for (const row of rows) {
-          const norm = Number(row.n);
-          if (
-            norm < ANOMALY_NORM_BOUNDS.min ||
-            norm > ANOMALY_NORM_BOUNDS.max
-          ) {
-            anomalousIdsByTranslation[translation].push(row.id);
-            allAnomalousIds.push(row.id);
-          }
-        }
-
-        translationScanned += rows.length;
-        totalLinesScanned += rows.length;
-        lastId = rows[rows.length - 1].id;
-
-        if (rows.length < batchLimit) {
-          hasMore = false;
-        }
-      }
+      anomalousIdsByTranslation[translation] = res.anomalousIds;
+      allAnomalousIds.push(...res.anomalousIds);
+      allBatchTimesMs.push(...res.batchTimesMs);
+      totalLinesScanned += res.scanned;
 
       console.log(
-        `[Fase 1] ${translation}: ${translationScanned} versículos lidos | ${anomalousIdsByTranslation[translation].length} anômalos encontrados.`,
+        `[Fase 1] ${translation}: ${res.scanned} versículos lidos em ${res.batchTimesMs.length} lotes | ${res.anomalousIds.length} anômalos encontrados.`,
       );
     }
+
+    const totalPhase1Ms = Date.now() - phase1Start;
+    const maxReadBatchMs =
+      allBatchTimesMs.length > 0 ? Math.max(...allBatchTimesMs) : 0;
 
     const counts: Record<string, number> = {
       BLIVRE: anomalousIdsByTranslation.BLIVRE.length,
@@ -193,7 +277,11 @@ async function main(): Promise<number> {
     const totalAnomalous = allAnomalousIds.length;
 
     summaryLines.push(
+      `\n### Resumo da Varredura (Fase 1)`,
       `- Linhas lidas: ${totalLinesScanned}`,
+      `- Lotes executados: ${allBatchTimesMs.length}`,
+      `- Tempo total da Fase 1: ${totalPhase1Ms} ms`,
+      `- Maior tempo de lote de leitura: ${maxReadBatchMs} ms (limite de segurança: ${MAX_QUERY_TIME_MS} ms)`,
       `- BLIVRE anômalos: ${counts.BLIVRE}`,
       `- NVA anômalos: ${counts.NVA}`,
       `- TR anômalos: ${counts.TR}`,
@@ -324,24 +412,20 @@ async function main(): Promise<number> {
       );
     }
 
-    // Varredura de confirmação (deve retornar 0 anômalos)
+    // Varredura de confirmação reutilizando a mesma função em lotes (sem count(*) sobre tabela inteira)
     let recheckAnomalous = 0;
     for (const t of TARGET_TRANSLATIONS) {
-      const checkRes = await client.query<{ count: string | number }>(
-        `
-        SELECT count(*)::int AS count
-        FROM "BibleVerse"
-        WHERE translation = $1
-          AND embedding IS NOT NULL
-          AND vector_norm(embedding) NOT BETWEEN 0.20 AND 0.85;
-      `,
-        [t],
+      const recheck = await scanTranslationBatches(client, t, {
+        maxToScan: Infinity,
+      });
+      recheckAnomalous += recheck.anomalousIds.length;
+      summaryLines.push(
+        `- Rechecagem [${t}]: ${recheck.scanned} versículos conferidos em ${recheck.batchTimesMs.length} lotes | ${recheck.anomalousIds.length} anômalos encontrados.`,
       );
-      recheckAnomalous += Number(checkRes.rows[0]?.count ?? 0);
     }
 
     summaryLines.push(
-      `- Varredura de rechecagem: ${recheckAnomalous} anômalos remanescentes (esperado 0).`,
+      `- Total de anômalos remanescentes: ${recheckAnomalous} (esperado 0).`,
     );
 
     if (recheckAnomalous > 0) {

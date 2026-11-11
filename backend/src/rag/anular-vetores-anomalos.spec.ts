@@ -119,4 +119,23 @@ describe('anular-vetores-anomalos (Regras de Segurança e Validação)', () => {
       );
     });
   });
+
+  describe('SQL de varredura por tupla única (SCAN_BATCH)', () => {
+    it('utiliza a tupla ("bookId", chapter, verse) como cursor de paginação', () => {
+      expect(SQL_QUERIES.SCAN_BATCH).toMatch(
+        /\("bookId",\s*chapter,\s*verse\)\s*>\s*\(\$2,\s*\$3,\s*\$4\)/,
+      );
+    });
+
+    it('ordena pela tupla ("bookId", chapter, verse) para alinhamento com a chave única', () => {
+      expect(SQL_QUERIES.SCAN_BATCH).toMatch(
+        /ORDER BY\s+"bookId",\s*chapter,\s*verse/,
+      );
+    });
+
+    it('não ordena por id nem usa id como cursor', () => {
+      expect(SQL_QUERIES.SCAN_BATCH).not.toMatch(/ORDER BY\s+id/i);
+      expect(SQL_QUERIES.SCAN_BATCH).not.toMatch(/id\s*>\s*\$/i);
+    });
+  });
 });

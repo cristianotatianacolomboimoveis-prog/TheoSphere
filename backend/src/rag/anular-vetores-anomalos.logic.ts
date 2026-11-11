@@ -23,11 +23,12 @@ export const ANOMALY_NORM_BOUNDS = {
 
 export const SQL_QUERIES = {
   SCAN_BATCH: `
-    SELECT id, vector_norm(embedding) AS n
+    SELECT id, "bookId", chapter, verse, vector_norm(embedding) AS n
     FROM "BibleVerse"
-    WHERE translation = $1 AND id > $2 AND embedding IS NOT NULL
-    ORDER BY id
-    LIMIT $3
+    WHERE translation = $1 AND ("bookId", chapter, verse) > ($2, $3, $4)
+      AND embedding IS NOT NULL
+    ORDER BY "bookId", chapter, verse
+    LIMIT $5
   `.trim(),
 
   UPDATE_BATCH: `
