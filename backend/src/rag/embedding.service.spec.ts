@@ -52,7 +52,7 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
     });
 
     it('deve retornar EmbeddingResult tipado { vector, provider, model } no sucesso do Gemini', async () => {
-      const mockVector = new Array(768).fill(0.05);
+      const mockVector = new Array(768).fill(0.58 / Math.sqrt(768));
       const mockEmbedContent = jest.fn().mockResolvedValue({
         embeddings: [{ values: mockVector }],
       });
@@ -72,6 +72,39 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
       expect(result.length).toBe(768);
       // Serialização JSON deve produzir o array numérico diretamente
       expect(JSON.parse(JSON.stringify(result))).toEqual(mockVector);
+    });
+
+    it('deve lançar EmbeddingUnavailableError se o vetor retornado tiver norma anômala (1.0 ou zero)', async () => {
+      // Caso 1: norma 1.0 (vetor unitário de fallback)
+      const unitVector = new Array(768).fill(1 / Math.sqrt(768));
+      const mockEmbedContent = jest.fn().mockResolvedValue({
+        embeddings: [{ values: unitVector }],
+      });
+      (service as any).genAI = {
+        models: {
+          embedContent: mockEmbedContent,
+        },
+      };
+
+      await expect(
+        service.createEmbedding('texto com retorno unitario'),
+      ).rejects.toThrow(EmbeddingUnavailableError);
+      await expect(
+        service.createEmbedding('texto com retorno unitario'),
+      ).rejects.toThrow(/norma euclidiana anômala \(1\.0000\)/);
+
+      // Caso 2: norma 0.0 (vetor nulo)
+      const zeroVector = new Array(768).fill(0);
+      mockEmbedContent.mockResolvedValue({
+        embeddings: [{ values: zeroVector }],
+      });
+
+      await expect(
+        service.createEmbedding('texto com retorno zero'),
+      ).rejects.toThrow(EmbeddingUnavailableError);
+      await expect(
+        service.createEmbedding('texto com retorno zero'),
+      ).rejects.toThrow(/norma euclidiana anômala \(0\.0000\)/);
     });
   });
 
