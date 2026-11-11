@@ -1,0 +1,70 @@
+name: Anular vetores anômalos da BibleVerse
+
+on:
+  schedule:
+    # 04:00 UTC em 12/11 = 01:00 BRT
+    - cron: '0 4 12 11 *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Apenas simular (sem escrita no banco)'
+        type: boolean
+        default: true
+      max_linhas:
+        description: 'Limite de linhas na varredura (opcional, para teste)'
+        default: ''
+
+concurrency:
+  group: ingestao-diaria-embeddings
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  anulacao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - name: Execução do script de anulação
+        env:
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+          IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+          IN_MAX_LINHAS: ${{ inputs.max_linhas }}
+        run: |
+          ARGS=""
+          if [ "$IS_SCHEDULE" != "true" ]; then
+            if [ "$IN_DRY_RUN" != "false" ]; then
+              ARGS="$ARGS --dry-run"
+            fi
+            if [ -n "$IN_MAX_LINHAS" ]; then
+              ARGS="$ARGS --max-linhas $IN_MAX_LINHAS"
+            fi
+          fi
+          npx tsx scripts/anular-vetores-anomalos.ts $ARGS
+
+      - name: Salvar artefato anomalos-ids.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anomalos-ids
+          path: backend/anomalos-ids.json
+          retention-days: 30
+          if-no-files-found: ignore
+

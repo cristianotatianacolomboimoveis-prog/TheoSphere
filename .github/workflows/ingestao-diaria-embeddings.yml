@@ -12,7 +12,7 @@ on:
     inputs:
       translations:
         description: 'Traduções, separadas por vírgula'
-        default: 'KJV'
+        default: 'BLIVRE,NVA,TR,KJV'
       limit:
         description: 'Máximo de versículos nesta rodada'
         default: '2000'
@@ -52,7 +52,7 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          IN_TRANSLATIONS: ${{ inputs.translations || 'KJV' }}
+          IN_TRANSLATIONS: ${{ inputs.translations || 'BLIVRE,NVA,TR,KJV' }}
           IN_LIMIT: ${{ inputs.limit || '2000' }}
           IN_DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: npx tsx scripts/ingestao-diaria-embeddings.ts "$IN_TRANSLATIONS" "$IN_LIMIT" $IN_DRY_RUN
