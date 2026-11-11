@@ -165,7 +165,7 @@ async function run(): Promise<number> {
     const verses = await prisma.$queryRaw<{ id: string; text: string }[]>`
       SELECT id, text FROM "BibleVerse"
       WHERE translation = ANY(${targets}::text[]) AND embedding IS NULL
-      ORDER BY translation, "bookId", chapter, verse
+      ORDER BY array_position(${targets}::text[], translation), "bookId", chapter, verse
       LIMIT ${plan.limit}`;
 
     const started = Date.now();

@@ -161,3 +161,42 @@ export async function evaluateEmbeddingBudgetWithEarlyExit(
     pendingDisplay: limited.display,
   };
 }
+
+/**
+ * Ordena versículos pela lista explícita de traduções (simulando ORDER BY array_position(targets, translation), "bookId", chapter, verse).
+ * Garante que a ordem de processamento segue exatamente a sequência definida em targets (e não a ordem alfabética).
+ */
+export function sortVersesByTargetList<
+  T extends {
+    translation: string;
+    bookId?: number;
+    chapter?: number;
+    verse?: number;
+  },
+>(verses: T[], targets: string[]): T[] {
+  return [...verses].sort((a, b) => {
+    const posA = targets.indexOf(a.translation);
+    const posB = targets.indexOf(b.translation);
+    const safeA = posA === -1 ? Number.MAX_SAFE_INTEGER : posA;
+    const safeB = posB === -1 ? Number.MAX_SAFE_INTEGER : posB;
+    if (safeA !== safeB) return safeA - safeB;
+    if (
+      a.bookId !== undefined &&
+      b.bookId !== undefined &&
+      a.bookId !== b.bookId
+    ) {
+      return a.bookId - b.bookId;
+    }
+    if (
+      a.chapter !== undefined &&
+      b.chapter !== undefined &&
+      a.chapter !== b.chapter
+    ) {
+      return a.chapter - b.chapter;
+    }
+    if (a.verse !== undefined && b.verse !== undefined && a.verse !== b.verse) {
+      return a.verse - b.verse;
+    }
+    return 0;
+  });
+}
