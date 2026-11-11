@@ -52,7 +52,7 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
     });
 
     it('deve retornar EmbeddingResult tipado { vector, provider, model } no sucesso do Gemini', async () => {
-      const mockVector = new Array(768).fill(0.05);
+      const mockVector = new Array(768).fill(0.58 / Math.sqrt(768));
       const mockEmbedContent = jest.fn().mockResolvedValue({
         embeddings: [{ values: mockVector }],
       });
@@ -72,6 +72,39 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
       expect(result.length).toBe(768);
       // Serialização JSON deve produzir o array numérico diretamente
       expect(JSON.parse(JSON.stringify(result))).toEqual(mockVector);
+    });
+
+    it('deve lançar EmbeddingUnavailableError se o vetor retornado tiver norma anômala (1.0 ou zero)', async () => {
+      // Caso 1: norma 1.0 (vetor unitário de fallback)
+      const unitVector = new Array(768).fill(1 / Math.sqrt(768));
+      const mockEmbedContent = jest.fn().mockResolvedValue({
+        embeddings: [{ values: unitVector }],
+      });
+      (service as any).genAI = {
+        models: {
+          embedContent: mockEmbedContent,
+        },
+      };
+
+      await expect(
+        service.createEmbedding('texto com retorno unitario'),
+      ).rejects.toThrow(EmbeddingUnavailableError);
+      await expect(
+        service.createEmbedding('texto com retorno unitario'),
+      ).rejects.toThrow(/norma euclidiana anômala \(1\.0000\)/);
+
+      // Caso 2: norma 0.0 (vetor nulo)
+      const zeroVector = new Array(768).fill(0);
+      mockEmbedContent.mockResolvedValue({
+        embeddings: [{ values: zeroVector }],
+      });
+
+      await expect(
+        service.createEmbedding('texto com retorno zero'),
+      ).rejects.toThrow(EmbeddingUnavailableError);
+      await expect(
+        service.createEmbedding('texto com retorno zero'),
+      ).rejects.toThrow(/norma euclidiana anômala \(0\.0000\)/);
     });
   });
 
@@ -116,8 +149,8 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
 
   describe('createBatchEmbeddings e assertPersistedBatchEmbeddings (Guarda B1)', () => {
     it('deve retornar lote com metadados não-enumeráveis { provider: gemini, model: gemini-embedding-001, dimensions: 768 }', async () => {
-      const v1 = new Array(768).fill(0.11);
-      const v2 = new Array(768).fill(0.22);
+      const v1 = new Array(768).fill(0.58 / Math.sqrt(768));
+      const v2 = new Array(768).fill(0.58 / Math.sqrt(768));
       const mockEmbedContent = jest.fn().mockResolvedValue({
         embeddings: [{ values: v1 }, { values: v2 }],
       });
@@ -170,6 +203,38 @@ describe('EmbeddingService (T0.2 Vector Space Separation)', () => {
       );
       expect(() => assertPersistedBatchEmbeddings(badVecLen, 1)).toThrow(
         /vetor no índice 0 tem dimensão 512/,
+      );
+    });
+
+    it('deve abortar (caminho de falha) se um vetor tiver norma 1.0 (fallback unitário) ou zero', () => {
+      // Vetor unitário (norma 1.0, gerado por fallback local normalizado por magnitude)
+      const unitVector = new Array(768).fill(1 / Math.sqrt(768));
+      const batchWithUnit = attachBatchEmbeddingMetadata(
+        [unitVector],
+        'gemini',
+        'gemini-embedding-001',
+        768,
+      );
+      expect(() => assertPersistedBatchEmbeddings(batchWithUnit, 1)).toThrow(
+        EmbeddingUnavailableError,
+      );
+      expect(() => assertPersistedBatchEmbeddings(batchWithUnit, 1)).toThrow(
+        /norma euclidiana anômala \(1\.0000\)/,
+      );
+
+      // Vetor nulo (norma 0.0, gerado por fallback de texto vazio ou não alfanumérico)
+      const zeroVector = new Array(768).fill(0);
+      const batchWithZero = attachBatchEmbeddingMetadata(
+        [zeroVector],
+        'gemini',
+        'gemini-embedding-001',
+        768,
+      );
+      expect(() => assertPersistedBatchEmbeddings(batchWithZero, 1)).toThrow(
+        EmbeddingUnavailableError,
+      );
+      expect(() => assertPersistedBatchEmbeddings(batchWithZero, 1)).toThrow(
+        /norma euclidiana anômala \(0\.0000\)/,
       );
     });
   });

@@ -60,6 +60,25 @@ export function attachBatchEmbeddingMetadata(
 }
 
 /**
+ * Valida se um vetor pertence ao espaço canônico do Gemini gemini-embedding-001 (768 dims).
+ * Vetores legítimos do Gemini possuem norma euclidiana na faixa de ~0.55 a ~0.65 (aceita-se 0.20 a 0.85).
+ * Vetores unitários de fallbacks locais (norma 1.0) ou vetores nulos (norma 0.0) são rejeitados.
+ */
+export function assertGeminiVectorNorm(vec: number[], label = 'vetor'): number {
+  let sumSq = 0;
+  for (let d = 0; d < vec.length; d++) {
+    sumSq += vec[d] * vec[d];
+  }
+  const norm = Math.sqrt(sumSq);
+  if (norm < 0.2 || norm > 0.85) {
+    throw new EmbeddingUnavailableError(
+      `Guarda de espaço vetorial: ${label} tem norma euclidiana anômala (${norm.toFixed(4)}), fora do espaço Gemini (esperado ~0.58).`,
+    );
+  }
+  return norm;
+}
+
+/**
  * Guarda de espaço vetorial (T0.2 / B1):
  * Garante que lotes de embeddings destinados ao índice HNSW persistido
  * provêm exclusivamente de gemini:gemini-embedding-001 com 768 dimensões.
@@ -101,6 +120,7 @@ export function assertPersistedBatchEmbeddings(
         `Guarda de espaço vetorial: vetor no índice ${i} tem dimensão ${Array.isArray(vec) ? vec.length : 'inválida'} (esperado 768).`,
       );
     }
+    assertGeminiVectorNorm(vec, `vetor no índice ${i}`);
   }
 }
 
@@ -311,12 +331,19 @@ export class EmbeddingService implements OnModuleDestroy {
 
     const cached = await this.readCache(normalized);
     if (cached) {
-      return new EmbeddingResult(
-        cached,
-        this.PRIMARY_PROVIDER,
-        this.PRIMARY_MODEL,
-        this.VECTOR_DIM,
-      );
+      try {
+        assertGeminiVectorNorm(cached, 'vetor lido do cache');
+        return new EmbeddingResult(
+          cached,
+          this.PRIMARY_PROVIDER,
+          this.PRIMARY_MODEL,
+          this.VECTOR_DIM,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Cache continha vetor com norma anômala; descartando entrada: ${(err as Error).message}`,
+        );
+      }
     }
 
     if (!this.genAI) {
@@ -341,6 +368,7 @@ export class EmbeddingService implements OnModuleDestroy {
           `Gemini retornou vetor inválido (esperado ${this.VECTOR_DIM} dimensões)`,
         );
       }
+      assertGeminiVectorNorm(embedding, 'vetor retornado pelo Gemini');
 
       const embResult = new EmbeddingResult(
         embedding,
@@ -352,6 +380,9 @@ export class EmbeddingService implements OnModuleDestroy {
       await this.writeCache(normalized, embResult);
       return embResult;
     } catch (error) {
+      if (error instanceof EmbeddingUnavailableError) {
+        throw error;
+      }
       this.logger.error(
         `Erro no provedor primário Gemini embedding: ${(error as Error).message}`,
       );
