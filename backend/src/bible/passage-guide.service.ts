@@ -204,10 +204,18 @@ export class PassageGuideService {
       try {
         const citations = await this.resourcesService.findReferences(
           canonicalRef,
-          4,
+          10,
         );
-        if (citations.length > 0) {
-          return citations.map((c) => ({
+        const filtered = citations
+          .filter((c) => {
+            if (!c.text) return false;
+            const bracketCount = (c.text.match(/\[\d+\]/g) || []).length;
+            return bracketCount < 5; // descarta índices remissivos puros
+          })
+          .slice(0, 4);
+
+        if (filtered.length > 0) {
+          return filtered.map((c) => ({
             verse: verse ?? 1,
             author: c.author,
             content:
@@ -249,7 +257,11 @@ export class PassageGuideService {
       if (!Array.isArray(rows) || rows.length === 0) return [];
 
       return rows
-        .filter((r) => r.content && r.content.length >= 100)
+        .filter((r) => {
+          if (!r.content || r.content.length < 100) return false;
+          const bracketCount = (r.content.match(/\[\d+\]/g) || []).length;
+          return bracketCount < 5; // descarta índices remissivos puros
+        })
         .slice(0, 4)
         .map((r) => {
           let cleaned = (r.content || '')

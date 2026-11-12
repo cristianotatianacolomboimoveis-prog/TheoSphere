@@ -227,7 +227,7 @@ describe('PassageGuideService', () => {
 
     expect(mockResourcesService.findReferences).toHaveBeenCalledWith(
       45008001,
-      4,
+      10,
     );
     expect(g.commentaries).toHaveLength(1);
     expect(g.commentaries[0].author).toBe('João Calvino');
@@ -267,5 +267,73 @@ describe('PassageGuideService', () => {
       expect.stringContaining('Índice ResourceReference indisponível'),
     );
     warn.mockRestore();
+  });
+
+  it('filtra índices remissivos puros (trechos com 5 ou mais [n]) e preserva comentários exegéticos reais', async () => {
+    (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
+      {
+        title: 'The City of God, Volume II',
+        author: 'Santo Agostinho',
+        content:
+          '[547] Ps. xl. 2, 3. [548] Jer. ix. 23, 24, as in 1 Cor. i. 31. [549] Lam. iv. 20. [550] Bar. iii. 35. [551] Rom. viii. 28.',
+      },
+      {
+        title: 'Commentary on Romans',
+        author: 'John Calvin',
+        content:
+          'And we know that all things work together for good to them that love God. He now draws this conclusion from what had been previously said, showing how great is the benefit of adoption.',
+      },
+    ]);
+
+    const g = await service.getGuide('BLIVRE', 45, 8, 28);
+
+    expect(g.commentaries).toHaveLength(1);
+    expect(g.commentaries[0].author).toBe('John Calvin');
+    expect(g.commentaries[0].source).toBe('Commentary on Romans');
+    expect(g.commentaries[0].content).toContain(
+      'all things work together for good',
+    );
+  });
+
+  it('filtra índices remissivos puros via ResourcesService quando há 5 ou mais [n]', async () => {
+    const mockResourcesService = {
+      findReferences: jest.fn().mockResolvedValue([
+        {
+          id: 'ref-index',
+          resourceTitle: 'Index of Scripture References',
+          author: 'Editor',
+          text: '[1] Gen 1:1 [2] Gen 1:2 [3] Gen 1:3 [4] Gen 1:4 [5] Gen 1:5 [6] Gen 1:6',
+          canonicalRef: 43003016,
+          confidence: 1.0,
+        },
+        {
+          id: 'ref-exegesis',
+          resourceTitle: 'Comentário sobre João',
+          author: 'João Calvino',
+          text: 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito. Exegese profunda sobre a amplitude do amor divino.',
+          canonicalRef: 43003016,
+          confidence: 1.0,
+        },
+      ]),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PassageGuideService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: CrossReferencesService, useValue: crossRefs },
+        { provide: LinguisticsService, useValue: linguistics },
+        { provide: ArchaeologyService, useValue: archaeology },
+        { provide: ResourcesService, useValue: mockResourcesService },
+      ],
+    }).compile();
+
+    const pgWithResources =
+      module.get<PassageGuideService>(PassageGuideService);
+    const g = await pgWithResources.getGuide('BLIVRE', 43, 3, 16);
+
+    expect(g.commentaries).toHaveLength(1);
+    expect(g.commentaries[0].author).toBe('João Calvino');
+    expect(g.commentaries[0].source).toBe('Comentário sobre João');
   });
 });
