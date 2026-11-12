@@ -1,9 +1,6 @@
 name: Anular vetores anômalos da BibleVerse
 
 on:
-  schedule:
-    # 04:00 UTC em 12/11 = 01:00 BRT
-    - cron: '0 4 12 11 *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -44,18 +41,15 @@ jobs:
       - name: Execução do script de anulação
         env:
           DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
-          IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
           IN_DRY_RUN: ${{ inputs.dry_run }}
           IN_MAX_LINHAS: ${{ inputs.max_linhas }}
         run: |
           ARGS=""
-          if [ "$IS_SCHEDULE" != "true" ]; then
-            if [ "$IN_DRY_RUN" != "false" ]; then
-              ARGS="$ARGS --dry-run"
-            fi
-            if [ -n "$IN_MAX_LINHAS" ]; then
-              ARGS="$ARGS --max-linhas $IN_MAX_LINHAS"
-            fi
+          if [ "$IN_DRY_RUN" != "false" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ -n "$IN_MAX_LINHAS" ]; then
+            ARGS="$ARGS --max-linhas $IN_MAX_LINHAS"
           fi
           npx tsx scripts/anular-vetores-anomalos.ts $ARGS
 
@@ -67,4 +61,3 @@ jobs:
           path: backend/anomalos-ids.json
           retention-days: 30
           if-no-files-found: ignore
-

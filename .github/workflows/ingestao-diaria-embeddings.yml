@@ -6,8 +6,8 @@ name: Ingestão diária de embeddings
 
 on:
   schedule:
-    # 06:00 UTC = 03:00 BRT, horário de menor uso
-    - cron: '0 6 * * *'
+    # 05:17 UTC = 02:17 BRT, horário de menor uso e minuto quebrado para evitar filas
+    - cron: '17 5 * * *'
   workflow_dispatch:
     inputs:
       translations:
