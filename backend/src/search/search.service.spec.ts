@@ -631,36 +631,42 @@ describe('SearchService', () => {
         expect(vectorQueryCall.slice(1)).toContain(100);
       });
 
-      it('no modo binary, se a busca binária falhar, registra warn e cai para o modo full', async () => {
+      it('no modo binary, se $transaction rejeitar, o erro propaga, vectorArm vira failed, fullVectorSearch NÃO é chamada e os resultados de keyword voltam', async () => {
         process.env.VECTOR_INDEX_MODE = 'binary';
 
         embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
-        // Transação binária falha (ex: extensão ausente ou erro de SQL)
+        // Transação binária falha (ex: timeout ou erro no Postgres)
         prisma.$transaction.mockRejectedValueOnce(
           new Error('relation or operator <~> does not exist'),
         );
-        // Fallback para fullVectorSearch tem sucesso
-        prisma.$queryRaw
-          .mockResolvedValueOnce([
-            {
-              id: 'v2',
-              bookId: 43,
-              chapter: 1,
-              verse: 1,
-              translation: 'BLIVRE',
-              text: 'No princípio era o Verbo...',
-              distance: 0.1,
-            },
-          ])
-          .mockResolvedValueOnce([]); // keyword search
+        // Keyword search tem sucesso
+        prisma.$queryRaw.mockResolvedValueOnce([
+          {
+            id: 'v2',
+            bookId: 43,
+            chapter: 1,
+            verse: 1,
+            translation: 'BLIVRE',
+            text: 'No princípio era o Verbo...',
+            rank: 0.9,
+          },
+        ]);
 
         const results = await service.hybridSearchVerses('verbo divino');
 
         expect(prisma.$transaction).toHaveBeenCalled();
-        // Chamou o fallback fullVectorSearch
-        expect(prisma.$queryRaw).toHaveBeenCalled();
+        // fullVectorSearch NÃO foi chamada: nenhum $queryRaw com <=>
+        const rawCallsWithCosine = prisma.$queryRaw.mock.calls.filter(
+          (call: any) => {
+            const text = (call[0].strings || call[0] || '').join?.(' ') ?? '';
+            return text.includes('<=>');
+          },
+        );
+        expect(rawCallsWithCosine).toHaveLength(0);
+        // Retornou os resultados de keyword
         expect(results).toHaveLength(1);
         expect(results[0].id).toBe('v2');
+        expect((results as any).vectorStatus).toBe('failed');
       });
 
       it('sem VECTOR_INDEX_MODE no ambiente, adota o padrão binary (Supabase Nano)', async () => {

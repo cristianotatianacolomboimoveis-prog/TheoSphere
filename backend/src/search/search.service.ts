@@ -414,18 +414,11 @@ export class SearchService {
       .join(',')}]`;
 
     const mode = process.env.VECTOR_INDEX_MODE || 'binary';
-    if (mode === 'binary') {
-      try {
-        return await this.binaryVectorSearch(literal, poolSize, translation);
-      } catch (err) {
-        this.logger.warn(
-          `binary vector search failed, falling back to full mode: ${(err as Error).message}`,
-        );
-        return await this.fullVectorSearch(literal, poolSize, translation);
-      }
+    if (mode === 'full') {
+      return this.fullVectorSearch(literal, poolSize, translation);
     }
 
-    return this.fullVectorSearch(literal, poolSize, translation);
+    return this.binaryVectorSearch(literal, poolSize, translation);
   }
 
   private async binaryVectorSearch(

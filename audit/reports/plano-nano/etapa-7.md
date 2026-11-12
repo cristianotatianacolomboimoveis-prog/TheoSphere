@@ -130,12 +130,12 @@ Status: ✅ Anulação concluída com 100% de sucesso.
 
 A busca híbrida em produção tem latência observada entre **1,4 s e 2,4 s**. Esta investigação isolou cada componente do caminho crítico da requisição:
 
-1. Inferência de embedding e latência de rede da API Google Gemini (`createEmbedding`).
+1. Inferência de embedding e latência de rede da API Google Gemini (`createEmbedding`). O tempo medido em `vectorMs` inclui tanto o roundtrip da API do Gemini (cerca de 0,5 s) quanto a execução no banco.
 2. Consulta de texto (`keywordSearch` via GIN Full-Text Search).
 3. Consulta vetorial (`binaryVectorSearch` via HNSW binário quantizado vs `fullVectorSearch` sem índice).
 
 > [!NOTE]
-> Conforme diretrizes do Plano Nano, esta etapa foi **estritamente investigativa (read-only)**: nenhum código foi alterado, nenhum índice foi criado e nenhuma escrita foi realizada no banco.
+> Conforme diretrizes do Plano Nano, esta etapa foi **estritamente investigativa (read-only)**: nenhum índice foi criado e nenhuma escrita foi realizada no banco de dados.
 
 ---
 
@@ -144,8 +144,7 @@ A busca híbrida em produção tem latência observada entre **1,4 s e 2,4 s**. 
 A inspeção da conexão ativa no Supabase revelou:
 
 - **`hnsw.iterative_scan`**: `'relaxed_order'` (ativo globalmente no banco via pgvector 0.8.0, permitindo que a busca vetorial filtre por tradução durante a travessia dos grafos HNSW).
-- **`hnsw.ef_search` padrão**: `40` (definido globalmente).
-- **`hnsw.ef_search` em transação**: O código da aplicação (`search.service.ts:316`) executa `SET LOCAL hnsw.ef_search = 100;` na transação do `binaryVectorSearch`.
+- **`hnsw.ef_search` em execução**: O código calcula `computeEfSearch(P)` onde $P = \max(200, \text{poolSize})$. Com $P = 200$, `computeEfSearch(200)` resulta em **`ef_search = 200`** aplicado via `SET LOCAL hnsw.ef_search = 200;` na transação do `binaryVectorSearch`.
 
 ---
 
@@ -158,7 +157,7 @@ Medição isolada da chamada de embedding com o modelo `gemini:gemini-embedding-
 | `"amor de Deus"` |     **518 ms**      |    768    |     0,5907     |
 | `"graca e paz"`  |     **540 ms**      |    768    |     0,5871     |
 
-> **Achado do Piso de Rede/Inferência:** Cerca de **500 a 550 ms** do tempo total da requisição de busca (1,4s a 2,4s) decorrem exclusivamente da latência de inferência e do round-trip de rede da API do Gemini (São Paulo ↔ Google Datacenter).
+> **Achado do Piso de Rede/Inferência:** Cerca de **0,5 s** do tempo total da requisição e do `vectorMs` decorrem exclusivamente da latência de inferência e do round-trip de rede da API do Gemini (São Paulo ↔ Google Datacenter).
 
 ---
 
@@ -178,69 +177,68 @@ LIMIT $3;
 
 #### Medição com `EXPLAIN (ANALYZE, BUFFERS)`:
 
-| Métrica                          | Caso 1: `q="amor de Deus"`, `BLIVRE` (`LIMIT 20`)            | Caso 2: `q="graca e paz"`, `NVA` (`LIMIT 20`)                       |
-| :------------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------ |
-| **Parâmetros**                   | `$1 = 'amor de Deus'`, `$2 = 'BLIVRE'`, `$3 = 20`            | `$1 = 'graca e paz'`, `$2 = 'NVA'`, `$3 = 20`                       |
-| **Índice Usado**                 | `Bitmap Index Scan` em `BibleVerse_text_fts_idx` (GIN)       | `Bitmap Index Scan` em `BibleVerse_text_fts_idx` (GIN)              |
-| **Linhas no Índice**             | 66 linhas encontradas                                        | 24 linhas encontradas                                               |
-| **Linhas Filtradas (Heap)**      | 27 retornadas, **39 descartadas** (`translation = 'BLIVRE'`) | 20 retornadas (LIMIT 20), **4 descartadas** (`translation = 'NVA'`) |
-| **Shared Buffers (Frio)**        | `shared hit=346`, `read=0`                                   | `shared hit=258`, `read=6`                                          |
-| **Tempo de Execução (Frio)**     | **306,17 ms** _(em produção/disco sob contenção: 1.109 ms)_  | **18,32 ms**                                                        |
-| **Shared Buffers (Aquecido)**    | `shared hit=343`, `read=0`                                   | `shared hit=264`, `read=0`                                          |
-| **Tempo de Execução (Aquecido)** | **4,70 ms**                                                  | **3,57 ms**                                                         |
+| Métrica                          | Caso 1: `q="amor de Deus"`, `BLIVRE` (`LIMIT 20`)      | Caso 2: `q="graca e paz"`, `NVA` (`LIMIT 20`)                          |
+| :------------------------------- | :----------------------------------------------------- | :--------------------------------------------------------------------- |
+| **Parâmetros**                   | `$1 = 'amor de Deus'`, `$2 = 'BLIVRE'`, `$3 = 20`      | `$1 = 'graca e paz'`, `$2 = 'NVA'`, `$3 = 20`                          |
+| **Índice Usado**                 | `Bitmap Index Scan` em `BibleVerse_text_fts_idx` (GIN) | `Bitmap Index Scan` em `BibleVerse_text_fts_idx` (GIN)                 |
+| **Linhas no Índice GIN**         | 66 linhas encontradas                                  | 0 linhas encontradas                                                   |
+| **Linhas Retornadas**            | 27 retornadas, 39 descartadas por filtro de tradução   | **0 linhas retornadas** (o texto da NVA contém `"graça"`, com cedilha) |
+| **Shared Buffers (Frio)**        | `shared hit=187`, `read=159`                           | `shared hit=258`, `read=6`                                             |
+| **Tempo de Execução (Frio)**     | **233 ms**                                             | **18,32 ms**                                                           |
+| **Shared Buffers (Aquecido)**    | `shared hit=343`, `read=0`                             | `shared hit=264`, `read=0`                                             |
+| **Tempo de Execução (Aquecido)** | **4,8 ms**                                             | **3,57 ms**                                                            |
+
+> **Causa do Comportamento Textual:**
+>
+> 1. `"amor de Deus"` a frio levou 233 ms com `read=159` blocos do disco porque o dicionário `'simple'` não remove a stopword `"de"`, obrigando o GIN a ler listas invertidas longas. A quente, responde em 4,8 ms.
+> 2. `"graca e paz"` na NVA devolve **0 linhas** na busca textual porque a consulta foi feita sem acento (`"graca"`), enquanto o texto bíblico está grafado com `"graça"`. A configuração atual `'simple'` faz matching exato de caracteres e **não ignora acentos**.
 
 ---
 
 ### 4. Análise da Busca Vetorial (`binaryVectorSearch` vs `fullVectorSearch`)
 
-#### A. Busca Vetorial Binária (`binaryVectorSearch`) — Modo Compacto (HNSW)
+#### A. Busca Vetorial Binária Real (`binaryVectorSearch`) — Modo Compacto (HNSW)
 
-##### SQL Exato Executado pelo Backend (`search.service.ts`):
+##### SQL Exato Executado:
 
 ```sql
--- Dentro de transação com SET LOCAL hnsw.ef_search = 100;
-WITH candidates AS (
-  SELECT id, "bookId", chapter, verse, text, translation, embedding
+-- Dentro de transação com SET LOCAL hnsw.ef_search = 200;
+WITH candidatos AS (
+  SELECT id, "bookId", chapter, verse, translation, text, embedding
   FROM "BibleVerse"
-  WHERE translation = $1
-    AND embedding IS NOT NULL
+  WHERE embedding IS NOT NULL
+    AND ($1::text IS NULL OR translation = $1)
   ORDER BY binary_quantize(embedding)::bit(768) <~> binary_quantize($2::vector)::bit(768)
   LIMIT $3
 )
-SELECT id, "bookId", chapter, verse, text, translation,
-       1 - (embedding <=> $2::vector) as similarity
-FROM candidates
-ORDER BY similarity DESC
+SELECT id, "bookId", chapter, verse, translation, text,
+       (embedding <=> $2::vector) AS distance
+FROM candidatos
+ORDER BY distance
 LIMIT $4;
 ```
 
 ##### Medição com `EXPLAIN (ANALYZE, BUFFERS)`:
 
-| Métrica                            | Caso 1: `amor de Deus`, `BLIVRE` (`P=200`, `LIMIT 20`)                   | Caso 2: `graca e paz`, `NVA` (`P=200`, `LIMIT 20`)                    |
-| :--------------------------------- | :----------------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| **Parâmetros**                     | `$1 = 'BLIVRE'`, `$2 = vector(768)`, `$3 = 200`, `$4 = 20`               | `$1 = 'NVA'`, `$2 = vector(768)`, `$3 = 200`, `$4 = 20`               |
-| **Índice Usado**                   | `Index Scan using BibleVerse_embedding_bq_hnsw_idx` (HNSW)               | `Index Scan using BibleVerse_embedding_bq_hnsw_idx` (HNSW)            |
-| **Linhas Lidas no HNSW**           | 406 linhas inspecionadas no índice                                       | 429 linhas inspecionadas no índice                                    |
-| **Linhas Descartadas pelo Filtro** | **206 descartadas** (`translation = 'BLIVRE' AND embedding IS NOT NULL`) | **229 descartadas** (`translation = 'NVA' AND embedding IS NOT NULL`) |
-| **Linhas no CTE `candidates`**     | 200 linhas                                                               | 200 linhas                                                            |
-| **Shared Buffers (Frio)**          | `shared hit=9.645`, `read=5`                                             | `shared hit=10.447`, `read=17`                                        |
-| **Tempo de Execução (Frio)**       | **2.601,23 ms** (~2,6 s)                                                 | **1.254,42 ms** (~1,25 s)                                             |
-| **Shared Buffers (Aquecido)**      | `shared hit=9.622`, `read=0`                                             | `shared hit=10.464`, `read=0`                                         |
-| **Tempo de Execução (Aquecido)**   | **10,94 ms**                                                             | **12,32 ms**                                                          |
+| Métrica                          | Caso 1: `amor de Deus`, `BLIVRE` (`P=200`, `LIMIT 20`)     | Caso 2: `graca e paz`, `NVA` (`P=200`, `LIMIT 20`)         |
+| :------------------------------- | :--------------------------------------------------------- | :--------------------------------------------------------- |
+| **Parâmetros**                   | `$1 = 'BLIVRE'`, `$2 = vector(768)`, `$3 = 200`, `$4 = 20` | `$1 = 'NVA'`, `$2 = vector(768)`, `$3 = 200`, `$4 = 20`    |
+| **Índice Usado**                 | `Index Scan using BibleVerse_embedding_bq_hnsw_idx` (HNSW) | `Index Scan using BibleVerse_embedding_bq_hnsw_idx` (HNSW) |
+| **Shared Buffers (Frio)**        | `read=1296`                                                | `read=455`                                                 |
+| **Tempo de Execução (Frio)**     | **3.479 ms** (~3,5 s)                                      | **1.390 ms** (~1,4 s)                                      |
+| **Shared Buffers (Aquecido)**    | `read=0`                                                   | `read=0`                                                   |
+| **Tempo de Execução (Aquecido)** | **10,9 ms**                                                | **10,3 ms**                                                |
+
+> **Causa Raiz da Latência a Frio na Busca Vetorial:**
+> A lentidão a frio decorre da **leitura aleatória de páginas fora do cache** do PostgreSQL (`shared_buffers`), com custo medido de cerca de **2,7 ms por página lida do disco** (ex.: $1.296 \text{ leituras} \times 2,7 \text{ ms} \approx 3,5 \text{ s}$). Não se trata de saturação da taxa contínua de transferência de disco (5 MB/s), mas do tempo de busca e acesso aleatório para carregar páginas esparsas do grafo HNSW na memória. Uma vez carregado no cache (`read=0`), o tempo de execução cai para **10,3 a 10,9 ms**.
 
 ---
 
-#### B. Risco Crítico: Busca Vetorial Completa (`fullVectorSearch`) sem Índice HNSW
+#### B. Risco Crítico Sanado: Queda Calada para `fullVectorSearch`
 
-No código (`backend/src/search/search.service.ts:416`):
+Antes da correção, quando `VECTOR_INDEX_MODE` não estava configurado ou se `binaryVectorSearch` falhasse, o código caía silenciosamente no bloco `catch` e executava `fullVectorSearch`:
 
-```typescript
-const vectorIndexMode = process.env.VECTOR_INDEX_MODE || "full";
-```
-
-Caso a variável de ambiente `VECTOR_INDEX_MODE` não esteja explicitamente configurada como `'binary'`, o sistema recai para `fullVectorSearch`:
-
-##### SQL Executado:
+##### SQL do `fullVectorSearch`:
 
 ```sql
 SELECT id, "bookId", chapter, verse, text, translation,
@@ -252,52 +250,41 @@ ORDER BY similarity DESC
 LIMIT $3;
 ```
 
-##### Medição com `EXPLAIN (ANALYZE, BUFFERS)`:
-
-- **Plano de Execução:** `Bitmap Heap Scan` em `BibleVerse_translation_idx` filtrando `translation = 'BLIVRE'`.
-- **Linhas Lidas:** **31.102 linhas inteiras carregadas da tabela**, calculando a distância de cosseno de 768 dimensões linha a linha na CPU!
-- **Shared Buffers:** `shared hit=2.150`, `read=4.890` (varre dezenas de megabytes de páginas heap).
-- **Tempo de Execução (Frio):** **13.426 ms a 14.462 ms** (13 a 14 segundos!).
-- **Tempo de Execução (Aquecido):** **937 ms a 2.698 ms**!
-
----
-
-### 5. Diagnóstico das Causas Raízes
-
-1. **Piso Base Inegociável (500–550 ms):**
-   A chamada de inferência à API Gemini (`createEmbedding`) consome ~500 ms de latência antes mesmo do banco de dados ser tocado.
-
-2. **Diferença entre Casos na Busca Textual (1.109 ms vs 146 ms):**
-   - No caso de `"amor de Deus"`, a palavra **`"de"`** é uma preposição ultra-frequente. Como a configuração do FTS é `'simple'`, nenhuma stopword é removida. O índice GIN precisa examinar uma postings list imensa correspondente a quase todos os versículos da Bíblia. Quando o buffer de páginas GIN está frio no disco lento (5 MB/s) do Supabase Nano, a busca por `"de"` causa contenção e atinge 1.109 ms.
-   - No caso de `"graca e paz"`, os termos são substantivos com frequência muito menor, resultando em apenas 24 linhas de índice e execução rápida (18 ms a frio, 3,5 ms a quente).
-
-3. **Comportamento da Busca Vetorial Binária no Nano (1,2s–2,6s a frio vs 11ms a quente):**
-   - O índice HNSW compacto de 62 MB (`BibleVerse_embedding_bq_hnsw_idx`) requer a leitura de **~9.600 a 10.400 blocos de buffer** (~75 a 80 MB) para recuperar os $P = 200$ candidatos em uma tradução específica com `ef_search = 100` e `iterative_scan = relaxed_order`.
-   - No Supabase Nano, o `shared_buffers` total é de apenas 224 MB. Se o índice HNSW não estiver inteiramente em cache na RAM, carregar 80 MB sob o limite de I/O de 5 MB/s leva ~1,5 a 2,5 segundos.
-   - Uma vez aquecido no cache, o tempo de execução cai vertiginosamente para **10 a 12 ms**.
-
-4. **Armadilha do Fallback `VECTOR_INDEX_MODE`:**
-   O padrão no código (`|| 'full'`) é perigoso porque não existe índice HNSW 768d no Supabase Nano (ele foi removido deliberadamente para que os índices coubessem na memória). Se a variável de ambiente não estiver ativa em produção, a busca vetorial degrada para um scan sequencial de 31.000 versículos levando 14 segundos.
+- **Plano de Execução:** `Bitmap Heap Scan` em `BibleVerse_translation_idx`.
+- **Linhas Lidas:** **31.102 linhas inteiras carregadas da tabela**, calculando a distância de cosseno de 768 dimensões linha a linha na CPU.
+- **Tempo Medido:** **13.426 ms a 14.462 ms** (13 a 14 segundos a frio) e **937 ms a 2.698 ms** a quente.
+- **Correção Implementada:**
+  1. O padrão no código foi alterado para `const mode = process.env.VECTOR_INDEX_MODE || 'binary';`.
+  2. A queda silenciosa (`try/catch` engolindo erro de `binaryVectorSearch`) foi eliminada. Se o braço vetorial falhar, o erro propaga para `hybridSearchVerses`, que marca `vectorArm: 'failed'` e devolve os resultados da palavra-chave imediatamente, sem disparar scan sequencial de 31 mil versículos. `fullVectorSearch` só é acionado com `VECTOR_INDEX_MODE=full` explícito.
 
 ---
 
-### 6. Proposta de Ajustes Compatíveis com o Supabase Nano
+### 5. Pendências Registradas (sem implementação nesta etapa)
 
-Sem criar novos índices, sem escrever no banco e sem DDL pesado:
+As pendências identificadas não devem ser implementadas de imediato e ficam registradas para execução planejada:
 
-1. **Tornar `'binary'` o padrão inegociável no código:**
-   Em `backend/src/search/search.service.ts`, alterar o fallback para:
+#### Pendência A — Tratamento de Acentos no Full-Text Search
 
-   ```typescript
-   const vectorIndexMode = process.env.VECTOR_INDEX_MODE || "binary";
-   ```
+A busca textual atual com dicionário `'simple'` falha quando o usuário pesquisa termos sem acento (ex.: `"graca"` não encontra `"graça"`).
 
-   Isso blinda a aplicação contra o fallback desastroso para scan sequencial de 31.000 linhas caso a variável falte no Render.
+- **Ação:** Recriar o índice `BibleVerse_text_fts_idx` utilizando `unaccent` ou dicionário `'portuguese'`.
+- **Regra:** **Exige DDL**. Deve ser executado à noite com `CREATE INDEX CONCURRENTLY "BibleVerse_text_fts_unaccent_idx" ...`.
+- **Estimativa no Nano:**
+  - Tamanho atual do índice GIN: **37 MB** (38.477.824 bytes para 186.476 linhas).
+  - O novo índice consumirá aproximadamente **35 a 40 MB** adicionais em disco durante a criação concorrente.
+  - Tempo estimado no Nano (com `maintenance_work_mem = 32 MB`): **45 a 90 segundos**.
+  - O índice antigo (`BibleVerse_text_fts_idx`) deve ser mantido intacto até o novo índice estar 100% criado e validado em produção.
 
-2. **Calibrar o Pool de Candidatos $P$ do HNSW Binário:**
-   Reduzir `binaryCandidatePool` de `200` para `80` ou `100` para buscas com tradução única.
-   - **Impacto:** Corta a quantidade de páginas HNSW lidas de ~10.000 para ~4.500 blocos (de 80 MB para ~35 MB).
-   - **Benefício no Nano:** O índice cabe muito mais facilmente no `shared_buffers` de 224 MB, reduzindo o tempo de I/O frio pela metade sem comprometer a qualidade do Top-20 final reordenado pelo vetor completo.
+#### Pendência B — Calibração de $P$ e $ef\_search = 100$
 
-3. **Otimização de Stopwords no Full-Text Search:**
-   Para traduções em português (`BLIVRE`, `NVA`), ajustar a query de texto para ignorar termos com 2 ou menos caracteres (`"de"`, `"e"`, `"a"`) ou utilizar o analisador `'portuguese'` em vez de `'simple'`, eliminando a varredura desnecessária da lista invertida de preposições no GIN, que causou o pico de 1.109 ms em `"amor de Deus"`.
+Avaliar a redução de $P$ (atualmente 200) e $ef\_search$ para 100, visando diminuir pela metade a leitura de páginas aleatórias a frio no HNSW.
+
+- **Regra:** Só pode ser adotada após medição à noite do recall do Top-20 contra o cosseno exato (ground truth), utilizando uma bateria de teste com **30 perguntas reais**.
+
+#### Pendência C — Extensões de Memória e Monitoramento do Cache
+
+Inspeção executada no PostgreSQL Supabase via `pg_available_extensions` para `pg_buffercache` e `pg_prewarm` (estritamente leitura, sem instalar nada):
+
+- `pg_buffercache`: disponível (versão 1.5), porém **não instalada** (`installed_version: null`).
+- `pg_prewarm`: disponível (versão 1.2), porém **não instalada** (`installed_version: null`).
+- Como a extensão `pg_buffercache` não está instalada no banco, não é possível inspecionar o número de páginas exatas do índice `BibleVerse_embedding_bq_hnsw_idx` atualmente residentes no `shared_buffers`. Nenhuma extensão foi instalada.
