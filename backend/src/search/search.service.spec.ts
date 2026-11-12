@@ -663,8 +663,41 @@ describe('SearchService', () => {
         expect(results[0].id).toBe('v2');
       });
 
-      it('no modo full (padrão), executa diretamente a query de cosseno sem transação nem binary_quantize', async () => {
-        delete process.env.VECTOR_INDEX_MODE; // padrão 'full'
+      it('sem VECTOR_INDEX_MODE no ambiente, adota o padrão binary (Supabase Nano)', async () => {
+        delete process.env.VECTOR_INDEX_MODE;
+
+        embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+        prisma.$transaction.mockImplementation(async (cb: any) => {
+          const fakeTx = {
+            $executeRawUnsafe: jest.fn().mockResolvedValue(1),
+            $queryRaw: jest.fn().mockResolvedValue([
+              {
+                id: 'v1',
+                bookId: 43,
+                chapter: 3,
+                verse: 16,
+                translation: 'BLIVRE',
+                text: 'Porque Deus amou o mundo...',
+                similarity: 0.95,
+              },
+            ]),
+          };
+          return cb(fakeTx);
+        });
+        prisma.$queryRaw.mockResolvedValueOnce([]); // keyword search
+
+        const results = await service.hybridSearchVerses('amor');
+
+        expect(prisma.$transaction).toHaveBeenCalledWith(
+          expect.any(Function),
+          expect.objectContaining({ timeout: 15000, maxWait: 5000 }),
+        );
+        expect(results).toHaveLength(1);
+        expect(results[0].id).toBe('v1');
+      });
+
+      it('no modo full explícito, executa diretamente a query de cosseno sem transação nem binary_quantize', async () => {
+        process.env.VECTOR_INDEX_MODE = 'full';
 
         embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
         prisma.$queryRaw

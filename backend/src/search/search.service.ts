@@ -413,7 +413,7 @@ export class SearchService {
       .map((n: number) => (Number.isFinite(n) ? n : 0))
       .join(',')}]`;
 
-    const mode = process.env.VECTOR_INDEX_MODE || 'full';
+    const mode = process.env.VECTOR_INDEX_MODE || 'binary';
     if (mode === 'binary') {
       try {
         return await this.binaryVectorSearch(literal, poolSize, translation);
