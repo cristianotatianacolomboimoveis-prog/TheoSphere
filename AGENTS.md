@@ -289,6 +289,12 @@ A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licen�
 - **Catálogo Canônico Estruturado:** **108 obras** cadastradas em `backend/src/bible/classic-catalog.ts`, sincronizadas automaticamente com `frontend-v2/src/data/classicCatalog.ts` via `node scripts/sync-catalog.mjs`.
 - Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `backend/scratch/medir-tamanho-banco.js` ou `backend/scratch/diagnostico-espacos-vetoriais.js` para medir o acervo persistente no PostgreSQL.
 
+### ⚠️ Hardcoded userId em drive-rag.service.ts:63
+
+- **Arquivo:** `backend/src/rag/drive-rag.service.ts:63`
+- **Problema:** O cron de sincronização diária (`handleDailySync`) possui um UUID fixo de usuário (`userId = 'e850cb80-d129-4810-957b-bc94d1fe2aee' // Usuário principal/admin`).
+- **Estado:** O cron agora está protegido e inoperante por padrão pela trava de ingestão legada (`ALLOW_LEGACY_LIBRARY_INGEST !== 'true'`), mas o `userId` hardcoded precisa ser parametrizado via variável de ambiente (`SYSTEM_ADMIN_USER_ID`) ou associado a um usuário de sistema quando a migração para `Resource` for concluída.
+
 ### ⚖️ Portão de licença
 
 O acervo aceita **apenas domínio público**. O portão é fail-closed por design: na

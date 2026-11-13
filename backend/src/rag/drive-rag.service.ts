@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { google } from 'googleapis';
 import { PrismaService } from '../prisma.service';
@@ -56,6 +56,12 @@ export class DriveRagService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailySync() {
+    if (process.env.ALLOW_LEGACY_LIBRARY_INGEST !== 'true') {
+      this.logger.warn(
+        'ingestão legada desativada; migração para Resource pendente',
+      );
+      return;
+    }
     this.logger.log(
       '--- [AUTO] Iniciando sincronização diária da biblioteca Drive ---',
     );
@@ -88,6 +94,11 @@ export class DriveRagService {
     userId?: string,
     tradition: string = 'Geral',
   ) {
+    if (process.env.ALLOW_LEGACY_LIBRARY_INGEST !== 'true') {
+      throw new ConflictException(
+        'ingestão legada desativada; migração para Resource pendente',
+      );
+    }
     const targetFolderId = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
     const targetUserId = userId || 'public-guest';
     if (!targetFolderId) {
@@ -518,6 +529,11 @@ export class DriveRagService {
     fileName: string;
     message?: string;
   }> {
+    if (process.env.ALLOW_LEGACY_LIBRARY_INGEST !== 'true') {
+      throw new ConflictException(
+        'ingestão legada desativada; migração para Resource pendente',
+      );
+    }
     const targetUserId = userId || 'public-guest';
     this.logger.log(
       `[Ingest URL] Processando download teológico: ${url} (${fileName})`,
