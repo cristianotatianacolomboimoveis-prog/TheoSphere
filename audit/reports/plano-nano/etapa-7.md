@@ -302,31 +302,219 @@ Conforme o planejamento, esta etapa foi dividida em três grupos de código isol
 - **Branch:** `fix/rag-biblioteca-contagem`
 - **Commit:** `0d1c097` (`fix(rag): eliminate double searchDriveLibrary call and include library docs in contextDocCount`)
 
-#### 1. Problemas Identificados
+#### 1. Git Diff Real do Commit 0d1c097
+
+```diff
+diff --git a/backend/src/rag/rag-context-builder.service.ts b/backend/src/rag/rag-context-builder.service.ts
+index 7a1908c..378fe25 100644
+--- a/backend/src/rag/rag-context-builder.service.ts
++++ b/backend/src/rag/rag-context-builder.service.ts
+@@ -52,8 +52,16 @@ export class RagContextBuilderService {
+   async tentarRespostaDaBiblioteca(
+     query: string,
+     userId: string | undefined,
++    preloadedHits?: Array<{
++      title: string;
++      content: string;
++      similarity: number;
++      fileName?: string;
++    }>,
+   ): Promise<{ content: string; sources: RagSource[] } | null> {
+-    const hits = await this.userContext.searchDriveLibrary(query, userId);
++    const hits =
++      preloadedHits ??
++      (await this.userContext.searchDriveLibrary(query, userId));
+     const relevantes = hits.filter(
+       (h) => h.similarity >= this.LIBRARY_DIRECT_THRESHOLD,
+     );
+@@ -99,8 +107,16 @@ export class RagContextBuilderService {
+     query: string,
+     userId: string | undefined,
+     sources: RagSource[],
++    preloadedHits?: Array<{
++      title: string;
++      content: string;
++      similarity: number;
++      fileName?: string;
++    }>,
+   ): Promise<string> {
+-    const hits = await this.userContext.searchDriveLibrary(query, userId);
++    const hits =
++      preloadedHits ??
++      (await this.userContext.searchDriveLibrary(query, userId));
+     if (hits.length === 0) return '';
+
+     for (const h of hits) {
+diff --git a/backend/src/rag/rag.service.spec.ts b/backend/src/rag/rag.service.spec.ts
+index 32c5c88..259bfa9 100644
+--- a/backend/src/rag/rag.service.spec.ts
++++ b/backend/src/rag/rag.service.spec.ts
+@@ -124,7 +124,13 @@ describe('RagService', () => {
+     });
+
+     it('removes control characters', () => {
+-      const out = sanitize('hello world !');
++      const out = sanitize(
++        'hello' +
++          String.fromCharCode(0) +
++          'world' +
++          String.fromCharCode(31) +
++          '!',
++      );
+       expect(out).toBe('helloworld!');
+     });
+
+@@ -239,6 +245,45 @@ describe('RagService', () => {
+       expect(typeof res.content).toBe('string');
+       expect(res.content.length).toBeGreaterThan(0);
+     });
++
++    it('um chat com acerto na biblioteca chama searchDriveLibrary uma vez (reaproveitamento sem busca dupla)', async () => {
++      const searchSpy = jest.spyOn(userContext, 'searchDriveLibrary');
++      searchSpy.mockClear();
++
++      (userContext.searchDriveLibrary as jest.Mock).mockResolvedValue([
++        {
++          title: 'Institutas da Religião Cristã',
++          fileName: 'institutas.epub',
++          content: 'A eleição eterna de Deus...',
++          similarity: 0.82,
++        },
++      ]);
++
++      await service.chat(QUERY);
++      expect(searchSpy).toHaveBeenCalledTimes(1);
++    });
++
++    it('resposta com 2 trechos da biblioteca e nenhuma nota resulta em contextUsed: true e contextDocCount: 2', async () => {
++      (userContext.searchDriveLibrary as jest.Mock).mockResolvedValue([
++        {
++          title: 'Institutas da Religião Cristã - Livro III',
++          fileName: 'institutas.epub',
++          content: 'A predestinação pela qual Deus adotou a uns...',
++          similarity: 0.82,
++        },
++        {
++          title: 'Comentário aos Romanos',
++          fileName: 'calvino-romanos.epub',
++          content: 'O propósito soberano da graça divina...',
++          similarity: 0.81,
++        },
++      ]);
++      (userContext.buildUserContext as jest.Mock).mockResolvedValue('');
++
++      const res = await service.chat(QUERY, 'user-123');
++      expect(res.contextUsed).toBe(true);
++      expect(res.contextDocCount).toBe(2);
++    });
+   });
+
+   describe('chat() — respostas validadas como contexto secundário', () => {
+diff --git a/backend/src/rag/rag.service.ts b/backend/src/rag/rag.service.ts
+index a1ba59a..d246e00 100644
+--- a/backend/src/rag/rag.service.ts
++++ b/backend/src/rag/rag.service.ts
+@@ -470,7 +470,21 @@ export class RagService {
+     }
+
+     // ═══ ETAPA 1.2: Biblioteca do usuário responde sozinha? ═══
++    let preloadedLibraryHits:
++      | Array<{
++          title: string;
++          content: string;
++          similarity: number;
++          fileName?: string;
++        }>
++      | undefined;
++
+     if (!jsonMode) {
++      preloadedLibraryHits =
++        (await this.optionalContext('RAG', 'busca na biblioteca', null, () =>
++          this.userContext.searchDriveLibrary(sanitizedQuery, userId),
++        )) ?? undefined;
++
+       const daBiblioteca = await this.optionalContext(
+         'RAG',
+         'resposta da biblioteca',
+@@ -479,6 +493,7 @@ export class RagService {
+           this.contextBuilderInstance.tentarRespostaDaBiblioteca(
+             sanitizedQuery,
+             userId,
++            preloadedLibraryHits,
+           ),
+       );
+       if (daBiblioteca) {
+@@ -531,6 +546,7 @@ export class RagService {
+           sanitizedQuery,
+           userId,
+           collectedSources,
++          preloadedLibraryHits,
+         ),
+     );
+     const libraryHasHits = driveLibraryContext.length > 0;
+@@ -606,11 +622,11 @@ export class RagService {
+     }
+
+     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
+-    const contextDocCount = (
++    const personalDocCount = (
+       userContextText.match(/--- 📝|--- 📖|--- 🖍️|--- 📚|--- 🔖/g) || []
+     ).length;
+
+-    if (contextDocCount > 0) {
++    if (personalDocCount > 0) {
+       collectedSources.push({
+         type: 'personal',
+         title: 'Conteúdo pessoal do usuário',
+@@ -619,6 +635,10 @@ export class RagService {
+       });
+     }
+
++    const libraryDocCount = (driveLibraryContext.match(/\[Obra:/g) || [])
++      .length;
++    const contextDocCount = personalDocCount + libraryDocCount;
++
+     // ═══ ETAPA 3: Buscar bases de conhecimento ═══
+     const { theologicalContext, bibleContext } =
+       await this.gatherKnowledgeContexts(
+@@ -1000,10 +1020,10 @@ export class RagService {
+     }
+     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
+
+-    const contextDocCount = (
++    const personalDocCount = (
+       userContextText.match(/--- 📝|--- 📖|--- 🖍️|--- 📚|--- 🔖/g) || []
+     ).length;
+-    if (contextDocCount > 0) {
++    if (personalDocCount > 0) {
+       streamSources.push({
+         type: 'personal',
+         title: 'Conteúdo pessoal do usuário',
+@@ -1012,6 +1032,10 @@ export class RagService {
+       });
+     }
+
++    const libraryDocCount = (driveLibraryContext.match(/\[Obra:/g) || [])
++      .length;
++    const contextDocCount = personalDocCount + libraryDocCount;
++
+     const { theologicalContext, bibleContext } =
+       await this.gatherKnowledgeContexts(
+         sanitizedQuery,
+```
+
+#### 2. Problemas Identificados
 
 1. **Busca Dupla na Biblioteca Clássica:** A cada pergunta submetida ao chat (`RagService.chat`), a função `searchDriveLibrary` era invocada duas vezes:
    - Primeiro em `tentarRespostaDaBiblioteca` (passo 1.2), para avaliar se a biblioteca atendia a pergunta de imediato;
    - Segundo em `buildDriveLibraryContext` (passo 1.55), para montar o bloco de contexto para o modelo gerador quando a tentativa direta não respondia.
      Isso duplicava chamadas vetoriais, parsing e consultas SQL ao banco de dados Supabase Nano a cada requisição do chat.
-2. **Subcontagem de Documentos de Contexto:** `contextDocCount` (linha 609 de `rag.service.ts`) apenas contava blocos `[Documento ...]`, correspondentes às notas e destaques do contexto pessoal do usuário. Quando a resposta utilizava exclusivamente trechos da biblioteca de obras clássicas (`[Obra: ...]`), `contextDocCount` permanecia `0` e `contextUsed` era falsamente reportado como `false`, impedindo o frontend de indicar que fontes clássicas foram consumidas na resposta.
+2. **Subcontagem de Documentos de Contexto:** `contextDocCount` apenas contava blocos do contexto pessoal do usuário. Quando a resposta utilizava exclusivamente trechos da biblioteca de obras clássicas (`[Obra: ...]`), `contextDocCount` permanecia `0` e `contextUsed` era falsamente reportado como `false`.
 
-#### 2. Solução Implementada
+#### 3. Solução Implementada
 
-1. No método `RagService.chat`:
-   - No passo 1.2, pré-carrega os chunks da biblioteca:
-     `const preloadedLibraryHits = await this.driveRagService.searchDriveLibrary(prompt, 3, libraryFilter).catch(() => []);`
-   - Repassa `preloadedLibraryHits` para `tentarRespostaDaBiblioteca(prompt, libraryFilter, preloadedLibraryHits)`;
-   - Caso não haja resposta direta, no passo 1.55 repassa `preloadedLibraryHits` para `buildDriveLibraryContext(prompt, libraryFilter, preloadedLibraryHits)`, eliminando a segunda busca vetorial e SQL.
-2. No cálculo de `contextDocCount` (em `chat` e `chatStream`):
-   - Extrai e soma as citações de obras da biblioteca clássica:
-     ```typescript
-     const personalDocCount = (contextText.match(/\[Documento \d+\]/g) || [])
-       .length;
-     const libraryDocCount = (contextText.match(/\[Obra: [^\]]+\]/g) || [])
-       .length;
-     const contextDocCount = personalDocCount + libraryDocCount;
-     const contextUsed = contextDocCount > 0;
-     ```
+1. Em `RagService.chat`, pré-carrega os chunks no passo 1.2 e repassa `preloadedLibraryHits` para `tentarRespostaDaBiblioteca` e `buildDriveLibraryContext`.
+2. Em `contextDocCount` (em `chat` e `chatStream`), soma `personalDocCount` e `libraryDocCount`.
 
 #### 3. Testes Adicionados
 
@@ -358,7 +546,137 @@ Arquivo: `backend/src/rag/rag.service.spec.ts`
 - **Branch:** `fix/passage-guide-indice-remissivo`
 - **Commit:** `c1b2e93` (`fix(passage-guide): restore bracket ratio filter to discard pure index chunks`)
 
-#### 1. Problema Identificado e Medição Inicial (Item 3)
+#### 1. Git Diff Real do Commit c1b2e93
+
+```diff
+diff --git a/backend/src/bible/passage-guide.service.spec.ts b/backend/src/bible/passage-guide.service.spec.ts
+index 917e6c6..39609a8 100644
+--- a/backend/src/bible/passage-guide.service.spec.ts
++++ b/backend/src/bible/passage-guide.service.spec.ts
+@@ -227,7 +227,7 @@ describe('PassageGuideService', () => {
+
+     expect(mockResourcesService.findReferences).toHaveBeenCalledWith(
+       45008001,
+-      4,
++      10,
+     );
+     expect(g.commentaries).toHaveLength(1);
+     expect(g.commentaries[0].author).toBe('João Calvino');
+@@ -268,4 +268,72 @@ describe('PassageGuideService', () => {
+     );
+     warn.mockRestore();
+   });
++
++  it('filtra índices remissivos puros (trechos com 5 ou mais [n]) e preserva comentários exegéticos reais', async () => {
++    (prisma as any).$queryRawUnsafe = jest.fn().mockResolvedValue([
++      {
++        title: 'The City of God, Volume II',
++        author: 'Santo Agostinho',
++        content:
++          '[547] Ps. xl. 2, 3. [548] Jer. ix. 23, 24, as in 1 Cor. i. 31. [549] Lam. iv. 20. [550] Bar. iii. 35. [551] Rom. viii. 28.',
++      },
++      {
++        title: 'Commentary on Romans',
++        author: 'John Calvin',
++        content:
++          'And we know that all things work together for good to them that love God. He now draws this conclusion from what had been previously said, showing how great is the benefit of adoption.',
++      },
++    ]);
++
++    const g = await service.getGuide('BLIVRE', 45, 8, 28);
++
++    expect(g.commentaries).toHaveLength(1);
++    expect(g.commentaries[0].author).toBe('John Calvin');
++    expect(g.commentaries[0].source).toBe('Commentary on Romans');
++    expect(g.commentaries[0].content).toContain(
++      'all things work together for good',
++    );
++  });
++
++  it('filtra índices remissivos puros via ResourcesService quando há 5 ou mais [n]', async () => {
++    const mockResourcesService = {
++      findReferences: jest.fn().mockResolvedValue([
++        {
++          id: 'ref-index',
++          resourceTitle: 'Index of Scripture References',
++          author: 'Editor',
++          text: '[1] Gen 1:1 [2] Gen 1:2 [3] Gen 1:3 [4] Gen 1:4 [5] Gen 1:5 [6] Gen 1:6',
++          canonicalRef: 43003016,
++          confidence: 1.0,
++        },
++        {
++          id: 'ref-exegesis',
++          resourceTitle: 'Comentário sobre João',
++          author: 'João Calvino',
++          text: 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito. Exegese profunda sobre a amplitude do amor divino.',
++          canonicalRef: 43003016,
++          confidence: 1.0,
++        },
++      ]),
++    };
++
++    const module: TestingModule = await Test.createTestingModule({
++      providers: [
++        PassageGuideService,
++        { provide: PrismaService, useValue: prisma },
++        { provide: CrossReferencesService, useValue: crossRefs },
++        { provide: LinguisticsService, useValue: linguistics },
++        { provide: ArchaeologyService, useValue: archaeology },
++        { provide: ResourcesService, useValue: mockResourcesService },
++      ],
++    }).compile();
++
++    const pgWithResources =
++      module.get<PassageGuideService>(PassageGuideService);
++    const g = await pgWithResources.getGuide('BLIVRE', 43, 3, 16);
++
++    expect(g.commentaries).toHaveLength(1);
++    expect(g.commentaries[0].author).toBe('João Calvino');
++    expect(g.commentaries[0].source).toBe('Comentário sobre João');
++  });
+ });
+diff --git a/backend/src/bible/passage-guide.service.ts b/backend/src/bible/passage-guide.service.ts
+index dd7b1a5..c3cf6bf 100644
+--- a/backend/src/bible/passage-guide.service.ts
++++ b/backend/src/bible/passage-guide.service.ts
+@@ -204,10 +204,18 @@ export class PassageGuideService {
+       try {
+         const citations = await this.resourcesService.findReferences(
+           canonicalRef,
+-          4,
++          10,
+         );
+-        if (citations.length > 0) {
+-          return citations.map((c) => ({
++        const filtered = citations
++          .filter((c) => {
++            if (!c.text) return false;
++            const bracketCount = (c.text.match(/\[\d+\]/g) || []).length;
++            return bracketCount < 5; // descarta índices remissivos puros
++          })
++          .slice(0, 4);
++
++        if (filtered.length > 0) {
++          return filtered.map((c) => ({
+             verse: verse ?? 1,
+             author: c.author,
+             content:
+@@ -249,7 +257,11 @@ export class PassageGuideService {
+       if (!Array.isArray(rows) || rows.length === 0) return [];
+
+       return rows
+-        .filter((r) => r.content && r.content.length >= 100)
++        .filter((r) => {
++          if (!r.content || r.content.length < 100) return false;
++          const bracketCount = (r.content.match(/\[\d+\]/g) || []).length;
++          return bracketCount < 5; // descarta índices remissivos puros
++        })
+         .slice(0, 4)
+         .map((r) => {
+           let cleaned = (r.content || '')
+```
+
+#### 2. Problema Identificado e Medição Inicial (Item 3)
 
 Durante a migração para a tabela `ResourceReference` no commit `52bfb40`, o filtro de proporção de colchetes (`bracketCount >= 5`) que descartava páginas de índice remissivo puro havia sido perdido.
 Como consequência, capítulos densamente referenciados recebiam tabelas de referências cruzadas ou sumários de versículos em vez de comentários exegéticos.
@@ -414,7 +732,97 @@ Arquivo: `backend/src/bible/passage-guide.service.spec.ts`
 - **Branch:** `chore/remover-codigo-morto-ingestao`
 - **Commit:** `938ce74` (`chore(rag): remove dead sortVersesByTargetList helper and spec`)
 
-#### 1. Contexto e Motivação
+#### 1. Git Diff Real do Commit 938ce74
+
+```diff
+diff --git a/backend/src/rag/daily-embedding-budget.spec.ts b/backend/src/rag/daily-embedding-budget.spec.ts
+index f2b2d76..9d29d62 100644
+--- a/backend/src/rag/daily-embedding-budget.spec.ts
++++ b/backend/src/rag/daily-embedding-budget.spec.ts
+@@ -6,7 +6,6 @@ import {
+   evaluateEmbeddingBudgetWithEarlyExit,
+   formatLimitedPending,
+   planDailyEmbedding,
+-  sortVersesByTargetList,
+ } from './daily-embedding-budget';
+
+ // Números reais de 2026-11-08: 186.476 linhas vivas, gatilho padrão do
+@@ -175,25 +174,6 @@ describe('evaluateEmbeddingBudgetWithEarlyExit', () => {
+ });
+
+ describe('ordenação de traduções na ingestão diária', () => {
+-  it('respeita a ordem explícita da lista targets e não a ordem alfabética', () => {
+-    const targets = ['BLIVRE', 'NVA', 'TR', 'KJV'];
+-    const mockVerses = [
+-      { id: '4', translation: 'KJV', bookId: 1, chapter: 1, verse: 1 },
+-      { id: '2', translation: 'NVA', bookId: 1, chapter: 1, verse: 1 },
+-      { id: '1', translation: 'BLIVRE', bookId: 1, chapter: 1, verse: 1 },
+-      { id: '3', translation: 'TR', bookId: 40, chapter: 1, verse: 1 },
+-    ];
+-
+-    const sorted = sortVersesByTargetList(mockVerses, targets);
+-    const resultTranslations = sorted.map((v) => v.translation);
+-
+-    // Ordem da lista: BLIVRE -> NVA -> TR -> KJV
+-    expect(resultTranslations).toEqual(['BLIVRE', 'NVA', 'TR', 'KJV']);
+-
+-    // Se fosse alfabética, KJV viria antes de NVA e TR: ['BLIVRE', 'KJV', 'NVA', 'TR']
+-    expect(resultTranslations).not.toEqual(['BLIVRE', 'KJV', 'NVA', 'TR']);
+-  });
+-
+   it('garante que o script ingestao-diaria-embeddings.ts usa array_position e não ORDER BY translation', () => {
+     const scriptPath = path.resolve(
+       __dirname,
+diff --git a/backend/src/rag/daily-embedding-budget.ts b/backend/src/rag/daily-embedding-budget.ts
+index 2376aa6..9581a4a 100644
+--- a/backend/src/rag/daily-embedding-budget.ts
++++ b/backend/src/rag/daily-embedding-budget.ts
+@@ -161,42 +161,3 @@ export async function evaluateEmbeddingBudgetWithEarlyExit(
+     pendingDisplay: limited.display,
+   };
+ }
+-
+-/**
+- * Ordena versículos pela lista explícita de traduções (simulando ORDER BY array_position(targets, translation), "bookId", chapter, verse).
+- * Garante que a ordem de processamento segue exatamente a sequência definida em targets (e não a ordem alfabética).
+- */
+-export function sortVersesByTargetList<
+-  T extends {
+-    translation: string;
+-    bookId?: number;
+-    chapter?: number;
+-    verse?: number;
+-  },
+->(verses: T[], targets: string[]): T[] {
+-  return [...verses].sort((a, b) => {
+-    const posA = targets.indexOf(a.translation);
+-    const posB = targets.indexOf(b.translation);
+-    const safeA = posA === -1 ? Number.MAX_SAFE_INTEGER : posA;
+-    const safeB = posB === -1 ? Number.MAX_SAFE_INTEGER : posB;
+-    if (safeA !== safeB) return safeA - safeB;
+-    if (
+-      a.bookId !== undefined &&
+-      b.bookId !== undefined &&
+-      a.bookId !== b.bookId
+-    ) {
+-      return a.bookId - b.bookId;
+-    }
+-    if (
+-      a.chapter !== undefined &&
+-      b.chapter !== undefined &&
+-      a.chapter !== b.chapter
+-    ) {
+-      return a.chapter - b.chapter;
+-    }
+-    if (a.verse !== undefined && b.verse !== undefined && a.verse !== b.verse) {
+-      return a.verse - b.verse;
+-    }
+-    return 0;
+-  });
+-}
+```
+
+#### 2. Contexto e Motivação
 
 Na Etapa 7.1, a ordenação das traduções na ingestão diária (`ingestao-diaria-embeddings.ts`) foi delegada diretamente ao banco de dados via SQL:
 `ORDER BY array_position(${targets}::text[], translation), "bookId", chapter, verse`
@@ -450,6 +858,9 @@ GROUP BY 1, 2;
 ##### Resultado Obtido:
 
 - Todas as conexões externas ativas reportam **`ssl: true`** (criptografia TLS v1.3 negociada automaticamente pela camada de rede do Supavisor / PostgreSQL).
+
+> [!WARNING]
+> **Ressalva Crítica sobre o `pg_stat_ssl`:** O `pg_stat_ssl` no PostgreSQL reflete apenas a conexão interna entre o Supavisor (pooler) e o processo backend do Postgres. Ele **não comprova** que a conexão externa entre o Render e o pooler (porta 6543) esteja trafegando com TLS obrigatório se o cliente não exigir explicitamente via `sslmode=require` ou opções de SSL no pool.
 
 #### 2. Análise de Configuração no Backend
 
