@@ -52,8 +52,16 @@ export class RagContextBuilderService {
   async tentarRespostaDaBiblioteca(
     query: string,
     userId: string | undefined,
+    preloadedHits?: Array<{
+      title: string;
+      content: string;
+      similarity: number;
+      fileName?: string;
+    }>,
   ): Promise<{ content: string; sources: RagSource[] } | null> {
-    const hits = await this.userContext.searchDriveLibrary(query, userId);
+    const hits =
+      preloadedHits ??
+      (await this.userContext.searchDriveLibrary(query, userId));
     const relevantes = hits.filter(
       (h) => h.similarity >= this.LIBRARY_DIRECT_THRESHOLD,
     );
@@ -99,8 +107,16 @@ export class RagContextBuilderService {
     query: string,
     userId: string | undefined,
     sources: RagSource[],
+    preloadedHits?: Array<{
+      title: string;
+      content: string;
+      similarity: number;
+      fileName?: string;
+    }>,
   ): Promise<string> {
-    const hits = await this.userContext.searchDriveLibrary(query, userId);
+    const hits =
+      preloadedHits ??
+      (await this.userContext.searchDriveLibrary(query, userId));
     if (hits.length === 0) return '';
 
     for (const h of hits) {

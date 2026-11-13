@@ -470,7 +470,21 @@ export class RagService {
     }
 
     // ═══ ETAPA 1.2: Biblioteca do usuário responde sozinha? ═══
+    let preloadedLibraryHits:
+      | Array<{
+          title: string;
+          content: string;
+          similarity: number;
+          fileName?: string;
+        }>
+      | undefined;
+
     if (!jsonMode) {
+      preloadedLibraryHits =
+        (await this.optionalContext('RAG', 'busca na biblioteca', null, () =>
+          this.userContext.searchDriveLibrary(sanitizedQuery, userId),
+        )) ?? undefined;
+
       const daBiblioteca = await this.optionalContext(
         'RAG',
         'resposta da biblioteca',
@@ -479,6 +493,7 @@ export class RagService {
           this.contextBuilderInstance.tentarRespostaDaBiblioteca(
             sanitizedQuery,
             userId,
+            preloadedLibraryHits,
           ),
       );
       if (daBiblioteca) {
@@ -531,6 +546,7 @@ export class RagService {
           sanitizedQuery,
           userId,
           collectedSources,
+          preloadedLibraryHits,
         ),
     );
     const libraryHasHits = driveLibraryContext.length > 0;
@@ -606,11 +622,11 @@ export class RagService {
     }
 
     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
-    const contextDocCount = (
+    const personalDocCount = (
       userContextText.match(/--- 📝|--- 📖|--- 🖍️|--- 📚|--- 🔖/g) || []
     ).length;
 
-    if (contextDocCount > 0) {
+    if (personalDocCount > 0) {
       collectedSources.push({
         type: 'personal',
         title: 'Conteúdo pessoal do usuário',
@@ -618,6 +634,10 @@ export class RagService {
           'Notas, sermões, estudos ou destaques do Google Drive/localStorage.',
       });
     }
+
+    const libraryDocCount = (driveLibraryContext.match(/\[Obra:/g) || [])
+      .length;
+    const contextDocCount = personalDocCount + libraryDocCount;
 
     // ═══ ETAPA 3: Buscar bases de conhecimento ═══
     const { theologicalContext, bibleContext } =
@@ -1000,10 +1020,10 @@ export class RagService {
     }
     const userContextText = `${directUserContext}\n\n${hybridUserContext}`;
 
-    const contextDocCount = (
+    const personalDocCount = (
       userContextText.match(/--- 📝|--- 📖|--- 🖍️|--- 📚|--- 🔖/g) || []
     ).length;
-    if (contextDocCount > 0) {
+    if (personalDocCount > 0) {
       streamSources.push({
         type: 'personal',
         title: 'Conteúdo pessoal do usuário',
@@ -1011,6 +1031,10 @@ export class RagService {
           'Notas, sermões, estudos ou destaques do Google Drive/localStorage.',
       });
     }
+
+    const libraryDocCount = (driveLibraryContext.match(/\[Obra:/g) || [])
+      .length;
+    const contextDocCount = personalDocCount + libraryDocCount;
 
     const { theologicalContext, bibleContext } =
       await this.gatherKnowledgeContexts(
