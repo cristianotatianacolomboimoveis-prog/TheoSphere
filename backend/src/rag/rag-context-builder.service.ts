@@ -352,6 +352,33 @@ export class RagContextBuilderService {
   }
 
   /**
+   * Verifica se a pergunta cita livro e capítulo da passagem do comentário.
+   * Ex: "João 3:16" -> verifica se a query cita "João" (ou "Jo") e o capítulo "3".
+   */
+  citesBookAndChapter(query: string, reference: string): boolean {
+    const match = reference.match(/^((?:\d\s+)?[^\d:]+?)\s+(\d+)/);
+    if (!match) return false;
+    const bookName = match[1].trim().toLowerCase();
+    const chapter = match[2];
+
+    const norm = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const normQuery = norm(query);
+    const normBook = norm(bookName);
+    const baseBook = normBook.endsWith('s') ? normBook.slice(0, -1) : normBook;
+
+    const hasBook =
+      normQuery.includes(normBook) || normQuery.includes(baseBook);
+
+    const chapterRegex = new RegExp(`\\b${chapter}\\b`);
+    return hasBook && chapterRegex.test(normQuery);
+  }
+
+  /**
    * Fallback de comentários clássicos com coleta de fontes.
    */
   getFallbackCommentaryContextWithSources(
@@ -360,34 +387,37 @@ export class RagContextBuilderService {
   ): string {
     const context = this.getFallbackCommentaryContext(query);
 
-    const queryWords = query
-      .toLowerCase()
+    const norm = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const queryWords = norm(query)
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
       .filter((w) => w.length > 3);
 
     if (queryWords.length > 0) {
       const scored = CLASSIC_COMMENTARIES.map((c) => {
-        const haystack =
-          `${c.reference} ${c.author} ${c.work} ${c.text} ${c.tradition} ${c.keywords?.join(' ') || ''}`.toLowerCase();
+        const haystack = norm(
+          `${c.reference} ${c.author} ${c.work} ${c.text} ${c.tradition} ${c.keywords?.join(' ') || ''}`,
+        );
         let score = queryWords.reduce(
           (acc, word) => acc + (haystack.includes(word) ? 1 : 0),
           0,
         );
-        const normalizedQuery = query
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[̀-ͯ]/g, '');
-        const normalizedRef = c.reference
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[̀-ͯ]/g, '');
+        const normalizedQuery = norm(query);
+        const normalizedRef = norm(c.reference);
         if (normalizedQuery.includes(normalizedRef)) score += 15;
         return { entry: c, score };
       });
 
       const top = scored
-        .filter((s) => s.score > 0)
+        .filter(
+          (s) =>
+            this.citesBookAndChapter(query, s.entry.reference) || s.score >= 3,
+        )
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);
       for (const s of top) {
@@ -408,8 +438,13 @@ export class RagContextBuilderService {
    * Contexto fallback baseado em keyword matching nos comentários clássicos.
    */
   getFallbackCommentaryContext(query: string): string {
-    const queryWords = query
-      .toLowerCase()
+    const norm = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const queryWords = norm(query)
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
       .filter((w) => w.length > 3);
@@ -417,22 +452,17 @@ export class RagContextBuilderService {
     if (queryWords.length === 0) return '';
 
     const scored = CLASSIC_COMMENTARIES.map((c) => {
-      const haystack =
-        `${c.reference} ${c.author} ${c.work} ${c.text} ${c.tradition} ${c.keywords?.join(' ') || ''}`.toLowerCase();
+      const haystack = norm(
+        `${c.reference} ${c.author} ${c.work} ${c.text} ${c.tradition} ${c.keywords?.join(' ') || ''}`,
+      );
 
       let score = queryWords.reduce(
         (acc, word) => acc + (haystack.includes(word) ? 1 : 0),
         0,
       );
 
-      const normalizedQuery = query
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-      const normalizedRef = c.reference
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+      const normalizedQuery = norm(query);
+      const normalizedRef = norm(c.reference);
 
       if (normalizedQuery.includes(normalizedRef)) {
         score += 15;
@@ -442,7 +472,10 @@ export class RagContextBuilderService {
     });
 
     const top = scored
-      .filter((s) => s.score > 0)
+      .filter(
+        (s) =>
+          this.citesBookAndChapter(query, s.entry.reference) || s.score >= 3,
+      )
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
       .map((s) => s.entry);

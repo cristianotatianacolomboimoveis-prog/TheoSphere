@@ -68,6 +68,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
     work: 'Comentários sobre o Evangelho de João',
     year: '1553',
     tradition: 'Reformada',
+    keywords: ['jerusalém', 'cristo', 'verbo', 'encarnação'],
     text: "No princípio era o Verbo — João afirma que o Verbo existia antes que o mundo fosse criado. 'Era' aqui significa existência eterna. E o Verbo era Deus — João afirma de forma absoluta que ele é Deus, participando de toda a essência divina.",
   },
   {
@@ -95,6 +96,15 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
     work: 'Comentários sobre Romanos',
     year: '1540',
     tradition: 'Reformada',
+    keywords: [
+      'justificação',
+      'fé',
+      'paulo',
+      'graça',
+      'lei',
+      'pecado',
+      'redenção',
+    ],
     text: 'Todos pecaram e estão privados da glória de Deus. Paulo afirma que todos os homens estão sujeitos à condenação, sem nenhuma exceção. Este versículo destrói toda presunção de mérito humano.',
   },
   {
@@ -122,6 +132,15 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
     work: 'Exposition of the Entire Bible',
     year: '1763',
     tradition: 'Batista Calvinista',
+    keywords: [
+      'soberania',
+      'sofrimento',
+      'aflições',
+      'providência',
+      'eleição',
+      'jó',
+      'deus',
+    ],
     text: 'All things work together for good — not each one in isolation but in their combined operation under divine Providence. Even afflictions and trials are made to subserve the best interests of the elect.',
   },
   {
@@ -158,6 +177,7 @@ export const CLASSIC_COMMENTARIES: ClassicCommentary[] = [
     work: 'Comentários sobre o Gênesis',
     year: '1554',
     tradition: 'Reformada',
+    keywords: ['aliança', 'lei', 'pentateuco', 'relação', 'graça', 'criação'],
     text: "No princípio criou Deus os céus e a terra. A palavra hebraica 'bara' designa criação a partir do nada. Este versículo revela que o mundo tem uma idade: ele teve um início, não existiu desde sempre.",
   },
   {
