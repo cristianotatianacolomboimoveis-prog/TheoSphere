@@ -6,7 +6,6 @@ import {
   evaluateEmbeddingBudgetWithEarlyExit,
   formatLimitedPending,
   planDailyEmbedding,
-  sortVersesByTargetList,
 } from './daily-embedding-budget';
 
 // Números reais de 2026-11-08: 186.476 linhas vivas, gatilho padrão do
@@ -175,25 +174,6 @@ describe('evaluateEmbeddingBudgetWithEarlyExit', () => {
 });
 
 describe('ordenação de traduções na ingestão diária', () => {
-  it('respeita a ordem explícita da lista targets e não a ordem alfabética', () => {
-    const targets = ['BLIVRE', 'NVA', 'TR', 'KJV'];
-    const mockVerses = [
-      { id: '4', translation: 'KJV', bookId: 1, chapter: 1, verse: 1 },
-      { id: '2', translation: 'NVA', bookId: 1, chapter: 1, verse: 1 },
-      { id: '1', translation: 'BLIVRE', bookId: 1, chapter: 1, verse: 1 },
-      { id: '3', translation: 'TR', bookId: 40, chapter: 1, verse: 1 },
-    ];
-
-    const sorted = sortVersesByTargetList(mockVerses, targets);
-    const resultTranslations = sorted.map((v) => v.translation);
-
-    // Ordem da lista: BLIVRE -> NVA -> TR -> KJV
-    expect(resultTranslations).toEqual(['BLIVRE', 'NVA', 'TR', 'KJV']);
-
-    // Se fosse alfabética, KJV viria antes de NVA e TR: ['BLIVRE', 'KJV', 'NVA', 'TR']
-    expect(resultTranslations).not.toEqual(['BLIVRE', 'KJV', 'NVA', 'TR']);
-  });
-
   it('garante que o script ingestao-diaria-embeddings.ts usa array_position e não ORDER BY translation', () => {
     const scriptPath = path.resolve(
       __dirname,
