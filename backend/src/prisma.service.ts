@@ -13,15 +13,23 @@ import { Pool } from 'pg';
 // que envelopa o driver `pg` (8.x) já presente nas deps.
 // ─────────────────────────────────────────────────────────────────────────────
 
+export function buildPoolConfig(
+  connectionString: string,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): import('pg').PoolConfig {
+  return {
+    connectionString,
+    max: nodeEnv === 'production' ? 20 : 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    ssl: nodeEnv === 'production' ? { rejectUnauthorized: false } : undefined,
+  };
+}
+
 function buildClient(): PrismaClient {
   const connectionString =
     process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
-  const pool = new Pool({
-    connectionString,
-    max: process.env.NODE_ENV === 'production' ? 20 : 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
+  const pool = new Pool(buildPoolConfig(connectionString));
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
@@ -42,12 +50,7 @@ export class PrismaService
   constructor() {
     const connectionString =
       process.env.DATABASE_URL ?? process.env.DIRECT_URL ?? '';
-    const pool = new Pool({
-      connectionString,
-      max: process.env.NODE_ENV === 'production' ? 20 : 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
+    const pool = new Pool(buildPoolConfig(connectionString));
     const adapter = new PrismaPg(pool);
     super({ adapter });
     this.pool = pool;
