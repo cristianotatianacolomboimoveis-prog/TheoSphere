@@ -61,3 +61,30 @@ Histórico de entregas, melhorias e marcos de desenvolvimento do TheoSphere.
 45. **Expansão da Biblioteca Teológica Livre & História da Igreja (2026-11-05):** Inclusão de Eusébio, Philip Schaff, Didaquê, Pais da Igreja e Credos Ecumênicos no catálogo canônico (108 obras mapeadas).
 46. **Sistema de Planos e Limites de IA em BRL (/pricing) (2026-11-05):** Starter (R$ 14,90), Plus (R$ 24,90), Pro (R$ 39,90) e Church (R$ 99,90) com cotas de IA estruturadas.
 47. **Perfil Altimétrico Interativo do Terreno Bíblico (Elevation Profile HUD) (2026-11-05):** Motor gráfico de altimetria e relevo com cumes bíblicos e distâncias geodésicas.
+
+---
+
+## Plano Nano — Etapa 7: Ingestão Diária, Auditoria de Busca e Correções de Produção (2026-11-16)
+
+- **7.1 Ingestão Diária e Saneamento de Vetores Anômalos:**
+  - Anulados no PostgreSQL **2.630 vetores anômalos** (`norma < 0.20` ou `> 0.85`), sendo **1.400 em BLIVRE**, **730 em NVA** e **500 em TR** (0 anulações na KJV), conforme registrado no relatório da Etapa 7.
+  - Implementado workflow seguro `.github/workflows/anular-vetores-anomalos.yml` (commit `94f154c`) com `dry_run: true` por padrão para auditorias manuais sob demanda (`workflow_dispatch`).
+  - Corrigida a ordenação de prioridade da ingestão diária via `ORDER BY array_position(...)` (commit `04201fb`).
+  - Ajustado o agendamento da ingestão diária para o cron `17 5 * * *` UTC (commit `df48f34`).
+- **7.2 Diagnóstico e Remoção de Queda Calada na Busca Vetorial:**
+  - Configurado o padrão `VECTOR_INDEX_MODE=binary` em `SearchService` (commit `f93ffdc`).
+  - Eliminado fallback silencioso para `fullVectorSearch` em caso de erro no braço binário (commit `c6db0ec`), propagando a falha para o catch externo que marca `meta.vectorArm = 'failed'`.
+  - Diagnóstico profundo com `EXPLAIN (ANALYZE, BUFFERS)` demonstrando que a latência inicial a frio (~2,5 a 3,5 s) advém de leituras aleatórias de páginas fora do buffer cache no Supabase Nano (~2,7 ms/página), e não de throttling de I/O de disco.
+- **7.3 Correções de RAG, Catálogo e Segurança de Ingestão:**
+  - **Cache de Busca da Biblioteca (Commit `0d1c097`):** Eliminada consulta duplicada de embeddings em `tentarRespostaDaBiblioteca` e `buildDriveLibraryContext`, reaproveitando o resultado e corrigindo a contagem de fontes da biblioteca em `contextDocCount` / `contextUsed`.
+  - **Filtro de Índice Remissivo Denso (Commit `c1b2e93`):** Restaurado filtro heurístico que descarta trechos com $\ge 5$ referências em colchetes `[n]`, eliminando índices puros e preservando comentários exegéticos reais.
+  - **Remoção de Código Morto (Commit `938ce74`):** Eliminada função não utilizada `sortVersesByTargetList` após delegação da ordenação ao SQL.
+  - **TLS no Pool do Prisma (Commit `bc6f24c`):** Configurado `ssl: { rejectUnauthorized: false }` no pool de conexões do Prisma em produção (`NODE_ENV === 'production'`).
+  - **Trava de Segurança de `library_book` (Commit `821c405`):** Bloqueada ingestão legada de livros no `UserEmbedding` (`ingest`, `ingest-url`, `cron`) sem a variável `ALLOW_LEGACY_LIBRARY_INGEST=true`.
+  - **Trava no Reindex e Keywords Honestas (Commit `58e4545`):** Inserida trava de segurança antes de `deleteMany` no método `reindex` e removidas palavras-chave artificiais de `classic-commentaries.ts`.
+- **7.4 Medição Noturna de Recall e Auditoria de Anomalias (Commits `d64055a` e `64a4ef1`):**
+  - Varredura paginada de **132.960 versículos** com embedding no PostgreSQL em transação única `READ ONLY` com `statement_timeout = 15s`: **0 anomalias** (< 0,20 ou > 0,85) em todas as traduções auditadas (`BLIVRE`, `WEB`, `LXX`, `WLC`, `KJV`).
+  - Avaliação empírica de 30 consultas semânticas reais contra o cálculo exato de ponto flutuante em memória:
+    - **BLIVRE:** Recall@10 médio de **97,3%**, Recall@20 médio de **95,7%**, latência mediana de **374 ms**.
+    - **KJV:** Recall@10 médio de **94,0%**, Recall@20 médio de **90,0%**, latência mediana de **267 ms**.
+  - **Pendência B Fechada:** Validação empírica de que a sobre-recuperação binária quantizada com $P = 200$ e reordenação fina com `<=>` preserva o ranking exato com ampla folga de memória (índice em 65 MB, soma dos HNSW em 83,69 MB) sem necessidade de mudanças no código.
