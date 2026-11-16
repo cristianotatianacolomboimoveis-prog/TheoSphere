@@ -11,16 +11,18 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-08** (fechamento da Fase 1 publicado na `main`).
+Última sessão: **2026-11-16** (fechamento da Etapa 7 / Etapa 8 publicado na `main`).
 
-- **Backend:** 503 testes passando (54 specs Jest), lint 0, typecheck 0, static-checks 0.
-- **Frontend:** 67 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
+- **Backend:** 634 testes passando (65 specs Jest), lint 0, typecheck 0, static-checks 0.
+- **Frontend:** 69 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` (Vercel conectada ao Git: push na `main` publica).
 - **Backend Render:** `https://theosphere.onrender.com`, deploy automático pela `main` **funcionando**. ⚠️ O backend NÃO tem `setGlobalPrefix`: cada controller declara `api/v1/...` (só o health também). Sonde sempre com `/api/v1/<rota>` e um método que a rota aceita — sondar `GET` numa rota `POST` dá 404 e já gerou um falso diagnóstico de "Render parado".
-- **Banco Supabase:** 1.512 MB (reduzido de 1.946 MB após fechamento da Etapa 5 do Plano Nano), plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 22 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
+- **Banco Supabase:** 1.516 MB (1.517 MB no raw bytes), plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 22 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
 - **IA em produção restabelecida (2026-11-07):** chave nova do Gemini no Render; `/health/ai` = `ok`, chat com `degraded: false` (conferido de forma independente). No Render, `GEMINI_MODEL=gemini-3.5-flash` sobrepõe o padrão do código (`gemini-3.8-flash`), que estourava o timeout de 30 s. Ao mudar o padrão no código, lembre que a variável do Render prevalece. `AI_CREDITS_FREE_MONTHLY=100` ativo (smoke: `limite: 100`). `LIBRARY_VECTOR_SOURCE=resource_chunk` ativo no Render para busca na biblioteca via índice compacto (`ResourceChunk_embedding_bq_hnsw_idx`, 17 MB).
-- **Acervo e Índice de Recursos:** 88 obras distintas no `Resource` (89 entradas de catálogo), 45.092 chunks em `ResourceChunk` com embeddings `gemini:gemini-embedding-001:768` e índice compacto HNSW bit(768) de 17 MB; 140.286 referências em `ResourceReference` (31.912 `heading` + 108.374 `inline`); `UserEmbedding` higienizado e compacto (152 kB, 15 `note` + 15 `highlight`, 0 `book_chunk`); soma total dos índices vetoriais no banco: **79,88 MB** (teto do Plano Nano < 150 MB atendido com ampla folga); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`). Backup dos book_chunk preservado em `~/.theosphere_backups/user_embedding_book_chunks_20261111.jsonl.gz`.
-- **Plano Nano — Etapa 6 (Ingestão Diária KJV via GitHub Actions, 2026-11-11):** Segredos `SUPABASE_DIRECT_URL` e `GEMINI_API_KEY` configurados no GitHub via stdin; workflow `ingestao-diaria-embeddings.yml` testado (dry-run aprovado) e executado com rodada inicial pequena de 200 versículos (200/200 gravados em 36 s, restando 13.877 pendentes medidos via `BibleVerse_embedding_pending_idx`); `BibleVerse_embedding_bq_hnsw_idx` com 62 MB; `n_dead_tup` = 200; busca em produção da KJV respondendo em 4.4 s com `vectorArm: 'ok'`. O restante roda no agendamento noturno das 03:00 BRT (`0 6 * * *` UTC) de forma autônoma.
+- **Acervo e Índice de Recursos:** 88 obras distintas no `Resource` (89 entradas de catálogo), 45.092 chunks em `ResourceChunk` com embeddings `gemini:gemini-embedding-001:768` e índice compacto HNSW bit(768) de 17 MB; 140.286 referências em `ResourceReference` (31.912 `heading` + 108.374 `inline`); `UserEmbedding` higienizado e compacto (34 a 40 linhas, 20 `note` + 20 `highlight`, ~296 kB, 0 `book_chunk`); índice compacto `BibleVerse_embedding_bq_hnsw_idx` com **65 MB**; soma total dos índices vetoriais no banco: **83,69 MB** (87.752.704 bytes; teto do Plano Nano < 150 MB atendido com ampla folga); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`). Backup dos book_chunk preservado em `~/.theosphere_backups/user_embedding_book_chunks_20261111.jsonl.gz`.
+- **Busca Vetorial Binária em Duas Fases (`VECTOR_INDEX_MODE=binary`, padrão):** Recuperação candidata de $P = 200$ versículos via índice binário compacto (`bit(768)` com Hamming `<~>`), com `ef_search = 200` e `iterative_scan = 'relaxed_order'`, reordenados no banco com o vetor completo `<=>` (LIMIT 20). Recall empírico medido na Etapa 7.4 contra o ground-truth exato de ponto flutuante: BLIVRE 97,3% (Recall@10) / 95,7% (Recall@20), KJV 94,0% (Recall@10) / 90,0% (Recall@20).
+- **Plano Nano — Ingestão Diária KJV via GitHub Actions (2026-11-16):** Workflow `ingestao-diaria-embeddings.yml` configurado com cron `17 5 * * *` UTC (02:17 BRT), que dispara com cerca de 7 h de atraso na fila compartilhada do GitHub Actions. KJV com 6.507 pendentes no momento da medição da Etapa 7.4 (4.507 pendentes medidos após rodada subsequente).
+- **Workflow de Anulação de Vetores Anômalos:** `anular-vetores-anomalos.yml` configurado exclusivamente para disparo manual (`workflow_dispatch`), com `dry_run: true` ativo por padrão. Medição da Etapa 7.4 em 132.960 versículos: **0 anomalias** (< 0,20 ou > 0,85) em todas as traduções com vetor (`BLIVRE`, `WEB`, `LXX`, `WLC`, `KJV`).
 
 > **Histórico de entregas anteriores (itens 1 a 47):** Foi migrado integralmente para [CHANGELOG.md](CHANGELOG.md).
 
@@ -74,14 +76,17 @@ lido por Antigravity, Cursor, Claude Code e afins.
    - **Migração automática:** o `start` (package.json e Dockerfile) roda `prisma migrate deploy` a cada deploy. A migração de halfvec estava em `prisma/migrations/` e seria aplicada sem D3. Ela foi movida para `docs/architecture/sql/`. **Atenção:** `20261105154000_billing_events` e `20261105163000_annotations` continuam na pasta e precisam de banco gravável. Com o Supabase em read-only, `migrate deploy` falha e o novo backend não sobe.
    - **Regressão no RAG:** depois de T0.2, uma falha de embedding (ex.: 429 do Gemini) rejeitava o `Promise.all` e derrubava também os contextos bíblico, léxico e de comentários, com log só em `debug`. Agora `RagService.gatherKnowledgeContexts` usa `Promise.allSettled` e registra em `warn` cada base indisponível. Coberto em `rag.service.spec.ts`.
 
-### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6)
+### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6, Decisões A e C)
 
 - **D1:** Revogar o token do Railway exposto em `scripts/check-production-health.ts` no painel do Railway.
 - **D2:** Escolher e contratar gateway de pagamento (Mercado Pago, Asaas, Stripe) e configurar credenciais no dashboard do Render.
-- **D3:** Decisão sobre o disco do Supabase: upgrade para plano Pro ($25/mês) OU aprovação da migração de compressão `halfvec` (T0.3).
+- **D3 (SUPERADA / DESCARTADA):** Decisão sobre compressão de disco via `halfvec(768)` no Supabase. Superada pelo índice binário quantizado bit(768) de 65 MB (`BibleVerse_embedding_bq_hnsw_idx`), que estabilizou o banco em 1.516 MB e o consumo de memória sem alteração de schema. O script SQL correspondente foi preservado e renomeado para `docs/architecture/sql/halfvec_compression.DESCARTADO-substituido-por-binary-quantize.sql`.
 - **D4:** Licenciamento comercial de traduções modernas brasileiras de púlpito (ARA/ARC/NAA — SBB; NVI — Biblica).
 - **D5:** Orçamento mensal de infraestrutura (Render pago, Redis dedicado, CDN de assets).
 - **D6:** Definição do público prioritário (pastoral/homilético vs seminarista/acadêmico) para ordenação de entregas da Fase 2.
+- **Decisão A (Nova):** Busca por palavra que ignora acentos (FTS). A busca textual atual diferencia diacríticos na NVA e BLIVRE (ex.: "graca e paz" retorna 0 resultados onde o texto traz "graça"). Requer criação de novo índice FTS sem acentos (`unaccent` ou dicionário sem diacríticos), criado à noite com `CREATE INDEX CONCURRENTLY`. Logos e Accordance ignoram acentos por padrão.
+- **Decisão C (Nova):** Instalação e governança de extensões no PostgreSQL Supabase (ex.: extensão `unaccent`).
+- **Pendência conhecida de latência:** Latência com cache frio (cerca de 2,5 a 3,5 s na primeira consulta vetorial aleatória após período ocioso), causada pela leitura de páginas fora do buffer cache do Supabase Nano (~2,7 ms por página lida de disco), estabilizando para 10 a 20 ms nas consultas subsequentes a quente.
 
 ---
 
@@ -103,8 +108,19 @@ busca morfológica no original e latência de milissegundos.
 
 **Produção:** backend em Render (`https://theosphere.onrender.com`, free tier —
 auto-sleep de 15 min, cold start de ~60 s); frontend em Vercel
-(`https://frontend-v2-lake.vercel.app`, deploy por `npx vercel --prod`, sem
-repo Git conectado); banco em Supabase.
+(`https://frontend-v2-lake.vercel.app`, deploy automático pelo push na `main`); banco em Supabase.
+
+### 2.1 Variáveis de Ambiente e Segredos de Infraestrutura
+
+| Variável / Segredo            | Onde é definida                   | Efeito / Comportamento                                                                                                                                                                      |
+| :---------------------------- | :-------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VECTOR_INDEX_MODE`           | Render (Dashboard)                | Modo de busca vetorial na Bíblia: `binary` (padrão) para busca em duas fases (candidatos via índice bit(768) + reordenação fina com `<=>`); `full` para busca direta exata com `<=>`.       |
+| `LIBRARY_VECTOR_SOURCE`       | Render (Dashboard)                | Fonte vetorial do acervo clássico: `resource_chunk` (padrão) direciona a busca para os 45.092 chunks de `ResourceChunk` via índice compacto `ResourceChunk_embedding_bq_hnsw_idx` (17 MB).  |
+| `GEMINI_MODEL`                | Render (Dashboard)                | Sobrescrita do modelo Gemini para geração/chat (ex.: `gemini-3.5-flash`), evitando timeout de 30 s do Render. Prevalece sobre o código.                                                     |
+| `AI_CREDITS_FREE_MONTHLY`     | Render (Dashboard)                | Cota mensal de créditos de IA para contas no plano gratuito (ex.: `100`).                                                                                                                   |
+| `ALLOW_LEGACY_LIBRARY_INGEST` | Render (Dashboard)                | Trava de segurança fail-closed: se diferente de `'true'`, rejeita qualquer tentativa de escrita/deleção em `UserEmbedding` (`ingest`, `ingest-url`, `reindex`, cron) com HTTP 409 Conflict. |
+| `SUPABASE_DIRECT_URL`         | GitHub Actions (Secrets)          | Segredo com a URL de conexão direta (porta 5432) do Supabase para execução de workflows e migrações.                                                                                        |
+| `GEMINI_API_KEY`              | Render & GitHub Actions (Secrets) | Chave de API do Google Gemini para embeddings primários (768 dims) e modelos de linguagem generativos.                                                                                      |
 
 ## 3. Convenções inegociáveis
 
@@ -207,42 +223,26 @@ Não basta responder "está tudo certo" — mostre o número.
 Atualize esta seção quando resolver um item. Ela é o principal motivo deste arquivo
 existir: sem ela, o próximo agente rediagnostica tudo do zero.
 
-### 🟢 Embeddings da Bíblia em produção (Povoamento Concluído — 2026-11-08)
+### 🟢 Embeddings da Bíblia em produção (Medição — 2026-11-16)
 
 **Medição direta no banco PostgreSQL:**
 
-| tradução | com embedding | total  | faltam | status                 |
-| -------- | ------------- | ------ | ------ | ---------------------- |
-| BLIVRE   | 31.102        | 31.102 | 0      | Completo               |
-| NVA      | 31.094        | 31.094 | 0      | Completo               |
-| KJV      | 30.470        | 30.470 | 0      | Completo               |
-| WEB      | 30.456        | 30.456 | 0      | Completo               |
-| LXX      | 22.942        | 22.942 | 0      | Completo (Brenton LXX) |
-| WLC      | 22.550        | 22.550 | 0      | Completo               |
-| TR       | 7.957         | 7.957  | 0      | Completo               |
+| tradução | com embedding | total  | faltam | status                                                                                          |
+| -------- | ------------- | ------ | ------ | ----------------------------------------------------------------------------------------------- |
+| BLIVRE   | 31.102        | 31.102 | 0      | Completo                                                                                        |
+| NVA      | 31.094        | 31.094 | 0      | Completo                                                                                        |
+| KJV      | 24.605        | 31.112 | 6.507  | Em andamento (ingestão diária; 26.605 com vetor e 4.507 pendentes após rodada subsequente)      |
+| WEB      | 31.098        | 31.098 | 0      | Completo                                                                                        |
+| LXX      | 22.942        | 22.942 | 0      | Completo (Brenton LXX)                                                                          |
+| WLC      | 23.213        | 23.213 | 0      | Completo                                                                                        |
+| TR       | 7.957         | 7.957  | 0      | Completo                                                                                        |
+| SBLGNT   | 0             | 7.958  | 7.958  | Sem embedding (não entra na busca textual/semântica; reservada à morfologia e árvore sintática) |
 
-Total no banco: **176.571 versículos com embeddings ativos** (`faltam = 0`) no espaço vetorial `gemini:gemini-embedding-001:768`, indexados via HNSW (`BibleVerse_embedding_hnsw_idx`, 682 MB; banco total em 2.096 MB). `hnsw.iterative_scan = 'relaxed_order'` habilitado no banco (`pgvector 0.8.0`) para consultas filtradas por tradução.
-A busca híbrida em `/api/v1/search/verses` opera com os dois braços (Full-Text + Vetorial) respondendo `meta.vectorArm: "ok"`.
+Total de versículos no banco: **186.476 versículos** (KJV, WEB e WLC refletem a inserção de capítulos que estavam faltando: Jó 19–42 e Joel 4, inseridos por `scripts/completar-capitulos-faltantes.ts`). A KJV possui pendências cobertas pela ingestão diária via GitHub Actions.
+O índice vetorial da Bíblia opera em formato binário quantizado de 65 MB (`BibleVerse_embedding_bq_hnsw_idx`, bit(768)), com soma total de índices vetoriais HNSW em 83,69 MB no banco total de 1.516 MB.
+A busca híbrida em `/api/v1/search/verses` opera em duas fases com os dois braços (Full-Text + Vetorial Binário P=200) respondendo `meta.vectorArm: "ok"`.
 
-Os cinco índices HNSW existem, incluindo `BibleVerse_embedding_hnsw_idx`. A
-infraestrutura está pronta e vazia — não é problema de schema nem de migração.
-
-Rode `node backend/scratch/diagnostico-embeddings.js` para reconferir a qualquer
-momento: é somente leitura e não gasta cota.
-
-Ficou dois meses invisível por três camadas de silêncio empilhadas:
-`hybridSearchVerses` engole a falha do braço vetorial num `logger.warn` e segue com
-`[]`; a resposta HTTP não sinaliza que metade do ranking não participou
-(`vectorRank: null` é indistinguível de "só casou por palavra-chave"); e
-`triggerBatchEmbeddings` é chamado com `void`, fire-and-forget.
-
-```bash
-# 1. Confirmar antes de gastar cota
-psql "$DATABASE_URL" -c 'SELECT translation, count(*) FILTER (WHERE embedding IS NOT NULL) AS com_embedding, count(*) AS total FROM "BibleVerse" GROUP BY translation;'
-
-# 2. Se vier zero: povoar. Comece por UMA tradução (BLIVRE) para medir custo real.
-cd backend && npx tsx scripts/full-rag-bootstrap.ts
-```
+Rode `node backend/scratch/diagnostico-embeddings.js` para reconferir a qualquer momento: é somente leitura e não gasta cota.
 
 **Sinalização `meta.vectorArm` aplicada e blindada (2026-09-15):**
 `/search/verses` responde `meta: { vectorArm: "ok" | "empty" | "failed" }` —
@@ -277,7 +277,7 @@ Chaves vão para `.env` (que está no `.gitignore`) ou para o dashboard do prove
 
 ### 🟢 Traduções Canônicas e Normalização Case-Insensitive
 
-A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (30.470), WEB (30.456), TR (7.957), SBLGNT (7.958, CC BY 4.0), WLC (22.550), LXX (22.942, Brenton)**.
+A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licença livre: **BLIVRE (31.102), NVA (31.094), KJV (31.112), WEB (31.098), TR (7.957), SBLGNT (7.958, CC BY 4.0), WLC (23.213), LXX (22.942, Brenton)**.
 
 - A camada de busca (`SearchService`) normaliza qualquer entrada para uppercase trimmed (`translation?.toUpperCase().trim()`), eliminando divergências case-sensitive.
 - A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia as edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
@@ -285,9 +285,15 @@ A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licen�
 ### 🟢 Acervo Clássico, Biblioteca Teológica e Índice de Referências (`Resource`)
 
 - **Léxico e Morfologia:** integrado com concordância Strong, léxico TAGNT grego/hebraico, **137.741 palavras** em `InterlinearWord` (`SBLGNT` via MACULA Greek) e **7.943 árvores sintáticas anotadas** (`macula-lowfat`).
-- **Acervo de Domínio Público Medido no PostgreSQL (2026-11-08):** **45.092 chunks de livros** migrados para `ResourceChunk` (em **89 entradas de catálogo / 88 obras distintas** em `Resource`) com embeddings vetoriais `gemini:gemini-embedding-001:768` e **140.286 referências bíblicas** em `ResourceReference` (`31.912` `heading` + `108.374` `inline`), além de `UserEmbedding` preservado (45.092 `book_chunk` + 24 `note`/`highlight`). O Copilot IA e o endpoint `/api/v1/resources/references` consultam diretamente as obras e comentários por versículo (`BBCCCVVV`) e intervalo (`startRef..endRef`).
+- **Acervo de Domínio Público Medido no PostgreSQL (2026-11-16):** **45.092 chunks de livros** migrados para `ResourceChunk` (em **89 entradas de catálogo / 88 obras distintas** em `Resource`) com embeddings vetoriais `gemini:gemini-embedding-001:768` e **140.286 referências bíblicas** em `ResourceReference` (`31.912` `heading` + `108.374` `inline`).
+- **Tabela `UserEmbedding`:** higienizada e compacta com 34 a 40 linhas (20 `note` + 20 `highlight`, ~296 kB), **0 `book_chunk`** (backup preservado em `~/.theosphere_backups/`). A ingestão legada de livros (`cron`, `ingest`, `ingest-url`, `reindex`) permanece bloqueada por padrão sem `ALLOW_LEGACY_LIBRARY_INGEST=true`, rejeitando com HTTP 409 Conflict antes de qualquer deleção ou escrita.
 - **Catálogo Canônico Estruturado:** **108 obras** cadastradas em `backend/src/bible/classic-catalog.ts`, sincronizadas automaticamente com `frontend-v2/src/data/classicCatalog.ts` via `node scripts/sync-catalog.mjs`.
-- Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use `backend/scratch/medir-tamanho-banco.js` ou `backend/scratch/diagnostico-espacos-vetoriais.js` para medir o acervo persistente no PostgreSQL.
+- Atenção: `/rag/stats` reporta `totalDocuments` de um cache em memória do processo, que zera a cada restart do Render — use consultas diretas no PostgreSQL para medir o acervo persistente.
+
+### 🔒 Conexão TLS no Pool do Prisma
+
+- O pool de conexões do Prisma (`backend/src/prisma.service.ts`) utiliza explicitamente `ssl: { rejectUnauthorized: false }` sob `NODE_ENV === 'production'`.
+- **Ressalva de Verificação:** A telemetria de `pg_stat_ssl` reflete apenas a conexão interna entre o Supavisor (pooler) e o processo backend do Postgres no Supabase. A integridade TLS de ponta a ponta entre a instância do Render e o pooler não foi auditada externamente (recomenda-se adicionar `&sslmode=require` à `DATABASE_URL` no painel do Render).
 
 ### ⚠️ Hardcoded userId em drive-rag.service.ts:63
 

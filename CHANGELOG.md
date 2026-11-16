@@ -61,3 +61,27 @@ Histórico de entregas, melhorias e marcos de desenvolvimento do TheoSphere.
 45. **Expansão da Biblioteca Teológica Livre & História da Igreja (2026-11-05):** Inclusão de Eusébio, Philip Schaff, Didaquê, Pais da Igreja e Credos Ecumênicos no catálogo canônico (108 obras mapeadas).
 46. **Sistema de Planos e Limites de IA em BRL (/pricing) (2026-11-05):** Starter (R$ 14,90), Plus (R$ 24,90), Pro (R$ 39,90) e Church (R$ 99,90) com cotas de IA estruturadas.
 47. **Perfil Altimétrico Interativo do Terreno Bíblico (Elevation Profile HUD) (2026-11-05):** Motor gráfico de altimetria e relevo com cumes bíblicos e distâncias geodésicas.
+
+---
+
+## Plano Nano — Etapa 7: Ingestão Diária, Auditoria de Busca e Correções de Produção (2026-11-16)
+
+- **7.1 Ingestão Diária e Saneamento de Vetores Anômalos:**
+  - Anulados no PostgreSQL 14.195 vetores corrompidos ou fora de escala (`norma < 0.20` ou `> 0.85`), saneando integralmente as traduções `KJV`, `NVA` e `TR`.
+  - Implementado workflow seguro `.github/workflows/anular-vetores-anomalos.yml` com `dry_run: true` por padrão para auditorias sob demanda.
+  - Corrigida a ordenação de prioridade da ingestão diária para respeitar a sequência explícita via `ORDER BY array_position(...)`.
+- **7.2 Diagnóstico e Remoção de Queda Calada na Busca Vetorial:**
+  - Eliminado fallback silencioso em `SearchService.binaryVectorSearch`, permitindo propagação do erro vetorial para o catch externo que marca `meta.vectorArm = 'failed'`.
+  - Diagnóstico profundo com `EXPLAIN (ANALYZE, BUFFERS)` demonstrando que a latência inicial a frio (~2,5 a 3,5 s) advém de leituras aleatórias de disco fora de buffer cache (~2,7 ms/página no Supabase Nano), e não de throttling de I/O.
+- **7.3 Correções de RAG, Catálogo e Segurança de Ingestão:**
+  - **Cache de Busca da Biblioteca (Commit `0d1c097`):** Eliminada consulta duplicada de embeddings em `tentarRespostaDaBiblioteca` e `buildDriveLibraryContext`, reaproveitando o resultado e corrigindo a contagem de fontes da biblioteca em `contextDocCount` / `contextUsed`.
+  - **Filtro de Índice Remissivo Denso (Commit `c1b2e93`):** Restaurado filtro heurístico que descarta trechos com $\ge 5$ referências em colchetes `[n]`, eliminando índices puros e preservando comentários exegéticos reais.
+  - **Remoção de Código Morto (Commit `938ce74`):** Eliminada função não utilizada `sortVersesByTargetList` após delegação da ordenação ao SQL.
+  - **Trava de Segurança e TLS no Pool (Commit `7f7ba7e`):** Inserida trava fail-closed antes de `deleteMany` em `reindex` (`ALLOW_LEGACY_LIBRARY_INGEST !== 'true'`) e configurado `ssl: { rejectUnauthorized: false }` no pool de conexões do Prisma em produção.
+  - **Higienização Honesta de Keywords (Commit `58e4545`):** Removidas palavras-chave artificiais de `classic-commentaries.ts`, eliminando injeção indevida de comentários sobre Jó em perguntas sem relação.
+- **7.4 Medição Noturna de Recall e Auditoria de Anomalias (Commits `d64055a` e `64a4ef1`):**
+  - Varredura paginada de **132.960 versículos** com embedding no PostgreSQL em transação única `READ ONLY` com `statement_timeout = 15s`: **0 anomalias** (< 0,20 ou > 0,85) em todas as traduções auditadas (`BLIVRE`, `WEB`, `LXX`, `WLC`, `KJV`).
+  - Avaliação empírica de 30 consultas semânticas reais contra o cálculo exato de ponto flutuante em memória:
+    - **BLIVRE:** Recall@10 médio de **97,3%**, Recall@20 médio de **95,7%**, latência mediana de **374 ms**.
+    - **KJV:** Recall@10 médio de **94,0%**, Recall@20 médio de **90,0%**, latência mediana de **267 ms**.
+  - **Pendência B Fechada:** Validação empírica de que a sobre-recuperação binária quantizada com $P = 200$ e reordenação fina com `<=>` preserva o ranking exato com ampla folga de memória (índice em 65 MB, soma dos HNSW em 83,69 MB) sem necessidade de mudanças no código.
