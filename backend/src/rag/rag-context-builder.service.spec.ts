@@ -15,30 +15,38 @@ describe('RagContextBuilderService — Trechos Fixos de Calvino e Henry (Relevâ
     );
   });
 
-  const teologicas = [
+  const teologicasComPassagemNoAcervo = [
     'Qual o significado de João 3:16?',
+    'Explique o Salmo 23 e o Bom Pastor',
+  ];
+
+  const teologicasSemPassagemNoAcervo = [
     'Como Paulo explica a justificação pela fé em Romanos?',
     'O que significa a soberania de Deus no sofrimento em Jó?',
-    'Explique o Salmo 23 e o Bom Pastor',
     'Qual a relação entre aliança e lei no Pentateuco?',
   ];
 
-  const naoTeologicasComRuidoAnterior = [
+  const naoTeologicas = [
     'Qual a distância de Jerusalém a Belém?',
     'Quantos habitantes tinha a cidade de Roma no século I?',
     'Qual era a moeda usada na província da Judeia sob o domínio romano?',
-  ];
-
-  const outrasNaoTeologicas = [
     'Como era a agricultura e a colheita da cevada na Galileia antiga?',
     'Quem era o imperador romano quando Jesus nasceu?',
   ];
 
-  it('as 3 não teológicas que tinham ruído passam a ter 0 trechos, e as outras 2 continuam com 0', () => {
-    for (const q of [
-      ...naoTeologicasComRuidoAnterior,
-      ...outrasNaoTeologicas,
-    ]) {
+  it('perguntas teológicas com passagem existente no acervo recebem os trechos correspondentes', () => {
+    for (const q of teologicasComPassagemNoAcervo) {
+      const sources: RagSource[] = [];
+      const ctx = builder.getFallbackCommentaryContextWithSources(q, sources);
+      const classicSources = sources.filter((s) => s.type === 'classic');
+
+      expect(classicSources.length).toBeGreaterThan(0);
+      expect(ctx).toContain('=== COMENTARISTAS CLÁSSICOS (FALLBACK) ===');
+    }
+  });
+
+  it('perguntas teológicas sem passagem correspondente no acervo estático recebem 0 trechos (evita ruído)', () => {
+    for (const q of teologicasSemPassagemNoAcervo) {
       const sources: RagSource[] = [];
       const ctx = builder.getFallbackCommentaryContextWithSources(q, sources);
       const classicSources = sources.filter((s) => s.type === 'classic');
@@ -48,14 +56,25 @@ describe('RagContextBuilderService — Trechos Fixos de Calvino e Henry (Relevâ
     }
   });
 
-  it('as 5 perguntas teológicas mantêm os trechos fixos de comentários clássicos no contexto', () => {
-    for (const q of teologicas) {
+  it('a pergunta sobre Jó não recebe o trecho de Romanos 8:28', () => {
+    const sources: RagSource[] = [];
+    builder.getFallbackCommentaryContextWithSources(
+      'O que significa a soberania de Deus no sofrimento em Jó?',
+      sources,
+    );
+    const hasRomans828 = sources.some((s) => s.reference === 'Romanos 8:28');
+    expect(hasRomans828).toBe(false);
+    expect(sources).toHaveLength(0);
+  });
+
+  it('perguntas não teológicas continuam recebendo 0 trechos', () => {
+    for (const q of naoTeologicas) {
       const sources: RagSource[] = [];
       const ctx = builder.getFallbackCommentaryContextWithSources(q, sources);
       const classicSources = sources.filter((s) => s.type === 'classic');
 
-      expect(classicSources.length).toBeGreaterThan(0);
-      expect(ctx).toContain('=== COMENTARISTAS CLÁSSICOS (FALLBACK) ===');
+      expect(classicSources).toHaveLength(0);
+      expect(ctx).toBe('');
     }
   });
 
