@@ -949,6 +949,57 @@ Em `backend/src/rag/rag-context-builder.service.ts` (linhas 373-384), a função
 
 ---
 
+### 7.3.1 Correções Concluídas e Validações Adicionais (Item 7.3)
+
+#### 1. Trava de Segurança no `reindex` (`DriveRagService`)
+
+- Em `backend/src/rag/drive-rag.service.ts`, a trava de segurança que bloqueia ingestões legadas na tabela `UserEmbedding` (`ALLOW_LEGACY_LIBRARY_INGEST !== 'true'`) foi posicionada na primeira linha do método `reindex()`, estritamente **antes** da chamada destrutiva `this.prisma.userEmbedding.deleteMany`.
+- **Validação com Teste de Mutação:**
+  - Teste unitário em `backend/src/rag/drive-rag.service.spec.ts`: confirma que, sem a variável, `reindex` lança HTTP 409 Conflict e `userEmbedding.deleteMany` não é chamado (`expect(mockPrisma.userEmbedding.deleteMany).not.toHaveBeenCalled()`).
+  - Mutação (trava movida para depois do `deleteMany`): o teste falhou acusando que `deleteMany` foi invocado (`Expected number of calls: 0, Received number of calls: 2`).
+
+#### 2. Higienização de Keywords no Catálogo Estático (`classic-commentaries.ts`)
+
+- Foram removidas todas as palavras-chave adicionadas artificialmente em commits anteriores que não descreviam o texto literal do trecho, bem como palavras genéricas (`deus`, `relação`):
+  - `calvin-john-1-1`: removido `'jerusalém'` $\rightarrow$ mantidas `['verbo', 'cristo', 'encarnação']`.
+  - `calvin-romans-3-23`: removidos `'justificação'`, `'fé'`, `'graça'`, `'lei'`, `'redenção'` (o texto trata de condenação universal e destruição de presunção de mérito) $\rightarrow$ mantidas `['paulo', 'pecado', 'condenação', 'mérito', 'glória']`.
+  - `gill-romans-8-28`: removidos `'jó'`, `'soberania'`, `'sofrimento'`, `'deus'` (o texto trata de providência combinada em aflições para o benefício dos eleitos) $\rightarrow$ mantidas `['providência', 'aflições', 'eleição', 'tribulações']`.
+  - `calvin-genesis-1-1`: removidos `'aliança'`, `'lei'`, `'pentateuco'`, `'relação'`, `'graça'` (o texto aborda criação ex-nihilo / bara / idade do mundo) $\rightarrow$ mantidas `['criação', 'bara', 'início']`.
+
+##### Tabela de Contagem das 10 Perguntas (Antes vs Depois)
+
+|  #  | Pergunta                                                              |  Antes (com ruído de keywords)  | Depois (keywords honestas) | Análise / Resultado                                                   |
+| :-: | --------------------------------------------------------------------- | :-----------------------------: | :------------------------: | --------------------------------------------------------------------- |
+|  1  | _Qual o significado de João 3:16?_                                    |         **3** (Jo 3:16)         |      **3** (Jo 3:16)       | ✅ Citação direta de livro e capítulo                                 |
+|  2  | _Como Paulo explica a justificação pela fé em Romanos?_               | **1** (Calvino Rm 3:23 forçado) |           **0**            | ✅ 0 (não há comentário de justificação pela fé no catálogo estático) |
+|  3  | _O que significa a soberania de Deus no sofrimento em Jó?_            |  **1** (Gill Rm 8:28 — ruído)   |           **0**            | ✅ 0 (não há trecho sobre Jó; Rm 8:28 eliminado)                      |
+|  4  | _Explique o Salmo 23 e o Bom Pastor_                                  |         **2** (Sl 23:1)         |      **2** (Sl 23:1)       | ✅ Citação direta de livro e capítulo (Salmo/Salmos 23)               |
+|  5  | _Qual a relação entre aliança e lei no Pentateuco?_                   | **1** (Calvino Gn 1:1 — ruído)  |           **0**            | ✅ 0 (não há trecho sobre aliança e lei; Gn 1:1 eliminado)            |
+|  6  | _Qual a distância de Jerusalém a Belém?_                              |              **0**              |           **0**            | ✅ 0 (pergunta geográfica sem trecho)                                 |
+|  7  | _Quantos habitantes tinha a cidade de Roma no século I?_              |              **0**              |           **0**            | ✅ 0 (pergunta histórica sem trecho)                                  |
+|  8  | _Qual era a moeda usada na província da Judeia sob o domínio romano?_ |              **0**              |           **0**            | ✅ 0 (pergunta histórica sem trecho)                                  |
+|  9  | _Como era a agricultura e a colheita da cevada na Galileia antiga?_   |              **0**              |           **0**            | ✅ 0 (pergunta cultural sem trecho)                                   |
+| 10  | _Quem era o imperador romano quando Jesus nasceu?_                    |              **0**              |           **0**            | ✅ 0 (pergunta histórica sem trecho)                                  |
+
+- **Validação com Teste de Mutação:**
+  - Teste unitário em `backend/src/rag/rag-context-builder.service.spec.ts`: `it('a pergunta sobre Jó não recebe o trecho de Romanos 8:28')` verifica explicitamente que nenhuma fonte com `reference === 'Romanos 8:28'` é incluída para a pergunta sobre Jó.
+  - Mutação (reintrodução de `'jó', 'soberania', 'sofrimento', 'deus'` em Gill Rm 8:28): o teste falhou com `Expected: false, Received: true`, comprovando a sensibilidade do filtro.
+
+#### 3. Nota de Segurança: TLS no Pool de Conexões vs `pg_stat_ssl`
+
+- A telemetria de `pg_stat_ssl` consultada no PostgreSQL comprova a criptografia na conexão entre o connection pooler (Supavisor) e o processo Postgres no Supabase. Ela **não comprova** por si só que o tráfego entre a aplicação no Render e o Supavisor esteja sob TLS.
+- Para mitigar qualquer risco de transporte não criptografado, o pool de conexões do Prisma em `backend/src/prisma.service.ts` foi configurado explicitamente com `ssl: { rejectUnauthorized: false }` sob `NODE_ENV === 'production'`.
+
+#### 4. Orçamento de Linhas Mortas e Folga até o Autovacuum
+
+- Com **186.476** linhas vivas na tabela `BibleVerse`:
+  $$\text{Gatilho de Autovacuum} = 50 + (0,2 \times 186.476) = 37.345 \text{ linhas}$$
+- Após a rodada diária de 2.000 versículos da KJV em 16/11/2026, o total de linhas mortas acumuladas atingiu **12.830**:
+  $$\text{Folga Líquida} = 37.345 - 12.830 = \mathbf{24.515} \text{ linhas}$$
+- Essa folga comporta mais de 12 rodadas diárias de 2.000 linhas antes que qualquer autovacuum seja disparado automaticamente pelo banco.
+
+---
+
 ### O que NÃO Foi Verificado e Por Quê
 
 1. **Deploy em Produção dos Grupos 1, 2 e 3:** O código foi mantido nas respectivas branches (`fix/rag-biblioteca-contagem`, `fix/passage-guide-indice-remissivo`, `chore/remover-codigo-morto-ingestao`) e testado integralmente em ambiente local/CI; os merges para a `main` e o deploy no Render dependem da autorização do mantenedor.
