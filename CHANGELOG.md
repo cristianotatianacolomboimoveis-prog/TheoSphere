@@ -67,18 +67,21 @@ Histórico de entregas, melhorias e marcos de desenvolvimento do TheoSphere.
 ## Plano Nano — Etapa 7: Ingestão Diária, Auditoria de Busca e Correções de Produção (2026-11-16)
 
 - **7.1 Ingestão Diária e Saneamento de Vetores Anômalos:**
-  - Anulados no PostgreSQL 14.195 vetores corrompidos ou fora de escala (`norma < 0.20` ou `> 0.85`), saneando integralmente as traduções `KJV`, `NVA` e `TR`.
-  - Implementado workflow seguro `.github/workflows/anular-vetores-anomalos.yml` com `dry_run: true` por padrão para auditorias sob demanda.
-  - Corrigida a ordenação de prioridade da ingestão diária para respeitar a sequência explícita via `ORDER BY array_position(...)`.
+  - Anulados no PostgreSQL **2.630 vetores anômalos** (`norma < 0.20` ou `> 0.85`), sendo **1.400 em BLIVRE**, **730 em NVA** e **500 em TR** (0 anulações na KJV), conforme registrado no relatório da Etapa 7.
+  - Implementado workflow seguro `.github/workflows/anular-vetores-anomalos.yml` (commit `94f154c`) com `dry_run: true` por padrão para auditorias manuais sob demanda (`workflow_dispatch`).
+  - Corrigida a ordenação de prioridade da ingestão diária via `ORDER BY array_position(...)` (commit `04201fb`).
+  - Ajustado o agendamento da ingestão diária para o cron `17 5 * * *` UTC (commit `df48f34`).
 - **7.2 Diagnóstico e Remoção de Queda Calada na Busca Vetorial:**
-  - Eliminado fallback silencioso em `SearchService.binaryVectorSearch`, permitindo propagação do erro vetorial para o catch externo que marca `meta.vectorArm = 'failed'`.
-  - Diagnóstico profundo com `EXPLAIN (ANALYZE, BUFFERS)` demonstrando que a latência inicial a frio (~2,5 a 3,5 s) advém de leituras aleatórias de disco fora de buffer cache (~2,7 ms/página no Supabase Nano), e não de throttling de I/O.
+  - Configurado o padrão `VECTOR_INDEX_MODE=binary` em `SearchService` (commit `f93ffdc`).
+  - Eliminado fallback silencioso para `fullVectorSearch` em caso de erro no braço binário (commit `c6db0ec`), propagando a falha para o catch externo que marca `meta.vectorArm = 'failed'`.
+  - Diagnóstico profundo com `EXPLAIN (ANALYZE, BUFFERS)` demonstrando que a latência inicial a frio (~2,5 a 3,5 s) advém de leituras aleatórias de páginas fora do buffer cache no Supabase Nano (~2,7 ms/página), e não de throttling de I/O de disco.
 - **7.3 Correções de RAG, Catálogo e Segurança de Ingestão:**
   - **Cache de Busca da Biblioteca (Commit `0d1c097`):** Eliminada consulta duplicada de embeddings em `tentarRespostaDaBiblioteca` e `buildDriveLibraryContext`, reaproveitando o resultado e corrigindo a contagem de fontes da biblioteca em `contextDocCount` / `contextUsed`.
   - **Filtro de Índice Remissivo Denso (Commit `c1b2e93`):** Restaurado filtro heurístico que descarta trechos com $\ge 5$ referências em colchetes `[n]`, eliminando índices puros e preservando comentários exegéticos reais.
   - **Remoção de Código Morto (Commit `938ce74`):** Eliminada função não utilizada `sortVersesByTargetList` após delegação da ordenação ao SQL.
-  - **Trava de Segurança e TLS no Pool (Commit `7f7ba7e`):** Inserida trava fail-closed antes de `deleteMany` em `reindex` (`ALLOW_LEGACY_LIBRARY_INGEST !== 'true'`) e configurado `ssl: { rejectUnauthorized: false }` no pool de conexões do Prisma em produção.
-  - **Higienização Honesta de Keywords (Commit `58e4545`):** Removidas palavras-chave artificiais de `classic-commentaries.ts`, eliminando injeção indevida de comentários sobre Jó em perguntas sem relação.
+  - **TLS no Pool do Prisma (Commit `bc6f24c`):** Configurado `ssl: { rejectUnauthorized: false }` no pool de conexões do Prisma em produção (`NODE_ENV === 'production'`).
+  - **Trava de Segurança de `library_book` (Commit `821c405`):** Bloqueada ingestão legada de livros no `UserEmbedding` (`ingest`, `ingest-url`, `cron`) sem a variável `ALLOW_LEGACY_LIBRARY_INGEST=true`.
+  - **Trava no Reindex e Keywords Honestas (Commit `58e4545`):** Inserida trava de segurança antes de `deleteMany` no método `reindex` e removidas palavras-chave artificiais de `classic-commentaries.ts`.
 - **7.4 Medição Noturna de Recall e Auditoria de Anomalias (Commits `d64055a` e `64a4ef1`):**
   - Varredura paginada de **132.960 versículos** com embedding no PostgreSQL em transação única `READ ONLY` com `statement_timeout = 15s`: **0 anomalias** (< 0,20 ou > 0,85) em todas as traduções auditadas (`BLIVRE`, `WEB`, `LXX`, `WLC`, `KJV`).
   - Avaliação empírica de 30 consultas semânticas reais contra o cálculo exato de ponto flutuante em memória:
