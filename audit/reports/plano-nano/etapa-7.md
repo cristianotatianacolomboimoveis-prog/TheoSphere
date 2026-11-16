@@ -1000,9 +1000,111 @@ Em `backend/src/rag/rag-context-builder.service.ts` (linhas 373-384), a função
 
 ---
 
+### 7.4 Medição Noturna de Recall e Auditoria de Anomalias Vetoriais (Item 7.4)
+
+Executada auditoria noturna de integridade e precisão vetorial no banco de dados Supabase via script dedicado (`backend/scripts/medir-recall-e-anomalias.ts`), operando em conexão única, transação estrita `BEGIN READ ONLY;` e `statement_timeout = 15s`.
+
+#### 1. Telemetria de Infraestrutura (Antes vs Depois)
+
+Antes de iniciar a varredura, foi verificado `pg_stat_progress_vacuum` (retornando 0 linhas ativas na tabela `BibleVerse`).
+
+| Métrica                                                     |     Antes da Auditoria     |      Após a Auditoria      |           Variação           |
+| :---------------------------------------------------------- | :------------------------: | :------------------------: | :--------------------------: |
+| **Tamanho Total do Banco**                                  | 1.516 MB (1.589.439.635 B) | 1.516 MB (1.589.439.635 B) | 0 B (sem expansão de disco)  |
+| **Índice `BibleVerse_embedding_bq_hnsw_idx`**               |           65 MB            |           65 MB            |             0 B              |
+| **Soma dos Índices Vetoriais HNSW**                         |           83 MB            |           83 MB            |    0 B (< teto de 150 MB)    |
+| **Linhas Mortas (`n_dead_tup` em `BibleVerse`)**            |           12.830           |           12.830           |    0 novas linhas mortas     |
+| **Sondagem de Busca em Produção (`/api/v1/search/verses`)** | 2.820 ms (`vectorArm: ok`) |  512 ms (`vectorArm: ok`)  | Resposta operacional estável |
+
+---
+
+#### 2. Tabela 1: Auditoria de Normas e Anomalias por Tradução
+
+Varredura sequencial paginada por chave `("bookId", chapter, verse) > ($2, $3, $4)` em lotes de 1.000 versículos com `embedding IS NOT NULL`. O cálculo da norma euclidiana foi executado 100% no cliente Node.js (`computeEuclideanNorm`), sem overhead de `vector_norm` no Postgres.
+
+| Tradução   | Versículos com Vetor | Norma Mín | Norma Máx | Norma Média | Anomalias (< 0,20 ou > 0,85) | IDs Anômalos |
+| :--------- | :------------------: | :-------: | :-------: | :---------: | :--------------------------: | :----------: |
+| **KJV**    |        24.605        |  0,5733   |  0,5945   |   0,5838    |            **0**             |    Nenhum    |
+| **WEB**    |        31.098        |  0,5759   |  0,5951   |   0,5852    |            **0**             |    Nenhum    |
+| **LXX**    |        22.942        |  0,5723   |  0,5926   |   0,5828    |            **0**             |    Nenhum    |
+| **WLC**    |        23.213        |  0,5742   |  0,5921   |   0,5837    |            **0**             |    Nenhum    |
+| **BLIVRE** |        31.102        |  0,5707   |  0,5953   |   0,5831    |            **0**             |    Nenhum    |
+
+- **Total de versículos auditados individualmente:** **132.960 versículos**.
+- **Integridade:** 100% dos vetores persistem na faixa esperada do `gemini-embedding-001` (0,57–0,60). Nenhuma anomalia de truncamento, saturação ou vetor nulo/corrompido foi detectada.
+
+---
+
+#### 3. Tabela 2: Avaliação de Recall da Busca Binária Quantizada (HNSW Bit 768d vs Cosseno Exato)
+
+Foram avaliadas 30 consultas semânticas reais (15 em inglês para a KJV e 15 em português para a BLIVRE), geradas via API do Gemini (`text-embedding-004` / `gemini-embedding-001`, 768d).
+
+- **Ground-Truth (Exato):** Top-20 ordenado pela similaridade exata de cosseno calculada em memória sobre todos os vetores da tradução.
+- **Busca Binária (Produção):** Execução do SQL real de `binaryVectorSearch` no banco:
+  - Recuperação candidata de $P = 200$ itens via índice binário `embedding::bit(768) <~> binary_quantize($1::vector)::bit(768)`;
+  - Parâmetros locais na sessão: `SET LOCAL hnsw.ef_search = 200;` e `SET LOCAL hnsw.iterative_scan = 'relaxed_order';`;
+  - Reordenação fina no banco com o vetor completo `embedding <=> $1::vector LIMIT 20`.
+
+| Tradução   | Consulta Semântica                                              | Tipo          | Recall@10 | Recall@20 | Latência Banco (ms) |
+| :--------- | :-------------------------------------------------------------- | :------------ | :-------: | :-------: | :-----------------: |
+| **KJV**    | _love of God_                                                   | Temática      |   100%    |   100%    |        2.470        |
+| **KJV**    | _justification by faith_                                        | Temática      |   100%    |    90%    |        1.403        |
+| **KJV**    | _the good shepherd_                                             | Temática      |   100%    |    80%    |        1.980        |
+| **KJV**    | _creation of heaven and earth_                                  | Temática      |   100%    |   100%    |         717         |
+| **KJV**    | _the Lord is my shepherd I shall not want_                      | Quase-literal |   100%    |    90%    |         225         |
+| **KJV**    | _in the beginning was the Word and the Word was with God_       | Quase-literal |   100%    |    85%    |         487         |
+| **KJV**    | _for God so loved the world that he gave his only begotten Son_ | Quase-literal |   100%    |    90%    |         207         |
+| **KJV**    | _I can do all things through Christ which strengtheneth me_     | Quase-literal |    90%    |    85%    |         266         |
+| **KJV**    | _for all have sinned and come short of the glory of God_        | Quase-literal |    60%    |    70%    |         267         |
+| **KJV**    | _the wages of sin is death but the gift of God is eternal life_ | Quase-literal |    90%    |    90%    |         187         |
+| **KJV**    | _all things work together for good to them that love God_       | Quase-literal |    70%    |    75%    |         104         |
+| **KJV**    | _thy word is a lamp unto my feet and a light unto my path_      | Quase-literal |   100%    |   100%    |         121         |
+| **KJV**    | _I have fought a good fight I have finished my course_          | Quase-literal |   100%    |   100%    |         302         |
+| **KJV**    | _resurrection of the dead and eternal life_                     | Temática      |   100%    |    95%    |         376         |
+| **KJV**    | _providence and sovereignty of God in affliction_               | Temática      |   100%    |   100%    |         180         |
+| **BLIVRE** | _amor de Deus_                                                  | Temática      |   100%    |    95%    |        3.162        |
+| **BLIVRE** | _justificação pela fé_                                          | Temática      |   100%    |   100%    |         812         |
+| **BLIVRE** | _o bom pastor_                                                  | Temática      |    90%    |    90%    |         948         |
+| **BLIVRE** | _criação dos céus e da terra_                                   | Temática      |   100%    |   100%    |         706         |
+| **BLIVRE** | _graça e paz vos sejam multiplicadas_                           | Quase-literal |   100%    |   100%    |         306         |
+| **BLIVRE** | _o Senhor é o meu pastor e nada me faltará_                     | Quase-literal |    80%    |    85%    |         374         |
+| **BLIVRE** | _no princípio era o Verbo e o Verbo estava com Deus_            | Quase-literal |   100%    |    95%    |         281         |
+| **BLIVRE** | _porque Deus amou o mundo de tal maneira_                       | Quase-literal |   100%    |    95%    |         127         |
+| **BLIVRE** | _tudo posso naquele que me fortalece_                           | Quase-literal |    90%    |    90%    |         147         |
+| **BLIVRE** | _a soberania de Deus nas aflições_                              | Temática      |   100%    |    95%    |         253         |
+| **BLIVRE** | _ressurreição dos mortos e vida eterna_                         | Temática      |   100%    |   100%    |         134         |
+| **BLIVRE** | _lâmpada para os meus pés é a tua palavra_                      | Quase-literal |   100%    |   100%    |        1.687        |
+| **BLIVRE** | _o salário do pecado é a morte_                                 | Quase-literal |   100%    |    95%    |         600         |
+| **BLIVRE** | _combati o bom combate terminei a corrida guardei a fé_         | Quase-literal |   100%    |    95%    |         279         |
+| **BLIVRE** | _reconciliação e perdão de pecados_                             | Temática      |   100%    |   100%    |        1.676        |
+
+#### 4. Métricas Agregadas e Análise de Desempenho
+
+##### A. BLIVRE (Português):
+
+- **Recall@10 Médio:** **97,3%**
+- **Recall@20 Médio:** **95,7%**
+- **Latência do Banco:** Mediana = **374 ms** | Média = 766 ms | Máxima = 3.162 ms (a frio na primeira consulta)
+
+##### B. KJV (Inglês):
+
+- **Recall@10 Médio:** **94,0%**
+- **Recall@20 Médio:** **90,0%**
+- **Latência do Banco:** Mediana = **267 ms** | Média = 619 ms | Máxima = 2.470 ms (a frio na primeira consulta)
+
+##### C. Conclusões da Auditoria de Recall:
+
+1. A perda de recall decorrente da quantização binária (`bit(768)`) é mínima: mais de 94% a 97% dos 10 versículos mais relevantes do cálculo exato de ponto flutuante são recuperados intactos pela busca binária.
+2. O pool de sobre-recuperação com $P = 200$ e reordenação local com `<=>` é suficiente para restaurar quase perfeitamente o top-10 e top-20.
+3. A latência mediana do banco para a busca vetorial permaneceu entre **267 ms e 374 ms**, mesmo sob o hardware Nano do Supabase, confirmando que a compactação do índice em 65 MB permite a retenção dos nós mais ativos em buffer cache.
+
+---
+
 ### O que NÃO Foi Verificado e Por Quê
 
 1. **Deploy em Produção dos Grupos 1, 2 e 3:** O código foi mantido nas respectivas branches (`fix/rag-biblioteca-contagem`, `fix/passage-guide-indice-remissivo`, `chore/remover-codigo-morto-ingestao`) e testado integralmente em ambiente local/CI; os merges para a `main` e o deploy no Render dependem da autorização do mantenedor.
 2. **Execução em Produção do `sslmode=require`:** A alteração de variáveis de ambiente no Render não foi realizada, pois exige acesso administrativo ao painel do Render.
 3. **Refatoração do `DriveRagService` para `Resource`:** A migração da gravação de livros de `UserEmbedding` para `ResourceChunk` foi documentada e proposta arquiteturalmente no Diagnóstico 6, sem alteração de código nesta etapa.
 4. **Calibração do Limiar de Pontuação de Comentários no RAG:** A elevação de `score >= 1` para `score >= 3` foi avaliada analiticamente com 10 perguntas no Diagnóstico 7, aguardando aprovação para aplicação em código.
+5. **Recall das Traduções Originais (LXX, WLC, TR):** Não foram formuladas consultas de busca semântica em grego ou hebraico bíblico nesta etapa, limitando-se o recall às línguas vernáculas primárias da busca (português e inglês). A integridade vetorial de LXX e WLC foi, contudo, comprovada na Tabela 1 pela auditoria das normas.
+6. **Medição sob Saturação Máxima Concorrente:** As consultas de recall foram executadas sequencialmente em conexão única com `statement_timeout = 15s`. O comportamento de latência sob concorrência de múltiplos usuários simultâneos no Nano depende do pool de conexões do Render e da taxa de chamadas da API do Gemini.
