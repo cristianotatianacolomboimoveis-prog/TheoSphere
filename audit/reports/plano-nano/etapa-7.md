@@ -1002,7 +1002,10 @@ Em `backend/src/rag/rag-context-builder.service.ts` (linhas 373-384), a função
 
 ### 7.4 Medição Noturna de Recall e Auditoria de Anomalias Vetoriais (Item 7.4)
 
-Executada auditoria noturna de integridade e precisão vetorial no banco de dados Supabase via script dedicado (`backend/scripts/medir-recall-e-anomalias.ts`), operando em conexão única, transação estrita `BEGIN READ ONLY;` e `statement_timeout = 15s`.
+Executada auditoria de integridade e precisão vetorial no banco de dados Supabase via script dedicado (`backend/scripts/medir-recall-e-anomalias.ts`), operando em conexão única, transação estrita `BEGIN READ ONLY;` e `statement_timeout = 15s`.
+
+- **Horário Real da Execução:** 10:23 BRT (execução diurna).
+- **Duração da Transação Aberta:** ~174 s (173,5 s de duração total da varredura e consultas de recall em transação única `READ ONLY`).
 
 #### 1. Telemetria de Infraestrutura (Antes vs Depois)
 
@@ -1031,6 +1034,7 @@ Varredura sequencial paginada por chave `("bookId", chapter, verse) > ($2, $3, $
 | **BLIVRE** |        31.102        |  0,5707   |  0,5953   |   0,5831    |            **0**             |    Nenhum    |
 
 - **Total de versículos auditados individualmente:** **132.960 versículos**.
+- **Nota sobre a contagem de versículos:** As traduções KJV, WEB e WLC possuem hoje no banco de dados **31.112**, **31.098** e **23.213** versículos totais, respectivamente. Essa contagem decorre da inserção dos capítulos faltantes (Jó 19–42 e Joel 4 em 08/11/2026 via `scripts/completar-capitulos-faltantes.ts`) e **diverge** da tabela legada do `AGENTS.md` (que indicava 30.470 para KJV, 30.456 para WEB e 22.550 para WLC). Na KJV, dos 31.112 versículos, 6.507 estão sem vetor (restam pendentes para a ingestão diária), restando 24.605 com vetor ativo auditados.
 - **Integridade:** 100% dos vetores persistem na faixa esperada do `gemini-embedding-001` (0,57–0,60). Nenhuma anomalia de truncamento, saturação ou vetor nulo/corrompido foi detectada.
 
 ---
@@ -1094,8 +1098,8 @@ Foram avaliadas 30 consultas semânticas reais (15 em inglês para a KJV e 15 em
 
 ##### C. Conclusões da Auditoria de Recall:
 
-1. A perda de recall decorrente da quantização binária (`bit(768)`) é mínima: mais de 94% a 97% dos 10 versículos mais relevantes do cálculo exato de ponto flutuante são recuperados intactos pela busca binária.
-2. O pool de sobre-recuperação com $P = 200$ e reordenação local com `<=>` é suficiente para restaurar quase perfeitamente o top-10 e top-20.
+1. **Pendência B Fechada:** Os resultados empíricos comprovam que a busca binária quantizada com $P = 200$ e reordenação local fina com `<=>` preserva entre 94% e 97% do Top-10 e entre 90% e 95% do Top-20 em relação ao ground-truth exato de ponto flutuante. A implementação atual se mantém intacta e **não há necessidade de alteração de código de produção**.
+2. A perda de recall decorrente da quantização binária (`bit(768)`) é mínima e plenamente mitigada pela sobre-recuperação candidata com $P = 200$.
 3. A latência mediana do banco para a busca vetorial permaneceu entre **267 ms e 374 ms**, mesmo sob o hardware Nano do Supabase, confirmando que a compactação do índice em 65 MB permite a retenção dos nós mais ativos em buffer cache.
 
 ---
