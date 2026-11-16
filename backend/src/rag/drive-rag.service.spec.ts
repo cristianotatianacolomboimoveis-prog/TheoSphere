@@ -15,7 +15,7 @@ describe('DriveRagService & DriveRagController — Trava de Ingestão Legada', (
     mockPrisma = {
       userEmbedding: {
         create: jest.fn(),
-        deleteMany: jest.fn(),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         count: jest.fn(),
       },
       $queryRaw: jest.fn(),
@@ -82,6 +82,20 @@ describe('DriveRagService & DriveRagController — Trava de Ingestão Legada', (
       );
 
       expect(mockPrisma.userEmbedding.create).not.toHaveBeenCalled();
+    });
+
+    it('sem a variável, reindex lança 409 e userEmbedding.deleteMany não é chamado', async () => {
+      await expect(
+        service.reindex('folder-123', 'user-test-123'),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        service.reindex('folder-123', 'user-test-123'),
+      ).rejects.toThrow(
+        'ingestão legada desativada; migração para Resource pendente',
+      );
+
+      expect(mockPrisma.userEmbedding.deleteMany).not.toHaveBeenCalled();
     });
   });
 

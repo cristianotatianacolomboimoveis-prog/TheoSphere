@@ -499,6 +499,11 @@ export class DriveRagService {
     userId?: string,
     tradition: string = 'Geral',
   ): Promise<{ deleted: number; filesProcessed: number }> {
+    if (process.env.ALLOW_LEGACY_LIBRARY_INGEST !== 'true') {
+      throw new ConflictException(
+        'ingestão legada desativada; migração para Resource pendente',
+      );
+    }
     const targetUserId = userId || 'public-guest';
     this.logger.log(
       `[Reindex] Limpando UserEmbedding (library_book) do usuário ${targetUserId}…`,
