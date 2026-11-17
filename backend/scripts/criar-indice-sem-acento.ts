@@ -44,6 +44,14 @@ function maskHost(hostname: string): string {
   return `${parts[0]}.***.${parts.slice(-2).join('.')}`;
 }
 
+const ACTIVE_STATUSES = new Set([
+  'in_progress',
+  'queued',
+  'waiting',
+  'requested',
+  'pending',
+]);
+
 function checkGitHubWorkflowRuns(): void {
   try {
     const output = execSync(
@@ -56,12 +64,10 @@ function checkGitHubWorkflowRuns(): void {
       databaseId: number;
       createdAt: string;
     }>;
-    const activeRun = runs.find(
-      (r) => r.status === 'in_progress' || r.status === 'queued',
-    );
+    const activeRun = runs.find((r) => ACTIVE_STATUSES.has(r.status));
     if (activeRun) {
       throw new Error(
-        `[TRAVA DE CONCORRÊNCIA] Workflow ingestao-diaria-embeddings.yml ativo no GitHub Actions (Run ${activeRun.databaseId}, status: ${activeRun.status}). Abortando.`,
+        `[TRAVA DE CONCORRÊNCIA] Workflow ingestao-diaria-embeddings.yml ativo no GitHub Actions (Run ${activeRun.databaseId}, status: ${activeRun.status}). Abortando imediatamente.`,
       );
     }
     console.log(
@@ -74,11 +80,11 @@ function checkGitHubWorkflowRuns(): void {
       );
     }
   } catch (err: any) {
-    if (err.message.includes('[TRAVA DE CONCORRÊNCIA]')) {
-      throw err;
-    }
-    console.warn(
-      `⚠️ Aviso: Não foi possível checar GitHub Actions via gh CLI (${err.message}). Prosseguindo com verificações no banco.`,
+    console.error(
+      `❌ [FAIL-CLOSED] Falha ao verificar status do GitHub Actions via gh CLI: ${err.message}`,
+    );
+    throw new Error(
+      `[FAIL-CLOSED] Não foi possível verificar com segurança o status de ingestao-diaria-embeddings.yml (${err.message}). Abortando execução para proteção de concorrência.`,
     );
   }
 }
