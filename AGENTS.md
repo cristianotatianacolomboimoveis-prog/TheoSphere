@@ -82,7 +82,7 @@ lido por Antigravity, Cursor, Claude Code e afins.
    - **Migração automática:** o `start` (package.json e Dockerfile) roda `prisma migrate deploy` a cada deploy. A migração de halfvec estava em `prisma/migrations/` e seria aplicada sem D3. Ela foi movida para `docs/architecture/sql/`. **Atenção:** `20261105154000_billing_events` e `20261105163000_annotations` continuam na pasta e precisam de banco gravável. Com o Supabase em read-only, `migrate deploy` falha e o novo backend não sobe.
    - **Regressão no RAG:** depois de T0.2, uma falha de embedding (ex.: 429 do Gemini) rejeitava o `Promise.all` e derrubava também os contextos bíblico, léxico e de comentários, com log só em `debug`. Agora `RagService.gatherKnowledgeContexts` usa `Promise.allSettled` e registra em `warn` cada base indisponível. Coberto em `rag.service.spec.ts`.
 
-### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6, Decisões A e C)
+### Decisões Pendentes Exclusivas do Mantenedor (D1 a D6, Decisão C)
 
 - **D1:** Revogar o token do Railway exposto em `scripts/check-production-health.ts` no painel do Railway.
 - **D2:** Escolher e contratar gateway de pagamento (Mercado Pago, Asaas, Stripe) e configurar credenciais no dashboard do Render.
@@ -90,8 +90,8 @@ lido por Antigravity, Cursor, Claude Code e afins.
 - **D4:** Licenciamento comercial de traduções modernas brasileiras de púlpito (ARA/ARC/NAA — SBB; NVI — Biblica).
 - **D5:** Orçamento mensal de infraestrutura (Render pago, Redis dedicado, CDN de assets).
 - **D6:** Definição do público prioritário (pastoral/homilético vs seminarista/acadêmico) para ordenação de entregas da Fase 2.
-- **Decisão A (Nova):** Busca por palavra que ignora acentos (FTS). Atualmente, o braço de palavra (busca textual) retorna 0 resultados na NVA e BLIVRE quando a consulta omite diacríticos (ex.: "graca e paz" retorna 0 no braço de palavra onde o texto traz "graça"). A solução pode dispensar extensão (`normalize(text, NFD)` mais remoção dos sinais U+0300–036F e U+0591–05C7) ou usar índice FTS sem diacríticos, criado à noite com `CREATE INDEX CONCURRENTLY`. Logos e Accordance ignoram acentos por padrão. O efeito em LXX, WLC e TR não foi medido.
-- **Decisão C (Nova):** Instalação e governança de extensões no PostgreSQL Supabase (ex.: extensão `unaccent`).
+- **Decisão A:** Resolvida na Etapa 9 (2026-11-17/18): theo_unaccent e índice GIN de 18 MB; ver CHANGELOG.
+- **Decisão C (Nova):** Instalação e governança de extensões no PostgreSQL Supabase (a solução dispensou extensão, mas a governança continua em aberto).
 - **Pendência conhecida de latência:** Latência com cache frio (cerca de 2,5 a 3,5 s na primeira consulta vetorial aleatória após período ocioso), causada pela leitura de páginas fora do buffer cache do Supabase Nano (~2,7 ms por página lida de disco), estabilizando para 10–20 ms no banco a quente; resposta completa soma cerca de 0,5 s do Gemini.
 
 ---
@@ -287,6 +287,11 @@ A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licen�
 
 - A camada de busca (`SearchService`) normaliza qualquer entrada para uppercase trimmed (`translation?.toUpperCase().trim()`), eliminando divergências case-sensitive.
 - A interface (`BibleReader.tsx` e `TranslationPicker.tsx`) mapeia as edições integrais com identificação de idioma (PT, EN, GR, HE, LA) e sinaliza explicitamente qualquer amostra com a tag `Amostra` (`isPartial: true`).
+- **Limitação conhecida (Hebraico):** prefixos (ה, ל, ו, ב, מ, כ, ש) contam como palavra distinta; אלהים sozinho = 623 versículos, com qualquer prefixo = 1.071. Depende de morfologia (Fase 2).
+
+### 📅 Pendência com data
+
+- **24/11/2026:** DROP INDEX CONCURRENTLY "BibleVerse_text_fts_idx" (37 MB), à noite, depois de confirmar com `pg_stat_user_indexes.idx_scan` que o índice antigo não foi mais usado desde 18/11.
 
 ### 🟢 Acervo Clássico, Biblioteca Teológica e Índice de Referências (`Resource`)
 
