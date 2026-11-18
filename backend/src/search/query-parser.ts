@@ -54,7 +54,7 @@ export interface ParsedQuery {
   plain: string;
 }
 
-const FIELD_RE = /(\w+):([^\s"]+)/g;
+const FIELD_RE = /(\w+):([^\s"*][^\s"]*)/g;
 const PHRASE_RE = /"([^"]+)"/g;
 
 export function parseAdvancedQuery(raw: string): ParsedQuery {
@@ -203,19 +203,45 @@ export function parseAdvancedQuery(raw: string): ParsedQuery {
 }
 
 /**
+ * Utilitário de normalização de texto sem acentos e sem diacríticos (Etapa 9.1).
+ * Implementa exatamente a mesma lógica da função public.theo_unaccent no PostgreSQL:
+ * 1. normalize(text, NFD)
+ * 2. substitui maqaf, paseq, sof pasuq e nun hafukha ([\u05BE\u05C0\u05C3\u05C6]) por espaço
+ * 3. remove diacríticos latinos/gregos e niqqud/cantilações hebraicas ([\u0300-\u036F\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7])
+ */
+export function theoUnaccent(text: string): string {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u05BE\u05C0\u05C3\u05C6]/g, ' ')
+    .replace(
+      /[\u0300-\u036F\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g,
+      '',
+    );
+}
+
+/**
  * Build a Postgres `tsquery` string from a ParsedQuery. Uses `&` (AND),
  * `|` (OR groups) and `!` (NOT). Phrases use the `<->` proximity operator
  * for adjacent matches.
  *
+ * Normaliza os termos individuais com theoUnaccent antes de montar a consulta
+ * com operadores, preservando prefixos :* e sufixos de proximidade.
+ *
  * Returns null when there's nothing to search (only filters, no terms).
  */
 export function toTsQuery(p: ParsedQuery): string | null {
-  const escape = (term: string) =>
-    // Strip tsquery special chars; the lexer handles letters/digits/unicode.
-    term
+  const escape = (term: string) => {
+    // Preserva indicador de busca por prefixo em tsquery (:* ou *)
+    const isPrefix = term.endsWith(':*') || term.endsWith('*');
+    const base = term.replace(/:\*$/, '').replace(/\*$/, '');
+    const clean = theoUnaccent(base)
       .replace(/[&|!():'<>*]/g, ' ')
       .trim()
       .replace(/\s+/g, ' ');
+    if (!clean) return '';
+    return isPrefix ? `${clean}:*` : clean;
+  };
 
   const phrasePart = (phrase: string) => {
     const words = escape(phrase).split(' ').filter(Boolean);
