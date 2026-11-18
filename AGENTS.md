@@ -291,7 +291,7 @@ A tabela `BibleVerse` contém 8 edições canônicas de domínio público/licen�
 
 ### 📅 Pendência com data
 
-- **24/11/2026:** DROP INDEX CONCURRENTLY "BibleVerse_text_fts_idx" (37 MB), à noite, depois de confirmar com `pg_stat_user_indexes.idx_scan` que o índice antigo não foi mais usado desde 18/11.
+- **24/11/2026:** DROP INDEX CONCURRENTLY "BibleVerse_text_fts_idx" (37 MB), à noite, depois de confirmar que pg_stat_user_indexes.last_idx_scan do BibleVerse_text_fts_idx é anterior ao deploy do 5c5bac5 (18/11) ou nulo.
 
 ### 🟢 Acervo Clássico, Biblioteca Teológica e Índice de Referências (`Resource`)
 
