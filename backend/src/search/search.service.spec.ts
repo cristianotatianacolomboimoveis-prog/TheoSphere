@@ -739,4 +739,139 @@ describe('SearchService', () => {
       });
     });
   });
+
+  describe('Etapa 9.1: Busca Textual sem Acentos com public.theo_unaccent', () => {
+    const flatten = (node: unknown): string => {
+      if (node == null) return '';
+      const maybe = node as { strings?: string[]; values?: unknown[] };
+      if (Array.isArray(maybe.strings)) {
+        const vals = maybe.values ?? [];
+        return maybe.strings
+          .map((s, i) => s + (i < vals.length ? flatten(vals[i]) : ''))
+          .join('');
+      }
+      if (Array.isArray(node)) return node.map(flatten).join(' ');
+      return typeof node === 'string' ? node : '?';
+    };
+    const sqlOf = (call: unknown[]): string => {
+      const [strings, ...values] = call;
+      return flatten({ strings, values });
+    };
+
+    it('keywordSearch (via hybridSearchVerses) gera SQL com public.theo_unaccent no WHERE, no ts_rank e na consulta', async () => {
+      embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+      // Simula retorno do banco: 1 hit vetorial, 1 hit de palavra
+      prisma.$queryRaw
+        .mockResolvedValueOnce([]) // vector search (candidatos ou fallback)
+        .mockResolvedValueOnce([
+          {
+            id: 'v_kw_1',
+            bookId: 45,
+            chapter: 1,
+            verse: 7,
+            translation: 'NVA',
+            text: 'Graça e paz a vós...',
+            rank: 0.85,
+          },
+        ]);
+
+      const hits = await service.hybridSearchVerses('graça e paz', {
+        translation: 'NVA',
+      });
+      expect(hits).toHaveLength(1);
+      expect(hits[0].id).toBe('v_kw_1');
+
+      // Inspeciona as chamadas ao $queryRaw para encontrar a consulta de keywordSearch
+      const kwCall = prisma.$queryRaw.mock.calls.find((call: any) => {
+        const sql = sqlOf(call);
+        return sql.includes('plainto_tsquery');
+      });
+      expect(kwCall).toBeDefined();
+
+      const kwSql = sqlOf(kwCall);
+      // Exigências da Etapa 9.1:
+      // 1. WHERE contém public.theo_unaccent(text)
+      expect(kwSql).toContain(
+        "to_tsvector('simple', public.theo_unaccent(text)) @@",
+      );
+      // 2. ts_rank contém public.theo_unaccent(text)
+      expect(kwSql).toContain(
+        "ts_rank(to_tsvector('simple', public.theo_unaccent(text)),",
+      );
+      // 3. plainto_tsquery contém public.theo_unaccent( na consulta
+      expect(kwSql).toContain(
+        "plainto_tsquery('simple', public.theo_unaccent(",
+      );
+    });
+
+    it('searchAdvanced (com query estruturada) gera SQL com public.theo_unaccent no WHERE, no ts_rank e na consulta', async () => {
+      prisma.$queryRaw.mockResolvedValueOnce([
+        {
+          id: 'v_adv_1',
+          bookId: 45,
+          chapter: 1,
+          verse: 7,
+          translation: 'NVA',
+          text: 'Graça e paz a vós...',
+          rank: 0.92,
+        },
+      ]);
+
+      const { hits } = await service.advancedSearch(
+        'book:Romans "graça e paz"',
+        {
+          translation: 'NVA',
+        },
+      );
+      expect(hits).toHaveLength(1);
+      expect(hits[0].id).toBe('v_adv_1');
+
+      const advCall = prisma.$queryRaw.mock.calls[0];
+      const advSql = sqlOf(advCall);
+
+      // Exigências da Etapa 9.1:
+      // 1. WHERE contém public.theo_unaccent("text")
+      expect(advSql).toContain(
+        'to_tsvector(\'simple\', public.theo_unaccent("text")) @@',
+      );
+      // 2. ts_rank contém public.theo_unaccent("text")
+      expect(advSql).toContain(
+        'ts_rank(to_tsvector(\'simple\', public.theo_unaccent("text")),',
+      );
+      // 3. to_tsquery contém public.theo_unaccent( na consulta
+      expect(advSql).toContain("to_tsquery('simple', public.theo_unaccent(");
+    });
+
+    it('regressão de controle em inglês: preserva termos ASCII em keywordSearch e advancedSearch', async () => {
+      embeddings.createEmbedding.mockResolvedValue(new Array(768).fill(0.1));
+      prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        {
+          id: 'v_kjv_1',
+          bookId: 45,
+          chapter: 1,
+          verse: 7,
+          translation: 'KJV',
+          text: 'Grace to you and peace...',
+          rank: 0.88,
+        },
+      ]);
+
+      const hits = await service.hybridSearchVerses('grace and peace', {
+        translation: 'KJV',
+      });
+      expect(hits).toHaveLength(1);
+
+      const kwCall = prisma.$queryRaw.mock.calls.find((call: any) => {
+        const sql = sqlOf(call);
+        return sql.includes('plainto_tsquery');
+      });
+      const kwSql = sqlOf(kwCall);
+      expect(kwSql).toContain(
+        "to_tsvector('simple', public.theo_unaccent(text))",
+      );
+      expect(kwSql).toContain(
+        "plainto_tsquery('simple', public.theo_unaccent(",
+      );
+    });
+  });
 });

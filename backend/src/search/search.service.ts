@@ -344,9 +344,9 @@ export class SearchService {
 
     if (tsQ) {
       whereParts.push(
-        Prisma.sql`to_tsvector('simple', "text") @@ to_tsquery('simple', ${tsQ})`,
+        Prisma.sql`to_tsvector('simple', public.theo_unaccent("text")) @@ to_tsquery('simple', public.theo_unaccent(${tsQ}))`,
       );
-      orderBy = Prisma.sql`ts_rank(to_tsvector('simple', "text"), to_tsquery('simple', ${tsQ})) DESC,
+      orderBy = Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', public.theo_unaccent(${tsQ}))) DESC,
                           "bookId" ASC, "chapter" ASC, "verse" ASC`;
     } else {
       orderBy = Prisma.sql`"bookId" ASC, "chapter" ASC, "verse" ASC`;
@@ -371,7 +371,7 @@ export class SearchService {
       SELECT id, "bookId", chapter, verse, translation, text,
              ${
                tsQ
-                 ? Prisma.sql`ts_rank(to_tsvector('simple', "text"), to_tsquery('simple', ${tsQ}))`
+                 ? Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', public.theo_unaccent(${tsQ})))`
                  : Prisma.sql`1.0`
              } AS rank
       FROM "BibleVerse"
@@ -480,12 +480,13 @@ export class SearchService {
     // `plainto_tsquery` handles user input safely (no operator chars),
     // and `simple` config avoids language-specific stemming surprises
     // (the corpus is multi-lingual: PT, EN, GR, HE).
+    // `public.theo_unaccent` matches the accent-insensitive GIN index `BibleVerse_text_fts_norm_idx`.
     return this.prisma.$queryRaw<KeywordRow[]>`
       SELECT id, "bookId", chapter, verse, translation, text,
-             ts_rank(to_tsvector('simple', text),
-                     plainto_tsquery('simple', ${query})) AS rank
+             ts_rank(to_tsvector('simple', public.theo_unaccent(text)),
+                     plainto_tsquery('simple', public.theo_unaccent(${query}))) AS rank
       FROM "BibleVerse"
-      WHERE to_tsvector('simple', text) @@ plainto_tsquery('simple', ${query})
+      WHERE to_tsvector('simple', public.theo_unaccent(text)) @@ plainto_tsquery('simple', public.theo_unaccent(${query}))
         AND (${translation ?? null}::text IS NULL OR translation = ${translation ?? null})
       ORDER BY rank DESC
       LIMIT ${poolSize};

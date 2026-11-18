@@ -156,12 +156,40 @@ describe('toTsQuery', () => {
     expect(q).toBe('faith');
   });
 
-  it('NEAR/2 gera alternativas <1>..<2> nas duas direções', () => {
+  it('NEAR/2 gera alternativas <1>..<2> nas duas direções e normaliza sem acentos', () => {
     const q = toTsQuery(parseAdvancedQuery('graça NEAR/2 fé'));
-    expect(q).toContain('graça <1> fé');
-    expect(q).toContain('fé <1> graça');
-    expect(q).toContain('graça <2> fé');
-    expect(q).toContain('fé <2> graça');
+    expect(q).toContain('graca <1> fe');
+    expect(q).toContain('fe <1> graca');
+    expect(q).toContain('graca <2> fe');
+    expect(q).toContain('fe <2> graca');
+  });
+
+  it('normaliza termos com acento e preserva busca por prefixo :*', () => {
+    const q1 = toTsQuery(parseAdvancedQuery('coração:*'));
+    expect(q1).toBe('coracao:*');
+
+    const q2 = toTsQuery(parseAdvancedQuery('salvação*'));
+    expect(q2).toBe('salvacao:*');
+
+    const q3 = toTsQuery(parseAdvancedQuery('fé:* OR graça:*'));
+    expect(q3).toBe('(fe:* | graca:*)');
+  });
+
+  it('regressão com controle em inglês (preserva integridade de termos ASCII)', () => {
+    const q1 = toTsQuery(parseAdvancedQuery('"grace and peace"'));
+    expect(q1).toBe('(grace <-> and <-> peace)');
+
+    const q2 = toTsQuery(parseAdvancedQuery('faith OR hope -fear'));
+    expect(q2).toContain('(faith | hope)');
+    expect(q2).toContain('!fear');
+  });
+
+  it('normaliza termos hebraicos e gregos no toTsQuery', () => {
+    const qHeb = toTsQuery(parseAdvancedQuery('בְּרֵאשִׁ֖ית אֱלֹהִ֑ים'));
+    expect(qHeb).toBe('בראשית & אלהים');
+
+    const qGrk = toTsQuery(parseAdvancedQuery('λόγος OR θεός'));
+    expect(qGrk).toBe('(λογος | θεος)');
   });
 
   it('lemma: sozinho não gera tsquery (filtro é via EXISTS)', () => {

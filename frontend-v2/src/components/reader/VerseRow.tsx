@@ -7,6 +7,7 @@ import {
   HighlightColor,
   THEOLOGICAL_COLORS,
 } from "@/hooks/useVerseAnnotations";
+import { findMatchRanges, theoUnaccent } from "@/lib/theo-unaccent";
 
 interface VerseRowProps {
   verse: number;
@@ -23,27 +24,48 @@ interface VerseRowProps {
   onWordClick?: (word: string, e: React.MouseEvent) => void;
 }
 
-function HighlightedText({ text, query }: { text: string; query: string }) {
+export function HighlightedText({
+  text,
+  query,
+}: {
+  text: string;
+  query: string;
+}) {
   if (!query) return <>{text}</>;
-  const parts = text.split(
-    new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"),
-  );
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <mark
-            key={i}
-            className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded px-0.5"
-          >
-            {part}
-          </mark>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  );
+  const ranges = findMatchRanges(text, query);
+  if (ranges.length === 0) return <>{text}</>;
+
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  ranges.forEach((range, i) => {
+    if (range.start > lastIndex) {
+      nodes.push(text.slice(lastIndex, range.start));
+    }
+    const matched = text.slice(range.start, range.end);
+    const isMatch =
+      theoUnaccent(matched).toLowerCase() ===
+      theoUnaccent(query).toLowerCase().trim();
+    if (isMatch) {
+      nodes.push(
+        <mark
+          key={`m-${i}`}
+          className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded px-0.5"
+        >
+          {matched}
+        </mark>,
+      );
+    } else {
+      nodes.push(matched);
+    }
+    lastIndex = range.end;
+  });
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return <>{nodes}</>;
 }
 
 function InteractiveText({
