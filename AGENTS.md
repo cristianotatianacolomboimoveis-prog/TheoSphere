@@ -11,13 +11,19 @@ lido por Antigravity, Cursor, Claude Code e afins.
 
 ## 0. COMECE AQUI — onde o trabalho parou
 
-Última sessão: **2026-11-16** (fechamento da Etapa 7 / Etapa 8 publicado na `main`).
+Última sessão: **2026-11-18** (fechamento da Etapa 9: busca sem acento e correção de tsquery na busca avançada).
 
-- **Backend:** 634 testes passando (65 specs Jest), lint 0, typecheck 0, static-checks 0.
-- **Frontend:** 69 testes passando (9 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
+- **Backend:** 648 testes passando (65 specs Jest), lint 0, typecheck 0, static-checks 0.
+- **Frontend:** 73 testes passando (10 specs Vitest), lint 0 erros, typecheck 0 (`tsc --noEmit`).
 - **Produção frontend:** `https://frontend-v2-lake.vercel.app` (Vercel conectada ao Git: push na `main` publica).
 - **Backend Render:** `https://theosphere.onrender.com`, deploy automático pela `main` **funcionando**. ⚠️ O backend NÃO tem `setGlobalPrefix`: cada controller declara `api/v1/...` (só o health também). Sonde sempre com `/api/v1/<rota>` e um método que a rota aceita — sondar `GET` numa rota `POST` dá 404 e já gerou um falso diagnóstico de "Render parado".
-- **Banco Supabase:** 1.516 MB, plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 22 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
+- **Banco Supabase:** 1.535 MB, plano Pro. **Gravável desde 2026-11-06** (`default_transaction_read_only=off`). As 24 migrações estão aplicadas (`prisma migrate status`: up to date). Smoke de produção `node backend/scripts/smoke-teste-producao.mjs`: 8/8 etapas ok (cadastro, login, anotação grava/lê, billing/usage, feedback, leitura bíblica).
+- **Busca Textual sem Acento (FTS Normalizado) & Busca Avançada (Etapa 9):**
+  - Função `public.theo_unaccent(text)` (IMMUTABLE PARALLEL SAFE STRICT) em ASCII puro.
+  - Índice GIN `BibleVerse_text_fts_norm_idx` (18 MB, válido) em produção. O índice legado `BibleVerse_text_fts_idx` (37 MB) permanece ativo até 24/11/2026 por segurança operacional.
+  - Destaque sem acento no leitor (`VerseRow.tsx` / `theo-unaccent.ts`).
+  - `toTsQuery` em `query-parser.ts` trata termos multi-palavra (como os gerados por normalização de maqaf `־` ou pontuação) via proximidade `(w1 <-> w2 <-> ... <-> wN)`, aplicando `:*` apenas à última palavra em prefixos.
+  - `searchAdvanced` passa `tsQ` diretamente para `to_tsquery('simple', ${tsQ})`, sem re-normalização redundante de operadores no SQL.
 - **IA em produção restabelecida (2026-11-07):** chave nova do Gemini no Render; `/health/ai` = `ok`, chat com `degraded: false` (conferido de forma independente). No Render, `GEMINI_MODEL=gemini-3.5-flash` sobrepõe o padrão do código (`gemini-3.8-flash`), que estourava o timeout de 30 s. Ao mudar o padrão no código, lembre que a variável do Render prevalece. `AI_CREDITS_FREE_MONTHLY=100` ativo (smoke: `limite: 100`). `LIBRARY_VECTOR_SOURCE=resource_chunk` ativo no Render para busca na biblioteca via índice compacto (`ResourceChunk_embedding_bq_hnsw_idx`, 17 MB).
 - **Acervo e Índice de Recursos:** 88 obras distintas no `Resource` (89 entradas de catálogo), 45.092 chunks em `ResourceChunk` com embeddings `gemini:gemini-embedding-001:768` e índice compacto HNSW bit(768) de 17 MB; 140.286 referências em `ResourceReference` (31.912 `heading` + 108.374 `inline`); `UserEmbedding` higienizado e compacto (**40 linhas**, 20 `note` e 20 `highlight`, **296 kB**, medidas nesta sessão; cada smoke de produção cria usuário e anotação e não apaga; 0 `book_chunk`); índice compacto `BibleVerse_embedding_bq_hnsw_idx` com **65 MB**; soma total dos índices vetoriais no banco: **83,69 MB** (87.752.704 bytes; teto do Plano Nano < 150 MB atendido com ampla folga); catálogo canônico de 108 obras (`backend/src/bible/classic-catalog.ts`, sincronizado com `node scripts/sync-catalog.mjs`). Backup dos book_chunk preservado em `~/.theosphere_backups/user_embedding_book_chunks_20261111.jsonl.gz`.
 - **Busca Vetorial Binária em Duas Fases (`VECTOR_INDEX_MODE=binary`, padrão):** Recuperação candidata de $P = 200$ versículos via índice binário compacto (`bit(768)` com Hamming `<~>`), com `ef_search = 200` e `iterative_scan = 'relaxed_order'`, reordenados no banco com o vetor completo `<=>` (LIMIT 20). Recall empírico medido na Etapa 7.4 contra o ground-truth exato de ponto flutuante: BLIVRE 97,3% (Recall@10) / 95,7% (Recall@20), KJV 94,0% (Recall@10) / 90,0% (Recall@20).

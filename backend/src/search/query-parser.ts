@@ -231,34 +231,35 @@ export function theoUnaccent(text: string): string {
  * Returns null when there's nothing to search (only filters, no terms).
  */
 export function toTsQuery(p: ParsedQuery): string | null {
-  const escape = (term: string) => {
+  const escape = (term: string): string => {
+    if (!term) return '';
     // Preserva indicador de busca por prefixo em tsquery (:* ou *)
     const isPrefix = term.endsWith(':*') || term.endsWith('*');
     const base = term.replace(/:\*$/, '').replace(/\*$/, '');
     const clean = theoUnaccent(base)
       .replace(/[&|!():'<>*]/g, ' ')
-      .trim()
-      .replace(/\s+/g, ' ');
+      .trim();
     if (!clean) return '';
-    return isPrefix ? `${clean}:*` : clean;
-  };
-
-  const phrasePart = (phrase: string) => {
-    const words = escape(phrase).split(' ').filter(Boolean);
+    const words = clean.split(/\s+/).filter(Boolean);
     if (words.length === 0) return '';
+    if (isPrefix) {
+      words[words.length - 1] += ':*';
+    }
     if (words.length === 1) return words[0];
-    return words.join(' <-> ');
+    return `(${words.join(' <-> ')})`;
   };
 
   const parts: string[] = [];
 
   for (const phrase of p.phrases) {
-    const part = phrasePart(phrase);
-    if (part) parts.push(`(${part})`);
+    const part = escape(phrase);
+    if (part) {
+      parts.push(part.startsWith('(') ? part : `(${part})`);
+    }
   }
   for (const term of p.must) {
     const t = escape(term);
-    if (t) parts.push(t.replace(/\s+/g, ' & '));
+    if (t) parts.push(t);
   }
   for (const group of p.shouldGroups) {
     const orPart = group

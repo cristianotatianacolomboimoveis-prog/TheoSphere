@@ -838,8 +838,40 @@ describe('SearchService', () => {
       expect(advSql).toContain(
         'ts_rank(to_tsvector(\'simple\', public.theo_unaccent("text")),',
       );
-      // 3. to_tsquery contém public.theo_unaccent( na consulta
-      expect(advSql).toContain("to_tsquery('simple', public.theo_unaccent(");
+      // 3. to_tsquery recebe a query tsQ diretamente (já normalizada em JS por theoUnaccent)
+      expect(advSql).toContain("to_tsquery('simple', ");
+      expect(advSql).not.toContain(
+        "to_tsquery('simple', public.theo_unaccent(",
+      );
+    });
+
+    it('advancedSearch com termos hebraicos ligados por maqaf gera to_tsquery seguro sem erro de sintaxe', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        {
+          id: 'v_adv_heb',
+          bookId: 1,
+          chapter: 1,
+          verse: 1,
+          translation: 'WLC',
+          text: 'בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים אֵ֥ת הַשָּׁמַ֖יִם וְאֵ֥ת הָאָֽרֶץ׃',
+          rank: 0.95,
+        },
+      ]);
+
+      const { hits } = await service.advancedSearch(
+        'book:Genesis אֶת־הָאָרֶץ OR שמים',
+        {
+          translation: 'WLC',
+        },
+      );
+      expect(hits).toHaveLength(1);
+
+      const advCall = prisma.$queryRaw.mock.calls[0];
+      const advSql = sqlOf(advCall);
+      expect(advSql).toContain(
+        'to_tsvector(\'simple\', public.theo_unaccent("text")) @@',
+      );
+      expect(advSql).toContain("to_tsquery('simple', ");
     });
 
     it('regressão de controle em inglês: preserva termos ASCII em keywordSearch e advancedSearch', async () => {

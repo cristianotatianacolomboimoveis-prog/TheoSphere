@@ -88,3 +88,36 @@ Histórico de entregas, melhorias e marcos de desenvolvimento do TheoSphere.
     - **BLIVRE:** Recall@10 médio de **97,3%**, Recall@20 médio de **95,7%**, latência mediana de **374 ms**.
     - **KJV:** Recall@10 médio de **94,0%**, Recall@20 médio de **90,0%**, latência mediana de **267 ms**.
   - **Pendência B Fechada:** Validação empírica de que a sobre-recuperação binária quantizada com $P = 200$ e reordenação fina com `<=>` preserva o ranking exato com ampla folga de memória (índice em 65 MB, soma dos HNSW em 83,69 MB) sem necessidade de mudanças no código.
+
+---
+
+## Plano Nano — Etapa 8: Resolução de Débitos Técnicos e Auditoria de Segurança (2026-11-17)
+
+- **Auditoria dos 13 Pontos (Commit `2797e37`):**
+  - Concluída a revisão e resolução de todos os 13 débitos técnicos apontados no relatório de integridade arquitetural.
+  - Ajustes de convenção de documentação: formalizadas as definições de `ALLOW_LEGACY_LIBRARY_INGEST` e `VECTOR_INDEX_MODE` na Tabela 2.1 de `AGENTS.md`.
+  - Tratamento de `userId` hardcoded em `drive-rag.service.ts (handleDailySync)` com isolamento adequado para tarefas de background.
+  - Verificação de 100% dos testes e conformidade com o static-checks.
+
+---
+
+## Plano Nano — Etapa 9: Busca sem Acento (FTS Normalizado) e Busca Avançada (2026-11-18)
+
+- **9.0 Medição Prévia de Paridade Textual (Script `backend/scripts/medir-busca-sem-acento.ts`):**
+  - Auditoria em transação única `READ ONLY` com `statement_timeout = 15s` sem chamadas ao Gemini.
+  - Confirmado `server_encoding = UTF8`, `provolatile = i` para `normalize(text, form)` no catálogo `pg_proc`.
+  - Medição de recall FTS sem acento em todas as 7 traduções canônicas (`BLIVRE`, `NVA`, `KJV`, `WEB`, `TR`, `LXX`, `WLC`): **0 resultados perdidos**, 0 colisões espúrias indesejadas e paridade estrita nos controles em inglês e nas línguas originais.
+- **9.1a Criação Concorrente de Função e Índice GIN no Supabase:**
+  - Criada função `public.theo_unaccent(text)` com atributos `IMMUTABLE PARALLEL SAFE STRICT` e corpo serializado em ASCII puro (`\u...`).
+  - Criado concorrentemente o índice GIN `BibleVerse_text_fts_norm_idx` em 26,5 s com tamanho medido de **18 MB** (`indisvalid = true`).
+  - `EXPLAIN (ANALYZE, BUFFERS)` na NVA confirmou uso estrito de `Bitmap Index Scan on "BibleVerse_text_fts_norm_idx"` com execução em **0,549 ms**.
+- **9.1b Implementação de Código, Migrações e Destaque no Leitor:**
+  - Migrações Prisma registradas: `20261117220000_theo_unaccent_function` e `20261117221000_bible_verse_text_fts_norm_idx` (com `SET lock_timeout = '5s'`).
+  - Atualizado `keywordSearch` em `search.service.ts` para casar `to_tsvector('simple', public.theo_unaccent(text))` com `plainto_tsquery('simple', public.theo_unaccent(${query}))`.
+  - Frontend (`VerseRow.tsx` e `theo-unaccent.ts`): destacador visual `findMatchRanges` normalizado para casar consultas sem diacríticos contra textos originais preservando posições exatas dos caracteres.
+- **Correção da Regressão 500 na Busca Avançada (Maqaf Hebraico e Operadores tsquery):**
+  - **Causa Raiz:** Em consultas estruturadas como `book:Genesis אֶת־הָאָרֶץ OR שמים` e exclusões `-אֶת־הָאָרֶץ`, a substituição do maqaf (`־`) e caracteres de pontuação gerava termos multi-palavra sem operadores em `shouldGroups` e `mustNot`, provocando `syntax error in tsquery` (500) no Postgres. Além disso, o SQL de `searchAdvanced` aplicava redundantemente `public.theo_unaccent` sobre a expressão `tsQ` já estruturada em JavaScript.
+  - **Correção em `query-parser.ts`:** O helper `escape` agora encapsula termos multi-palavra como adjacência `(w1 <-> w2 <-> ... <-> wN)`, aplicando o sufixo de prefixo `:*` exclusivamente à última palavra.
+  - **Correção em `search.service.ts`:** `to_tsquery('simple', ${tsQ})` passa a receber `tsQ` diretamente, preservando os operadores `&`, `|`, `!`, `<->` e parênteses construídos pelo parser, mantendo `public.theo_unaccent(text)` na coluna para casar com o índice GIN `BibleVerse_text_fts_norm_idx`.
+  - **Busca por Prefixo:** Formalizado suporte a buscas por prefixo terminadas em `*` ou `:*` (ex.: `gra*`, `salvação*`).
+  - **Observabilidade:** O índice legado `BibleVerse_text_fts_idx` (37 MB) permanece intacto no banco até **24/11/2026**, quando será removido com segurança.

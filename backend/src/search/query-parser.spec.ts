@@ -192,6 +192,61 @@ describe('toTsQuery', () => {
     expect(qGrk).toBe('(λογος | θεος)');
   });
 
+  describe('correção de regressão da Etapa 9.1b (maqaf hebraico e termos multi-palavra em tsquery)', () => {
+    it('maqaf hebraico em grupo OR gera proximidade adjacente <-> entre parênteses', () => {
+      const q = toTsQuery(parseAdvancedQuery('אֶת־הָאָרֶץ OR שמים'));
+      expect(q).toBe('((את <-> הארץ) | שמים)');
+    });
+
+    it('maqaf hebraico em exclusão -termo gera !(w1 <-> w2)', () => {
+      const q = toTsQuery(parseAdvancedQuery('שמים -אֶת־הָאָרֶץ'));
+      expect(q).toBe('שמים & !(את <-> הארץ)');
+    });
+
+    it('maqaf hebraico em frase exata gera (w1 <-> w2)', () => {
+      const q = toTsQuery(parseAdvancedQuery('"אֶת־הָאָרֶץ"'));
+      expect(q).toBe('(את <-> הארץ)');
+    });
+
+    it('maqaf hebraico com busca por prefixo * aplica :* somente à última palavra', () => {
+      const q = toTsQuery(parseAdvancedQuery('אֶת־הָאָרֶץ*'));
+      expect(q).toBe('(את <-> הארץ:*)');
+    });
+
+    it('termos com parênteses ou caracteres especiais em OR geram proximidade válida', () => {
+      const q = toTsQuery(parseAdvancedQuery('a(b OR c'));
+      expect(q).toBe('((a <-> b) | c)');
+    });
+
+    it('termos compostos apenas por caracteres especiais ou vazios não deixam operadores órfãos', () => {
+      expect(toTsQuery(parseAdvancedQuery('***'))).toBeNull();
+      expect(toTsQuery(parseAdvancedQuery(':::'))).toBeNull();
+      expect(toTsQuery(parseAdvancedQuery('   '))).toBeNull();
+      expect(toTsQuery(parseAdvancedQuery('*** OR :::'))).toBeNull();
+      expect(toTsQuery(parseAdvancedQuery('graça OR ***'))).toBe('(graca)');
+    });
+
+    it('garante que nenhuma saída do toTsQuery contenha duas palavras adjacentes sem operador', () => {
+      const queries = [
+        'book:Genesis אֶת־הָאָרֶץ OR שמים',
+        'book:Genesis שמים -אֶת־הָאָרֶץ',
+        'book:Genesis אֶת־הָאָרֶץ*',
+        'a(b OR c',
+        'graça fé -amor',
+        '"no princípio" Deus',
+        'coração:* OR salvação*',
+      ];
+
+      for (const raw of queries) {
+        const tsQ = toTsQuery(parseAdvancedQuery(raw));
+        expect(tsQ).not.toBeNull();
+        // Não pode haver duas sequências de caracteres alfanuméricos/letras separadas apenas por espaço
+        // sem um operador intermediário (&, |, !, <->, <N>)
+        expect(tsQ).not.toMatch(/[\p{L}\d:*]+\s+[\p{L}\d:*]+/u);
+      }
+    });
+  });
+
   it('lemma: sozinho não gera tsquery (filtro é via EXISTS)', () => {
     expect(toTsQuery(parseAdvancedQuery('lemma:ἀγαπάω'))).toBeNull();
   });

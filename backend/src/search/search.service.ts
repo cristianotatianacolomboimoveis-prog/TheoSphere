@@ -344,9 +344,9 @@ export class SearchService {
 
     if (tsQ) {
       whereParts.push(
-        Prisma.sql`to_tsvector('simple', public.theo_unaccent("text")) @@ to_tsquery('simple', public.theo_unaccent(${tsQ}))`,
+        Prisma.sql`to_tsvector('simple', public.theo_unaccent("text")) @@ to_tsquery('simple', ${tsQ})`,
       );
-      orderBy = Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', public.theo_unaccent(${tsQ}))) DESC,
+      orderBy = Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', ${tsQ})) DESC,
                           "bookId" ASC, "chapter" ASC, "verse" ASC`;
     } else {
       orderBy = Prisma.sql`"bookId" ASC, "chapter" ASC, "verse" ASC`;
@@ -371,7 +371,7 @@ export class SearchService {
       SELECT id, "bookId", chapter, verse, translation, text,
              ${
                tsQ
-                 ? Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', public.theo_unaccent(${tsQ})))`
+                 ? Prisma.sql`ts_rank(to_tsvector('simple', public.theo_unaccent("text")), to_tsquery('simple', ${tsQ}))`
                  : Prisma.sql`1.0`
              } AS rank
       FROM "BibleVerse"
